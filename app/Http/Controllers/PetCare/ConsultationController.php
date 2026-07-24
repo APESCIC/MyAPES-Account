@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\User;
+use App\Notifications\ConsultationUpdatedNotification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,6 +53,8 @@ class ConsultationController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
+        $this->notifyConsultationStakeholders($consultation, $request->user(), 'created');
+
         return redirect()->route('petcare.consultations.show', $consultation);
     }
 
@@ -91,6 +94,8 @@ class ConsultationController extends Controller
             'closed_at' => $validated['status'] === 'closed' ? now() : null,
         ]);
 
+        $this->notifyConsultationStakeholders($consultation, $request->user(), 'updated');
+
         return redirect()->route('petcare.consultations.show', $consultation)->with('status', 'Consultation updated.');
     }
 
@@ -121,6 +126,23 @@ class ConsultationController extends Controller
 
         if ($pet->user_id !== $user->id) {
             abort(403);
+        }
+    }
+
+    private function notifyConsultationStakeholders(PetCareConsultation $consultation, User $actor, string $eventLabel): void
+    {
+        $staffRecipients = User::query()
+            ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+            ->get();
+
+        $recipients = $staffRecipients
+            ->push($consultation->user)
+            ->when($consultation->assignedTo !== null, fn ($collection) => $collection->push($consultation->assignedTo))
+            ->unique('id')
+            ->reject(fn (User $recipient): bool => $recipient->id === $actor->id);
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify(new ConsultationUpdatedNotification($consultation, $actor, $eventLabel));
         }
     }
 }

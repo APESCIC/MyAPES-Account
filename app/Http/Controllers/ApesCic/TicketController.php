@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ApesCic;
 use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\TicketUpdatedNotification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,6 +50,8 @@ class TicketController extends Controller
             'message' => 'Ticket created.',
             'is_staff_note' => false,
         ]);
+
+        $this->notifyTicketStakeholders($ticket, $request->user(), 'created');
 
         return redirect()->route('apes-cic.tickets.show', $ticket);
     }
@@ -96,6 +99,8 @@ class TicketController extends Controller
             ]);
         }
 
+        $this->notifyTicketStakeholders($ticket, $request->user(), 'updated');
+
         return redirect()->route('apes-cic.tickets.show', $ticket)->with('status', 'Ticket updated.');
     }
 
@@ -120,6 +125,23 @@ class TicketController extends Controller
 
         if ($ticket->user_id !== $user->id) {
             abort(403);
+        }
+    }
+
+    private function notifyTicketStakeholders(SupportTicket $ticket, User $actor, string $eventLabel): void
+    {
+        $staffRecipients = User::query()
+            ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+            ->get();
+
+        $ticketRecipients = $staffRecipients
+            ->push($ticket->user)
+            ->when($ticket->assignedTo !== null, fn ($collection) => $collection->push($ticket->assignedTo))
+            ->unique('id')
+            ->reject(fn (User $recipient): bool => $recipient->id === $actor->id);
+
+        foreach ($ticketRecipients as $recipient) {
+            $recipient->notify(new TicketUpdatedNotification($ticket, $actor, $eventLabel));
         }
     }
 }

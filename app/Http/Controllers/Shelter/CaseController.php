@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\User;
+use App\Notifications\ShelterCaseUpdatedNotification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,6 +53,8 @@ class CaseController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
+        $this->notifyCaseStakeholders($case, $request->user(), 'created');
+
         return redirect()->route('shelter.cases.show', $case);
     }
 
@@ -89,6 +92,8 @@ class CaseController extends Controller
             'closed_at' => $validated['status'] === 'closed' ? now() : null,
         ]);
 
+        $this->notifyCaseStakeholders($case, $request->user(), 'updated');
+
         return redirect()->route('shelter.cases.show', $case)->with('status', 'Case updated.');
     }
 
@@ -119,6 +124,23 @@ class CaseController extends Controller
 
         if ($pet->user_id !== $user->id) {
             abort(403);
+        }
+    }
+
+    private function notifyCaseStakeholders(ShelterCase $case, User $actor, string $eventLabel): void
+    {
+        $staffRecipients = User::query()
+            ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+            ->get();
+
+        $recipients = $staffRecipients
+            ->push($case->user)
+            ->when($case->assignedTo !== null, fn ($collection) => $collection->push($case->assignedTo))
+            ->unique('id')
+            ->reject(fn (User $recipient): bool => $recipient->id === $actor->id);
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify(new ShelterCaseUpdatedNotification($case, $actor, $eventLabel));
         }
     }
 }
