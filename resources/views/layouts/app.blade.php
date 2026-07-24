@@ -48,6 +48,10 @@
         form.inline { display: inline; }
         footer { border-top: 1px solid #e2e8f0; color: #475569; text-align: center; padding: 1rem; margin-top: 2rem; font-size: .9rem; }
         .hero-image { width: 100%; border-radius: .8rem; display: block; margin-bottom: 1rem; }
+        .qa-switcher { margin-bottom: 1rem; background: #fffbeb; border-left: 4px solid #f59e0b; padding: .75rem; border-radius: .4rem; }
+        .qa-switcher-forms { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+        .qa-switcher-forms form { display: inline; }
+        .qa-switcher-forms button { background: #92400e; }
     </style>
 </head>
 <body>
@@ -81,6 +85,29 @@
     @endguest
 </header>
 <main>
+    @if(app()->environment(['local', 'testing']))
+        <div class="qa-switcher">
+            <strong>Local QA mode:</strong> Public Login auto-signs in to the seeded public account.
+            Use quick role switch to validate staff/admin flows.
+            <div class="qa-switcher-forms">
+                <form method="post" action="{{ route('qa.switch-role') }}">
+                    @csrf
+                    <input type="hidden" name="role" value="service_user">
+                    <button type="submit">Switch to Public</button>
+                </form>
+                <form method="post" action="{{ route('qa.switch-role') }}">
+                    @csrf
+                    <input type="hidden" name="role" value="staff">
+                    <button type="submit">Switch to Staff</button>
+                </form>
+                <form method="post" action="{{ route('qa.switch-role') }}">
+                    @csrf
+                    <input type="hidden" name="role" value="admin">
+                    <button type="submit">Switch to Admin</button>
+                </form>
+            </div>
+        </div>
+    @endif
     @if(session('status'))
         <div class="alert">{{ session('status') }}</div>
     @endif

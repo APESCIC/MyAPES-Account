@@ -30,6 +30,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/staff/login', [PublicAuthController::class, 'localStaffLogin'])->name('staff.local-login.submit');
 });
 
+Route::post('/qa/switch-role', [PublicAuthController::class, 'qaSwitchRole'])->name('qa.switch-role');
+
 Route::prefix('staff/auth')->controller(OidcAuthController::class)->group(function (): void {
     Route::get('/login', 'login')->name('staff.auth.login');
     Route::get('/callback', 'callback')->name('staff.auth.callback');

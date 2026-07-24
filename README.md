@@ -20,8 +20,9 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 ### Login entry points
 
 - `/` - landing page with Public Login, Register, and Staff Login choices
-- `/login` and `/register` - public account authentication
+- `/login` and `/register` - public account authentication (in local/testing, `/login` auto-signs in to the seeded public user)
 - `/staff/login` - dedicated staff login page that starts Cloudron OIDC
+- local/testing only: QA role switcher (Public/Staff/Admin) available in the app layout for one-click identity switching
 
 ## Brand assets (MyAPES Account variant)
 
@@ -93,12 +94,22 @@ All seeded users use this password:
 
 - `MyAPES-Local-QA-2026!`
 
+In local/testing, opening `/login` immediately signs into the seeded public account. Use the in-app QA role switcher to move between Public, Staff, and Admin without re-entering credentials.
+
 | Role | Login email | Login route | Primary QA coverage |
 | --- | --- | --- | --- |
-| Public service user | `qa.service.user@myapes.local` | `/login` | Public dashboard, profile/settings, APES CIC tickets, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
-| Staff | `qa.staff@myapes.local` | `/staff/login` (local direct login form) | Staff visibility across all user records, assignment updates, staff notes and status workflows |
-| Admin | `qa.admin@myapes.local` | `/staff/login` (local direct login form) | All staff workflows plus `/admin` dashboard and admin navigation access |
+| Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC tickets, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
+| Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff visibility across all user records, assignment updates, staff notes and status workflows |
+| Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | All staff workflows plus `/admin` dashboard and admin navigation access |
 | Superadmin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Same as admin with superadmin role mapping coverage |
+
+### Feature test matrix by seeded role
+
+| Role | Key flows to validate quickly |
+| --- | --- |
+| Public | Create/view own APES CIC tickets, update own shelter/pet care records, edit profile/settings, verify owner-only visibility |
+| Staff | See all users' tickets/cases/consultations, assign records to staff/admin, update statuses and staff notes |
+| Admin | Run full staff workflows plus access `/admin` summary and confirm admin navigation/permissions |
 
 ### Seeded data included for quick E2E checks
 
