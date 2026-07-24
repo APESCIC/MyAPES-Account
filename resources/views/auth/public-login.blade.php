@@ -4,7 +4,6 @@
 
 @section('content')
     <div class="panel">
-        <img src="{{ asset('mascot/beardie-wave.svg') }}" alt="Bearded dragon mascot welcoming public users" class="brand-mascot">
         <h1>Public Login</h1>
         <p class="muted">Sign in to access your services, profile, and pet records.</p>
         <form method="post" action="{{ route('public.login.submit') }}">

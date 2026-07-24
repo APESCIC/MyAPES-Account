@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 
 class LocalQaSeeder extends Seeder
@@ -32,7 +33,7 @@ class LocalQaSeeder extends Seeder
             return;
         }
 
-        $seededAt = CarbonImmutable::parse('2026-01-15 09:00:00', 'UTC');
+        $seededAt = CarbonImmutable::parse('2026-07-24 09:00:00', 'Europe/London')->utc();
 
         $serviceUser = $this->upsertUser(
             self::SERVICE_USER_EMAIL,
@@ -96,6 +97,33 @@ class LocalQaSeeder extends Seeder
                 'is_staff_note' => true,
             ],
         ]);
+        $this->setTimestamps($openTicket, $seededAt->addMinutes(40));
+
+        $followUpTicket = SupportTicket::query()->updateOrCreate(
+            ['user_id' => $serviceUser->id, 'subject' => 'QA Seed: Documentation follow-up'],
+            [
+                'assigned_to' => $staffUser->id,
+                'service_area' => 'legal',
+                'priority' => 'medium',
+                'status' => 'open',
+                'description' => 'Supporting documents are ready for a final service review.',
+                'closed_at' => null,
+            ]
+        );
+        $followUpTicket->messages()->delete();
+        $followUpTicket->messages()->createMany([
+            [
+                'user_id' => $serviceUser->id,
+                'message' => 'The requested supporting documents have been uploaded.',
+                'is_staff_note' => false,
+            ],
+            [
+                'user_id' => $staffUser->id,
+                'message' => 'Ready for final document review.',
+                'is_staff_note' => true,
+            ],
+        ]);
+        $this->setTimestamps($followUpTicket, $seededAt->addMinutes(20));
 
         $closedTicket = SupportTicket::query()->updateOrCreate(
             ['user_id' => $serviceUser->id, 'subject' => 'QA Seed: HR policy clarification'],
@@ -121,6 +149,7 @@ class LocalQaSeeder extends Seeder
                 'is_staff_note' => true,
             ],
         ]);
+        $this->setTimestamps($closedTicket, $seededAt->subDays(3));
 
         $shelterPet = PetProfile::query()->updateOrCreate(
             [
@@ -154,7 +183,7 @@ class LocalQaSeeder extends Seeder
             ]
         );
 
-        ShelterCase::query()->updateOrCreate(
+        $rescueCase = ShelterCase::query()->updateOrCreate(
             ['pet_profile_id' => $shelterPet->id, 'title' => 'QA Seed: Mango rescue intake'],
             [
                 'user_id' => $serviceUser->id,
@@ -165,8 +194,22 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => null,
             ]
         );
+        $this->setTimestamps($rescueCase, $seededAt->subMinutes(5));
 
-        ShelterCase::query()->updateOrCreate(
+        $fosterCase = ShelterCase::query()->updateOrCreate(
+            ['pet_profile_id' => $shelterPet->id, 'title' => 'QA Seed: Mango foster placement review'],
+            [
+                'user_id' => $serviceUser->id,
+                'assigned_to' => $adminUser->id,
+                'case_type' => 'fostering',
+                'status' => 'open',
+                'details' => 'Confirming a calm temporary placement and transport plan.',
+                'closed_at' => null,
+            ]
+        );
+        $this->setTimestamps($fosterCase, $seededAt->subDay()->addHours(3));
+
+        $closedShelterCase = ShelterCase::query()->updateOrCreate(
             ['pet_profile_id' => $shelterPet->id, 'title' => 'QA Seed: Mango adoption follow-up'],
             [
                 'user_id' => $serviceUser->id,
@@ -177,8 +220,9 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => $seededAt->subDays(2),
             ]
         );
+        $this->setTimestamps($closedShelterCase, $seededAt->subDays(2));
 
-        PetCareConsultation::query()->updateOrCreate(
+        $wellnessConsultation = PetCareConsultation::query()->updateOrCreate(
             ['pet_profile_id' => $petCarePet->id, 'subject' => 'QA Seed: Pico annual wellness consult'],
             [
                 'user_id' => $serviceUser->id,
@@ -189,8 +233,22 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => null,
             ]
         );
+        $this->setTimestamps($wellnessConsultation, $seededAt->subDays(2)->addHours(4));
 
-        PetCareConsultation::query()->updateOrCreate(
+        $enrichmentConsultation = PetCareConsultation::query()->updateOrCreate(
+            ['pet_profile_id' => $petCarePet->id, 'subject' => 'QA Seed: Pico nutrition enrichment review'],
+            [
+                'user_id' => $serviceUser->id,
+                'assigned_to' => $staffUser->id,
+                'status' => 'open',
+                'notes' => 'Review foraging activities and seasonal food variety.',
+                'scheduled_for' => $seededAt->addDays(5),
+                'closed_at' => null,
+            ]
+        );
+        $this->setTimestamps($enrichmentConsultation, $seededAt->subDays(3)->addHours(2));
+
+        $closedConsultation = PetCareConsultation::query()->updateOrCreate(
             ['pet_profile_id' => $petCarePet->id, 'subject' => 'QA Seed: Pico beak health follow-up'],
             [
                 'user_id' => $serviceUser->id,
@@ -201,6 +259,7 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => $seededAt->subDays(3),
             ]
         );
+        $this->setTimestamps($closedConsultation, $seededAt->subDays(3));
     }
 
     private function upsertUser(
@@ -239,5 +298,13 @@ class LocalQaSeeder extends Seeder
                 'avatar_path' => null,
             ]
         );
+    }
+
+    private function setTimestamps(Model $model, CarbonImmutable $updatedAt): void
+    {
+        $model->forceFill([
+            'created_at' => $updatedAt->subHour(),
+            'updated_at' => $updatedAt,
+        ])->saveQuietly();
     }
 }

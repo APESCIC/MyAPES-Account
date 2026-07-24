@@ -6,8 +6,22 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$RootDir = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+$RootDir = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $RootDir
+
+function Invoke-CheckedCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Command,
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$Arguments
+    )
+
+    & $Command @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Command failed with exit code ${LASTEXITCODE}: $Command $($Arguments -join ' ')"
+    }
+}
 
 foreach ($tool in @("php", "composer", "npm")) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
@@ -15,46 +29,94 @@ foreach ($tool in @("php", "composer", "npm")) {
     }
 }
 
-if (-not (Test-Path ".\artisan")) {
-    throw "artisan was not found in $RootDir. Run this inside the Laravel project root."
-}
-
-if (-not (Test-Path ".\composer.json")) {
-    throw "composer.json was not found in $RootDir. Run this inside the Laravel project root."
-}
-
-if (-not (Test-Path ".\.env")) {
-    if (Test-Path ".\.env.example") {
-        Copy-Item ".\.env.example" ".\.env"
-        Write-Host "Created .env from .env.example"
-    } else {
-        throw "Neither .env nor .env.example exists."
+foreach ($requiredFile in @(".\artisan", ".\composer.json", ".\.env.local.example")) {
+    if (-not (Test-Path -LiteralPath $requiredFile)) {
+        throw "Required local bootstrap file is missing: $requiredFile"
     }
 }
 
-$envPath = ".\\.env"
-$envContent = Get-Content $envPath -Raw
-if ($envContent -match '(?m)^SESSION_SECURE_COOKIE=') {
-    $envContent = [regex]::Replace($envContent, '(?m)^SESSION_SECURE_COOKIE=.*$', 'SESSION_SECURE_COOKIE=false', 1)
-} else {
-    $envContent = $envContent.TrimEnd("`r", "`n") + "`r`nSESSION_SECURE_COOKIE=false`r`n"
+$envPath = Join-Path $RootDir ".env"
+if (-not (Test-Path -LiteralPath $envPath)) {
+    Copy-Item -LiteralPath (Join-Path $RootDir ".env.local.example") -Destination $envPath
+    Write-Host "Created .env from .env.local.example"
 }
-Set-Content -Path $envPath -Value $envContent
 
-composer install --no-interaction --prefer-dist
-npm install --no-audit --no-fund
-php artisan key:generate --force
+$envContent = [System.IO.File]::ReadAllText($envPath)
+$appEnvironmentMatch = [regex]::Match($envContent, '(?m)^APP_ENV=(?<value>.*)$')
+$appEnvironment = if ($appEnvironmentMatch.Success) {
+    $appEnvironmentMatch.Groups['value'].Value.Trim().Trim('"').Trim("'")
+} else {
+    ""
+}
+
+if ($appEnvironment -notin @("local", "testing")) {
+    throw "Refusing to rewrite .env because APP_ENV is '$appEnvironment'. Local bootstrap only accepts local or testing environments."
+}
+
+function Set-LocalEnvValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    $pattern = "(?m)^$([regex]::Escape($Key))=.*$"
+    $replacement = "${Key}=${Value}"
+
+    if ([regex]::IsMatch($script:envContent, $pattern)) {
+        $script:envContent = [regex]::Replace($script:envContent, $pattern, $replacement, 1)
+    } else {
+        $script:envContent = $script:envContent.TrimEnd("`r", "`n") + "`r`n${replacement}`r`n"
+    }
+}
+
+$sqlitePath = Join-Path $RootDir "database\database.sqlite"
+if (-not (Test-Path -LiteralPath $sqlitePath)) {
+    New-Item -ItemType File -Path $sqlitePath | Out-Null
+}
+
+$sqliteEnvPath = $sqlitePath.Replace("\", "/")
+Set-LocalEnvValue -Key "APP_ENV" -Value "local"
+Set-LocalEnvValue -Key "APP_DEBUG" -Value "true"
+Set-LocalEnvValue -Key "APP_URL" -Value "http://127.0.0.1:8000"
+Set-LocalEnvValue -Key "DB_CONNECTION" -Value "sqlite"
+Set-LocalEnvValue -Key "DB_DATABASE" -Value $sqliteEnvPath
+Set-LocalEnvValue -Key "CACHE_STORE" -Value "file"
+Set-LocalEnvValue -Key "SESSION_DRIVER" -Value "file"
+Set-LocalEnvValue -Key "SESSION_SECURE_COOKIE" -Value "false"
+Set-LocalEnvValue -Key "QUEUE_CONNECTION" -Value "sync"
+Set-LocalEnvValue -Key "MAIL_MAILER" -Value "log"
+
+[System.IO.File]::WriteAllText(
+    $envPath,
+    $envContent,
+    [System.Text.UTF8Encoding]::new($false)
+)
+
+Invoke-CheckedCommand composer install --no-interaction --prefer-dist
+Invoke-CheckedCommand npm install --no-audit --no-fund
+
+$refreshedEnv = [System.IO.File]::ReadAllText($envPath)
+if ($refreshedEnv -match '(?m)^APP_KEY=\s*$') {
+    Invoke-CheckedCommand php artisan key:generate --force
+}
 
 if ($Fresh) {
     Write-Host "Running destructive local QA reset (migrate:fresh --seed)."
-    php artisan migrate:fresh --seed --force
+    Invoke-CheckedCommand php artisan migrate:fresh --seed --force
 } elseif ($Seed) {
-    php artisan migrate --force
-    php artisan db:seed --force
+    Invoke-CheckedCommand php artisan migrate --force
+    Invoke-CheckedCommand php artisan db:seed --force
 } else {
-    php artisan migrate --force
+    Invoke-CheckedCommand php artisan migrate --force
 }
 
-php artisan storage:link --force
+if (Test-Path -LiteralPath (Join-Path $RootDir "public\storage")) {
+    Write-Host "Storage link already exists."
+} else {
+    Invoke-CheckedCommand php artisan storage:link
+}
+Invoke-CheckedCommand npm run build
 
-Write-Host "Local bootstrap complete."
+Write-Host "Local bootstrap complete. Run 'composer run dev' to start MyAPES Account."

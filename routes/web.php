@@ -12,9 +12,7 @@ use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('auth.landing');
-})->name('home');
+Route::view('/', 'auth.landing')->name('home');
 
 Route::middleware('guest')->controller(PublicAuthController::class)->group(function (): void {
     Route::get('/login', 'showLogin')->name('public.login');

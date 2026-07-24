@@ -5,7 +5,7 @@
 @section('content')
     <div class="panel">
         <img src="{{ asset('logos/myapes-header-dark.svg') }}" alt="MyAPES Account" class="logo-hero">
-        <img src="{{ asset('mascot/beardie-cozy.svg') }}" alt="Ember the bearded dragon mascot welcoming users to MyAPES Account" class="hero-image">
+        <img src="{{ asset('mascot/bearded-dragon-natural.png') }}" alt="A realistic bearded dragon resting in a natural habitat" class="hero-image" width="1400" height="1120">
         <h1>Welcome to MyAPES Account</h1>
         <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care.</p>
         <div class="grid">

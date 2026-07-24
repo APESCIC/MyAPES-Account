@@ -10,19 +10,22 @@ $parseCsv = static function (?string $raw): array {
 
 return [
     'oidc' => [
-        'issuer' => env('OIDC_ISSUER'),
-        'client_id' => env('OIDC_CLIENT_ID'),
-        'client_secret' => env('OIDC_CLIENT_SECRET'),
-        'redirect_uri' => env('OIDC_REDIRECT_URI'),
+        'issuer' => env('OIDC_ISSUER', env('CLOUDRON_OIDC_ISSUER')),
+        'client_id' => env('OIDC_CLIENT_ID', env('CLOUDRON_OIDC_CLIENT_ID')),
+        'client_secret' => env('OIDC_CLIENT_SECRET', env('CLOUDRON_OIDC_CLIENT_SECRET')),
+        'redirect_uri' => env(
+            'OIDC_REDIRECT_URI',
+            rtrim((string) env('CLOUDRON_APP_ORIGIN', ''), '/').'/staff/auth/callback'
+        ),
         'scopes' => $parseCsv(env('OIDC_SCOPES', 'openid,profile,email')),
     ],
 
     'ldap' => [
-        'host' => env('LDAP_HOST'),
-        'port' => (int) env('LDAP_PORT', 389),
-        'base_dn' => env('LDAP_BASE_DN'),
-        'bind_dn' => env('LDAP_BIND_DN'),
-        'bind_password' => env('LDAP_BIND_PASSWORD'),
+        'host' => env('LDAP_HOST', env('CLOUDRON_LDAP_HOST')),
+        'port' => (int) env('LDAP_PORT', env('CLOUDRON_LDAP_PORT', 389)),
+        'base_dn' => env('LDAP_BASE_DN', env('CLOUDRON_LDAP_USERS_BASE_DN')),
+        'bind_dn' => env('LDAP_BIND_DN', env('CLOUDRON_LDAP_BIND_DN')),
+        'bind_password' => env('LDAP_BIND_PASSWORD', env('CLOUDRON_LDAP_BIND_PASSWORD')),
         'user_filter' => env('LDAP_USER_FILTER', '(mail=%s)'),
         'group_attribute' => env('LDAP_GROUP_ATTRIBUTE', 'memberOf'),
         'start_tls' => (bool) env('LDAP_START_TLS', false),

@@ -1,97 +1,244 @@
-name: Deploy to Cloudron
+name: Test and deploy MyAPES Account
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      deploy_ref:
-        description: "Branch or tag to deploy"
-        required: false
-        default: "main"
+
+concurrency:
+  group: cloudron-3465c63f-0e1b-4e49-8f5f-799a471055a1
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
-    name: Cloudron deployment
+  quality:
+    name: Test and package
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    env:
-      CLOUDRON_APP_ID: 3465c63f-0e1b-4e49-8f5f-799a471055a1
-      DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.ref_name }}
-      CLOUDRON_SSH_PORT: ${{ secrets.CLOUDRON_SSH_PORT || '22' }}
-      CLOUDRON_APP_CODE_PATH: ${{ vars.CLOUDRON_APP_CODE_PATH || '/app/code' }}
-      CLOUDRON_APP_CONTAINER: ${{ vars.CLOUDRON_APP_CONTAINER }}
-      CLOUDRON_RESTART_STRATEGY: ${{ vars.CLOUDRON_RESTART_STRATEGY || 'auto' }}
+    timeout-minutes: 20
+    outputs:
+      release_sha: ${{ steps.release.outputs.sha }}
+      artifact_name: ${{ steps.release.outputs.artifact_name }}
     steps:
-      - name: Checkout code
+      - name: Checkout exact main revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.DEPLOY_REF }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
+          fetch-depth: 1
 
-      - name: Validate required deployment configuration
-        env:
-          CLOUDRON_SSH_HOST: ${{ secrets.CLOUDRON_SSH_HOST }}
-          CLOUDRON_SSH_USER: ${{ secrets.CLOUDRON_SSH_USER }}
-          CLOUDRON_SSH_PRIVATE_KEY: ${{ secrets.CLOUDRON_SSH_PRIVATE_KEY }}
+      - name: Resolve release identity
+        id: release
+        shell: bash
         run: |
           set -euo pipefail
 
-          for value in CLOUDRON_SSH_HOST CLOUDRON_SSH_USER CLOUDRON_SSH_PRIVATE_KEY; do
-            if [ -z "${!value}" ]; then
-              echo "Missing required secret: $value"
+          release_sha="$(git rev-parse HEAD)"
+          if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Unable to resolve a full Git commit SHA."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            git fetch --depth=1 origin main
+            test "$release_sha" = "$(git rev-parse origin/main)"
+          fi
+
+          echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=myapes-release-$release_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_mysql, redis, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install application dependencies
+        run: |
+          composer install --no-interaction --prefer-dist
+          npm ci --no-audit --no-fund
+
+      - name: Validate deployment scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in scripts/deploy/*.sh scripts/local/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run test suite
+        run: composer test
+
+      - name: Install production PHP dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --classmap-authoritative
+
+      - name: Package exact release
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p build/release
+          rsync -a ./ build/release/ \
+            --exclude '/.git/' \
+            --exclude '/.github/' \
+            --exclude '/.env' \
+            --exclude '/.env.*' \
+            --exclude '/build/' \
+            --exclude '/design-qa.md' \
+            --exclude '/docs/' \
+            --exclude '/node_modules/' \
+            --exclude '/scripts/local/' \
+            --exclude '/storage/' \
+            --exclude '/tests/' \
+            --exclude '/public/hot' \
+            --exclude '/public/storage' \
+            --exclude '/.phpunit.cache/' \
+            --exclude '/.phpunit.result.cache'
+
+          printf '%s\n' "$RELEASE_SHA" > build/release/REVISION
+          tar --create --gzip --file "build/myapes-$RELEASE_SHA.tar.gz" --directory build/release .
+          test -s "build/myapes-$RELEASE_SHA.tar.gz"
+
+          tar --list --gzip --file "build/myapes-$RELEASE_SHA.tar.gz" > build/archive-list.txt
+          grep -qx './REVISION' build/archive-list.txt
+          grep -qx './artisan' build/archive-list.txt
+          grep -qx './public/build/manifest.json' build/archive-list.txt
+          grep -qx './scripts/deploy/activate-release.sh' build/archive-list.txt
+
+          if grep -Eq '^\./(\.git|\.env($|\.)|docs/|node_modules/|scripts/local/|storage/|tests/)' build/archive-list.txt; then
+            echo "Release archive contains an excluded path."
+            exit 1
+          fi
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.release.outputs.artifact_name }}
+          path: build/myapes-${{ steps.release.outputs.sha }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Cloudron
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: cloudron-deploy
+    env:
+      CLOUDRON_APP_ID: 3465c63f-0e1b-4e49-8f5f-799a471055a1
+      CLOUDRON_APP_URL: https://myaccount.myapes.me.uk
+      CLOUDRON_FQDN: ${{ secrets.CLOUDRON_FQDN }}
+      CLOUDRON_TOKEN: ${{ secrets.CLOUDRON_TOKEN }}
+      RELEASE_SHA: ${{ needs.quality.outputs.release_sha }}
+    steps:
+      - name: Download tested release
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.quality.outputs.artifact_name }}
+          path: build
+
+      - name: Validate Cloudron configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for required_name in CLOUDRON_FQDN CLOUDRON_TOKEN CLOUDRON_APP_ID RELEASE_SHA; do
+            if [[ -z "${!required_name:-}" ]]; then
+              echo "Missing required Cloudron deployment value: $required_name"
               exit 1
             fi
           done
 
-          if [ -z "${CLOUDRON_APP_ID}" ]; then
-            echo "CLOUDRON_APP_ID must not be empty"
-            exit 1
-          fi
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test -s "build/myapes-$RELEASE_SHA.tar.gz"
 
-          if [ -z "${DEPLOY_REF}" ]; then
-            echo "DEPLOY_REF must not be empty"
-            exit 1
-          fi
+      - name: Install pinned Cloudron CLI
+        run: npm install --global cloudron@8.2.6
 
-      - name: Configure SSH key
-        env:
-          CLOUDRON_SSH_PRIVATE_KEY: ${{ secrets.CLOUDRON_SSH_PRIVATE_KEY }}
+      - name: Create pre-deployment backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            backup create --app "$CLOUDRON_APP_ID"
+
+      - name: Upload release
+        shell: bash
         run: |
           set -euo pipefail
 
-          mkdir -p "${HOME}/.ssh"
-          printf '%s\n' "${CLOUDRON_SSH_PRIVATE_KEY}" > "${HOME}/.ssh/cloudron_deploy_key"
-          chmod 600 "${HOME}/.ssh/cloudron_deploy_key"
+          remote_dir="/app/data/.deploy/$RELEASE_SHA"
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            exec --app "$CLOUDRON_APP_ID" -- \
+            bash -c "install -d -m 0750 '$remote_dir'"
 
-      - name: Add Cloudron host key
-        env:
-          CLOUDRON_SSH_HOST: ${{ secrets.CLOUDRON_SSH_HOST }}
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            push --app "$CLOUDRON_APP_ID" \
+            "build/myapes-$RELEASE_SHA.tar.gz" "$remote_dir/release.tar.gz"
+
+      - name: Extract and activate uploaded release
+        shell: bash
         run: |
           set -euo pipefail
 
-          ssh-keyscan -p "${CLOUDRON_SSH_PORT}" -H "${CLOUDRON_SSH_HOST}" >> "${HOME}/.ssh/known_hosts"
+          remote_dir="/app/data/.deploy/$RELEASE_SHA"
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            exec --app "$CLOUDRON_APP_ID" -- \
+            bash -c "tar --extract --gzip --file '$remote_dir/release.tar.gz' --directory '$remote_dir' './scripts/deploy/activate-release.sh' && bash '$remote_dir/scripts/deploy/activate-release.sh' '$RELEASE_SHA'"
 
-      - name: Run deployment on Cloudron host
-        env:
-          CLOUDRON_SSH_HOST: ${{ secrets.CLOUDRON_SSH_HOST }}
-          CLOUDRON_SSH_USER: ${{ secrets.CLOUDRON_SSH_USER }}
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            restart --app "$CLOUDRON_APP_ID"
+
+      - name: Verify exact release health
+        id: health
+        shell: bash
+        continue-on-error: true
         run: |
           set -euo pipefail
 
-          REMOTE_SCRIPT="/tmp/cloudron-remote-deploy.sh"
-          SSH_KEY="${HOME}/.ssh/cloudron_deploy_key"
-          SSH_TARGET="${CLOUDRON_SSH_USER}@${CLOUDRON_SSH_HOST}"
+          for attempt in {1..18}; do
+            response="$(curl --fail --silent --show-error --max-time 10 "$CLOUDRON_APP_URL/healthz" || true)"
+            reported_release="$(jq -r '.release // empty' <<<"$response" 2>/dev/null || true)"
+            reported_status="$(jq -r '.status // empty' <<<"$response" 2>/dev/null || true)"
 
-          scp -P "${CLOUDRON_SSH_PORT}" -i "${SSH_KEY}" scripts/deploy/cloudron-remote-deploy.sh "${SSH_TARGET}:${REMOTE_SCRIPT}"
+            if [[ "$reported_status" == "ok" && "$reported_release" == "$RELEASE_SHA" ]]; then
+              echo "Verified healthy release $RELEASE_SHA."
+              exit 0
+            fi
 
-          ssh -p "${CLOUDRON_SSH_PORT}" -i "${SSH_KEY}" "${SSH_TARGET}" \
-            "chmod +x '${REMOTE_SCRIPT}' && \
-            CLOUDRON_APP_ID='${CLOUDRON_APP_ID}' \
-            CLOUDRON_DEPLOY_REF='${DEPLOY_REF}' \
-            CLOUDRON_APP_CODE_PATH='${CLOUDRON_APP_CODE_PATH}' \
-            CLOUDRON_APP_CONTAINER='${CLOUDRON_APP_CONTAINER}' \
-            CLOUDRON_RESTART_STRATEGY='${CLOUDRON_RESTART_STRATEGY}' \
-            '${REMOTE_SCRIPT}' && \
-            rm -f '${REMOTE_SCRIPT}'"
+            sleep 5
+          done
+
+          echo "Health verification did not confirm release $RELEASE_SHA."
+          exit 1
+
+      - name: Roll back code after failed health verification
+        if: steps.health.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            exec --app "$CLOUDRON_APP_ID" -- \
+            bash /app/data/current/scripts/deploy/rollback-release.sh
+
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            restart --app "$CLOUDRON_APP_ID"
+
+          echo "Deployment failed health verification and code rollback was attempted."
+          echo "Database migrations were not reversed; use the pre-deployment Cloudron backup if required."
+          exit 1
