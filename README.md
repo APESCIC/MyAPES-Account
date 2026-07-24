@@ -24,39 +24,37 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 - `/staff/login` - dedicated staff login page that starts Cloudron OIDC
 - local/testing only: QA role switcher (Public/Staff/Admin) available in the app layout for one-click identity switching
 
-## Brand assets (MyAPES Account variant)
+## Brand assets (MyAPES Account logo pack)
 
-- Source master used for derivation: `resources/branding/source/apes-logo-v2.png`
-- Generated assets directory: `public/branding/`
+- Source pack location: `C:\Users\bmurp\Documents\Codex\2026-07-24\c\outputs\myapes-web-app-logo-pack`
+- App-integrated assets are copied into `public/` with their pack folder structure.
 
-| Asset | Size | Purpose |
-| --- | --- | --- |
-| `public/branding/logo-myapes-account.png` | 1024x1194 | Main APES logo variant with MyAPES Account sub-brand tag |
-| `public/branding/logo-myapes-account-horizontal.png` | 1600x700 | Horizontal lockup for headers and staff sign-in |
-| `public/branding/logo-myapes-account-wordmark.png` | 1800x760 | Refreshed APES-style hero/header wordmark with explicit "MyAPES Account" text |
-| `public/branding/logo-myapes-account-wordmark.svg` | 1800x760 | Scalable SVG companion for the refreshed hero/header wordmark |
-| `public/branding/logo-myapes-account-stacked.png` | 720x830 | Stacked lockup for constrained layouts |
-| `public/branding/login-hero.png` | 1600x600 | Landing page hero image |
-| `public/branding/email-header-logo.png` | 600x120 | Email header logo |
-| `public/branding/logo-myapes-account-mono-dark.png` | 1024x1194 | Monochrome dark variant |
-| `public/branding/logo-myapes-account-mono-light.png` | 1024x1194 | Monochrome light variant |
-| `public/branding/logo-myapes-account-print-light.png` | 1024x1194 | Print-ready variant for light backgrounds |
-| `public/branding/logo-myapes-account-print-dark.png` | 1024x1194 | Print-ready variant for dark backgrounds |
+### Header and app-visible logo
 
-### App icon and preview set
+| Asset | Purpose |
+| --- | --- |
+| `public/logos/myapes-header-dark.svg` | Primary header/landing/staff-login logo on dark surfaces |
+| `public/logos/myapes-header-light.svg` | Light-surface header logo variant |
+| `public/logos/myapes-header-dark-600x128.png` | Raster fallback where SVG is unavailable |
+| `public/logos/myapes-header-light-600x128.png` | Light raster fallback where SVG is unavailable |
 
-| Asset | Size | Purpose |
-| --- | --- | --- |
-| `public/favicon.ico` | 64x64 (ico) | Browser tab icon |
-| `public/favicon-16x16.png` | 16x16 | Browser favicon |
-| `public/favicon-32x32.png` | 32x32 | Browser favicon |
-| `public/favicon-48x48.png` | 48x48 | Browser/favicon fallback |
-| `public/apple-touch-icon.png` | 180x180 | iOS home-screen icon |
-| `public/android-chrome-192x192.png` | 192x192 | Android/PWA icon |
-| `public/android-chrome-512x512.png` | 512x512 | Android/PWA icon |
-| `public/pwa-maskable-512x512.png` | 512x512 | Maskable PWA icon |
-| `public/og-image.png` | 1200x630 | Social sharing preview image |
-| `public/site.webmanifest` | n/a | PWA icon manifest |
+### Browser, PWA, and social assets
+
+| Asset | Purpose |
+| --- | --- |
+| `public/favicon.ico` | Multi-resolution browser favicon |
+| `public/favicons/favicon-16x16.png` | 16px favicon |
+| `public/favicons/favicon-32x32.png` | 32px favicon |
+| `public/favicons/favicon-48x48.png` | 48px favicon |
+| `public/favicons/safari-pinned-tab.svg` | Safari pinned-tab icon |
+| `public/icons/apple-touch-icon.png` | iOS home-screen icon |
+| `public/icons/pwa-192x192.png` | PWA install icon |
+| `public/icons/pwa-512x512.png` | PWA install icon |
+| `public/icons/pwa-maskable-192x192.png` | Maskable PWA icon |
+| `public/icons/pwa-maskable-512x512.png` | Maskable PWA icon |
+| `public/social/og-image-1200x630.jpg` | Open Graph / social preview image |
+| `public/site.webmanifest` | Web app manifest |
+| `public/browserconfig.xml` | Microsoft tile metadata |
 
 ## Local environment setup
 

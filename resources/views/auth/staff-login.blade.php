@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="panel">
-        <img src="{{ asset('branding/logo-myapes-account-wordmark.png') }}" alt="MyAPES Account staff login" class="logo-hero">
+        <img src="{{ asset('logos/myapes-header-dark.svg') }}" alt="MyAPES Account staff login" class="logo-hero">
         <h1>Staff Login</h1>
         <p class="muted">APES staff and administrators sign in via APES Cloudron.</p>
         @if(app()->environment(['local', 'testing']))

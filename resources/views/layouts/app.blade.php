@@ -8,16 +8,20 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="@yield('title', 'MyAPES Account')">
     <meta property="og:description" content="MyAPES Account service portal for APES CIC service users and staff.">
-    <meta property="og:image" content="{{ asset('og-image.png') }}">
+    <meta property="og:image" content="{{ asset('social/og-image-1200x630.jpg') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="@yield('title', 'MyAPES Account')">
     <meta name="twitter:description" content="MyAPES Account service portal for APES CIC service users and staff.">
-    <meta name="twitter:image" content="{{ asset('og-image.png') }}">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="twitter:image" content="{{ asset('social/og-image-1200x630.jpg') }}">
+    <meta name="theme-color" content="#008f99">
+    <meta name="msapplication-config" content="{{ asset('browserconfig.xml') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicons/favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicons/favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-touch-icon.png') }}">
+    <link rel="mask-icon" href="{{ asset('favicons/safari-pinned-tab.svg') }}" color="#008f99">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <style>
         :root { color-scheme: light; }
@@ -60,7 +64,7 @@
 <body>
 <header>
     <div class="brand-lockup">
-        <img src="{{ asset('branding/logo-myapes-account-wordmark.png') }}" alt="MyAPES Account" class="brand-logo">
+        <img src="{{ asset('logos/myapes-header-dark.svg') }}" alt="MyAPES Account" class="brand-logo">
         <div class="muted">Association of Protecting Exotic Species CIC</div>
     </div>
     @auth
