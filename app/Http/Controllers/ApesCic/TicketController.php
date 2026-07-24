@@ -91,7 +91,16 @@ class TicketController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_progress,resolved,closed'],
             'priority' => ['required', 'in:low,medium,high,urgent'],
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'assigned_to' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(
+                    fn ($query) => $query->whereIn('role', [
+                        User::ROLE_STAFF,
+                        User::ROLE_ADMIN,
+                        User::ROLE_SUPERADMIN,
+                    ])
+                ),
+            ],
             'message' => ['nullable', 'string'],
         ]);
 

@@ -190,7 +190,7 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
   - The scheduler is configured to run pruning daily
 - **Session hardening defaults** in `.env.example`:
   - `SESSION_ENCRYPT=true`
-  - `SESSION_SECURE_COOKIE=true`
+  - `SESSION_SECURE_COOKIE=false` for localhost QA; set it to `true` in HTTPS deployments
   - `SESSION_HTTP_ONLY=true`
 - **Upload safeguards**:
   - Avatar and pet photo uploads are restricted to JPEG/PNG/WebP
