@@ -30,17 +30,23 @@ for release_link in "$CURRENT_LINK" "$PREVIOUS_LINK"; do
   fi
 done
 
-CURRENT_TARGET_BEFORE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
-PREVIOUS_TARGET_BEFORE="$(readlink -f "$PREVIOUS_LINK" 2>/dev/null || true)"
+CURRENT_TARGET_BEFORE=""
+PREVIOUS_TARGET_BEFORE=""
 
-if [[ -L "$CURRENT_LINK" && -z "$CURRENT_TARGET_BEFORE" ]]; then
-  echo "Current release symlink is dangling; refusing activation."
-  exit 1
+if [[ -L "$CURRENT_LINK" ]]; then
+  CURRENT_TARGET_BEFORE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+  if [[ -z "$CURRENT_TARGET_BEFORE" ]]; then
+    echo "Current release symlink is dangling; refusing activation."
+    exit 1
+  fi
 fi
 
-if [[ -L "$PREVIOUS_LINK" && -z "$PREVIOUS_TARGET_BEFORE" ]]; then
-  echo "Previous release symlink is dangling; refusing activation."
-  exit 1
+if [[ -L "$PREVIOUS_LINK" ]]; then
+  PREVIOUS_TARGET_BEFORE="$(readlink -f "$PREVIOUS_LINK" 2>/dev/null || true)"
+  if [[ -z "$PREVIOUS_TARGET_BEFORE" ]]; then
+    echo "Previous release symlink is dangling; refusing activation."
+    exit 1
+  fi
 fi
 
 for release_target in "$CURRENT_TARGET_BEFORE" "$PREVIOUS_TARGET_BEFORE"; do
