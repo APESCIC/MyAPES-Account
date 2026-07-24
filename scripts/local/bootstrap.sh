@@ -53,6 +53,8 @@ if [[ ! -f .env ]]; then
   fi
 fi
 
+php -r '$path = ".env"; $content = file_get_contents($path); if ($content === false) { fwrite(STDERR, "Unable to read .env\n"); exit(1); } $updated = preg_replace("/^SESSION_SECURE_COOKIE=.*/m", "SESSION_SECURE_COOKIE=false", $content, 1, $count); if ($updated === null) { fwrite(STDERR, "Unable to update SESSION_SECURE_COOKIE in .env\n"); exit(1); } if ($count === 0) { $updated .= PHP_EOL."SESSION_SECURE_COOKIE=false".PHP_EOL; } file_put_contents($path, $updated);'
+
 composer install --no-interaction --prefer-dist
 npm install --no-audit --no-fund
 php artisan key:generate --force
@@ -66,5 +68,7 @@ elif [[ "$RUN_SEED" == true ]]; then
 else
   php artisan migrate --force
 fi
+
+php artisan storage:link --force
 
 echo "Local bootstrap complete."

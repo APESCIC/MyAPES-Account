@@ -4,15 +4,11 @@ namespace App\Notifications;
 
 use App\Models\PetCareConsultation;
 use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ConsultationUpdatedNotification extends Notification implements ShouldQueue
+class ConsultationUpdatedNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         private readonly PetCareConsultation $consultation,
         private readonly User $actor,

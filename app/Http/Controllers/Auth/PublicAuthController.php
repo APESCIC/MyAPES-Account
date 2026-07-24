@@ -18,7 +18,16 @@ class PublicAuthController extends Controller
     public function showLogin(Request $request, AuditLogger $auditLogger): View|RedirectResponse
     {
         if (app()->environment(['local', 'testing'])) {
-            $user = $this->requireQaUserByRole(User::ROLE_SERVICE_USER);
+            $user = $this->findQaUserByRole(User::ROLE_SERVICE_USER);
+
+            if ($user === null) {
+                $auditLogger->record('auth.qa_public_auto_login_skipped', null, null, [
+                    'entry' => 'public.login',
+                    'reason' => 'seeded_qa_user_missing',
+                ]);
+
+                return view('auth.public-login');
+            }
 
             Auth::login($user, true);
             $request->session()->regenerate();
@@ -201,5 +210,14 @@ class PublicAuthController extends Controller
         }
 
         return $user;
+    }
+
+    private function findQaUserByRole(string $role): ?User
+    {
+        try {
+            return $this->requireQaUserByRole($role);
+        } catch (RuntimeException) {
+            return null;
+        }
     }
 }

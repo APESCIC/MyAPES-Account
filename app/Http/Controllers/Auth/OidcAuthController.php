@@ -63,10 +63,21 @@ class OidcAuthController extends Controller
 
         $user = User::query()
             ->where('oidc_sub', $sub)
-            ->orWhere('email', $email)
             ->first();
 
         if ($user === null) {
+            $emailCollision = User::query()
+                ->where('email', $email)
+                ->exists();
+
+            if ($emailCollision) {
+                $auditLogger->record('auth.oidc_email_conflict', null, null, [
+                    'email' => $email,
+                    'sub' => $sub,
+                ]);
+                abort(403, 'An account with this email already exists and cannot be auto-linked.');
+            }
+
             $user = new User;
         }
 

@@ -32,6 +32,15 @@ if (-not (Test-Path ".\.env")) {
     }
 }
 
+$envPath = ".\\.env"
+$envContent = Get-Content $envPath -Raw
+if ($envContent -match '(?m)^SESSION_SECURE_COOKIE=') {
+    $envContent = [regex]::Replace($envContent, '(?m)^SESSION_SECURE_COOKIE=.*$', 'SESSION_SECURE_COOKIE=false', 1)
+} else {
+    $envContent = $envContent.TrimEnd("`r", "`n") + "`r`nSESSION_SECURE_COOKIE=false`r`n"
+}
+Set-Content -Path $envPath -Value $envContent
+
 composer install --no-interaction --prefer-dist
 npm install --no-audit --no-fund
 php artisan key:generate --force
@@ -45,5 +54,7 @@ if ($Fresh) {
 } else {
     php artisan migrate --force
 }
+
+php artisan storage:link --force
 
 Write-Host "Local bootstrap complete."

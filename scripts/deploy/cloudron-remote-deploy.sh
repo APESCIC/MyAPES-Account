@@ -43,6 +43,7 @@ docker exec "${CLOUDRON_APP_CONTAINER}" sh -lc "
   php artisan config:cache
   php artisan route:cache
   php artisan view:cache
+  php artisan storage:link --force
 "
 
 if [[ "${CLOUDRON_RESTART_STRATEGY}" == "cloudron-cli" ]] || { [[ "${CLOUDRON_RESTART_STRATEGY}" == "auto" ]] && command -v cloudron >/dev/null 2>&1; }; then

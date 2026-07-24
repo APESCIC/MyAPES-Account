@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CaseController extends Controller
 {
@@ -51,7 +52,7 @@ class CaseController extends Controller
 
         $case = ShelterCase::create([
             ...$validated,
-            'user_id' => $request->user()->id,
+            'user_id' => $pet->user_id,
         ]);
 
         $this->notifyCaseStakeholders($case, $request->user(), 'created');
@@ -82,7 +83,16 @@ class CaseController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_review,closed'],
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'assigned_to' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(
+                    fn ($query) => $query->whereIn('role', [
+                        User::ROLE_STAFF,
+                        User::ROLE_ADMIN,
+                        User::ROLE_SUPERADMIN,
+                    ])
+                ),
+            ],
             'details' => ['nullable', 'string'],
         ]);
 

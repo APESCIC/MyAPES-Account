@@ -26,7 +26,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Brand assets (MyAPES Account logo pack)
 
-- Source pack location: `C:\Users\bmurp\Documents\Codex\2026-07-24\c\outputs\myapes-web-app-logo-pack`
+- Source pack location: designer-provided "myapes-web-app-logo-pack" handoff (assets now committed under `public/`)
 - App-integrated assets are copied into `public/` with their pack folder structure.
 
 ### Header and app-visible logo
@@ -46,7 +46,6 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 | `public/mascot/beardie-cozy.svg` | Wider hero illustration used on landing/dashboard-style surfaces |
 
 The app now uses a mascot-led playful theme globally (public, staff, and admin surfaces) while preserving role clarity and workflow readability.
-
 ### Browser, PWA, and social assets
 
 | Asset | Purpose |
@@ -68,6 +67,7 @@ The app now uses a mascot-led playful theme globally (public, staff, and admin s
 ## Local environment setup
 
 Run the bootstrap script from the repository root. It installs PHP/Node dependencies, ensures `.env` exists, generates the app key, and runs migrations.
+The local bootstrap also rewrites `.env` to `SESSION_SECURE_COOKIE=false` for plain-http localhost QA, while `.env.example` keeps the HTTPS-safe deployment default.
 
 ### One-command local QA bootstrap (deterministic test data)
 
@@ -199,7 +199,7 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
   - The scheduler is configured to run pruning daily
 - **Session hardening defaults** in `.env.example`:
   - `SESSION_ENCRYPT=true`
-  - `SESSION_SECURE_COOKIE=true`
+  - `SESSION_SECURE_COOKIE=true` in the template for HTTPS deployments; local bootstrap rewrites the copied `.env` to `false` for localhost QA
   - `SESSION_HTTP_ONLY=true`
 - **Upload safeguards**:
   - Avatar and pet photo uploads are restricted to JPEG/PNG/WebP

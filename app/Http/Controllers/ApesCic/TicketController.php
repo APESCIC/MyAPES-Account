@@ -10,9 +10,12 @@ use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
+    private const SERVICE_AREAS = ['legal', 'human_resources', 'it', 'web_dev', 'operations', 'other'];
+
     public function index(): View
     {
         $user = request()->user();
@@ -24,7 +27,7 @@ class TicketController extends Controller
 
         return view('apes-cic.tickets.index', [
             'tickets' => $query->paginate(20),
-            'serviceAreas' => ['legal', 'human_resources', 'it', 'web_dev', 'operations', 'other'],
+            'serviceAreas' => self::SERVICE_AREAS,
             'staffUsers' => User::query()
                 ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
                 ->orderBy('name')
@@ -35,7 +38,7 @@ class TicketController extends Controller
     public function store(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
         $validated = $request->validate([
-            'service_area' => ['required', 'string', 'max:80'],
+            'service_area' => ['required', Rule::in(self::SERVICE_AREAS)],
             'subject' => ['required', 'string', 'max:255'],
             'priority' => ['required', 'in:low,medium,high,urgent'],
             'description' => ['required', 'string'],
@@ -64,9 +67,16 @@ class TicketController extends Controller
     public function show(SupportTicket $ticket): View
     {
         $this->authorizeTicketAccess($ticket);
+        $user = request()->user();
+
+        $messagesQuery = $ticket->messages()->with('user')->latest('created_at');
+        if (! $user->isStaff()) {
+            $messagesQuery->where('is_staff_note', false);
+        }
 
         return view('apes-cic.tickets.show', [
-            'ticket' => $ticket->load(['user', 'assignedTo', 'messages.user']),
+            'ticket' => $ticket->load(['user', 'assignedTo']),
+            'messages' => $messagesQuery->get(),
             'staffUsers' => User::query()
                 ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
                 ->orderBy('name')
@@ -81,7 +91,16 @@ class TicketController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_progress,resolved,closed'],
             'priority' => ['required', 'in:low,medium,high,urgent'],
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'assigned_to' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(
+                    fn ($query) => $query->whereIn('role', [
+                        User::ROLE_STAFF,
+                        User::ROLE_ADMIN,
+                        User::ROLE_SUPERADMIN,
+                    ])
+                ),
+            ],
             'message' => ['nullable', 'string'],
         ]);
 
