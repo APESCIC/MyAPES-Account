@@ -67,4 +67,6 @@ else
   php artisan migrate --force
 fi
 
+php artisan storage:link --force
+
 echo "Local bootstrap complete."

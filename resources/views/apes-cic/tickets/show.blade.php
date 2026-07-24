@@ -56,7 +56,7 @@
     </div>
     <div class="panel">
         <h2>Activity</h2>
-        @foreach($ticket->messages as $message)
+        @foreach($messages as $message)
             <div style="padding:.45rem 0; border-bottom:1px solid #e2e8f0;">
                 <strong>{{ $message->user->name }}</strong>
                 <span class="muted">{{ $message->created_at }}</span>

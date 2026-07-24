@@ -46,4 +46,6 @@ if ($Fresh) {
     php artisan migrate --force
 }
 
+php artisan storage:link --force
+
 Write-Host "Local bootstrap complete."

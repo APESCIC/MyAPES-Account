@@ -67,9 +67,16 @@ class TicketController extends Controller
     public function show(SupportTicket $ticket): View
     {
         $this->authorizeTicketAccess($ticket);
+        $user = request()->user();
+
+        $messagesQuery = $ticket->messages()->with('user')->latest('created_at');
+        if (! $user->isStaff()) {
+            $messagesQuery->where('is_staff_note', false);
+        }
 
         return view('apes-cic.tickets.show', [
-            'ticket' => $ticket->load(['user', 'assignedTo', 'messages.user']),
+            'ticket' => $ticket->load(['user', 'assignedTo']),
+            'messages' => $messagesQuery->get(),
             'staffUsers' => User::query()
                 ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
                 ->orderBy('name')

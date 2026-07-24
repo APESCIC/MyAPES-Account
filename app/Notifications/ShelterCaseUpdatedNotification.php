@@ -4,15 +4,11 @@ namespace App\Notifications;
 
 use App\Models\ShelterCase;
 use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ShelterCaseUpdatedNotification extends Notification implements ShouldQueue
+class ShelterCaseUpdatedNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         private readonly ShelterCase $case,
         private readonly User $actor,
