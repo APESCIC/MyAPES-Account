@@ -82,6 +82,8 @@ class LdapGroupResolver
         $pieces = explode(',', $group);
         $cn = $pieces[0] ?? $group;
 
-        return strtolower(str_replace('cn=', '', trim($cn)));
+        $normalized = preg_replace('/^cn=/i', '', trim($cn));
+
+        return strtolower((string) $normalized);
     }
 }

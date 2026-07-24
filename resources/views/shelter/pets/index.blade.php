@@ -12,17 +12,17 @@
         <form method="post" action="{{ route('shelter.pets.store') }}" enctype="multipart/form-data">
             @csrf
             <div class="row">
-                <div><label>Name</label><input name="name"></div>
-                <div><label>Species</label><input name="species"></div>
-                <div><label>Age (years)</label><input type="number" min="0" max="80" name="age_years"></div>
+                <div><label for="pet_name">Name</label><input id="pet_name" name="name"></div>
+                <div><label for="pet_species">Species</label><input id="pet_species" name="species"></div>
+                <div><label for="pet_age_years">Age (years)</label><input id="pet_age_years" type="number" min="0" max="80" name="age_years"></div>
             </div>
             <div class="row">
-                <div><label>Sex</label><select name="sex">@foreach(['male','female','unknown'] as $v)<option value="{{ $v }}">{{ $v }}</option>@endforeach</select></div>
-                <div><label>Neutering status</label><select name="neutering_status">@foreach(['neutered','not_neutered','unknown'] as $v)<option value="{{ $v }}">{{ $v }}</option>@endforeach</select></div>
-                <div><label>Photo</label><input type="file" name="photo" accept="image/*"></div>
+                <div><label for="pet_sex">Sex</label><select id="pet_sex" name="sex">@foreach(['male','female','unknown'] as $v)<option value="{{ $v }}">{{ $v }}</option>@endforeach</select></div>
+                <div><label for="pet_neutering_status">Neutering status</label><select id="pet_neutering_status" name="neutering_status">@foreach(['neutered','not_neutered','unknown'] as $v)<option value="{{ $v }}">{{ $v }}</option>@endforeach</select></div>
+                <div><label for="pet_photo">Photo</label><input id="pet_photo" type="file" name="photo" accept="image/*"></div>
             </div>
-            <label>Health issues</label>
-            <textarea name="health_issues"></textarea>
+            <label for="pet_health_issues">Health issues</label>
+            <textarea id="pet_health_issues" name="health_issues"></textarea>
             <button type="submit">Save pet profile</button>
         </form>
     </div>

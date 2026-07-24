@@ -26,7 +26,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Brand assets (MyAPES Account logo pack)
 
-- Source pack location: `C:\Users\bmurp\Documents\Codex\2026-07-24\c\outputs\myapes-web-app-logo-pack`
+- Source pack location: designer-provided "myapes-web-app-logo-pack" handoff (assets now committed under `public/`)
 - App-integrated assets are copied into `public/` with their pack folder structure.
 
 ### Header and app-visible logo
