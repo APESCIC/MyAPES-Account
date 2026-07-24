@@ -33,6 +33,8 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 | --- | --- | --- |
 | `public/branding/logo-myapes-account.png` | 1024x1194 | Main APES logo variant with MyAPES Account sub-brand tag |
 | `public/branding/logo-myapes-account-horizontal.png` | 1600x700 | Horizontal lockup for headers and staff sign-in |
+| `public/branding/logo-myapes-account-wordmark.png` | 1800x760 | Refreshed APES-style hero/header wordmark with explicit "MyAPES Account" text |
+| `public/branding/logo-myapes-account-wordmark.svg` | 1800x760 | Scalable SVG companion for the refreshed hero/header wordmark |
 | `public/branding/logo-myapes-account-stacked.png` | 720x830 | Stacked lockup for constrained layouts |
 | `public/branding/login-hero.png` | 1600x600 | Landing page hero image |
 | `public/branding/email-header-logo.png` | 600x120 | Email header logo |

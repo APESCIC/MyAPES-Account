@@ -48,6 +48,9 @@
         form.inline { display: inline; }
         footer { border-top: 1px solid #e2e8f0; color: #475569; text-align: center; padding: 1rem; margin-top: 2rem; font-size: .9rem; }
         .hero-image { width: 100%; border-radius: .8rem; display: block; margin-bottom: 1rem; }
+        .logo-hero { width: min(100%, 940px); margin: 0 auto 1rem; border-radius: .8rem; display: block; }
+        .brand-lockup { display: flex; flex-direction: column; gap: .45rem; }
+        .brand-logo { width: min(62vw, 360px); height: auto; display: block; }
         .qa-switcher { margin-bottom: 1rem; background: #fffbeb; border-left: 4px solid #f59e0b; padding: .75rem; border-radius: .4rem; }
         .qa-switcher-forms { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
         .qa-switcher-forms form { display: inline; }
@@ -56,8 +59,8 @@
 </head>
 <body>
 <header>
-    <div>
-        <strong>MyAPES Account</strong>
+    <div class="brand-lockup">
+        <img src="{{ asset('branding/logo-myapes-account-wordmark.png') }}" alt="MyAPES Account" class="brand-logo">
         <div class="muted">Association of Protecting Exotic Species CIC</div>
     </div>
     @auth
