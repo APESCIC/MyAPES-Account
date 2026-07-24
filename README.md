@@ -9,7 +9,8 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
   - Staff/admin users: APES Cloudron OIDC login with LDAP group resolution for role assignment
 - **Role mapping**:
   - Staff access: `position.staff`, `position.students`, `position.volunteers`
-  - Admin access: `admin`, `superadmin`
+  - Admin access: `intranet.administrator`
+  - Superadmin access: `intranet.superadmin`
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support tickets
@@ -38,14 +39,15 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 | `public/logos/myapes-header-dark-600x128.png` | Raster fallback where SVG is unavailable |
 | `public/logos/myapes-header-light-600x128.png` | Light raster fallback where SVG is unavailable |
 
-### Mascot assets (Ember the bearded dragon)
+### Bearded dragon mascot
 
 | Asset | Purpose |
 | --- | --- |
-| `public/mascot/beardie-wave.svg` | Shared mascot badge used in global header, banner, and auth/admin highlights |
-| `public/mascot/beardie-cozy.svg` | Wider hero illustration used on landing/dashboard-style surfaces |
+| `public/mascot/bearded-dragon-natural.png` | Photorealistic dashboard and landing portrait generated for the approved Naturalist Notebook design |
 
-The app now uses a mascot-led playful theme globally (public, staff, and admin surfaces) while preserving role clarity and workflow readability.
+The portrait is intentionally unnamed and is presented as a realistic animal rather than an anthropomorphic character.
+
+The interface uses a light-first Naturalist Notebook theme with an explicit dark-mode toggle. A saved choice is stored locally in the browser as `myapes-theme`; the first visit always starts in light mode.
 ### Browser, PWA, and social assets
 
 | Asset | Purpose |
@@ -66,8 +68,9 @@ The app now uses a mascot-led playful theme globally (public, staff, and admin s
 
 ## Local environment setup
 
-Run the bootstrap script from the repository root. It installs PHP/Node dependencies, ensures `.env` exists, generates the app key, and runs migrations.
-The local bootstrap also rewrites `.env` to `SESSION_SECURE_COOKIE=false` for plain-http localhost QA, while `.env.example` keeps the HTTPS-safe deployment default.
+Run the bootstrap script from the repository root. It installs PHP/Node dependencies, creates a local `.env` from `.env.local.example`, configures SQLite plus file-backed cache/sessions, generates the app key once, migrates, seeds, and builds the frontend.
+
+The script refuses to rewrite an environment unless `APP_ENV` is already `local` or `testing`. Local development does not require MySQL or Redis.
 
 ### One-command local QA bootstrap (deterministic test data)
 
@@ -122,12 +125,18 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 
 ### Seeded data included for quick E2E checks
 
-- APES CIC tickets: open/in-progress and resolved examples with message history and staff/admin assignment
-- Shelter: seeded pet profile with in-review and closed case examples
-- Pet Care: seeded pet profile with in-progress and closed consultation examples
+- APES CIC tickets: two open/in-progress examples plus a resolved example with message history and staff/admin assignment
+- Shelter: seeded pet profile with two open/in-review cases plus a closed example
+- Pet Care: seeded pet profile with two open/in-progress consultations plus a closed example
 - User profiles: seeded profile data for each QA account
 
-Start local development:
+Start Laravel, the queue listener, application logs, and Vite together with the existing Composer script:
+
+```powershell
+composer run dev
+```
+
+The platform wrappers below delegate to `composer run dev` and are available when you prefer an OS-specific entry point:
 
 ### macOS / Linux
 
@@ -147,8 +156,8 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 
 ### Deployment triggers
 
-1. Push to `main` (automatic deployment).
-2. Manual deployment request via **Actions → Deploy to Cloudron → Run workflow**, optionally overriding the git ref.
+1. Push to `main` (automatic deployment after tests).
+2. Manual deployment request via **Actions → Test and deploy MyAPES Account → Run workflow**. Manual runs always deploy the current `main` revision.
 
 ### Target app
 
@@ -158,33 +167,65 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 
 | Secret | Description |
 | --- | --- |
-| `CLOUDRON_SSH_HOST` | Cloudron server hostname or IP |
-| `CLOUDRON_SSH_USER` | SSH user with permission to run docker/cloudron commands |
-| `CLOUDRON_SSH_PRIVATE_KEY` | Private key used by GitHub Actions to SSH into Cloudron |
+| `CLOUDRON_FQDN` | Cloudron dashboard domain used by the CLI |
+| `CLOUDRON_TOKEN` | Personal Cloudron API token with permission to back up, push to, execute in, and restart the target app |
 
-### Optional GitHub secrets / variables
+Create these as secrets in the GitHub environment named `cloudron-deploy`. Do not commit either value.
 
-| Name | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `CLOUDRON_SSH_PORT` | Secret | `22` | SSH port |
-| `CLOUDRON_APP_CODE_PATH` | Variable | `/app/code` | Path inside the app container where Laravel code lives |
-| `CLOUDRON_APP_CONTAINER` | Variable | auto-detected | Explicit container ID/name if label lookup is not available |
-| `CLOUDRON_RESTART_STRATEGY` | Variable | `auto` | `auto`, `cloudron-cli`, or `docker` |
+### Staff OIDC and LDAP setup
+
+Create a one-time Cloudron OpenID client named **MyAPES Account** in
+**Users → OpenID** with this callback:
+
+`https://myaccount.myapes.me.uk/staff/auth/callback`
+
+Use the issuer `https://my.cloudron.apes.org.uk/openid` and the
+`openid profile email` scopes. Store `OIDC_ISSUER`, `OIDC_CLIENT_ID`,
+`OIDC_CLIENT_SECRET`, and `OIDC_REDIRECT_URI` only in the Cloudron app
+environment. The generated credentials must not be copied into GitHub,
+the repository, release archives, logs, or chat.
+
+Configure Cloudron app access for these directory groups:
+
+- `position.staff`
+- `position.students`
+- `position.volunteers`
+- `intranet.administrator`
+- `intranet.superadmin`
+
+The LAMP package injects rotating `CLOUDRON_LDAP_*` credentials. MyAPES uses
+OIDC for authentication and LDAP membership for authorization; LDAP credentials
+must not be copied into the Laravel environment file.
+
+Before activation, production runs:
+
+```bash
+php artisan myapes:auth-check --no-interaction
+```
+
+The command validates the OIDC discovery contract, PKCE S256 support, LDAP
+connectivity and all five role groups without printing client, bind or user
+data. An authentication-readiness failure occurs before migrations and leaves
+the previous release active.
+
+Directory-backed sessions revalidate role membership at most every five
+minutes. Removing all approved groups downgrades and signs out the user;
+directory outages fail closed without changing the last stored role. Explicit
+staff logout clears the MyAPES session and forces a fresh Cloudron credential
+prompt on the next Staff Login. It does not end other Cloudron sessions because
+the provider does not publish a global logout endpoint.
 
 ### Deployment flow (every deployment request)
 
-1. CI checks all required secrets are present.
-2. CI uploads `scripts/deploy/cloudron-remote-deploy.sh` to the Cloudron server.
-3. Remote deployment script resolves the app container for app ID `3465c63f-0e1b-4e49-8f5f-799a471055a1`.
-4. Inside the app container, it runs:
-   - `git fetch --all --prune`
-   - `git fetch --tags`
-   - checkout the requested ref (origin branch or tag; fails if missing)
-   - `composer install --no-dev --optimize-autoloader --no-interaction`
-   - `php artisan migrate --force`
-   - cache clear/rebuild commands
-5. Script restarts the app (`cloudron restart --app <id>` when available, else docker restart fallback).
-6. Any missing configuration or command failure exits non-zero and fails the deployment run.
+1. CI checks out the exact `main` revision, installs PHP 8.4 and Node 22 dependencies, runs the PHP tests, validates shell scripts, and builds Vite assets.
+2. CI creates an immutable production archive containing Composer production dependencies, built assets, and a `REVISION` file.
+3. A pre-deployment Cloudron backup is created.
+4. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>`.
+5. The activation script extracts to `/app/data/releases/<sha>`, links shared `.env` and Laravel storage, validates OIDC/LDAP readiness, runs migrations and cache warm-up, then atomically updates `/app/data/current`.
+6. Cloudron restarts with Apache serving `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`.
+7. CI verifies `/healthz` reports both healthy dependencies and the exact deployed commit, then checks that Staff Login redirects to the expected Cloudron authorization endpoint with PKCE S256. Failed verification restores the previous code release and leaves the backup available for database recovery.
+
+Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provided environment variables and are not copied into the shared `.env`.
 
 ## Security and audit controls
 

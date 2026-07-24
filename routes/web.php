@@ -12,9 +12,7 @@ use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('auth.landing');
-})->name('home');
+Route::view('/', 'auth.landing')->name('home');
 
 Route::middleware('guest')->controller(PublicAuthController::class)->group(function (): void {
     Route::get('/login', 'showLogin')->name('public.login');
@@ -38,7 +36,7 @@ Route::prefix('staff/auth')->controller(OidcAuthController::class)->group(functi
     Route::post('/logout', 'logout')->middleware('auth')->name('auth.logout');
 });
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'directory.current'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

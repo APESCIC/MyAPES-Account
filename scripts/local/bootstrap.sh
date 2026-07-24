@@ -33,31 +33,75 @@ for tool in php composer npm; do
   fi
 done
 
-if [[ ! -f artisan ]]; then
-  echo "artisan was not found in $ROOT_DIR. Run this inside the Laravel project root."
-  exit 1
-fi
-
-if [[ ! -f composer.json ]]; then
-  echo "composer.json was not found in $ROOT_DIR. Run this inside the Laravel project root."
-  exit 1
-fi
-
-if [[ ! -f .env ]]; then
-  if [[ -f .env.example ]]; then
-    cp .env.example .env
-    echo "Created .env from .env.example"
-  else
-    echo "Neither .env nor .env.example exists."
+for required_file in artisan composer.json .env.local.example; do
+  if [[ ! -f "$required_file" ]]; then
+    echo "Required local bootstrap file is missing: $required_file"
     exit 1
   fi
+done
+
+if [[ ! -f .env ]]; then
+  cp .env.local.example .env
+  echo "Created .env from .env.local.example"
 fi
 
-php -r '$path = ".env"; $content = file_get_contents($path); if ($content === false) { fwrite(STDERR, "Unable to read .env\n"); exit(1); } $updated = preg_replace("/^SESSION_SECURE_COOKIE=.*/m", "SESSION_SECURE_COOKIE=false", $content, 1, $count); if ($updated === null) { fwrite(STDERR, "Unable to update SESSION_SECURE_COOKIE in .env\n"); exit(1); } if ($count === 0) { $updated .= PHP_EOL."SESSION_SECURE_COOKIE=false".PHP_EOL; } file_put_contents($path, $updated);'
+APP_ENV_VALUE="$(sed -n 's/^APP_ENV=//p' .env | head -n 1 | tr -d "\"'[:space:]")"
+if [[ "$APP_ENV_VALUE" != "local" && "$APP_ENV_VALUE" != "testing" ]]; then
+  echo "Refusing to rewrite .env because APP_ENV is '$APP_ENV_VALUE'."
+  echo "Local bootstrap only accepts local or testing environments."
+  exit 1
+fi
+
+SQLITE_PATH="$ROOT_DIR/database/database.sqlite"
+mkdir -p "$(dirname "$SQLITE_PATH")"
+touch "$SQLITE_PATH"
+
+LOCAL_DB_PATH="$SQLITE_PATH" php -r '
+$path = ".env";
+$content = file_get_contents($path);
+if ($content === false) {
+    fwrite(STDERR, "Unable to read .env\n");
+    exit(1);
+}
+
+$values = [
+    "APP_ENV" => "local",
+    "APP_DEBUG" => "true",
+    "APP_URL" => "http://127.0.0.1:8000",
+    "DB_CONNECTION" => "sqlite",
+    "DB_DATABASE" => str_replace("\\", "/", getenv("LOCAL_DB_PATH")),
+    "CACHE_STORE" => "file",
+    "SESSION_DRIVER" => "file",
+    "SESSION_SECURE_COOKIE" => "false",
+    "QUEUE_CONNECTION" => "sync",
+    "MAIL_MAILER" => "log",
+];
+
+foreach ($values as $key => $value) {
+    $pattern = "/^".preg_quote($key, "/")."=.*$/m";
+    $replacement = $key."=".$value;
+    $updated = preg_replace($pattern, $replacement, $content, 1, $count);
+    if ($updated === null) {
+        fwrite(STDERR, "Unable to update ".$key." in .env\n");
+        exit(1);
+    }
+    $content = $count === 0
+        ? rtrim($updated).PHP_EOL.$replacement.PHP_EOL
+        : $updated;
+}
+
+if (file_put_contents($path, $content) === false) {
+    fwrite(STDERR, "Unable to write .env\n");
+    exit(1);
+}
+'
 
 composer install --no-interaction --prefer-dist
 npm install --no-audit --no-fund
-php artisan key:generate --force
+
+if grep -qE '^APP_KEY=[[:space:]]*$' .env; then
+  php artisan key:generate --force
+fi
 
 if [[ "$RUN_FRESH" == true ]]; then
   echo "Running destructive local QA reset (migrate:fresh --seed)."
@@ -69,6 +113,11 @@ else
   php artisan migrate --force
 fi
 
-php artisan storage:link --force
+if [[ -e public/storage ]]; then
+  echo "Storage link already exists."
+else
+  php artisan storage:link
+fi
+npm run build
 
-echo "Local bootstrap complete."
+echo "Local bootstrap complete. Run 'composer run dev' to start MyAPES Account."

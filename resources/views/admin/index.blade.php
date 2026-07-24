@@ -4,7 +4,6 @@
 
 @section('content')
     <div class="panel">
-        <img src="{{ asset('mascot/beardie-wave.svg') }}" alt="Bearded dragon mascot for admin operations" class="brand-mascot">
         <h1>Admin operations</h1>
         <p class="muted">Administrator and superadmin visibility for APES staff operations.</p>
         <div class="grid">
