@@ -1,10 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Staff Sign in | MyAPES Account')
+@section('title', 'Welcome | MyAPES Account')
 
 @section('content')
     <div class="panel">
-        <h1>Staff sign in</h1>
+        <img src="{{ asset('branding/login-hero.png') }}" alt="MyAPES Account" class="hero-image">
+        <h1>Welcome to MyAPES Account</h1>
         <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care.</p>
         <div class="grid">
             <div class="panel" style="margin:0;">
@@ -20,8 +21,22 @@
                 <p>Pet care support routes with consultation planning and follow-up management.</p>
             </div>
         </div>
-        <form method="get" action="{{ route('staff.auth.login') }}">
-            <button type="submit">Continue with APES Cloudron Login</button>
-        </form>
+    </div>
+    <div class="grid">
+        <div class="panel">
+            <h2>Public access</h2>
+            <p class="muted">For service users managing support, profiles, and pets.</p>
+            <div class="actions">
+                <a href="{{ route('public.login') }}">Public Login</a>
+                <a href="{{ route('public.register') }}">Register</a>
+            </div>
+        </div>
+        <div class="panel">
+            <h2>Staff access</h2>
+            <p class="muted">APES staff and administrators should use Cloudron sign-in.</p>
+            <div class="actions">
+                <a href="{{ route('staff.login') }}">Staff Login</a>
+            </div>
+        </div>
     </div>
 @endsection

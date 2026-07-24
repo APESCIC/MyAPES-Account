@@ -4,6 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'MyAPES Account')</title>
+    <meta name="description" content="MyAPES Account service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="@yield('title', 'MyAPES Account')">
+    <meta property="og:description" content="MyAPES Account service portal for APES CIC service users and staff.">
+    <meta property="og:image" content="{{ asset('og-image.png') }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('title', 'MyAPES Account')">
+    <meta name="twitter:description" content="MyAPES Account service portal for APES CIC service users and staff.">
+    <meta name="twitter:image" content="{{ asset('og-image.png') }}">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <style>
         :root { color-scheme: light; }
         body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #1f2a37; }
@@ -31,6 +46,8 @@
         .alert { border-left: 4px solid #059669; background: #ecfdf5; padding: .6rem .75rem; margin-bottom: 1rem; border-radius: .4rem; }
         .error-list { background: #fef2f2; border-left: 4px solid #dc2626; padding: .6rem .75rem; margin-bottom: 1rem; border-radius: .4rem; }
         form.inline { display: inline; }
+        footer { border-top: 1px solid #e2e8f0; color: #475569; text-align: center; padding: 1rem; margin-top: 2rem; font-size: .9rem; }
+        .hero-image { width: 100%; border-radius: .8rem; display: block; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
@@ -55,6 +72,13 @@
             </form>
         </nav>
     @endauth
+    @guest
+        <nav>
+            <a href="{{ route('public.login') }}">Public Login</a>
+            <a href="{{ route('public.register') }}">Register</a>
+            <a href="{{ route('staff.login') }}">Staff Login</a>
+        </nav>
+    @endguest
 </header>
 <main>
     @if(session('status'))
@@ -69,5 +93,6 @@
     @endif
     @yield('content')
 </main>
+<footer>© 2026 Association of Protecting Exotic Species CIC · CIC No: 16253848</footer>
 </body>
 </html>

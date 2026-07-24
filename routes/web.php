@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
+use App\Http\Controllers\Auth\PublicAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PetCare\ConsultationController;
 use App\Http\Controllers\PetCare\PetProfileController as PetCarePetProfileController;
@@ -12,13 +13,26 @@ use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileContro
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('auth.login');
+    return view('auth.landing');
 })->name('home');
 
-Route::controller(OidcAuthController::class)->group(function (): void {
-    Route::get('/auth/login', 'login')->name('auth.login');
-    Route::get('/auth/callback', 'callback')->name('auth.callback');
-    Route::post('/auth/logout', 'logout')->middleware('auth')->name('auth.logout');
+Route::middleware('guest')->controller(PublicAuthController::class)->group(function (): void {
+    Route::get('/login', 'showLogin')->name('public.login');
+    Route::post('/login', 'login')->name('public.login.submit');
+    Route::get('/register', 'showRegister')->name('public.register');
+    Route::post('/register', 'register')->name('public.register.submit');
+});
+
+Route::middleware('guest')->group(function (): void {
+    Route::get('/staff/login', function () {
+        return view('auth.staff-login');
+    })->name('staff.login');
+});
+
+Route::prefix('staff/auth')->controller(OidcAuthController::class)->group(function (): void {
+    Route::get('/login', 'login')->name('staff.auth.login');
+    Route::get('/callback', 'callback')->name('staff.auth.callback');
+    Route::post('/logout', 'logout')->middleware('auth')->name('auth.logout');
 });
 
 Route::middleware('auth')->group(function (): void {
