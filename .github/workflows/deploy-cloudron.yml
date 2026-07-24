@@ -119,7 +119,7 @@ jobs:
           grep -qx './public/build/manifest.json' build/archive-list.txt
           grep -qx './scripts/deploy/activate-release.sh' build/archive-list.txt
 
-          if grep -Eq '^\./(\.git|\.env($|\.)|docs/|node_modules/|scripts/local/|storage/|tests/)' build/archive-list.txt; then
+          if grep -Eq '^\./(\.git($|/)|\.env($|\.)|docs/|node_modules/|scripts/local/|storage/|tests/)' build/archive-list.txt; then
             echo "Release archive contains an excluded path."
             exit 1
           fi

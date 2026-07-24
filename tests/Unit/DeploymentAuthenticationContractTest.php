@@ -66,6 +66,14 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
     }
 
+    public function test_release_exclusion_only_rejects_the_git_directory(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+
+        $this->assertStringContainsString('\.git($|/)', $workflow);
+        $this->assertStringNotContainsString('^\./(\.git|', $workflow);
+    }
+
     private function position(string $content, string $needle): int
     {
         $position = strpos($content, $needle);
