@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="panel">
-        <img src="{{ asset('branding/login-hero.png') }}" alt="MyAPES Account" class="hero-image">
+        <img src="{{ asset('branding/logo-myapes-account-wordmark.png') }}" alt="MyAPES Account" class="logo-hero">
         <h1>Welcome to MyAPES Account</h1>
         <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care.</p>
         <div class="grid">
