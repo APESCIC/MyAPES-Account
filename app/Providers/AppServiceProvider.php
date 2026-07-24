@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\OidcIdentityProvider;
+use App\Services\JumbojettOidcIdentityProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(OidcIdentityProvider::class, JumbojettOidcIdentityProvider::class);
     }
 
     /**

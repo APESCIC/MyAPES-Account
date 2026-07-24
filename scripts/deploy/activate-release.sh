@@ -67,7 +67,7 @@ if [[ ! -f "${SHARED_DIR}/.env" ]]; then
   sed -i "s|^APP_KEY=.*$|APP_KEY=${APP_KEY_VALUE}|" "${SHARED_DIR}/.env"
   chown www-data:www-data "${SHARED_DIR}/.env"
   chmod 0640 "${SHARED_DIR}/.env"
-  echo "Created the shared production environment. Configure OIDC values before staff sign-in acceptance."
+  echo "Created the shared production environment. Configure OIDC values in the Cloudron app environment and rerun deployment if the authentication gate fails."
 elif ! grep -Eq '^APP_ENV=production$' "${SHARED_DIR}/.env"; then
   echo "Refusing deployment because ${SHARED_DIR}/.env is not marked APP_ENV=production."
   exit 1
@@ -149,6 +149,7 @@ ln -s "${SHARED_DIR}/.env" "${RELEASE_DIR}/.env"
 install -d -o www-data -g www-data -m 0775 "${RELEASE_DIR}/bootstrap/cache"
 
 sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" optimize:clear
+sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" myapes:auth-check --no-interaction --no-ansi
 sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" migrate --force
 sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" storage:link --force
 sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" config:cache

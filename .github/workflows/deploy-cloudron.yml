@@ -141,6 +141,8 @@ jobs:
     env:
       CLOUDRON_APP_ID: 3465c63f-0e1b-4e49-8f5f-799a471055a1
       CLOUDRON_APP_URL: https://myaccount.myapes.me.uk
+      CLOUDRON_OIDC_AUTH_URL: https://my.cloudron.apes.org.uk/openid/auth
+      CLOUDRON_OIDC_REDIRECT_URI: https://myaccount.myapes.me.uk/staff/auth/callback
       CLOUDRON_FQDN: ${{ secrets.CLOUDRON_FQDN }}
       CLOUDRON_TOKEN: ${{ secrets.CLOUDRON_TOKEN }}
       RELEASE_SHA: ${{ needs.quality.outputs.release_sha }}
@@ -203,13 +205,14 @@ jobs:
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             restart --app "$CLOUDRON_APP_ID"
 
-      - name: Verify exact release health
-        id: health
+      - name: Verify exact release health and OIDC redirect
+        id: verify
         shell: bash
         continue-on-error: true
         run: |
           set -euo pipefail
 
+          release_verified=false
           for attempt in {1..18}; do
             response="$(curl --fail --silent --show-error --max-time 10 "$CLOUDRON_APP_URL/healthz" || true)"
             reported_release="$(jq -r '.release // empty' <<<"$response" 2>/dev/null || true)"
@@ -217,17 +220,89 @@ jobs:
 
             if [[ "$reported_status" == "ok" && "$reported_release" == "$RELEASE_SHA" ]]; then
               echo "Verified healthy release $RELEASE_SHA."
-              exit 0
+              release_verified=true
+              break
             fi
 
             sleep 5
           done
 
-          echo "Health verification did not confirm release $RELEASE_SHA."
-          exit 1
+          if [[ "$release_verified" != true ]]; then
+            echo "Health verification did not confirm release $RELEASE_SHA."
+            exit 1
+          fi
 
-      - name: Roll back code after failed health verification
-        if: steps.health.outcome == 'failure'
+          headers_dir="$(mktemp -d)"
+          headers_file="$headers_dir/headers"
+          trap 'rm -rf -- "$headers_dir"' EXIT
+
+          status_code="$(curl --silent --show-error --max-time 10 \
+            --output /dev/null \
+            --dump-header "$headers_file" \
+            --write-out '%{http_code}' \
+            "$CLOUDRON_APP_URL/staff/auth/login")"
+
+          if [[ "$status_code" != 302 ]]; then
+            echo "OIDC redirect verification did not return HTTP 302."
+            exit 1
+          fi
+
+          export OIDC_HEADERS_FILE="$headers_file"
+          python3 <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+          from urllib.parse import parse_qs, urlparse
+
+          header_lines = Path(os.environ["OIDC_HEADERS_FILE"]).read_bytes().splitlines()
+          locations = [
+              line.split(b":", 1)[1].strip().decode("ascii")
+              for line in header_lines
+              if line.lower().startswith(b"location:")
+          ]
+
+          if len(locations) != 1:
+              sys.exit("OIDC redirect verification returned an invalid Location header.")
+
+          redirect = urlparse(locations[0])
+          expected = urlparse(os.environ["CLOUDRON_OIDC_AUTH_URL"])
+          params = parse_qs(redirect.query, keep_blank_values=True)
+
+          def one(name):
+              values = params.get(name, [])
+              if len(values) != 1 or not values[0]:
+                  sys.exit(f"OIDC redirect verification is missing {name}.")
+              return values[0]
+
+          if (redirect.scheme, redirect.netloc, redirect.path) != (
+              expected.scheme,
+              expected.netloc,
+              expected.path,
+          ):
+              sys.exit("OIDC redirect verification targeted an unexpected provider.")
+
+          if one("response_type") != "code":
+              sys.exit("OIDC redirect verification used an unexpected response type.")
+          if one("redirect_uri") != os.environ["CLOUDRON_OIDC_REDIRECT_URI"]:
+              sys.exit("OIDC redirect verification used an unexpected callback.")
+          if not {"openid", "profile", "email"}.issubset(set(one("scope").split())):
+              sys.exit("OIDC redirect verification is missing a required scope.")
+
+          one("client_id")
+          one("state")
+          one("nonce")
+
+          if one("code_challenge_method") != "S256":
+              sys.exit("OIDC redirect verification did not use S256.")
+          if re.fullmatch(r"[A-Za-z0-9_-]{43}", one("code_challenge")) is None:
+              sys.exit("OIDC redirect verification returned a malformed challenge.")
+
+          print("OIDC redirect verification passed.")
+          PY
+
+      - name: Roll back code after failed release verification
+        if: steps.verify.outcome == 'failure'
         shell: bash
         run: |
           set -euo pipefail
@@ -239,6 +314,6 @@ jobs:
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             restart --app "$CLOUDRON_APP_ID"
 
-          echo "Deployment failed health verification and code rollback was attempted."
+          echo "Deployment failed release verification and code rollback was attempted."
           echo "Database migrations were not reversed; use the pre-deployment Cloudron backup if required."
           exit 1

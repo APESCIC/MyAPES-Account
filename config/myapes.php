@@ -24,6 +24,7 @@ return [
         'host' => env('LDAP_HOST', env('CLOUDRON_LDAP_HOST')),
         'port' => (int) env('LDAP_PORT', env('CLOUDRON_LDAP_PORT', 389)),
         'base_dn' => env('LDAP_BASE_DN', env('CLOUDRON_LDAP_USERS_BASE_DN')),
+        'groups_base_dn' => env('LDAP_GROUPS_BASE_DN', env('CLOUDRON_LDAP_GROUPS_BASE_DN')),
         'bind_dn' => env('LDAP_BIND_DN', env('CLOUDRON_LDAP_BIND_DN')),
         'bind_password' => env('LDAP_BIND_PASSWORD', env('CLOUDRON_LDAP_BIND_PASSWORD')),
         'user_filter' => env('LDAP_USER_FILTER', '(mail=%s)'),
@@ -33,8 +34,13 @@ return [
 
     'roles' => [
         'staff_groups' => $parseCsv(env('OIDC_STAFF_GROUPS', 'position.staff,position.students,position.volunteers')),
-        'admin_groups' => $parseCsv(env('OIDC_ADMIN_GROUPS', 'admin,superadmin')),
-        'superadmin_groups' => $parseCsv(env('OIDC_SUPERADMIN_GROUPS', 'superadmin')),
+        'admin_groups' => $parseCsv(env('OIDC_ADMIN_GROUPS', 'intranet.administrator')),
+        'superadmin_groups' => $parseCsv(env('OIDC_SUPERADMIN_GROUPS', 'intranet.superadmin')),
+    ],
+
+    'directory' => [
+        'revalidate_seconds' => (int) env('LDAP_SESSION_REVALIDATE_SECONDS', 300),
+        'revalidate_in_local' => (bool) env('LDAP_SESSION_REVALIDATE_IN_LOCAL', false),
     ],
 
     'audit' => [

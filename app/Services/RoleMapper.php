@@ -9,7 +9,7 @@ class RoleMapper
     /**
      * @param  array<int, string>  $groups
      */
-    public function map(array $groups): string
+    public function map(array $groups): ?string
     {
         $normalized = array_map(
             static fn (string $group): string => strtolower(trim($group)),
@@ -32,7 +32,7 @@ class RoleMapper
             return User::ROLE_STAFF;
         }
 
-        return User::ROLE_SERVICE_USER;
+        return null;
     }
 
     /**

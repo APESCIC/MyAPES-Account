@@ -9,7 +9,8 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
   - Staff/admin users: APES Cloudron OIDC login with LDAP group resolution for role assignment
 - **Role mapping**:
   - Staff access: `position.staff`, `position.students`, `position.volunteers`
-  - Admin access: `admin`, `superadmin`
+  - Admin access: `intranet.administrator`
+  - Superadmin access: `intranet.superadmin`
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support tickets
@@ -171,11 +172,48 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 
 Create these as secrets in the GitHub environment named `cloudron-deploy`. Do not commit either value.
 
-Staff OIDC also needs a one-time Cloudron OpenID client whose callback is:
+### Staff OIDC and LDAP setup
+
+Create a one-time Cloudron OpenID client named **MyAPES Account** in
+**Users → OpenID** with this callback:
 
 `https://myaccount.myapes.me.uk/staff/auth/callback`
 
-Store its issuer, client ID, and client secret only in `/app/data/shared/.env`.
+Use the issuer `https://my.cloudron.apes.org.uk/openid` and the
+`openid profile email` scopes. Store `OIDC_ISSUER`, `OIDC_CLIENT_ID`,
+`OIDC_CLIENT_SECRET`, and `OIDC_REDIRECT_URI` only in the Cloudron app
+environment. The generated credentials must not be copied into GitHub,
+the repository, release archives, logs, or chat.
+
+Configure Cloudron app access for these directory groups:
+
+- `position.staff`
+- `position.students`
+- `position.volunteers`
+- `intranet.administrator`
+- `intranet.superadmin`
+
+The LAMP package injects rotating `CLOUDRON_LDAP_*` credentials. MyAPES uses
+OIDC for authentication and LDAP membership for authorization; LDAP credentials
+must not be copied into the Laravel environment file.
+
+Before activation, production runs:
+
+```bash
+php artisan myapes:auth-check --no-interaction
+```
+
+The command validates the OIDC discovery contract, PKCE S256 support, LDAP
+connectivity and all five role groups without printing client, bind or user
+data. An authentication-readiness failure occurs before migrations and leaves
+the previous release active.
+
+Directory-backed sessions revalidate role membership at most every five
+minutes. Removing all approved groups downgrades and signs out the user;
+directory outages fail closed without changing the last stored role. Explicit
+staff logout clears the MyAPES session and forces a fresh Cloudron credential
+prompt on the next Staff Login. It does not end other Cloudron sessions because
+the provider does not publish a global logout endpoint.
 
 ### Deployment flow (every deployment request)
 
@@ -183,9 +221,9 @@ Store its issuer, client ID, and client secret only in `/app/data/shared/.env`.
 2. CI creates an immutable production archive containing Composer production dependencies, built assets, and a `REVISION` file.
 3. A pre-deployment Cloudron backup is created.
 4. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>`.
-5. The activation script extracts to `/app/data/releases/<sha>`, links shared `.env` and Laravel storage, runs migrations and cache warm-up, then atomically updates `/app/data/current`.
+5. The activation script extracts to `/app/data/releases/<sha>`, links shared `.env` and Laravel storage, validates OIDC/LDAP readiness, runs migrations and cache warm-up, then atomically updates `/app/data/current`.
 6. Cloudron restarts with Apache serving `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`.
-7. CI verifies `/healthz` reports both healthy dependencies and the exact deployed commit. Failed verification restores the previous code release and leaves the backup available for database recovery.
+7. CI verifies `/healthz` reports both healthy dependencies and the exact deployed commit, then checks that Staff Login redirects to the expected Cloudron authorization endpoint with PKCE S256. Failed verification restores the previous code release and leaves the backup available for database recovery.
 
 Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provided environment variables and are not copied into the shared `.env`.
 
