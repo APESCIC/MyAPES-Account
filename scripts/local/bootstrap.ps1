@@ -1,3 +1,9 @@
+[CmdletBinding()]
+param(
+    [switch]$Seed,
+    [switch]$Fresh
+)
+
 $ErrorActionPreference = "Stop"
 
 $RootDir = Resolve-Path (Join-Path $PSScriptRoot "..\..")
@@ -29,6 +35,17 @@ if (-not (Test-Path ".\.env")) {
 composer install --no-interaction --prefer-dist
 npm install --no-audit --no-fund
 php artisan key:generate --force
-php artisan migrate --force
+
+if ($Fresh) {
+    Write-Host "Running destructive local QA reset (migrate:fresh --seed)."
+    php artisan migrate:fresh --seed --force
+} elseif ($Seed) {
+    php artisan migrate --force
+    php artisan db:seed --force
+} else {
+    php artisan migrate --force
+}
+
+php artisan storage:link --force
 
 Write-Host "Local bootstrap complete."
