@@ -5,6 +5,7 @@
 @section('content')
     <div class="panel">
         <img src="{{ asset('logos/myapes-header-dark.svg') }}" alt="MyAPES Account staff login" class="logo-hero">
+        <img src="{{ asset('mascot/beardie-wave.svg') }}" alt="Bearded dragon mascot for staff login" class="brand-mascot">
         <h1>Staff Login</h1>
         <p class="muted">APES staff and administrators sign in via APES Cloudron.</p>
         @if(app()->environment(['local', 'testing']))
@@ -17,15 +18,15 @@
                 <label for="password">Password</label>
                 <input id="password" type="password" name="password" required>
 
-                <label style="display:flex;align-items:center;gap:.5rem;">
-                    <input type="checkbox" name="remember" value="1" style="width:auto;"> Remember me
+                <label class="inline-check">
+                    <input type="checkbox" name="remember" value="1"> Remember me
                 </label>
 
-                <div class="actions" style="margin-top:.8rem;">
+                <div class="actions">
                     <button type="submit">Local Staff Login</button>
                 </div>
             </form>
-            <hr style="border:0;border-top:1px solid #e2e8f0;margin:1rem 0;">
+            <hr class="section-divider">
         @endif
         <form method="get" action="{{ route('staff.auth.login') }}">
             <button type="submit">Continue with APES Cloudron Login</button>

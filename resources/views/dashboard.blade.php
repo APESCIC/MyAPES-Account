@@ -4,6 +4,7 @@
 
 @section('content')
     <div class="panel">
+        <img src="{{ asset('mascot/beardie-cozy.svg') }}" alt="MyAPES mascot celebrating progress" class="hero-image">
         <h1>Dashboard</h1>
         <p class="muted">Welcome back, {{ auth()->user()->name }}. Role: <strong>{{ auth()->user()->role }}</strong></p>
     </div>

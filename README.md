@@ -38,6 +38,14 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 | `public/logos/myapes-header-dark-600x128.png` | Raster fallback where SVG is unavailable |
 | `public/logos/myapes-header-light-600x128.png` | Light raster fallback where SVG is unavailable |
 
+### Mascot assets (Ember the bearded dragon)
+
+| Asset | Purpose |
+| --- | --- |
+| `public/mascot/beardie-wave.svg` | Shared mascot badge used in global header, banner, and auth/admin highlights |
+| `public/mascot/beardie-cozy.svg` | Wider hero illustration used on landing/dashboard-style surfaces |
+
+The app now uses a mascot-led playful theme globally (public, staff, and admin surfaces) while preserving role clarity and workflow readability.
 ### Browser, PWA, and social assets
 
 | Asset | Purpose |
