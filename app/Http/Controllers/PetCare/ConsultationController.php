@@ -7,6 +7,7 @@ use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\User;
 use App\Notifications\ConsultationUpdatedNotification;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class ConsultationController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
         $validated = $request->validate([
             'pet_profile_id' => ['required', 'exists:pet_profiles,id'],
@@ -54,6 +55,10 @@ class ConsultationController extends Controller
         ]);
 
         $this->notifyConsultationStakeholders($consultation, $request->user(), 'created');
+        $auditLogger->record('petcare.consultation.created', $request->user(), $consultation, [
+            'status' => $consultation->status,
+            'scheduled_for' => $consultation->scheduled_for,
+        ]);
 
         return redirect()->route('petcare.consultations.show', $consultation);
     }
@@ -71,7 +76,7 @@ class ConsultationController extends Controller
         ]);
     }
 
-    public function update(Request $request, PetCareConsultation $consultation): RedirectResponse
+    public function update(Request $request, PetCareConsultation $consultation, AuditLogger $auditLogger): RedirectResponse
     {
         $this->authorizeConsultation($consultation);
 
@@ -95,6 +100,11 @@ class ConsultationController extends Controller
         ]);
 
         $this->notifyConsultationStakeholders($consultation, $request->user(), 'updated');
+        $auditLogger->record('petcare.consultation.updated', $request->user(), $consultation, [
+            'status' => $consultation->status,
+            'assigned_to' => $consultation->assigned_to,
+            'scheduled_for' => $consultation->scheduled_for,
+        ]);
 
         return redirect()->route('petcare.consultations.show', $consultation)->with('status', 'Consultation updated.');
     }

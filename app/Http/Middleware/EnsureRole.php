@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\AuditLogger;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,10 +21,19 @@ class EnsureRole
         $user = $request->user();
 
         if ($user === null) {
+            app(AuditLogger::class)->record('auth.unauthenticated_access_blocked', null, null, [
+                'path' => $request->path(),
+                'required_roles' => $roles,
+            ]);
             abort(401);
         }
 
         if ($roles !== [] && ! in_array($user->role, $roles, true)) {
+            app(AuditLogger::class)->record('auth.role_access_denied', $user, null, [
+                'path' => $request->path(),
+                'required_roles' => $roles,
+                'actual_role' => $user->role,
+            ]);
             abort(403, 'You do not have access to this section.');
         }
 

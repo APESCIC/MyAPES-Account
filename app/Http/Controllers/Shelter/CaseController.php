@@ -7,6 +7,7 @@ use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\User;
 use App\Notifications\ShelterCaseUpdatedNotification;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class CaseController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
         $validated = $request->validate([
             'pet_profile_id' => ['required', 'exists:pet_profiles,id'],
@@ -54,6 +55,10 @@ class CaseController extends Controller
         ]);
 
         $this->notifyCaseStakeholders($case, $request->user(), 'created');
+        $auditLogger->record('shelter.case.created', $request->user(), $case, [
+            'case_type' => $case->case_type,
+            'status' => $case->status,
+        ]);
 
         return redirect()->route('shelter.cases.show', $case);
     }
@@ -71,7 +76,7 @@ class CaseController extends Controller
         ]);
     }
 
-    public function update(Request $request, ShelterCase $case): RedirectResponse
+    public function update(Request $request, ShelterCase $case, AuditLogger $auditLogger): RedirectResponse
     {
         $this->authorizeCase($case);
 
@@ -93,6 +98,10 @@ class CaseController extends Controller
         ]);
 
         $this->notifyCaseStakeholders($case, $request->user(), 'updated');
+        $auditLogger->record('shelter.case.updated', $request->user(), $case, [
+            'status' => $case->status,
+            'assigned_to' => $case->assigned_to,
+        ]);
 
         return redirect()->route('shelter.cases.show', $case)->with('status', 'Case updated.');
     }

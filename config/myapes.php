@@ -33,4 +33,8 @@ return [
         'admin_groups' => $parseCsv(env('OIDC_ADMIN_GROUPS', 'admin,superadmin')),
         'superadmin_groups' => $parseCsv(env('OIDC_SUPERADMIN_GROUPS', 'superadmin')),
     ],
+
+    'audit' => [
+        'retention_days' => (int) env('AUDIT_LOG_RETENTION_DAYS', 180),
+    ],
 ];

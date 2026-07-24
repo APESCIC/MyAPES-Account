@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\LdapGroupResolver;
 use App\Services\RoleMapper;
 use Illuminate\Http\RedirectResponse;
@@ -26,8 +27,11 @@ class OidcAuthController extends Controller
         return redirect()->route('dashboard');
     }
 
-    public function callback(LdapGroupResolver $ldapGroupResolver, RoleMapper $roleMapper): RedirectResponse
-    {
+    public function callback(
+        LdapGroupResolver $ldapGroupResolver,
+        RoleMapper $roleMapper,
+        AuditLogger $auditLogger
+    ): RedirectResponse {
         $oidc = $this->buildClient();
         $oidc->authenticate();
 
@@ -36,16 +40,22 @@ class OidcAuthController extends Controller
         $sub = $oidc->requestUserInfo('sub');
 
         if (! is_string($email) || trim($email) === '') {
+            $auditLogger->record('auth.oidc_missing_email');
             abort(403, 'Authenticated identity did not include an email address.');
         }
 
         if (! is_string($sub) || trim($sub) === '') {
+            $auditLogger->record('auth.oidc_missing_subject');
             abort(403, 'Authenticated identity did not include a subject identifier.');
         }
 
         try {
             $groups = $ldapGroupResolver->resolveByEmail($email);
         } catch (RuntimeException $exception) {
+            $auditLogger->record('auth.ldap_resolution_failed', null, null, [
+                'email' => $email,
+                'reason' => $exception->getMessage(),
+            ]);
             abort(503, $exception->getMessage());
         }
 
@@ -70,12 +80,22 @@ class OidcAuthController extends Controller
 
         Auth::login($user, true);
         request()->session()->regenerate();
+        $auditLogger->record('auth.login_success', $user, $user, [
+            'role' => $user->role,
+            'group_count' => count($groups),
+        ]);
 
         return redirect()->intended(route('dashboard'));
     }
 
-    public function logout(Request $request): RedirectResponse
+    public function logout(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
+        /** @var User|null $user */
+        $user = $request->user();
+        if ($user !== null) {
+            $auditLogger->record('auth.logout', $user, $user);
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

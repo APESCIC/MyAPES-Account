@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Notifications\TicketUpdatedNotification;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ class TicketController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
         $validated = $request->validate([
             'service_area' => ['required', 'string', 'max:80'],
@@ -52,6 +53,10 @@ class TicketController extends Controller
         ]);
 
         $this->notifyTicketStakeholders($ticket, $request->user(), 'created');
+        $auditLogger->record('apes_cic.ticket.created', $request->user(), $ticket, [
+            'service_area' => $ticket->service_area,
+            'priority' => $ticket->priority,
+        ]);
 
         return redirect()->route('apes-cic.tickets.show', $ticket);
     }
@@ -69,7 +74,7 @@ class TicketController extends Controller
         ]);
     }
 
-    public function update(Request $request, SupportTicket $ticket): RedirectResponse
+    public function update(Request $request, SupportTicket $ticket, AuditLogger $auditLogger): RedirectResponse
     {
         $this->authorizeTicketAccess($ticket);
 
@@ -100,16 +105,25 @@ class TicketController extends Controller
         }
 
         $this->notifyTicketStakeholders($ticket, $request->user(), 'updated');
+        $auditLogger->record('apes_cic.ticket.updated', $request->user(), $ticket, [
+            'status' => $ticket->status,
+            'priority' => $ticket->priority,
+            'assigned_to' => $ticket->assigned_to,
+        ]);
 
         return redirect()->route('apes-cic.tickets.show', $ticket)->with('status', 'Ticket updated.');
     }
 
-    public function destroy(SupportTicket $ticket): RedirectResponse
+    public function destroy(SupportTicket $ticket, AuditLogger $auditLogger): RedirectResponse
     {
-        if (! request()->user()->isStaff()) {
+        $actor = request()->user();
+        if (! $actor->isStaff()) {
             abort(403);
         }
 
+        $auditLogger->record('apes_cic.ticket.deleted', $actor, $ticket, [
+            'subject' => $ticket->subject,
+        ]);
         $ticket->delete();
 
         return redirect()->route('apes-cic.tickets.index')->with('status', 'Ticket deleted.');

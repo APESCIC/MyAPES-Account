@@ -4,6 +4,8 @@ namespace App\Http\Controllers\PetCare;
 
 use App\Http\Controllers\Controller;
 use App\Models\PetProfile;
+use App\Services\AuditLogger;
+use App\Services\SecureUploadService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,8 +26,11 @@ class PetProfileController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        SecureUploadService $secureUploadService,
+        AuditLogger $auditLogger
+    ): RedirectResponse {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'species' => ['nullable', 'string', 'max:255'],
@@ -33,7 +38,7 @@ class PetProfileController extends Controller
             'sex' => ['required', 'in:male,female,unknown'],
             'neutering_status' => ['required', 'in:neutered,not_neutered,unknown'],
             'health_issues' => ['nullable', 'string'],
-            'photo' => ['nullable', 'image', 'max:3072'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
         ]);
 
         $pet = new PetProfile([
@@ -43,10 +48,17 @@ class PetProfileController extends Controller
         ]);
 
         if ($request->hasFile('photo')) {
-            $pet->photo_path = $request->file('photo')->store('pet-profiles', 'public');
+            $pet->photo_path = $secureUploadService->storeImage(
+                $request->file('photo'),
+                'pet-profiles',
+                'photo'
+            );
         }
 
         $pet->save();
+        $auditLogger->record('petcare.pet_profile.created', $request->user(), $pet, [
+            'has_photo' => $request->hasFile('photo'),
+        ]);
 
         return redirect()->route('petcare.pets.show', $pet);
     }
@@ -58,8 +70,12 @@ class PetProfileController extends Controller
         return view('petcare.pets.show', ['pet' => $pet]);
     }
 
-    public function update(Request $request, PetProfile $pet): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        PetProfile $pet,
+        SecureUploadService $secureUploadService,
+        AuditLogger $auditLogger
+    ): RedirectResponse {
         $this->authorizePet($pet, PetProfile::DOMAIN_PETCARE);
 
         $validated = $request->validate([
@@ -69,14 +85,25 @@ class PetProfileController extends Controller
             'sex' => ['required', 'in:male,female,unknown'],
             'neutering_status' => ['required', 'in:neutered,not_neutered,unknown'],
             'health_issues' => ['nullable', 'string'],
-            'photo' => ['nullable', 'image', 'max:3072'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
         ]);
 
         if ($request->hasFile('photo')) {
-            $validated['photo_path'] = $request->file('photo')->store('pet-profiles', 'public');
+            $previousPhotoPath = $pet->photo_path;
+            $validated['photo_path'] = $secureUploadService->storeImage(
+                $request->file('photo'),
+                'pet-profiles',
+                'photo'
+            );
+            if (is_string($previousPhotoPath) && $previousPhotoPath !== '' && $previousPhotoPath !== $validated['photo_path']) {
+                $secureUploadService->deleteIfPresent($previousPhotoPath);
+            }
         }
 
         $pet->update($validated);
+        $auditLogger->record('petcare.pet_profile.updated', $request->user(), $pet, [
+            'photo_replaced' => $request->hasFile('photo'),
+        ]);
 
         return redirect()->route('petcare.pets.show', $pet)->with('status', 'Pet profile updated.');
     }

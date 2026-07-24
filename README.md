@@ -90,6 +90,25 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 5. Script restarts the app (`cloudron restart --app <id>` when available, else docker restart fallback).
 6. Any missing configuration or command failure exits non-zero and fails the deployment run.
 
+## Security and audit controls
+
+- **Audit log model** records security-sensitive events such as:
+  - OIDC login/logout and role access denials
+  - profile updates
+  - ticket/case/consultation lifecycle updates
+  - pet profile create/update actions
+- **Audit retention control**:
+  - Configure `AUDIT_LOG_RETENTION_DAYS` (default `180`)
+  - Run `php artisan audit:prune` to remove expired audit records
+  - The scheduler is configured to run pruning daily
+- **Session hardening defaults** in `.env.example`:
+  - `SESSION_ENCRYPT=true`
+  - `SESSION_SECURE_COOKIE=true`
+  - `SESSION_HTTP_ONLY=true`
+- **Upload safeguards**:
+  - Avatar and pet photo uploads are restricted to JPEG/PNG/WebP
+  - File replacement removes superseded media files to reduce stale exposure
+
 ## Data model highlights
 
 - `users`: OIDC identity, role, and LDAP groups
