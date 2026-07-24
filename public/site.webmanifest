@@ -1,24 +1,33 @@
 {
   "name": "MyAPES Account",
   "short_name": "MyAPES",
-  "description": "APES CIC service portal for support, profiles, and pet management.",
+  "description": "MyAPES Account web application",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#021b20",
+  "theme_color": "#008f99",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/icons/pwa-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/icons/pwa-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/pwa-maskable-512x512.png",
+      "src": "/icons/pwa-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/pwa-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
