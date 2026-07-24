@@ -74,6 +74,22 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringNotContainsString('^\./(\.git|', $workflow);
     }
 
+    public function test_first_release_does_not_resolve_absent_release_links(): void
+    {
+        $script = $this->read('scripts/deploy/activate-release.sh');
+
+        $this->assertMatchesRegularExpression(
+            '/if \[\[ -L "\$CURRENT_LINK" \]\]; then\R\s+CURRENT_TARGET_BEFORE="\$\(readlink -f/',
+            $script,
+        );
+        $this->assertMatchesRegularExpression(
+            '/if \[\[ -L "\$PREVIOUS_LINK" \]\]; then\R\s+PREVIOUS_TARGET_BEFORE="\$\(readlink -f/',
+            $script,
+        );
+        $this->assertStringContainsString('CURRENT_TARGET_BEFORE=""', $script);
+        $this->assertStringContainsString('PREVIOUS_TARGET_BEFORE=""', $script);
+    }
+
     private function position(string $content, string $needle): int
     {
         $position = strpos($content, $needle);
