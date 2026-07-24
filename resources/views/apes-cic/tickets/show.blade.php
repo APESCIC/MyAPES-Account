@@ -50,14 +50,14 @@
             <form method="post" action="{{ route('apes-cic.tickets.destroy', $ticket) }}" onsubmit="return confirm('Delete this ticket?')">
                 @csrf
                 @method('delete')
-                <button type="submit" style="margin-top:.7rem; background:#b91c1c;">Delete ticket</button>
+                <button type="submit" class="danger-btn">Delete ticket</button>
             </form>
         @endif
     </div>
     <div class="panel">
         <h2>Activity</h2>
         @foreach($ticket->messages as $message)
-            <div style="padding:.45rem 0; border-bottom:1px solid #e2e8f0;">
+            <div class="item-divider">
                 <strong>{{ $message->user->name }}</strong>
                 <span class="muted">{{ $message->created_at }}</span>
                 @if($message->is_staff_note)

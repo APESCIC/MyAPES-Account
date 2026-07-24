@@ -1,0 +1,27 @@
+<svg width="1080" height="520" viewBox="0 0 1080 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="60" y1="46" x2="984" y2="474" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8FBF6"/>
+      <stop offset="1" stop-color="#E6F2FF"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="180" y1="126" x2="450" y2="376" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F2AA3E"/>
+      <stop offset="1" stop-color="#D17013"/>
+    </linearGradient>
+  </defs>
+  <rect x="22" y="20" width="1036" height="478" rx="40" fill="url(#bg)"/>
+  <circle cx="303" cy="261" r="154" fill="url(#skin)"/>
+  <ellipse cx="307" cy="337" rx="94" ry="54" fill="#C4610A"/>
+  <path d="M176 272C176 188 238 124 311 124C381 124 437 183 437 253C437 313 391 366 324 380C257 394 194 353 179 291L176 272Z" fill="url(#skin)"/>
+  <circle cx="262" cy="235" r="15" fill="#0F172A"/>
+  <circle cx="349" cy="235" r="15" fill="#0F172A"/>
+  <ellipse cx="307" cy="278" rx="45" ry="25" fill="#F7C67A"/>
+  <path d="M288 279C293 289 299 294 307 294C315 294 322 289 326 279" stroke="#A54D07" stroke-width="6" stroke-linecap="round"/>
+  <path d="M452 174L505 134M406 128L433 70M348 110L355 52" stroke="#FFE1B8" stroke-width="12" stroke-linecap="round"/>
+  <path d="M533 246C589 214 676 202 760 214C841 227 904 259 948 308" stroke="#0F60D6" stroke-width="11" stroke-linecap="round" stroke-dasharray="2 18"/>
+  <circle cx="962" cy="318" r="20" fill="#117D75"/>
+  <circle cx="1010" cy="345" r="14" fill="#F18C24"/>
+  <circle cx="988" cy="383" r="10" fill="#7647D8"/>
+  <text x="532" y="170" fill="#0E3A5A" font-family="Segoe UI, Arial, sans-serif" font-size="56" font-weight="700">Support starts with a smile.</text>
+  <text x="532" y="238" fill="#35506E" font-family="Segoe UI, Arial, sans-serif" font-size="32">Ember the bearded dragon helps guide every MyAPES workflow.</text>
+</svg>

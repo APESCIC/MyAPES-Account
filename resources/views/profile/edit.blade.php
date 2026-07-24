@@ -27,7 +27,7 @@
             <textarea id="support_needs" name="support_needs">{{ old('support_needs', $profile?->support_needs) }}</textarea>
             <label for="avatar">Avatar photo</label>
             <input id="avatar" type="file" name="avatar" accept="image/*">
-            <div class="actions" style="margin-top:.8rem;">
+            <div class="actions">
                 <button type="submit">Save profile</button>
             </div>
         </form>
