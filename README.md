@@ -59,17 +59,53 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 Run the bootstrap script from the repository root. It installs PHP/Node dependencies, ensures `.env` exists, generates the app key, and runs migrations.
 
+### One-command local QA bootstrap (deterministic test data)
+
+Use a fresh migration+seed reset when you need the same test accounts and records every time.
+
 ### macOS / Linux
 
 ```bash
-bash scripts/local/bootstrap.sh
+bash scripts/local/bootstrap.sh --fresh
 ```
 
 ### Windows PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1 -Fresh
 ```
+
+The `--fresh` / `-Fresh` option is destructive for local data (`migrate:fresh --seed`) and is intended for QA resets.
+
+If you need non-destructive seeding, use:
+
+```bash
+bash scripts/local/bootstrap.sh --seed
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1 -Seed
+```
+
+### Seeded local QA accounts
+
+All seeded users use this password:
+
+- `MyAPES-Local-QA-2026!`
+
+| Role | Login email | Login route | Primary QA coverage |
+| --- | --- | --- | --- |
+| Public service user | `qa.service.user@myapes.local` | `/login` | Public dashboard, profile/settings, APES CIC tickets, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
+| Staff | `qa.staff@myapes.local` | `/staff/login` (local direct login form) | Staff visibility across all user records, assignment updates, staff notes and status workflows |
+| Admin | `qa.admin@myapes.local` | `/staff/login` (local direct login form) | All staff workflows plus `/admin` dashboard and admin navigation access |
+| Superadmin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Same as admin with superadmin role mapping coverage |
+
+### Seeded data included for quick E2E checks
+
+- APES CIC tickets: open/in-progress and resolved examples with message history and staff/admin assignment
+- Shelter: seeded pet profile with in-review and closed case examples
+- Pet Care: seeded pet profile with in-progress and closed consultation examples
+- User profiles: seeded profile data for each QA account
 
 Start local development:
 

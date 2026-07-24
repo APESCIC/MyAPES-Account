@@ -27,6 +27,7 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/staff/login', function () {
         return view('auth.staff-login');
     })->name('staff.login');
+    Route::post('/staff/login', [PublicAuthController::class, 'localStaffLogin'])->name('staff.local-login.submit');
 });
 
 Route::prefix('staff/auth')->controller(OidcAuthController::class)->group(function (): void {
