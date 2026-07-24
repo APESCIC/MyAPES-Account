@@ -1,0 +1,97 @@
+name: Deploy to Cloudron
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: "Branch or tag to deploy"
+        required: false
+        default: "main"
+
+jobs:
+  deploy:
+    name: Cloudron deployment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDRON_APP_ID: 3465c63f-0e1b-4e49-8f5f-799a471055a1
+      DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.ref_name }}
+      CLOUDRON_SSH_PORT: ${{ secrets.CLOUDRON_SSH_PORT || '22' }}
+      CLOUDRON_APP_CODE_PATH: ${{ vars.CLOUDRON_APP_CODE_PATH || '/app/code' }}
+      CLOUDRON_APP_CONTAINER: ${{ vars.CLOUDRON_APP_CONTAINER }}
+      CLOUDRON_RESTART_STRATEGY: ${{ vars.CLOUDRON_RESTART_STRATEGY || 'auto' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_REF }}
+
+      - name: Validate required deployment configuration
+        env:
+          CLOUDRON_SSH_HOST: ${{ secrets.CLOUDRON_SSH_HOST }}
+          CLOUDRON_SSH_USER: ${{ secrets.CLOUDRON_SSH_USER }}
+          CLOUDRON_SSH_PRIVATE_KEY: ${{ secrets.CLOUDRON_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          for value in CLOUDRON_SSH_HOST CLOUDRON_SSH_USER CLOUDRON_SSH_PRIVATE_KEY; do
+            if [ -z "${!value}" ]; then
+              echo "Missing required secret: $value"
+              exit 1
+            fi
+          done
+
+          if [ -z "${CLOUDRON_APP_ID}" ]; then
+            echo "CLOUDRON_APP_ID must not be empty"
+            exit 1
+          fi
+
+          if [ -z "${DEPLOY_REF}" ]; then
+            echo "DEPLOY_REF must not be empty"
+            exit 1
+          fi
+
+      - name: Configure SSH key
+        env:
+          CLOUDRON_SSH_PRIVATE_KEY: ${{ secrets.CLOUDRON_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p "${HOME}/.ssh"
+          printf '%s\n' "${CLOUDRON_SSH_PRIVATE_KEY}" > "${HOME}/.ssh/cloudron_deploy_key"
+          chmod 600 "${HOME}/.ssh/cloudron_deploy_key"
+
+      - name: Add Cloudron host key
+        env:
+          CLOUDRON_SSH_HOST: ${{ secrets.CLOUDRON_SSH_HOST }}
+        run: |
+          set -euo pipefail
+
+          ssh-keyscan -p "${CLOUDRON_SSH_PORT}" -H "${CLOUDRON_SSH_HOST}" >> "${HOME}/.ssh/known_hosts"
+
+      - name: Run deployment on Cloudron host
+        env:
+          CLOUDRON_SSH_HOST: ${{ secrets.CLOUDRON_SSH_HOST }}
+          CLOUDRON_SSH_USER: ${{ secrets.CLOUDRON_SSH_USER }}
+        run: |
+          set -euo pipefail
+
+          REMOTE_SCRIPT="/tmp/cloudron-remote-deploy.sh"
+          SSH_KEY="${HOME}/.ssh/cloudron_deploy_key"
+          SSH_TARGET="${CLOUDRON_SSH_USER}@${CLOUDRON_SSH_HOST}"
+
+          scp -P "${CLOUDRON_SSH_PORT}" -i "${SSH_KEY}" scripts/deploy/cloudron-remote-deploy.sh "${SSH_TARGET}:${REMOTE_SCRIPT}"
+
+          ssh -p "${CLOUDRON_SSH_PORT}" -i "${SSH_KEY}" "${SSH_TARGET}" \
+            "chmod +x '${REMOTE_SCRIPT}' && \
+            CLOUDRON_APP_ID='${CLOUDRON_APP_ID}' \
+            CLOUDRON_DEPLOY_REF='${DEPLOY_REF}' \
+            CLOUDRON_APP_CODE_PATH='${CLOUDRON_APP_CODE_PATH}' \
+            CLOUDRON_APP_CONTAINER='${CLOUDRON_APP_CONTAINER}' \
+            CLOUDRON_RESTART_STRATEGY='${CLOUDRON_RESTART_STRATEGY}' \
+            '${REMOTE_SCRIPT}' && \
+            rm -f '${REMOTE_SCRIPT}'"
