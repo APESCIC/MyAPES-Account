@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Support\ReleaseHistoryRepository;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class ReleaseHistoryCommandTest extends TestCase
@@ -16,20 +17,21 @@ class ReleaseHistoryCommandTest extends TestCase
         $repository = app(ReleaseHistoryRepository::class);
         $releases = $repository->all();
 
-        $this->assertSame('0.6.0', $repository->version());
-        $this->assertSame('0.6.0', $repository->current()['version']);
+        $this->assertSame('0.6.1', $repository->version());
+        $this->assertSame('0.6.1', $repository->current()['version']);
         $this->assertSame(
-            ['0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
+            ['0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
             array_column($releases, 'version'),
         );
         $this->assertSame('2026-07-27', $releases[0]['date']);
         $this->assertSame('2026-07-27', $releases[1]['date']);
+        $this->assertSame('2026-07-27', $releases[2]['date']);
 
-        foreach (array_slice($releases, 2) as $release) {
+        foreach (array_slice($releases, 3) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 1) as $release) {
+        foreach (array_slice($releases, 2) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
     }
@@ -37,13 +39,19 @@ class ReleaseHistoryCommandTest extends TestCase
     public function test_validation_command_accepts_the_bootstrap_history(): void
     {
         $this->artisan('myapes:changelog-validate')
-            ->expectsOutputToContain('Release history is valid at v0.6.0')
+            ->expectsOutputToContain('Release history is valid at v0.6.1')
             ->assertSuccessful();
     }
 
     public function test_validation_command_treats_a_base_without_release_files_as_bootstrap(): void
     {
-        $this->artisan('myapes:changelog-validate', ['--base-ref' => 'origin/main'])
+        $rootCommit = new Process(
+            ['git', 'rev-list', '--max-parents=0', 'HEAD'],
+            base_path(),
+        );
+        $rootCommit->mustRun();
+
+        $this->artisan('myapes:changelog-validate', ['--base-ref' => trim($rootCommit->getOutput())])
             ->expectsOutputToContain('Base release contract is absent; structural validation only.')
             ->assertSuccessful();
     }
