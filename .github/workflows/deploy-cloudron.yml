@@ -19,6 +19,19 @@ jobs:
     name: Test and package
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: myapes_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     outputs:
       release_sha: ${{ steps.release.outputs.sha }}
       app_version: ${{ steps.release.outputs.app_version }}
@@ -74,6 +87,19 @@ jobs:
         run: |
           composer install --no-interaction --prefer-dist
           npm ci --no-audit --no-fund
+
+      - name: Run MySQL access compatibility tests
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: myapes_test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: |
+          php artisan test \
+            tests/Feature/AccessCompatibilityMigrationTest.php \
+            tests/Feature/AccessCompatibilityCommandTest.php
 
       - name: Validate source-controlled release history
         shell: bash

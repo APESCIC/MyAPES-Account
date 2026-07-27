@@ -39,6 +39,8 @@ class AccessCompatibilitySourceContractTest extends TestCase
             $root.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'User.php',
             $root.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'Console'.DIRECTORY_SEPARATOR.'Commands'
                 .DIRECTORY_SEPARATOR.'SyncAccessCompatibility.php',
+            $root.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'Support'
+                .DIRECTORY_SEPARATOR.'AccessCompatibilityDatabaseGuard.php',
         ];
 
         foreach ($paths as $path) {

@@ -6,6 +6,7 @@ use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
 use App\Models\User;
 use App\Services\LdapGroupResolver;
+use App\Support\AccessCompatibilityDatabaseGuard;
 use Database\Seeders\LocalQaSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,6 +89,8 @@ class RolelessApplicationCompatibilityTest extends TestCase
 
     private function dropRoleColumn(): void
     {
+        app(AccessCompatibilityDatabaseGuard::class)->drop();
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('role');
         });

@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Support\AccessCompatibilityDatabaseGuard;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -30,7 +34,7 @@ class AccessCompatibilityMigrationTest extends TestCase
         DB::table('users')->insert([
             $this->legacyUser(1, 'service@example.com', 'service_user', null),
             $this->legacyUser(2, 'staff@example.com', 'staff', 'cloudron-staff'),
-            $this->legacyUser(3, 'admin@example.com', 'admin', ''),
+            $this->legacyUser(3, 'admin@example.com', 'admin', null),
             $this->legacyUser(4, 'superadmin@example.com', 'superadmin', '   '),
         ]);
 
@@ -46,6 +50,41 @@ class AccessCompatibilityMigrationTest extends TestCase
             ->get(['identity_type', 'legacy_access_level', 'role'])
             ->map(static fn (object $user): array => (array) $user)
             ->all());
+    }
+
+    public function test_legacy_writes_remain_synchronized_after_the_migration(): void
+    {
+        DB::table('users')->insert(
+            $this->legacyUser(1, 'legacy@example.com', 'staff', 'cloudron-subject'),
+        );
+
+        $this->assertDatabaseHas('users', [
+            'id' => 1,
+            'identity_type' => 'cloudron_oidc',
+            'legacy_access_level' => 'staff',
+            'role' => 'staff',
+        ]);
+
+        DB::table('users')->where('id', 1)->update([
+            'oidc_sub' => '   ',
+            'role' => 'admin',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => 1,
+            'identity_type' => 'local',
+            'legacy_access_level' => 'admin',
+            'role' => 'admin',
+        ]);
+    }
+
+    public function test_database_guard_rejects_unsupported_legacy_inserts(): void
+    {
+        $this->expectException(QueryException::class);
+
+        DB::table('users')->insert(
+            $this->legacyUser(1, 'invalid@example.com', 'owner', null),
+        );
     }
 
     public function test_upgrade_rejects_unknown_roles_before_adding_columns(): void
@@ -72,6 +111,79 @@ class AccessCompatibilityMigrationTest extends TestCase
         $this->assertTrue(Schema::hasColumn('users', 'role'));
     }
 
+    public function test_guard_installation_failure_removes_partially_added_columns(): void
+    {
+        $migration = $this->migration();
+        $migration->down();
+
+        $this->app->bind(
+            AccessCompatibilityDatabaseGuard::class,
+            static fn (): AccessCompatibilityDatabaseGuard => new class extends AccessCompatibilityDatabaseGuard
+            {
+                public function install(): void
+                {
+                    throw new RuntimeException('Simulated database guard installation failure.');
+                }
+            },
+        );
+
+        try {
+            $migration->up();
+            $this->fail('The migration accepted a failed database guard installation.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'Simulated database guard installation failure.',
+                $exception->getMessage(),
+            );
+        }
+
+        $this->assertFalse(Schema::hasColumn('users', 'identity_type'));
+        $this->assertFalse(Schema::hasColumn('users', 'legacy_access_level'));
+        $this->assertTrue(Schema::hasColumn('users', 'role'));
+    }
+
+    #[DataProvider('invalidLegacyRoleProvider')]
+    public function test_upgrade_rejects_null_or_blank_roles_before_adding_columns(
+        ?string $role,
+    ): void {
+        $migration = $this->migration();
+        $migration->down();
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('role')->nullable()->change();
+        });
+
+        DB::table('users')->insert(
+            $this->legacyUser(1, 'invalid@example.com', $role, null),
+        );
+
+        try {
+            $migration->up();
+            $this->fail('The migration accepted a null or blank legacy role.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'Cannot add access compatibility fields while users contain unsupported roles.',
+                $exception->getMessage(),
+            );
+        }
+
+        $this->assertFalse(Schema::hasColumn('users', 'identity_type'));
+        $this->assertFalse(Schema::hasColumn('users', 'legacy_access_level'));
+        $this->assertTrue(Schema::hasColumn('users', 'role'));
+    }
+
+    /**
+     * @return array<string, array{?string}>
+     */
+    public static function invalidLegacyRoleProvider(): array
+    {
+        return [
+            'null' => [null],
+            'empty' => [''],
+            'whitespace' => ['   '],
+        ];
+    }
+
     private function migration(): Migration
     {
         /** @var Migration $migration */
@@ -85,7 +197,7 @@ class AccessCompatibilityMigrationTest extends TestCase
     /**
      * @return array<string, int|string|null>
      */
-    private function legacyUser(int $id, string $email, string $role, ?string $oidcSub): array
+    private function legacyUser(int $id, string $email, ?string $role, ?string $oidcSub): array
     {
         return [
             'id' => $id,

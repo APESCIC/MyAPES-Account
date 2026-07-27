@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\AccessCompatibilityDatabaseGuard;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,7 @@ class UserAccessCompatibilityTest extends TestCase
             'role' => User::ROLE_ADMIN,
         ]);
 
+        app(AccessCompatibilityDatabaseGuard::class)->drop();
         DB::table('users')->where('id', $user->id)->update([
             'legacy_access_level' => User::ROLE_STAFF,
             'role' => User::ROLE_SUPERADMIN,
@@ -66,6 +68,7 @@ class UserAccessCompatibilityTest extends TestCase
 
     public function test_access_api_and_scopes_work_after_role_is_removed(): void
     {
+        app(AccessCompatibilityDatabaseGuard::class)->drop();
         Schema::table('users', function ($table) {
             $table->dropColumn('role');
         });

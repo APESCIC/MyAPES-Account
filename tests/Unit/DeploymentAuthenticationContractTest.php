@@ -103,6 +103,23 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
     }
 
+    public function test_workflow_runs_access_compatibility_tests_against_mysql(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+
+        $this->assertStringContainsString('image: mysql:8.4', $workflow);
+        $this->assertStringContainsString('MYSQL_DATABASE: myapes_test', $workflow);
+        $this->assertStringContainsString('DB_CONNECTION: mysql', $workflow);
+        $this->assertStringContainsString(
+            'tests/Feature/AccessCompatibilityMigrationTest.php',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'tests/Feature/AccessCompatibilityCommandTest.php',
+            $workflow,
+        );
+    }
+
     public function test_workflow_packages_and_verifies_semantic_and_commit_identities(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
