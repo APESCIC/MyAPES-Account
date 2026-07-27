@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
+use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PetCare\ConsultationController;
 use App\Http\Controllers\PetCare\PetProfileController as PetCarePetProfileController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileContro
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'auth.landing')->name('home');
+Route::get('/change-log', ChangeLogController::class)->name('change-log.index');
 
 Route::middleware('guest')->controller(PublicAuthController::class)->group(function (): void {
     Route::get('/login', 'showLogin')->name('public.login');

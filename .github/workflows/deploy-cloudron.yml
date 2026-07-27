@@ -1,6 +1,7 @@
 name: Test and deploy MyAPES Account
 
 on:
+  pull_request:
   push:
     branches:
       - main
@@ -20,13 +21,14 @@ jobs:
     timeout-minutes: 20
     outputs:
       release_sha: ${{ steps.release.outputs.sha }}
+      app_version: ${{ steps.release.outputs.app_version }}
       artifact_name: ${{ steps.release.outputs.artifact_name }}
     steps:
       - name: Checkout exact main revision
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Resolve release identity
         id: release
@@ -35,17 +37,23 @@ jobs:
           set -euo pipefail
 
           release_sha="$(git rev-parse HEAD)"
+          app_version="$(tr -d '\r\n' < VERSION)"
           if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo "Unable to resolve a full Git commit SHA."
             exit 1
           fi
+          if [[ ! "$app_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Unable to resolve a valid semantic app version."
+            exit 1
+          fi
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            git fetch --depth=1 origin main
+            git fetch origin main
             test "$release_sha" = "$(git rev-parse origin/main)"
           fi
 
           echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
+          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
           echo "artifact_name=myapes-release-$release_sha" >> "$GITHUB_OUTPUT"
 
       - name: Set up PHP 8.4
@@ -67,6 +75,27 @@ jobs:
           composer install --no-interaction --prefer-dist
           npm ci --no-audit --no-fund
 
+      - name: Validate source-controlled release history
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          base_ref=""
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="$PR_BASE_SHA"
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" && -n "$PUSH_BASE_SHA" && ! "$PUSH_BASE_SHA" =~ ^0+$ ]]; then
+            base_ref="$PUSH_BASE_SHA"
+          fi
+
+          if [[ -n "$base_ref" ]]; then
+            php artisan myapes:changelog-validate --base-ref="$base_ref" --no-interaction
+          else
+            php artisan myapes:changelog-validate --no-interaction
+          fi
+
       - name: Validate deployment scripts
         shell: bash
         run: |
@@ -75,10 +104,10 @@ jobs:
             bash -n "$script"
           done
 
-      - name: Validate local development launcher
+      - name: Run frontend tests
         run: |
           node --check scripts/local/dev-runner.mjs
-          npm run test:local-dev
+          npm run test:frontend
 
       - name: Validate local PowerShell scripts
         shell: pwsh
@@ -140,6 +169,7 @@ jobs:
 
           tar --list --gzip --file "build/myapes-$RELEASE_SHA.tar.gz" > build/archive-list.txt
           grep -qx './REVISION' build/archive-list.txt
+          grep -qx './VERSION' build/archive-list.txt
           grep -qx './artisan' build/archive-list.txt
           grep -qx './public/build/manifest.json' build/archive-list.txt
           grep -qx './scripts/deploy/activate-release.sh' build/archive-list.txt
@@ -158,6 +188,7 @@ jobs:
           retention-days: 7
 
   deploy:
+    if: ${{ github.event_name != 'pull_request' }}
     name: Deploy to Cloudron
     needs: quality
     runs-on: ubuntu-latest
@@ -171,6 +202,7 @@ jobs:
       CLOUDRON_FQDN: ${{ secrets.CLOUDRON_FQDN }}
       CLOUDRON_TOKEN: ${{ secrets.CLOUDRON_TOKEN }}
       RELEASE_SHA: ${{ needs.quality.outputs.release_sha }}
+      APP_VERSION: ${{ needs.quality.outputs.app_version }}
     steps:
       - name: Download tested release
         uses: actions/download-artifact@v4
@@ -183,7 +215,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for required_name in CLOUDRON_FQDN CLOUDRON_TOKEN CLOUDRON_APP_ID RELEASE_SHA; do
+          for required_name in CLOUDRON_FQDN CLOUDRON_TOKEN CLOUDRON_APP_ID RELEASE_SHA APP_VERSION; do
             if [[ -z "${!required_name:-}" ]]; then
               echo "Missing required Cloudron deployment value: $required_name"
               exit 1
@@ -191,6 +223,7 @@ jobs:
           done
 
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$APP_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           test -s "build/myapes-$RELEASE_SHA.tar.gz"
 
       - name: Install pinned Cloudron CLI
@@ -240,11 +273,12 @@ jobs:
           release_verified=false
           for attempt in {1..18}; do
             response="$(curl --fail --silent --show-error --max-time 10 "$CLOUDRON_APP_URL/healthz" || true)"
+            reported_version="$(jq -r '.version // empty' <<<"$response" 2>/dev/null || true)"
             reported_release="$(jq -r '.release // empty' <<<"$response" 2>/dev/null || true)"
             reported_status="$(jq -r '.status // empty' <<<"$response" 2>/dev/null || true)"
 
-            if [[ "$reported_status" == "ok" && "$reported_release" == "$RELEASE_SHA" ]]; then
-              echo "Verified healthy release $RELEASE_SHA."
+            if [[ "$reported_status" == "ok" && "$reported_version" == "$APP_VERSION" && "$reported_release" == "$RELEASE_SHA" ]]; then
+              echo "Verified healthy app version $APP_VERSION at release $RELEASE_SHA."
               release_verified=true
               break
             fi
@@ -253,7 +287,7 @@ jobs:
           done
 
           if [[ "$release_verified" != true ]]; then
-            echo "Health verification did not confirm release $RELEASE_SHA."
+            echo "Health verification did not confirm app version $APP_VERSION and release $RELEASE_SHA."
             exit 1
           fi
 
