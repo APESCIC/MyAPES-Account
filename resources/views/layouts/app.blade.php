@@ -150,7 +150,7 @@
 <main id="main-content" class="app-main" tabindex="-1">
     @if(app()->environment(['local', 'testing']))
         @php
-            $activeRole = auth()->user()?->role;
+            $activeRole = auth()->user()?->accessLevel();
             $activeRoleLabel = match ($activeRole) {
                 \App\Models\User::ROLE_SERVICE_USER => 'Public',
                 \App\Models\User::ROLE_STAFF => 'Staff',

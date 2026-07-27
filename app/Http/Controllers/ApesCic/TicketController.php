@@ -29,7 +29,7 @@ class TicketController extends Controller
             'tickets' => $query->paginate(20),
             'serviceAreas' => self::SERVICE_AREAS,
             'staffUsers' => User::query()
-                ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+                ->withAccessLevels(User::staffAccessLevels())
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -78,7 +78,7 @@ class TicketController extends Controller
             'ticket' => $ticket->load(['user', 'assignedTo']),
             'messages' => $messagesQuery->get(),
             'staffUsers' => User::query()
-                ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+                ->withAccessLevels(User::staffAccessLevels())
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -94,11 +94,10 @@ class TicketController extends Controller
             'assigned_to' => [
                 'nullable',
                 Rule::exists('users', 'id')->where(
-                    fn ($query) => $query->whereIn('role', [
-                        User::ROLE_STAFF,
-                        User::ROLE_ADMIN,
-                        User::ROLE_SUPERADMIN,
-                    ])
+                    fn ($query) => $query->whereIn(
+                        User::accessLevelColumn(),
+                        User::staffAccessLevels(),
+                    )
                 ),
             ],
             'message' => ['nullable', 'string'],
@@ -164,7 +163,7 @@ class TicketController extends Controller
     private function notifyTicketStakeholders(SupportTicket $ticket, User $actor, string $eventLabel): void
     {
         $staffRecipients = User::query()
-            ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+            ->withAccessLevels(User::staffAccessLevels())
             ->get();
 
         $ticketRecipients = $staffRecipients

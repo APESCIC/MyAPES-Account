@@ -31,6 +31,25 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('--no-ansi', $authLine);
     }
 
+    public function test_access_compatibility_sync_is_the_final_gate_before_atomic_activation(): void
+    {
+        $script = $this->read('scripts/deploy/activate-release.sh');
+
+        $migration = $this->position($script, 'migrate --force');
+        $viewCache = $this->position($script, 'view:cache');
+        $compatibilitySync = $this->position($script, 'myapes:access-compatibility-sync');
+        $atomicSwitch = $this->position($script, 'mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"');
+
+        $this->assertLessThan($viewCache, $migration);
+        $this->assertLessThan($compatibilitySync, $viewCache);
+        $this->assertLessThan($atomicSwitch, $compatibilitySync);
+
+        $syncLine = $this->lineContaining($script, 'myapes:access-compatibility-sync');
+        $this->assertStringContainsString('sudo -E -u www-data', $syncLine);
+        $this->assertStringContainsString('--no-interaction', $syncLine);
+        $this->assertStringContainsString('--no-ansi', $syncLine);
+    }
+
     public function test_workflow_combines_health_and_oidc_smoke_verification_and_rolls_back_on_failure(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
@@ -80,6 +99,23 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('npm run test:frontend', $workflow);
         $this->assertMatchesRegularExpression(
             '/deploy:\s*\R(?:(?!\n\S).)*if:\s*\$\{\{\s*github\.event_name\s*!=\s*[\'"]pull_request[\'"]\s*\}\}/s',
+            $workflow,
+        );
+    }
+
+    public function test_workflow_runs_access_compatibility_tests_against_mysql(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+
+        $this->assertStringContainsString('image: mysql:8.4', $workflow);
+        $this->assertStringContainsString('MYSQL_DATABASE: myapes_test', $workflow);
+        $this->assertStringContainsString('DB_CONNECTION: mysql', $workflow);
+        $this->assertStringContainsString(
+            'tests/Feature/AccessCompatibilityMigrationTest.php',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'tests/Feature/AccessCompatibilityCommandTest.php',
             $workflow,
         );
     }

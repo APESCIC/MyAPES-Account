@@ -64,7 +64,8 @@ class StaffOidcAuthenticationTest extends TestCase
         $this->assertSame('cloudron-subject-1', $user->oidc_sub);
         $this->assertSame('staff@example.com', $user->email);
         $this->assertSame('APES Staff Member', $user->name);
-        $this->assertSame(User::ROLE_STAFF, $user->role);
+        $this->assertSame(User::IDENTITY_CLOUDRON_OIDC, $user->identity_type);
+        $this->assertSame(User::ROLE_STAFF, $user->accessLevel());
         $this->assertSame(['position.staff'], $user->ldap_groups);
         $this->assertTrue($user->email_verified_at->isSameSecond(now()));
 
@@ -122,12 +123,13 @@ class StaffOidcAuthenticationTest extends TestCase
 
     public function test_missing_directory_identity_revokes_a_known_oidc_account(): void
     {
-        $user = User::factory()->create([
-            'oidc_sub' => 'revoked-subject',
-            'email' => 'revoked@example.com',
-            'role' => User::ROLE_ADMIN,
-            'ldap_groups' => ['intranet.administrator'],
-        ]);
+        $user = User::factory()
+            ->accessLevel(User::ROLE_ADMIN)
+            ->cloudronIdentity('revoked-subject')
+            ->create([
+                'email' => 'revoked@example.com',
+                'ldap_groups' => ['intranet.administrator'],
+            ]);
         $this->identityProvider->identity = new OidcIdentity(
             'revoked-subject',
             'revoked@example.com',
@@ -138,7 +140,7 @@ class StaffOidcAuthenticationTest extends TestCase
         $this->get(route('staff.auth.callback'))->assertForbidden();
 
         $user->refresh();
-        $this->assertSame(User::ROLE_SERVICE_USER, $user->role);
+        $this->assertSame(User::ROLE_SERVICE_USER, $user->accessLevel());
         $this->assertSame([], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_access_revoked',
@@ -148,11 +150,13 @@ class StaffOidcAuthenticationTest extends TestCase
 
     public function test_callback_preserves_the_safe_email_collision_boundary(): void
     {
-        User::factory()->create([
-            'oidc_sub' => null,
-            'email' => 'Existing@Example.com',
-            'role' => User::ROLE_SERVICE_USER,
-        ]);
+        User::factory()
+            ->accessLevel(User::ROLE_SERVICE_USER)
+            ->create([
+                'oidc_sub' => null,
+                'identity_type' => User::IDENTITY_LOCAL,
+                'email' => 'Existing@Example.com',
+            ]);
         $this->identityProvider->identity = new OidcIdentity(
             'different-subject',
             'existing@example.com',

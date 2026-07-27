@@ -46,11 +46,10 @@ class ForceReauthenticationCookieTest extends TestCase
     {
         $now = CarbonImmutable::parse('2026-07-24 16:30:00', 'UTC');
         $this->travelTo($now);
-        $user = User::factory()->create([
-            'oidc_sub' => 'directory-user',
-            'role' => User::ROLE_STAFF,
-            'ldap_groups' => ['position.staff'],
-        ]);
+        $user = User::factory()
+            ->accessLevel(User::ROLE_STAFF)
+            ->cloudronIdentity('directory-user')
+            ->create(['ldap_groups' => ['position.staff']]);
 
         $response = $this
             ->actingAs($user)
@@ -77,10 +76,12 @@ class ForceReauthenticationCookieTest extends TestCase
 
     public function test_public_logout_does_not_set_the_oidc_marker(): void
     {
-        $user = User::factory()->create([
-            'oidc_sub' => null,
-            'role' => User::ROLE_SERVICE_USER,
-        ]);
+        $user = User::factory()
+            ->accessLevel(User::ROLE_SERVICE_USER)
+            ->create([
+                'oidc_sub' => null,
+                'identity_type' => User::IDENTITY_LOCAL,
+            ]);
 
         $response = $this
             ->actingAs($user)

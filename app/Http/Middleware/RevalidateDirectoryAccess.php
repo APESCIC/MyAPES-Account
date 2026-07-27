@@ -64,13 +64,11 @@ class RevalidateDirectoryAccess
 
         $normalizedGroups = $this->normalizedGroups($groups);
         $storedGroups = $this->normalizedGroups($user->ldap_groups ?? []);
-        $previousRole = $user->role;
+        $previousRole = $user->accessLevel();
 
         if ($role !== $previousRole || $normalizedGroups !== $storedGroups) {
-            $user->forceFill([
-                'role' => $role,
-                'ldap_groups' => $normalizedGroups,
-            ])->save();
+            $user->forceFill(['ldap_groups' => $normalizedGroups]);
+            $user->setAccessLevel($role)->save();
 
             $this->auditLogger->record('auth.directory_role_changed', $user, $user, [
                 'from_role' => $previousRole,
@@ -87,7 +85,7 @@ class RevalidateDirectoryAccess
 
     private function requiresRevalidation(User $user): bool
     {
-        if (! is_string($user->oidc_sub) || trim($user->oidc_sub) === '') {
+        if (! $user->isCloudronIdentity()) {
             return false;
         }
 
@@ -100,11 +98,9 @@ class RevalidateDirectoryAccess
 
     private function revoke(Request $request, User $user, string $reason): RedirectResponse
     {
-        $previousRole = $user->role;
-        $user->forceFill([
-            'role' => User::ROLE_SERVICE_USER,
-            'ldap_groups' => [],
-        ]);
+        $previousRole = $user->accessLevel();
+        $user->forceFill(['ldap_groups' => []]);
+        $user->setAccessLevel(User::ROLE_SERVICE_USER);
         $user->setRememberToken(Str::random(60));
         $user->save();
 

@@ -11,6 +11,10 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
   - Staff access: `position.staff`, `position.students`, `position.volunteers`
   - Admin access: `intranet.administrator`
   - Superadmin access: `intranet.superadmin`
+- **Access compatibility**:
+  - `identity_type` distinguishes local accounts from Cloudron OIDC identities.
+  - Application access reads use `legacy_access_level`; writes also update `users.role` while that column exists.
+  - This is the Phase A compatibility layer. Granular permissions and protected RBAC roles are not installed yet.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support tickets
@@ -252,13 +256,36 @@ staff logout clears the MyAPES session and forces a fresh Cloudron credential
 prompt on the next Staff Login. It does not end other Cloudron sessions because
 the provider does not publish a global logout endpoint.
 
+### Access compatibility synchronization
+
+Phase A keeps the previous `users.role` field for rollback compatibility while
+all application reads use `legacy_access_level`. The additive migration installs
+database triggers on SQLite, MySQL, and MariaDB so legacy inserts and updates
+continue to synchronize `legacy_access_level` and `identity_type` throughout
+cutover and rollback. Unsupported, null, or blank legacy access levels are
+rejected before they can reach the compatibility fields.
+
+Run the idempotent reconciliation check after migrations and immediately before
+activating a release:
+
+```bash
+php artisan myapes:access-compatibility-sync --no-interaction
+```
+
+The command fails without printing user data when required compatibility
+fields are missing, the database guard is absent, unsupported legacy access
+values exist, or reconciliation does not reach its postcondition. It
+synchronizes the additive fields while `users.role` exists and becomes a
+successful no-op after Phase B removes that column. Phase B must drop the
+transitional database guard before dropping `users.role`.
+
 ### Deployment flow (every deployment request)
 
-1. CI checks out the exact revision, validates the source-controlled release history, installs PHP 8.4 and Node 22 dependencies, runs PHP and frontend tests, validates shell scripts, and builds Vite assets.
+1. CI checks out the exact revision, validates the source-controlled release history, installs PHP 8.4 and Node 22 dependencies, runs the compatibility migration and command tests against MySQL plus the complete SQLite and frontend suites, validates shell scripts, and builds Vite assets.
 2. CI creates an immutable production archive containing Composer production dependencies, built assets, `VERSION`, and a `REVISION` file.
 3. A pre-deployment Cloudron backup is created.
 4. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>`.
-5. The activation script extracts to `/app/data/releases/<sha>`, links shared `.env` and Laravel storage, validates OIDC/LDAP readiness, runs migrations and cache warm-up, then atomically updates `/app/data/current`.
+5. The activation script extracts to `/app/data/releases/<sha>`, links shared `.env` and Laravel storage, validates OIDC/LDAP readiness, runs migrations and cache warm-up, verifies the database compatibility guard, reconciles access data and its postcondition, then atomically updates `/app/data/current`.
 6. Cloudron restarts with Apache serving `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`.
 7. CI verifies `/healthz` reports healthy dependencies, the expected semantic application version, and the exact deployed commit, then checks that Staff Login redirects to the expected Cloudron authorization endpoint with PKCE S256. Failed verification restores the previous code release and leaves the backup available for database recovery.
 
@@ -287,7 +314,7 @@ Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provide
 
 ## Data model highlights
 
-- `users`: OIDC identity, role, and LDAP groups
+- `users`: identity source, transitional legacy access level, rollback-compatible role and database guard, and LDAP groups
 - `user_profiles`: shared profile/settings data
 - `support_tickets` + `support_ticket_messages`: APES CIC support workflows
 - `pet_profiles`: shared pet record model (`shelter` or `petcare` domain)

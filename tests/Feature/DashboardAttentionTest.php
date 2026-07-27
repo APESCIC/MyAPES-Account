@@ -16,8 +16,8 @@ class DashboardAttentionTest extends TestCase
 
     public function test_service_user_sees_only_their_six_most_recent_open_items(): void
     {
-        $serviceUser = User::factory()->create(['role' => User::ROLE_SERVICE_USER]);
-        $otherUser = User::factory()->create(['role' => User::ROLE_SERVICE_USER]);
+        $serviceUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
+        $otherUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
         $pet = $this->petFor($serviceUser);
 
         $expectedTitles = [];
@@ -58,9 +58,9 @@ class DashboardAttentionTest extends TestCase
 
     public function test_staff_attention_feed_includes_open_items_across_users_and_services(): void
     {
-        $staff = User::factory()->create(['role' => User::ROLE_STAFF]);
-        $firstUser = User::factory()->create(['role' => User::ROLE_SERVICE_USER]);
-        $secondUser = User::factory()->create(['role' => User::ROLE_SERVICE_USER]);
+        $staff = User::factory()->accessLevel(User::ROLE_STAFF)->create();
+        $firstUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
+        $secondUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
         $firstPet = $this->petFor($firstUser);
         $secondPet = $this->petFor($secondUser);
 
@@ -99,8 +99,8 @@ class DashboardAttentionTest extends TestCase
 
     public function test_admin_attention_feed_includes_normalized_open_items_for_all_users(): void
     {
-        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        $serviceUser = User::factory()->create(['role' => User::ROLE_SERVICE_USER]);
+        $admin = User::factory()->accessLevel(User::ROLE_ADMIN)->create();
+        $serviceUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
         $ticket = $this->ticketFor($serviceUser, 'Admin-visible ticket');
         $this->setUpdatedAt($ticket, now()->subMinute());
 

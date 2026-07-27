@@ -16,7 +16,7 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.6.1',
+                'version' => '0.7.0',
                 'release' => 'development',
                 'checks' => [
                     'database' => 'ok',
@@ -48,7 +48,7 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.6.1',
+                'version' => '0.7.0',
                 'release' => 'development',
                 'checks' => [
                     'database' => 'failed',
@@ -76,9 +76,7 @@ class HealthAndThemeTest extends TestCase
 
     public function test_authenticated_sidebar_is_role_aware(): void
     {
-        $serviceUser = User::factory()->create([
-            'role' => User::ROLE_SERVICE_USER,
-        ]);
+        $serviceUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
 
         $this->actingAs($serviceUser)
             ->get(route('dashboard'))
@@ -90,9 +88,7 @@ class HealthAndThemeTest extends TestCase
             ->assertSee('href="'.route('petcare.pets.index').'"', false)
             ->assertDontSee('href="'.route('admin.index').'"', false);
 
-        $admin = User::factory()->create([
-            'role' => User::ROLE_ADMIN,
-        ]);
+        $admin = User::factory()->accessLevel(User::ROLE_ADMIN)->create();
 
         $this->actingAs($admin)
             ->get(route('dashboard'))

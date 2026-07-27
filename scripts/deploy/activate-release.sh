@@ -182,6 +182,8 @@ else
   rm -f -- "$PREVIOUS_LINK"
 fi
 
+sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" myapes:access-compatibility-sync --no-interaction --no-ansi
+
 # This is the commit point: all fallible preparation happens before the atomic switch.
 mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"
 

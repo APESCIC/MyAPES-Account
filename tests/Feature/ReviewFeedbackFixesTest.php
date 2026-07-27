@@ -17,12 +17,8 @@ class ReviewFeedbackFixesTest extends TestCase
 
     public function test_service_user_cannot_see_staff_only_ticket_notes(): void
     {
-        $serviceUser = User::factory()->create([
-            'role' => User::ROLE_SERVICE_USER,
-        ]);
-        $staffUser = User::factory()->create([
-            'role' => User::ROLE_STAFF,
-        ]);
+        $serviceUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
+        $staffUser = User::factory()->accessLevel(User::ROLE_STAFF)->create();
         $ticket = SupportTicket::create([
             'user_id' => $serviceUser->id,
             'assigned_to' => $staffUser->id,
@@ -55,12 +51,8 @@ class ReviewFeedbackFixesTest extends TestCase
 
     public function test_ticket_assignment_must_target_staff_roles(): void
     {
-        $serviceUser = User::factory()->create([
-            'role' => User::ROLE_SERVICE_USER,
-        ]);
-        $staffUser = User::factory()->create([
-            'role' => User::ROLE_STAFF,
-        ]);
+        $serviceUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
+        $staffUser = User::factory()->accessLevel(User::ROLE_STAFF)->create();
         $ticket = SupportTicket::create([
             'user_id' => $serviceUser->id,
             'service_area' => 'it',
@@ -83,12 +75,8 @@ class ReviewFeedbackFixesTest extends TestCase
 
     public function test_staff_created_shelter_case_is_owned_by_pet_owner(): void
     {
-        $serviceUser = User::factory()->create([
-            'role' => User::ROLE_SERVICE_USER,
-        ]);
-        $staffUser = User::factory()->create([
-            'role' => User::ROLE_STAFF,
-        ]);
+        $serviceUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
+        $staffUser = User::factory()->accessLevel(User::ROLE_STAFF)->create();
         $pet = PetProfile::create([
             'user_id' => $serviceUser->id,
             'service_domain' => PetProfile::DOMAIN_SHELTER,
@@ -114,12 +102,8 @@ class ReviewFeedbackFixesTest extends TestCase
 
     public function test_staff_created_consultation_is_owned_by_pet_owner(): void
     {
-        $serviceUser = User::factory()->create([
-            'role' => User::ROLE_SERVICE_USER,
-        ]);
-        $staffUser = User::factory()->create([
-            'role' => User::ROLE_STAFF,
-        ]);
+        $serviceUser = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
+        $staffUser = User::factory()->accessLevel(User::ROLE_STAFF)->create();
         $pet = PetProfile::create([
             'user_id' => $serviceUser->id,
             'service_domain' => PetProfile::DOMAIN_PETCARE,
@@ -144,11 +128,12 @@ class ReviewFeedbackFixesTest extends TestCase
 
     public function test_public_login_is_rate_limited_after_repeated_failures(): void
     {
-        User::factory()->create([
-            'email' => 'qa@example.test',
-            'role' => User::ROLE_SERVICE_USER,
-            'password' => 'correct-password',
-        ]);
+        User::factory()
+            ->accessLevel(User::ROLE_SERVICE_USER)
+            ->create([
+                'email' => 'qa@example.test',
+                'password' => 'correct-password',
+            ]);
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $this->post(route('public.login.submit'), [

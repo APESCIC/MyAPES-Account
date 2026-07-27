@@ -74,7 +74,7 @@ class DirectoryRevalidationTest extends TestCase
         $this->assertSame([$user->email], $this->directory->resolvedEmails);
 
         $user->refresh();
-        $this->assertSame(User::ROLE_STAFF, $user->role);
+        $this->assertSame(User::ROLE_STAFF, $user->accessLevel());
         $this->assertSame(['position.staff'], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_role_changed',
@@ -95,7 +95,7 @@ class DirectoryRevalidationTest extends TestCase
             ->get(route('admin.index'));
 
         $response->assertOk();
-        $this->assertSame(User::ROLE_ADMIN, $user->fresh()->role);
+        $this->assertSame(User::ROLE_ADMIN, $user->fresh()->accessLevel());
         $response->assertSessionHas(
             RevalidateDirectoryAccess::SESSION_KEY,
             $this->now->timestamp,
@@ -119,7 +119,7 @@ class DirectoryRevalidationTest extends TestCase
         $this->assertGuest();
 
         $user->refresh();
-        $this->assertSame(User::ROLE_SERVICE_USER, $user->role);
+        $this->assertSame(User::ROLE_SERVICE_USER, $user->accessLevel());
         $this->assertSame([], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_access_revoked',
@@ -146,7 +146,7 @@ class DirectoryRevalidationTest extends TestCase
         $this->assertAuthenticatedAs($user);
 
         $user->refresh();
-        $this->assertSame(User::ROLE_ADMIN, $user->role);
+        $this->assertSame(User::ROLE_ADMIN, $user->accessLevel());
         $this->assertSame(['intranet.administrator'], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_unavailable',
@@ -156,11 +156,13 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_public_users_and_default_local_qa_requests_bypass_directory_revalidation(): void
     {
-        $publicUser = User::factory()->create([
-            'oidc_sub' => null,
-            'role' => User::ROLE_SERVICE_USER,
-            'ldap_groups' => [],
-        ]);
+        $publicUser = User::factory()
+            ->accessLevel(User::ROLE_SERVICE_USER)
+            ->create([
+                'oidc_sub' => null,
+                'identity_type' => User::IDENTITY_LOCAL,
+                'ldap_groups' => [],
+            ]);
 
         $this->actingAs($publicUser)->get(route('dashboard'))->assertOk();
 
@@ -181,10 +183,9 @@ class DirectoryRevalidationTest extends TestCase
      */
     private function directoryUser(string $role, array $groups): User
     {
-        return User::factory()->create([
-            'oidc_sub' => 'cloudron-'.str()->uuid(),
-            'role' => $role,
-            'ldap_groups' => $groups,
-        ]);
+        return User::factory()
+            ->accessLevel($role)
+            ->cloudronIdentity('cloudron-'.str()->uuid())
+            ->create(['ldap_groups' => $groups]);
     }
 }

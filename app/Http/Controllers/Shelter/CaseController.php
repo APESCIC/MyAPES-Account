@@ -32,7 +32,7 @@ class CaseController extends Controller
                 ->orderBy('name')
                 ->get(),
             'staffUsers' => User::query()
-                ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+                ->withAccessLevels(User::staffAccessLevels())
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -71,7 +71,7 @@ class CaseController extends Controller
         return view('shelter.cases.show', [
             'case' => $case->load(['petProfile', 'assignedTo']),
             'staffUsers' => User::query()
-                ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+                ->withAccessLevels(User::staffAccessLevels())
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -86,11 +86,10 @@ class CaseController extends Controller
             'assigned_to' => [
                 'nullable',
                 Rule::exists('users', 'id')->where(
-                    fn ($query) => $query->whereIn('role', [
-                        User::ROLE_STAFF,
-                        User::ROLE_ADMIN,
-                        User::ROLE_SUPERADMIN,
-                    ])
+                    fn ($query) => $query->whereIn(
+                        User::accessLevelColumn(),
+                        User::staffAccessLevels(),
+                    )
                 ),
             ],
             'details' => ['nullable', 'string'],
@@ -149,7 +148,7 @@ class CaseController extends Controller
     private function notifyCaseStakeholders(ShelterCase $case, User $actor, string $eventLabel): void
     {
         $staffRecipients = User::query()
-            ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+            ->withAccessLevels(User::staffAccessLevels())
             ->get();
 
         $recipients = $staffRecipients

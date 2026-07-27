@@ -34,7 +34,7 @@ class LocalQaAuthTest extends TestCase
 
         $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
-        $this->assertSame(User::ROLE_STAFF, auth()->user()?->role);
+        $this->assertSame(User::ROLE_STAFF, auth()->user()?->accessLevel());
         $this->assertSame(LocalQaSeeder::STAFF_EMAIL, auth()->user()?->email);
     }
 
@@ -48,7 +48,7 @@ class LocalQaAuthTest extends TestCase
 
         $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
-        $this->assertSame(User::ROLE_SERVICE_USER, auth()->user()?->role);
+        $this->assertSame(User::ROLE_SERVICE_USER, auth()->user()?->accessLevel());
         $this->assertSame(LocalQaSeeder::SERVICE_USER_EMAIL, auth()->user()?->email);
     }
 
@@ -62,7 +62,7 @@ class LocalQaAuthTest extends TestCase
 
         $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
-        $this->assertSame(User::ROLE_ADMIN, auth()->user()?->role);
+        $this->assertSame(User::ROLE_ADMIN, auth()->user()?->accessLevel());
         $this->assertSame(LocalQaSeeder::ADMIN_EMAIL, auth()->user()?->email);
     }
 
