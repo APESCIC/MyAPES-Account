@@ -25,19 +25,26 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 - `/staff/login` - dedicated staff login page that starts Cloudron OIDC
 - local/testing only: QA role switcher (Public/Staff/Admin) available in the app layout for one-click identity switching
 
-## Brand assets (MyAPES Account logo pack)
+## Brand assets
 
-- Source pack location: designer-provided "myapes-web-app-logo-pack" handoff (assets now committed under `public/`)
-- App-integrated assets are copied into `public/` with their pack folder structure.
+- Canonical artwork: `resources/branding/source/apes-logo-v3.png`
+- Regenerate application derivatives on Windows with:
 
-### Header and app-visible logo
+```powershell
+pwsh -NoProfile -File .\scripts\branding\generate-brand-assets.ps1
+```
+
+The generator preserves the supplied square animal artwork for the sidebar and visible brand marks, creates padded maskable icons, and places the artwork on the dark MyAPES surface for social previews.
+
+### App-visible logo
 
 | Asset | Purpose |
 | --- | --- |
-| `public/logos/myapes-header-dark.svg` | Primary header/landing/staff-login logo on dark surfaces |
-| `public/logos/myapes-header-light.svg` | Light-surface header logo variant |
-| `public/logos/myapes-header-dark-600x128.png` | Raster fallback where SVG is unavailable |
-| `public/logos/myapes-header-light-600x128.png` | Light raster fallback where SVG is unavailable |
+| `public/branding/logo-myapes-account.png` | Shared desktop sidebar, mobile header, landing, and staff-login logo |
+| `public/branding/email-header-logo.png` | Square email/header-safe logo export |
+| `public/branding/login-hero.png` | Wide dark-surface brand export |
+| `public/logos/myapes-mark-128x128.png` | Compact raster mark |
+| `public/logos/myapes-mark-256x256.png` | Compact high-density raster mark |
 
 ### Bearded dragon mascot
 
@@ -47,7 +54,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 The portrait is intentionally unnamed and is presented as a realistic animal rather than an anthropomorphic character.
 
-The interface uses a light-first Naturalist Notebook theme with an explicit dark-mode toggle. A saved choice is stored locally in the browser as `myapes-theme`; the first visit always starts in light mode.
+The interface uses a light-first Naturalist Notebook theme with a persistent deep-teal desktop sidebar and an accessible mobile drawer. A saved colour-theme choice is stored locally in the browser as `myapes-theme`; the first visit always starts in light mode.
 ### Browser, PWA, and social assets
 
 | Asset | Purpose |
