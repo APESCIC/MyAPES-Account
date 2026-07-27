@@ -75,6 +75,31 @@ jobs:
             bash -n "$script"
           done
 
+      - name: Validate local development launcher
+        run: |
+          node --check scripts/local/dev-runner.mjs
+          npm run test:local-dev
+
+      - name: Validate local PowerShell scripts
+        shell: pwsh
+        run: |
+          $parseErrors = @()
+          Get-ChildItem -LiteralPath scripts/local -Filter *.ps1 | ForEach-Object {
+              $tokens = $null
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  $_.FullName,
+                  [ref] $tokens,
+                  [ref] $errors
+              ) | Out-Null
+              $parseErrors += $errors
+          }
+
+          if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+          }
+
       - name: Build frontend
         run: npm run build
 

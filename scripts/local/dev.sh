@@ -14,9 +14,9 @@ if [[ ! -f composer.json ]]; then
   exit 1
 fi
 
-if composer run --no-ansi 2>/dev/null | grep -qE '^\s*dev(\s|$)'; then
-  composer run dev
-else
-  echo "No composer 'dev' script found. Starting Laravel server only."
-  php artisan serve --host=127.0.0.1 --port="${APP_PORT:-8000}"
+if [[ ! -f scripts/local/dev-runner.mjs ]]; then
+  echo "scripts/local/dev-runner.mjs was not found in $ROOT_DIR."
+  exit 1
 fi
+
+exec composer run dev

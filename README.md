@@ -137,13 +137,15 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 - Pet Care: seeded pet profile with two open/in-progress consultations plus a closed example
 - User profiles: seeded profile data for each QA account
 
-Start Laravel, the queue listener, application logs, and Vite together with the existing Composer script:
+Start Laravel, the queue listener, application logs, and Vite together with the cross-platform Composer script:
 
 ```powershell
 composer run dev
 ```
 
-The platform wrappers below delegate to `composer run dev` and are available when you prefer an OS-specific entry point:
+The launcher automatically uses Laravel Pail for logs on macOS and Linux. On native Windows it follows `storage/logs/laravel.log` with PowerShell instead, because PHP's Unix-only `pcntl` extension is not available there; do not try to install `pcntl` on native Windows.
+
+Set `APP_PORT` before starting the launcher to use a Laravel port other than `8000`. The platform wrappers below delegate to `composer run dev` and remain available when you prefer an OS-specific entry point:
 
 ### macOS / Linux
 
