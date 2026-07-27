@@ -1,43 +1,51 @@
-# MyAPES Account design QA
+# Design QA — Option 1 Sidebar and Brand Refresh
 
-## Source of truth
+## Evidence
 
-- Approved design: `C:\Users\bmurp\.codex\generated_images\019f9422-2e12-7a63-b82e-4b4853eee47b\call_xoUR99KSxCTRj0tSeihQgGd8.png`
-- Repository copy: `docs/design-qa/option-2-source.png`
-- Source dimensions: 1487 × 1058 px
-- Target state: authenticated Public local-QA user, light theme, desktop viewport
+- Source visual truth: `C:\Users\bmurp\.codex\generated_images\019f94ff-baf5-7391-a3dc-c9171678ac52\call_WCYRZ5BbgiugspVgsv3qzSHT.png`
+- Source pixels: 1487 × 1058
+- Implementation: `docs/design-qa/sidebar-option-1-desktop-light.png`
+- Implementation pixels and CSS viewport: 1440 × 1024 at device scale factor 1
+- Normalization: source scaled to 1440 × 1024 for equal-size comparison
+- Combined comparison: `docs/design-qa/comparison-sidebar-option-1-desktop-light.png`
+- Additional states:
+  - `docs/design-qa/sidebar-option-1-desktop-dark.png`
+  - `docs/design-qa/sidebar-option-1-mobile-light.png`
+  - `docs/design-qa/sidebar-option-1-mobile-drawer-light.png`
+- State: authenticated public-service-user dashboard with local QA data
 
-## Implementation evidence
+## Findings
 
-- Desktop comparison, source and implementation in one image: `docs/design-qa/comparison-desktop-light.png` (2974 × 1102 px)
-- Desktop light: `docs/design-qa/implementation-desktop-light-viewport.png` (1488 × 1058 px)
-- Desktop dark: `docs/design-qa/implementation-desktop-dark-viewport.png` (1488 × 1058 px)
-- Mobile light: `docs/design-qa/implementation-mobile-light.png` (374 × 2184 px full-page capture from a 390 × 844 CSS viewport)
-- Mobile dark: `docs/design-qa/implementation-mobile-dark.png` (374 × 2184 px full-page capture from a 390 × 844 CSS viewport)
-- Browser: Codex in-app browser against `http://localhost:8125/dashboard`
-- Browser console: no warnings or errors
+No actionable P0, P1, or P2 differences remain.
 
-## Full-view comparison
+- Fonts and typography: Fraunces and Nunito Sans match the target’s editorial heading and friendly product-copy treatment. Heading scale, weights, wrapping, and row density remain legible at desktop and mobile sizes.
+- Spacing and layout rhythm: the 256px fixed sidebar, content header, dashboard grid, attention list, summary strip, and footer preserve the target hierarchy. Cards, separators, radii, and restrained elevation match the source direction without nested-card drift.
+- Colors and visual tokens: the permanent deep-teal rail, cyan active state, warm cream canvas, service accents, and existing dark-mode tokens map cleanly to the mock-up. Contrast and focus outlines remain clear.
+- Image quality and asset fidelity: the sidebar uses the exact supplied APES animal artwork, not a CSS or SVG substitute. The source stays sharp at the displayed size; dashboard photography retains its original crop and quality.
+- Copy and content: static labels match the product. Relative times differ because the implementation uses live seeded timestamps. Admin is omitted for the public test identity by the application’s intentional role gate.
+- Icons: the existing Lucide family matches the target’s line-icon language and stays optically aligned in navigation, tools, dashboard rows, and mobile controls.
+- Responsive behavior: desktop has no horizontal overflow. At 390 × 844, content reflows to one column and the sidebar becomes an off-canvas drawer with practical tap targets.
+- Accessibility and interactions: semantic navigation, current-page state, skip link, labelled controls, focus trapping, Escape dismissal, backdrop dismissal, focus return, scroll locking, theme persistence, reduced-motion handling, and keyboard focus were checked.
 
-The final desktop capture was reviewed beside Option 2 at the same 1058 px viewport height. The implementation preserves the approved horizontal navigation, parchment QA bar, asymmetric 31/69 content split, editorial Fraunces headings, compact Nunito Sans interface copy, realistic bearded-dragon portrait, six-row attention list, clay/violet/sage service coding, and four-column totals strip. The page now fits the complete dashboard and footer in the target viewport without horizontal or vertical overflow.
+Focused region crops were not required: the combined 2880 × 1024 comparison preserves each side at 1440 × 1024, keeping the logo, navigation, typography, cards, icons, and service rows readable. Mobile open and closed states were inspected separately at their native capture size.
 
-Content differences are intentional: the implementation renders deterministic seeded records and real role-scoped counts rather than the fictional labels and totals in the mock-up. The habitat treatment is restrained to the natural portrait, parchment surfaces, sage details, and botanical iconography instead of copying decorative corner artwork.
+## Comparison History
 
-## Focused-region checks
+1. Initial desktop comparison found a P2 hierarchy mismatch: the identity heading wrapped at the narrower 31% first grid track. The first track was increased to 34%, restoring the single-line heading and matching the source proportions.
+2. Initial mobile interaction testing found a P2 dismissal-target issue: the full-screen backdrop extended beneath the drawer, making automated and pointer targeting ambiguous. The backdrop now starts at the drawer edge; post-fix browser verification closed the drawer without navigation and returned `data-open="false"` and `aria-expanded="false"`.
+3. Post-fix desktop comparison found no remaining P0–P2 visual differences. Dark desktop and mobile open/closed states also passed without console warnings or errors.
 
-- Header and navigation: active state, horizontal navigation, light/dark logo lockups, account controls, and hidden mobile scrollbar verified.
-- QA role bar: Public, Staff, and Admin switches verified in the browser; the active role and available navigation update after each switch.
-- Attention panel: exactly six normalized open items, newest first, with service colour, status, metadata, destination, and keyboard-focus treatment.
-- Theme: a fresh `localhost` origin opened in light mode; dark mode survived a reload on `127.0.0.1`; the correct logo lockup was visible in both themes.
-- Mobile: no horizontal document overflow at 390 px; navigation remains horizontally accessible and all dashboard sections collapse to one column.
-- Keyboard: the skip link received a visible 2.67 px focus outline and moved into view; all controls use semantic links or buttons.
-- Contrast: representative light text ratios are 5.08–15.80:1, dark text ratios are 7.63–12.35:1, brand-link ratios are 5.84:1 light and 9.67:1 dark, and dark service-icon ratios are 6.26–8.86:1.
+## Primary Interactions Tested
 
-## Comparison history
+- Desktop active navigation and role-aware item rendering
+- Light-to-dark theme switch with updated label and pressed state
+- Mobile drawer open, focus transfer, Escape close, focus return, and scroll unlock
+- Mobile backdrop close without route navigation
+- Responsive rendering at 1440 × 1024 and 390 × 844
+- Browser console warning/error check: none
 
-1. Initial comparison found a P1 density mismatch: the main cards were 631 px high against the source's approximately 610 px, pushing the footer below the target viewport. Header, panel, identity, summary, and page spacing were tightened until the page height matched 1058 px.
-2. Initial comparison found a P2 desktop navigation artifact from the overflow scrollbar. The scrollbar is now visually suppressed while scrolling remains available at narrow widths.
-3. Dark-mode review found a P1 contrast issue on lightened clay, violet, and sage icon backgrounds. Dedicated deep dark-mode backgrounds raised white-icon contrast to 6.26–8.86:1.
-4. Final desktop, dark-theme, mobile, role-switching, keyboard-focus, first-visit, persistence, and console checks found no remaining P0, P1, or P2 issues.
+## Follow-up Polish
+
+- P3: The mock-up’s relative timestamps are illustrative; seeded local data naturally shows different values.
 
 final result: passed

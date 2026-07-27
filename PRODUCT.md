@@ -2,7 +2,7 @@
 
 ## Register
 
-This project follows the **product** register: interface design serves operational tasks across authenticated app workflows.
+This document defines the product direction, user needs, and design principles for the MyAPES Account interface.
 
 ## Users
 MyAPES Account serves two core user groups: public service users and APES staff/administrators. Public users manage service requests, personal profile details, and pet records across APES CIC, APES Shelter and Rescue, and APES Pet Care. Staff and admin users operate in a task-heavy workflow that requires fast navigation, case/ticket visibility, and reliable operational controls.

@@ -21,7 +21,6 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicons/favicon-16x16.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicons/favicon-32x32.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-touch-icon.png') }}">
-    <link rel="mask-icon" href="{{ asset('favicons/safari-pinned-tab.svg') }}" color="#008f99">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <script>
         (() => {
@@ -42,78 +41,111 @@
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
-<header class="site-header">
-    <div class="site-header__inner">
-        <a href="{{ route('home') }}" class="brand" aria-label="MyAPES Account home">
-            <img src="{{ asset('logos/myapes-header-light.svg') }}" alt="MyAPES Account" class="brand__logo brand__logo--light">
-            <img src="{{ asset('logos/myapes-header-dark.svg') }}" alt="MyAPES Account" class="brand__logo brand__logo--dark">
-            <span class="brand__note">Association of Protecting Exotic Species CIC</span>
-        </a>
-
-        <nav class="primary-nav" aria-label="Primary navigation">
-            @auth
-                <a href="{{ route('dashboard') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('dashboard')]) @if(request()->routeIs('dashboard')) aria-current="page" @endif>
-                    <i data-lucide="layout-dashboard" aria-hidden="true"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="{{ route('profile.edit') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('profile.*')]) @if(request()->routeIs('profile.*')) aria-current="page" @endif>
-                    <i data-lucide="user-round" aria-hidden="true"></i>
-                    <span>Profile</span>
-                </a>
-                <a href="{{ route('apes-cic.tickets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('apes-cic.*')]) @if(request()->routeIs('apes-cic.*')) aria-current="page" @endif>
-                    <i data-lucide="shield-check" aria-hidden="true"></i>
-                    <span>APES CIC</span>
-                </a>
-                <a href="{{ route('shelter.pets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('shelter.*')]) @if(request()->routeIs('shelter.*')) aria-current="page" @endif>
-                    <i data-lucide="house" aria-hidden="true"></i>
-                    <span>APES Shelter</span>
-                </a>
-                <a href="{{ route('petcare.pets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('petcare.*')]) @if(request()->routeIs('petcare.*')) aria-current="page" @endif>
-                    <i data-lucide="heart" aria-hidden="true"></i>
-                    <span>APES Pet Care</span>
-                </a>
-                @if(auth()->user()->isAdmin())
-                    <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('admin.*')]) @if(request()->routeIs('admin.*')) aria-current="page" @endif>
-                        <i data-lucide="settings" aria-hidden="true"></i>
-                        <span>Admin</span>
-                    </a>
-                @endif
-            @else
-                <a href="{{ route('public.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.login')])>
-                    <i data-lucide="log-in" aria-hidden="true"></i>
-                    <span>Public Login</span>
-                </a>
-                <a href="{{ route('public.register') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.register')])>
-                    <i data-lucide="user-plus" aria-hidden="true"></i>
-                    <span>Register</span>
-                </a>
-                <a href="{{ route('staff.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('staff.*')])>
-                    <i data-lucide="badge-check" aria-hidden="true"></i>
-                    <span>Staff Login</span>
-                </a>
-            @endauth
-        </nav>
-
-        <div class="header-tools">
-            <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Switch to dark theme">
-                <i data-lucide="sun" class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true"></i>
-                <i data-lucide="moon" class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true"></i>
-            </button>
-            @auth
-                <span class="account-chip" title="{{ auth()->user()->name }}">
-                    <i data-lucide="circle-user-round" aria-hidden="true"></i>
-                    <span class="account-chip__name">{{ auth()->user()->name }}</span>
-                </span>
-                <form method="post" action="{{ route('auth.logout') }}" class="inline">
-                    @csrf
-                    <button type="submit" class="icon-button" aria-label="Log out" title="Log out">
-                        <i data-lucide="log-out" aria-hidden="true"></i>
-                    </button>
-                </form>
-            @endauth
-        </div>
-    </div>
+<header class="mobile-header">
+    <a href="{{ route('home') }}" class="mobile-brand" aria-label="MyAPES Account home">
+        <img src="{{ asset('branding/logo-myapes-account.png') }}" alt="">
+        <span><strong>MyAPES</strong> Account</span>
+    </a>
+    <button
+        type="button"
+        class="sidebar-toggle"
+        data-sidebar-toggle
+        aria-controls="site-sidebar"
+        aria-expanded="false"
+        aria-label="Open navigation menu"
+    >
+        <i data-lucide="menu" aria-hidden="true"></i>
+    </button>
 </header>
+
+<div class="app-shell">
+    <aside id="site-sidebar" class="site-sidebar" data-sidebar aria-label="Site navigation">
+        <div class="site-sidebar__inner">
+            <button type="button" class="sidebar-close" data-sidebar-close aria-label="Close navigation menu">
+                <i data-lucide="x" aria-hidden="true"></i>
+            </button>
+
+            <a href="{{ route('home') }}" class="sidebar-brand" aria-label="MyAPES Account home">
+                <img src="{{ asset('branding/logo-myapes-account.png') }}" alt="MyAPES Account">
+            </a>
+
+            <nav class="primary-nav" aria-label="Primary navigation">
+                @auth
+                    <a href="{{ route('dashboard') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('dashboard')]) @if(request()->routeIs('dashboard')) aria-current="page" @endif>
+                        <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ route('profile.edit') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('profile.*')]) @if(request()->routeIs('profile.*')) aria-current="page" @endif>
+                        <i data-lucide="user-round" aria-hidden="true"></i>
+                        <span>Profile</span>
+                    </a>
+                    <a href="{{ route('apes-cic.tickets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('apes-cic.*')]) @if(request()->routeIs('apes-cic.*')) aria-current="page" @endif>
+                        <i data-lucide="shield-check" aria-hidden="true"></i>
+                        <span>APES CIC</span>
+                    </a>
+                    <a href="{{ route('shelter.pets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('shelter.*')]) @if(request()->routeIs('shelter.*')) aria-current="page" @endif>
+                        <i data-lucide="house" aria-hidden="true"></i>
+                        <span>APES Shelter</span>
+                    </a>
+                    <a href="{{ route('petcare.pets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('petcare.*')]) @if(request()->routeIs('petcare.*')) aria-current="page" @endif>
+                        <i data-lucide="heart" aria-hidden="true"></i>
+                        <span>APES Pet Care</span>
+                    </a>
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('admin.*')]) @if(request()->routeIs('admin.*')) aria-current="page" @endif>
+                            <i data-lucide="settings" aria-hidden="true"></i>
+                            <span>Admin</span>
+                        </a>
+                    @endif
+                @else
+                    <a href="{{ route('public.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.login')]) @if(request()->routeIs('public.login')) aria-current="page" @endif>
+                        <i data-lucide="log-in" aria-hidden="true"></i>
+                        <span>Public Login</span>
+                    </a>
+                    <a href="{{ route('public.register') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.register')]) @if(request()->routeIs('public.register')) aria-current="page" @endif>
+                        <i data-lucide="user-plus" aria-hidden="true"></i>
+                        <span>Register</span>
+                    </a>
+                    <a href="{{ route('staff.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('staff.*')]) @if(request()->routeIs('staff.*')) aria-current="page" @endif>
+                        <i data-lucide="badge-check" aria-hidden="true"></i>
+                        <span>Staff Login</span>
+                    </a>
+                @endauth
+            </nav>
+
+            <div class="sidebar-tools">
+                <button type="button" class="sidebar-tool theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Switch to dark theme">
+                    <span class="sidebar-tool__icon">
+                        <i data-lucide="sun" class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true"></i>
+                        <i data-lucide="moon" class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true"></i>
+                    </span>
+                    <span data-theme-label>Light mode</span>
+                    <i data-lucide="chevron-right" class="sidebar-tool__chevron" aria-hidden="true"></i>
+                </button>
+                @auth
+                    <a href="{{ route('profile.edit') }}" class="sidebar-tool" title="{{ auth()->user()->name }}">
+                        <span class="sidebar-tool__icon"><i data-lucide="circle-user-round" aria-hidden="true"></i></span>
+                        <span class="sidebar-tool__label">{{ auth()->user()->name }}</span>
+                    </a>
+                    <form method="post" action="{{ route('auth.logout') }}">
+                        @csrf
+                        <button type="submit" class="sidebar-tool">
+                            <span class="sidebar-tool__icon"><i data-lucide="log-out" aria-hidden="true"></i></span>
+                            <span>Log out</span>
+                        </button>
+                    </form>
+                @endauth
+            </div>
+        </div>
+    </aside>
+
+    <button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="Close navigation menu" tabindex="-1"></button>
+
+    <div class="app-frame">
+        <header class="content-brand" aria-label="MyAPES Account">
+            <strong>My<span>APES</span></strong> Account
+            <small>Association of Protecting Exotic Species CIC</small>
+        </header>
 
 <main id="main-content" class="app-main" tabindex="-1">
     @if(app()->environment(['local', 'testing']))
@@ -175,5 +207,7 @@
     <span><strong>MyAPES</strong> Account</span>
     <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
 </footer>
+    </div>
+</div>
 </body>
 </html>
