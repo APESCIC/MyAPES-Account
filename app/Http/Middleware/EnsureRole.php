@@ -28,11 +28,11 @@ class EnsureRole
             abort(401);
         }
 
-        if ($roles !== [] && ! in_array($user->role, $roles, true)) {
+        if ($roles !== [] && ! in_array($user->accessLevel(), $roles, true)) {
             app(AuditLogger::class)->record('auth.role_access_denied', $user, null, [
                 'path' => $request->path(),
                 'required_roles' => $roles,
-                'actual_role' => $user->role,
+                'actual_role' => $user->accessLevel(),
             ]);
             abort(403, 'You do not have access to this section.');
         }

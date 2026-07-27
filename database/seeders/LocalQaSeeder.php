@@ -271,17 +271,18 @@ class LocalQaSeeder extends Seeder
         CarbonImmutable $seededAt
     ): User {
         /** @var User $user */
-        $user = User::query()->updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => $name,
-                'password' => self::DEFAULT_PASSWORD,
-                'role' => $role,
-                'oidc_sub' => $oidcSub,
-                'ldap_groups' => $ldapGroups,
-                'email_verified_at' => $seededAt,
-            ]
-        );
+        $user = User::query()->firstOrNew(['email' => $email]);
+        $user->forceFill([
+            'name' => $name,
+            'password' => self::DEFAULT_PASSWORD,
+            'oidc_sub' => $oidcSub,
+            'identity_type' => $oidcSub === null
+                ? User::IDENTITY_LOCAL
+                : User::IDENTITY_CLOUDRON_OIDC,
+            'ldap_groups' => $ldapGroups,
+            'email_verified_at' => $seededAt,
+        ]);
+        $user->setAccessLevel($role)->save();
 
         return $user;
     }

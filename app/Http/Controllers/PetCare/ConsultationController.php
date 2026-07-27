@@ -32,7 +32,7 @@ class ConsultationController extends Controller
                 ->orderBy('name')
                 ->get(),
             'staffUsers' => User::query()
-                ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+                ->withAccessLevels(User::staffAccessLevels())
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -71,7 +71,7 @@ class ConsultationController extends Controller
         return view('petcare.consultations.show', [
             'consultation' => $consultation->load(['petProfile', 'assignedTo']),
             'staffUsers' => User::query()
-                ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+                ->withAccessLevels(User::staffAccessLevels())
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -86,11 +86,10 @@ class ConsultationController extends Controller
             'assigned_to' => [
                 'nullable',
                 Rule::exists('users', 'id')->where(
-                    fn ($query) => $query->whereIn('role', [
-                        User::ROLE_STAFF,
-                        User::ROLE_ADMIN,
-                        User::ROLE_SUPERADMIN,
-                    ])
+                    fn ($query) => $query->whereIn(
+                        User::accessLevelColumn(),
+                        User::staffAccessLevels(),
+                    )
                 ),
             ],
             'notes' => ['nullable', 'string'],
@@ -152,7 +151,7 @@ class ConsultationController extends Controller
     private function notifyConsultationStakeholders(PetCareConsultation $consultation, User $actor, string $eventLabel): void
     {
         $staffRecipients = User::query()
-            ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])
+            ->withAccessLevels(User::staffAccessLevels())
             ->get();
 
         $recipients = $staffRecipients

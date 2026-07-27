@@ -91,13 +91,14 @@ class PublicAuthController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $user = User::create([
+        $user = new User([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'role' => User::ROLE_SERVICE_USER,
+            'identity_type' => User::IDENTITY_LOCAL,
             'email_verified_at' => now(),
         ]);
+        $user->setAccessLevel(User::ROLE_SERVICE_USER)->save();
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -143,7 +144,7 @@ class PublicAuthController extends Controller
         }
 
         $auditLogger->record('auth.local_staff_login_success', $user, $user, [
-            'role' => $user->role,
+            'role' => $user->accessLevel(),
         ]);
 
         return redirect()->intended(route('dashboard'));
@@ -171,12 +172,12 @@ class PublicAuthController extends Controller
         $request->session()->regenerate();
 
         $auditLogger->record('auth.qa_role_switch', $currentUser, $targetUser, [
-            'from_role' => $currentUser?->role,
-            'to_role' => $targetUser->role,
+            'from_role' => $currentUser?->accessLevel(),
+            'to_role' => $targetUser->accessLevel(),
             'target_email' => $targetUser->email,
         ]);
 
-        $roleLabel = match ($targetUser->role) {
+        $roleLabel = match ($targetUser->accessLevel()) {
             User::ROLE_SERVICE_USER => 'public service user',
             User::ROLE_STAFF => 'staff user',
             User::ROLE_ADMIN => 'admin user',
@@ -200,7 +201,7 @@ class PublicAuthController extends Controller
         /** @var User|null $user */
         $user = User::query()
             ->where('email', $email)
-            ->where('role', $role)
+            ->where(User::accessLevelColumn(), $role)
             ->first();
 
         if ($user === null) {

@@ -12,8 +12,8 @@ class StaffAdminController extends Controller
     {
         return view('admin.index', [
             'totalUsers' => User::count(),
-            'staffUsers' => User::whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPERADMIN])->count(),
-            'adminUsers' => User::whereIn('role', [User::ROLE_ADMIN, User::ROLE_SUPERADMIN])->count(),
+            'staffUsers' => User::withAccessLevels(User::staffAccessLevels())->count(),
+            'adminUsers' => User::withAccessLevels(User::adminAccessLevels())->count(),
             'recentUsers' => User::latest()->limit(10)->get(),
         ]);
     }

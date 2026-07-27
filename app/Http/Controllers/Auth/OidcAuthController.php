@@ -132,9 +132,10 @@ class OidcAuthController extends Controller
         }
 
         $user->oidc_sub = $sub;
+        $user->identity_type = User::IDENTITY_CLOUDRON_OIDC;
         $user->name = $identity->name ?? $email;
         $user->email = $email;
-        $user->role = $role;
+        $user->setAccessLevel($role);
         $user->ldap_groups = array_values(array_unique(array_map(
             static fn (string $group): string => strtolower(trim($group)),
             $groups,
@@ -146,7 +147,7 @@ class OidcAuthController extends Controller
         $request->session()->regenerate();
         $request->session()->put(RevalidateDirectoryAccess::SESSION_KEY, now()->timestamp);
         $auditLogger->record('auth.login_success', $user, $user, [
-            'role' => $user->role,
+            'role' => $user->accessLevel(),
             'group_count' => count($groups),
         ]);
 
@@ -164,7 +165,7 @@ class OidcAuthController extends Controller
     ): RedirectResponse {
         /** @var User|null $user */
         $user = $request->user();
-        $directoryBacked = is_string($user?->oidc_sub) && trim($user->oidc_sub) !== '';
+        $directoryBacked = $user?->isCloudronIdentity() ?? false;
 
         if ($user !== null) {
             $auditLogger->record('auth.logout', $user, $user);
@@ -189,11 +190,9 @@ class OidcAuthController extends Controller
             return;
         }
 
-        $previousRole = $user->role;
-        $user->forceFill([
-            'role' => User::ROLE_SERVICE_USER,
-            'ldap_groups' => [],
-        ]);
+        $previousRole = $user->accessLevel();
+        $user->forceFill(['ldap_groups' => []]);
+        $user->setAccessLevel(User::ROLE_SERVICE_USER);
         $user->setRememberToken(Str::random(60));
         $user->save();
 
