@@ -206,6 +206,11 @@
 <footer class="site-footer">
     <span><strong>MyAPES</strong> Account</span>
     <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
+    <a
+        class="site-footer__version"
+        href="{{ route('change-log.index') }}"
+        aria-label="View the MyAPES Account change log for version v{{ $appVersion }}"
+    >v{{ $appVersion }}</a>
 </footer>
     </div>
 </div>

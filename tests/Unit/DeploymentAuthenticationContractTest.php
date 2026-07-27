@@ -46,6 +46,8 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
 
         $this->assertStringContainsString('/healthz', $workflow);
+        $this->assertStringContainsString('reported_version', $workflow);
+        $this->assertStringContainsString('APP_VERSION', $workflow);
         $this->assertStringContainsString('/staff/auth/login', $deploymentSources);
         $this->assertStringContainsString('/staff/auth/callback', $deploymentSources);
         $this->assertStringContainsString('CLOUDRON_OIDC_AUTH_URL', $deploymentSources);
@@ -63,6 +65,41 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertDoesNotMatchRegularExpression(
             '/curl[^\r\n]*(?:\s-L(?:\s|$)|\s--location(?:\s|$))/m',
             $normalizedWorkflow,
+        );
+    }
+
+    public function test_workflow_validates_versions_on_pull_requests_without_deploying_them(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+
+        $this->assertMatchesRegularExpression('/pull_request:\s*\R/', $workflow);
+        $this->assertStringContainsString('fetch-depth: 0', $workflow);
+        $this->assertStringContainsString('github.event.pull_request.base.sha', $workflow);
+        $this->assertStringContainsString('github.event.before', $workflow);
+        $this->assertStringContainsString('myapes:changelog-validate', $workflow);
+        $this->assertStringContainsString('npm run test:frontend', $workflow);
+        $this->assertMatchesRegularExpression(
+            '/deploy:\s*\R(?:(?!\n\S).)*if:\s*\$\{\{\s*github\.event_name\s*!=\s*[\'"]pull_request[\'"]\s*\}\}/s',
+            $workflow,
+        );
+    }
+
+    public function test_workflow_packages_and_verifies_semantic_and_commit_identities(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+
+        $this->assertStringContainsString('app_version:', $workflow);
+        $this->assertStringContainsString('app_version=', $workflow);
+        $this->assertStringContainsString("grep -qx './VERSION' build/archive-list.txt", $workflow);
+        $this->assertStringContainsString('reported_version', $workflow);
+        $this->assertStringContainsString('reported_release', $workflow);
+        $this->assertStringContainsString(
+            '"$reported_version" == "$APP_VERSION"',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            '"$reported_release" == "$RELEASE_SHA"',
+            $workflow,
         );
     }
 

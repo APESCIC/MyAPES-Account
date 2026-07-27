@@ -23,6 +23,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 - `/` - landing page with Public Login, Register, and Staff Login choices
 - `/login` and `/register` - public account authentication (in local/testing, `/login` auto-signs in to the seeded public user)
 - `/staff/login` - dedicated staff login page that starts Cloudron OIDC
+- `/change-log` - public, searchable MyAPES Account release history for guests, public users, and staff
 - local/testing only: QA role switcher (Public/Staff/Admin) available in the app layout for one-click identity switching
 
 ## Brand assets
@@ -159,6 +160,33 @@ bash scripts/local/dev.sh
 powershell -ExecutionPolicy Bypass -File .\scripts\local\dev.ps1
 ```
 
+## Release history and semantic versioning
+
+The current application version is stored in the root `VERSION` file without a display-only `v` prefix. Reviewed public release records live in `resources/data/releases.json`; the newest record is authoritative and must match `VERSION`. The shared footer links the displayed version to the public `/change-log` hub.
+
+Every future change merged to `main` must:
+
+1. Prepend exactly one higher semantic version to `resources/data/releases.json`.
+2. Update `VERSION` to that same version.
+3. Leave every previously published record unchanged and in the same order.
+4. Use a minor version for a new backward-compatible capability and a patch version for a compatible fix. While the application remains pre-1.0, document a breaking change explicitly and advance the minor version.
+5. Keep public notes free of credentials, personal data, private operational identifiers, exploitable security detail, and unnecessary infrastructure detail.
+
+Validate the current structure locally:
+
+```powershell
+php artisan myapes:changelog-validate
+```
+
+Compare a proposed release against the current remote main branch:
+
+```powershell
+git fetch origin
+php artisan myapes:changelog-validate --base-ref=origin/main
+```
+
+Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch performs structural validation without requiring another version. This contract does not create or backfill Git tags or GitHub Releases.
+
 ## Cloudron deployment automation
 
 Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
@@ -226,13 +254,15 @@ the provider does not publish a global logout endpoint.
 
 ### Deployment flow (every deployment request)
 
-1. CI checks out the exact `main` revision, installs PHP 8.4 and Node 22 dependencies, runs the PHP tests, validates shell scripts, and builds Vite assets.
-2. CI creates an immutable production archive containing Composer production dependencies, built assets, and a `REVISION` file.
+1. CI checks out the exact revision, validates the source-controlled release history, installs PHP 8.4 and Node 22 dependencies, runs PHP and frontend tests, validates shell scripts, and builds Vite assets.
+2. CI creates an immutable production archive containing Composer production dependencies, built assets, `VERSION`, and a `REVISION` file.
 3. A pre-deployment Cloudron backup is created.
 4. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>`.
 5. The activation script extracts to `/app/data/releases/<sha>`, links shared `.env` and Laravel storage, validates OIDC/LDAP readiness, runs migrations and cache warm-up, then atomically updates `/app/data/current`.
 6. Cloudron restarts with Apache serving `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`.
-7. CI verifies `/healthz` reports both healthy dependencies and the exact deployed commit, then checks that Staff Login redirects to the expected Cloudron authorization endpoint with PKCE S256. Failed verification restores the previous code release and leaves the backup available for database recovery.
+7. CI verifies `/healthz` reports healthy dependencies, the expected semantic application version, and the exact deployed commit, then checks that Staff Login redirects to the expected Cloudron authorization endpoint with PKCE S256. Failed verification restores the previous code release and leaves the backup available for database recovery.
+
+`version` in `/healthz` is the human-facing semantic application version. `release` is the immutable deployment commit SHA; neither replaces the other.
 
 Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provided environment variables and are not copied into the shared `.env`.
 

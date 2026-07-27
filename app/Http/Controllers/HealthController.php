@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ReleaseHistoryRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +11,7 @@ use Throwable;
 
 class HealthController extends Controller
 {
-    public function __invoke(): JsonResponse
+    public function __invoke(ReleaseHistoryRepository $releases): JsonResponse
     {
         $checks = [
             'database' => $this->databaseIsHealthy() ? 'ok' : 'failed',
@@ -20,6 +21,7 @@ class HealthController extends Controller
 
         return response()->json([
             'status' => $isHealthy ? 'ok' : 'unavailable',
+            'version' => $releases->version(),
             'release' => $this->release(),
             'checks' => $checks,
         ], $isHealthy ? 200 : 503);
