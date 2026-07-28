@@ -2,6 +2,22 @@
 
 MyAPES Account is the APES CIC service-user and staff portal built on Laravel for Cloudron LAMP deployments.
 
+## Repository status
+
+- Last verified README health review: `2026-07-28T10:24:40+01:00`
+- Source-controlled application version: [`VERSION`](VERSION)
+- Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
+- Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
+
+## Support and maintainers
+
+- [Report a bug](https://github.com/APESCIC/MyAPES-Account/issues/new?template=bug_report.yml)
+- [Request a feature](https://github.com/APESCIC/MyAPES-Account/issues/new?template=feature_request.yml)
+- [Browse existing issues](https://github.com/APESCIC/MyAPES-Account/issues)
+- Maintained by [APES CIC](https://github.com/APESCIC) with repository administration by [bmurphy-apescic](https://github.com/bmurphy-apescic).
+
+Do not disclose suspected security vulnerabilities in a public issue. This repository does not currently advertise a private vulnerability-reporting route; repository administrators must establish one before inviting external security reports.
+
 ## Core architecture
 
 - **Authentication**:

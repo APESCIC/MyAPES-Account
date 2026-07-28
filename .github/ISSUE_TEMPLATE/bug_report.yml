@@ -1,0 +1,82 @@
+name: Bug report
+description: Report a reproducible problem with MyAPES Account
+title: "[Bug]: "
+labels:
+  - bug
+assignees:
+  - bmurphy-apescic
+type: Bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Remove credentials, personal data, private operational identifiers, and transient authentication values from every field and attachment.
+        Do not use this public form for suspected security vulnerabilities.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+      placeholder: Give a concise description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected, and how does this interfere with their work?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Affected version or environment
+      description: Provide the displayed MyAPES version and environment, browser, or device where relevant.
+      placeholder: v0.7.1 in production using Firefox on Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest repeatable sequence that demonstrates the problem.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting logs or screenshots
+      description: Add sanitized evidence if available. Do not include credentials, personal data, cookies, tokens, authorization URLs, or transient authentication parameters.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I removed credentials, personal data, private operational identifiers, and transient authentication values.
+          required: true
+        - label: This report is not a suspected security vulnerability.
+          required: true
