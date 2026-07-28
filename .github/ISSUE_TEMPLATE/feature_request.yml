@@ -1,0 +1,81 @@
+name: Feature request
+description: Propose an improvement to MyAPES Account
+title: "[Feature]: "
+labels:
+  - enhancement
+assignees:
+  - bmurphy-apescic
+type: Feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the underlying need and the outcome you want. Remove credentials, personal data, and private operational details.
+
+  - type: textarea
+    id: need
+    attributes:
+      label: Underlying need
+      description: What user or operational problem should be solved?
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should users be able to accomplish?
+    validations:
+      required: true
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Proposed approach
+      description: Describe a preferred solution if you have one.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches or workarounds have been considered?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Identify what should be included and excluded.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that would make the request complete.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link related issues, systems, decisions, or deadlines.
+
+  - type: textarea
+    id: implications
+    attributes:
+      label: Security, privacy, and accessibility implications
+      description: Explain any relevant risks, data handling, authorization boundaries, or accessibility needs.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I removed credentials, personal data, and private operational details.
+          required: true
