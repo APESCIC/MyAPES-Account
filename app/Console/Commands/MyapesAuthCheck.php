@@ -27,7 +27,7 @@ class MyapesAuthCheck extends Command
         $this->components->info('OIDC configuration: ok');
         $this->components->info('OIDC discovery: ok');
         $this->components->info('LDAP bind: ok');
-        $this->components->info("LDAP groups: ok ({$groupCount} configured)");
+        $this->components->info("LDAP groups: ok ({$groupCount} required)");
         $this->components->info('Authentication readiness: ok');
 
         return self::SUCCESS;

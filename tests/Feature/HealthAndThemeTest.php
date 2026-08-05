@@ -16,11 +16,12 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.7.1',
+                'version' => '0.8.0',
                 'release' => 'development',
                 'checks' => [
                     'database' => 'ok',
                     'cache' => 'ok',
+                    'environment' => 'ok',
                 ],
             ]);
     }
@@ -48,13 +49,43 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.7.1',
+                'version' => '0.8.0',
                 'release' => 'development',
                 'checks' => [
                     'database' => 'failed',
                     'cache' => 'failed',
+                    'environment' => 'ok',
                 ],
             ]);
+    }
+
+    public function test_packaged_health_fails_closed_outside_production(): void
+    {
+        $revisionPath = base_path('REVISION');
+        $existingRevision = is_file($revisionPath)
+            ? file_get_contents($revisionPath)
+            : null;
+
+        try {
+            file_put_contents($revisionPath, str_repeat('a', 40));
+            $this->app->detectEnvironment(
+                static fn (): string => 'testing',
+            );
+
+            $this->get(route('health'))
+                ->assertServiceUnavailable()
+                ->assertJsonPath('status', 'unavailable')
+                ->assertJsonPath('release', str_repeat('a', 40))
+                ->assertJsonPath('checks.database', 'ok')
+                ->assertJsonPath('checks.cache', 'ok')
+                ->assertJsonPath('checks.environment', 'failed');
+        } finally {
+            if (is_string($existingRevision)) {
+                file_put_contents($revisionPath, $existingRevision);
+            } elseif (is_file($revisionPath)) {
+                unlink($revisionPath);
+            }
+        }
     }
 
     public function test_light_theme_and_responsive_guest_sidebar_are_rendered(): void

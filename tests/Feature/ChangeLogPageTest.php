@@ -18,16 +18,16 @@ class ChangeLogPageTest extends TestCase
         $response
             ->assertOk()
             ->assertSeeText('Change Log Hub')
-            ->assertSeeText('Current version v0.7.1')
+            ->assertSeeText('Current version v0.8.0')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
-            ->assertSee('href="#release-v0-7-1"', false)
+            ->assertSee('href="#release-v0-8-0"', false)
             ->assertSee('<details', false)
-            ->assertSeeText('Guest authentication redirect correction');
+            ->assertSeeText('Protected RBAC and authorization administration');
 
-        $this->assertSame(12, substr_count($response->getContent(), 'data-release-record'));
+        $this->assertSame(13, substr_count($response->getContent(), 'data-release-record'));
 
-        foreach (['0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'] as $version) {
+        foreach (['0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'] as $version) {
             $response->assertSeeText("v{$version}");
         }
 
@@ -42,7 +42,7 @@ class ChangeLogPageTest extends TestCase
             $this->actingAs($user)
                 ->get('/change-log')
                 ->assertOk()
-                ->assertSeeText('Current version v0.7.1');
+                ->assertSeeText('Current version v0.8.0');
 
             $this->post(route('auth.logout'));
         }
@@ -54,13 +54,13 @@ class ChangeLogPageTest extends TestCase
             $this->get($path)
                 ->assertOk()
                 ->assertSee('href="'.route('change-log.index').'"', false)
-                ->assertSee('aria-label="View the MyAPES Account change log for version v0.7.1"', false)
-                ->assertSeeText('v0.7.1');
+                ->assertSee('aria-label="View the MyAPES Account change log for version v0.8.0"', false)
+                ->assertSeeText('v0.8.0');
         }
 
         $this->view('auth.public-login')
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.7.1');
+            ->assertSeeText('v0.8.0');
 
         $user = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
 
@@ -68,14 +68,14 @@ class ChangeLogPageTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.7.1');
+            ->assertSeeText('v0.8.0');
     }
 
     private function assertProgressiveDetailsContainReleaseContent(TestResponse $response): void
     {
         $content = $response->getContent();
         $firstDetails = strpos($content, '<details');
-        $firstChange = strpos($content, 'Directed browser guests from protected pages');
+        $firstChange = strpos($content, 'Introduced four protected roles');
 
         $this->assertNotFalse($firstDetails);
         $this->assertNotFalse($firstChange);

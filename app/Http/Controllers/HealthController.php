@@ -16,6 +16,7 @@ class HealthController extends Controller
         $checks = [
             'database' => $this->databaseIsHealthy() ? 'ok' : 'failed',
             'cache' => $this->cacheIsHealthy() ? 'ok' : 'failed',
+            'environment' => $this->environmentIsHealthy() ? 'ok' : 'failed',
         ];
         $isHealthy = ! in_array('failed', $checks, true);
 
@@ -49,6 +50,12 @@ class HealthController extends Controller
         } catch (Throwable) {
             return false;
         }
+    }
+
+    private function environmentIsHealthy(): bool
+    {
+        return ! is_file(base_path('REVISION'))
+            || app()->environment('production');
     }
 
     private function release(): string

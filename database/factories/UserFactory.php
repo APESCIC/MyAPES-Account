@@ -2,10 +2,16 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
+use App\Models\RoleSource;
 use App\Models\User;
+use App\Services\AuthorizationAccountSynchronizer;
+use App\Services\AuthorizationProfile;
+use App\Services\AuthorizationRoleMaterializer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 /**
  * @extends Factory<User>
@@ -16,6 +22,30 @@ class UserFactory extends Factory
      * The current password being used by the factory.
      */
     protected static ?string $password;
+
+    public function configure(): static
+    {
+        return $this
+            ->afterMaking(static function (User $user): void {
+                if (! is_string($user->getAttribute(User::accessLevelColumn()))
+                    || trim((string) $user->getAttribute(User::accessLevelColumn())) === '') {
+                    $user->setAccessLevel(User::ROLE_SERVICE_USER);
+                }
+            })
+            ->afterCreating(static function (User $user): void {
+                $schema = $user->getConnection()->getSchemaBuilder();
+
+                if (! $schema->hasTable('roles')
+                    || ! $schema->hasTable('role_sources')
+                    || ! $schema->hasTable('model_has_roles')
+                    || $user->accessLevel() !== User::ROLE_SERVICE_USER) {
+                    return;
+                }
+
+                app(AuthorizationAccountSynchronizer::class)
+                    ->grantPublicBaseline($user);
+            });
+    }
 
     /**
      * Define the model's default state.
@@ -51,11 +81,89 @@ class UserFactory extends Factory
         );
     }
 
-    public function cloudronIdentity(string $subject): static
+    public function phaseAAccessLevel(string $accessLevel): static
+    {
+        return $this->accessLevel($accessLevel);
+    }
+
+    public function protectedRole(
+        string $roleName,
+        string $source = RoleSource::SOURCE_SYSTEM,
+    ): static {
+        if ($source === RoleSource::SOURCE_DIRECTORY) {
+            throw new InvalidArgumentException(
+                'Directory protected-role fixtures must use the directory synchronization boundary.',
+            );
+        }
+
+        return $this
+            ->afterMaking(static function (User $user) use ($roleName): void {
+                $legacy = app(AuthorizationProfile::class)
+                    ->legacyAccessLevelFor($roleName);
+                $user->setAccessLevel($legacy);
+            })
+            ->afterCreating(static function (User $user) use (
+                $roleName,
+                $source,
+            ): void {
+                $role = Role::query()
+                    ->where('guard_name', 'web')
+                    ->where('name', $roleName)
+                    ->firstOrFail();
+                app(AuthorizationRoleMaterializer::class)
+                    ->grant($user, $role, $source);
+            });
+    }
+
+    public function customRole(string $roleName): static
+    {
+        return $this->afterCreating(
+            static function (User $user) use ($roleName): void {
+                $role = Role::query()->firstOrCreate([
+                    'name' => $roleName,
+                    'guard_name' => 'web',
+                ]);
+
+                if ($role->is_protected) {
+                    throw new InvalidArgumentException(
+                        'Custom-role fixtures cannot use protected role names.',
+                    );
+                }
+
+                app(AuthorizationRoleMaterializer::class)->grant(
+                    $user,
+                    $role,
+                    RoleSource::SOURCE_LOCAL,
+                    actor: $user,
+                );
+            },
+        );
+    }
+
+    public function directoryIdentity(string $subject): static
     {
         return $this->state(fn (array $attributes) => [
             'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
             'oidc_sub' => $subject,
+            'ldap_groups' => [],
         ]);
+    }
+
+    public function authorizationContextEpoch(int $epoch): static
+    {
+        if ($epoch < 1) {
+            throw new InvalidArgumentException(
+                'Authorization context epochs must be positive.',
+            );
+        }
+
+        return $this->state(fn (array $attributes) => [
+            'authorization_epoch' => $epoch,
+        ]);
+    }
+
+    public function cloudronIdentity(string $subject): static
+    {
+        return $this->directoryIdentity($subject);
     }
 }

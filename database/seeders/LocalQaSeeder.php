@@ -4,14 +4,21 @@ namespace Database\Seeders;
 
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
+use App\Models\Role;
+use App\Models\RoleSource;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Services\AuthorizationMetadataSynchronizer;
+use App\Services\AuthorizationProfile;
+use App\Services\AuthorizationRoleManagementService;
+use App\Services\AuthorizationRoleMaterializer;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
+use LogicException;
 
 class LocalQaSeeder extends Seeder
 {
@@ -25,48 +32,59 @@ class LocalQaSeeder extends Seeder
 
     public const SUPERADMIN_EMAIL = 'qa.superadmin@myapes.local';
 
+    public const CUSTOM_ROLE_NAME = 'local-qa-reviewer';
+
     public const DEFAULT_PASSWORD = 'MyAPES-Local-QA-2026!';
+
+    /**
+     * @return list<string>
+     */
+    public static function emails(): array
+    {
+        return [
+            self::SERVICE_USER_EMAIL,
+            self::STAFF_EMAIL,
+            self::ADMIN_EMAIL,
+            self::SUPERADMIN_EMAIL,
+        ];
+    }
 
     public function run(): void
     {
         if (! app()->environment(['local', 'testing'])) {
-            return;
+            throw new LogicException(
+                'Local QA fixtures are unavailable outside local and testing environments.',
+            );
         }
 
+        app(AuthorizationMetadataSynchronizer::class)->synchronize();
         $seededAt = CarbonImmutable::parse('2026-07-24 09:00:00', 'Europe/London')->utc();
 
         $serviceUser = $this->upsertUser(
             self::SERVICE_USER_EMAIL,
             'QA Service User',
             User::ROLE_SERVICE_USER,
-            null,
-            [],
             $seededAt
         );
         $staffUser = $this->upsertUser(
             self::STAFF_EMAIL,
             'QA Staff User',
             User::ROLE_STAFF,
-            'local-qa-staff',
-            ['position.staff'],
             $seededAt
         );
         $adminUser = $this->upsertUser(
             self::ADMIN_EMAIL,
             'QA Admin User',
             User::ROLE_ADMIN,
-            'local-qa-admin',
-            ['admin'],
             $seededAt
         );
         $superAdminUser = $this->upsertUser(
             self::SUPERADMIN_EMAIL,
             'QA Superadmin User',
             User::ROLE_SUPERADMIN,
-            'local-qa-superadmin',
-            ['superadmin'],
             $seededAt
         );
+        $this->upsertCustomRole($superAdminUser, $staffUser);
 
         $this->upsertProfile($serviceUser, 'Service User', '+44 7700 900101', 'APES CIC Service User');
         $this->upsertProfile($staffUser, 'Staff User', '+44 7700 900102', 'APES CIC Staff');
@@ -266,8 +284,6 @@ class LocalQaSeeder extends Seeder
         string $email,
         string $name,
         string $role,
-        ?string $oidcSub,
-        array $ldapGroups,
         CarbonImmutable $seededAt
     ): User {
         /** @var User $user */
@@ -275,16 +291,62 @@ class LocalQaSeeder extends Seeder
         $user->forceFill([
             'name' => $name,
             'password' => self::DEFAULT_PASSWORD,
-            'oidc_sub' => $oidcSub,
-            'identity_type' => $oidcSub === null
-                ? User::IDENTITY_LOCAL
-                : User::IDENTITY_CLOUDRON_OIDC,
-            'ldap_groups' => $ldapGroups,
+            'oidc_sub' => null,
+            'identity_type' => User::IDENTITY_LOCAL,
+            'ldap_groups' => [],
             'email_verified_at' => $seededAt,
+            'suspended_at' => null,
+            'suspended_by' => null,
+            'suspension_reason' => null,
         ]);
         $user->setAccessLevel($role)->save();
 
+        $profile = app(AuthorizationProfile::class);
+        $protectedRoleName = $profile->protectedRoleForLegacy($role);
+        $protectedRole = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', $protectedRoleName)
+            ->firstOrFail();
+        app(AuthorizationRoleMaterializer::class)->grant(
+            $user,
+            $protectedRole,
+            RoleSource::SOURCE_SYSTEM,
+        );
+
         return $user;
+    }
+
+    private function upsertCustomRole(User $actor, User $assignee): void
+    {
+        $management = app(AuthorizationRoleManagementService::class);
+        $role = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', self::CUSTOM_ROLE_NAME)
+            ->first();
+        $permissions = [];
+
+        $role = $management->runAsLocalQa(
+            $actor,
+            static fn (): Role => $role === null
+                ? $management->create(
+                    $actor,
+                    self::CUSTOM_ROLE_NAME,
+                    $permissions,
+                )
+                : $management->update(
+                    $actor,
+                    $role,
+                    self::CUSTOM_ROLE_NAME,
+                    $permissions,
+                ),
+        );
+
+        app(AuthorizationRoleMaterializer::class)->grant(
+            $assignee,
+            $role,
+            RoleSource::SOURCE_LOCAL,
+            actor: $actor,
+        );
     }
 
     private function upsertProfile(User $user, string $preferredName, string $phone, string $organization): void

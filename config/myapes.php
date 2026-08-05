@@ -30,17 +30,25 @@ return [
         'user_filter' => env('LDAP_USER_FILTER', '(mail=%s)'),
         'group_attribute' => env('LDAP_GROUP_ATTRIBUTE', 'memberOf'),
         'start_tls' => (bool) env('LDAP_START_TLS', false),
-    ],
-
-    'roles' => [
-        'staff_groups' => $parseCsv(env('OIDC_STAFF_GROUPS', 'position.staff,position.students,position.volunteers')),
-        'admin_groups' => $parseCsv(env('OIDC_ADMIN_GROUPS', 'intranet.administrator')),
-        'superadmin_groups' => $parseCsv(env('OIDC_SUPERADMIN_GROUPS', 'intranet.superadmin')),
+        'connect_timeout_seconds' => max(
+            1,
+            min(30, (int) env('LDAP_CONNECT_TIMEOUT_SECONDS', 5)),
+        ),
+        'search_timeout_seconds' => max(
+            1,
+            min(60, (int) env('LDAP_SEARCH_TIMEOUT_SECONDS', 10)),
+        ),
     ],
 
     'directory' => [
+        'required_groups' => [
+            'myapes.staff',
+            'myapes.admin',
+            'myapes.superadmin',
+        ],
         'revalidate_seconds' => (int) env('LDAP_SESSION_REVALIDATE_SECONDS', 300),
         'revalidate_in_local' => (bool) env('LDAP_SESSION_REVALIDATE_IN_LOCAL', false),
+        'sync_lock_seconds' => (int) env('DIRECTORY_SYNC_LOCK_SECONDS', 300),
     ],
 
     'audit' => [

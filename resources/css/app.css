@@ -899,6 +899,81 @@ form.inline {
     box-shadow: none;
 }
 
+.admin-nav {
+    margin-bottom: 1rem;
+    padding: 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.admin-nav a {
+    min-height: 2.75rem;
+    padding: 0.6rem 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    color: var(--ink-soft);
+    font-weight: 780;
+    text-decoration: none;
+}
+
+.admin-nav a:hover,
+.admin-nav a[aria-current='page'] {
+    background: var(--brand-deep-teal);
+    color: #fff;
+}
+
+.admin-definition-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+    gap: 0.75rem;
+}
+
+.admin-definition-list div {
+    padding: 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+}
+
+.admin-definition-list dt {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 820;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.admin-definition-list dd {
+    margin: 0.25rem 0 0;
+    overflow-wrap: anywhere;
+}
+
+.admin-checkbox-grid {
+    margin-top: 1rem;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    gap: 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
+.admin-checkbox-grid legend {
+    padding-inline: 0.35rem;
+    color: var(--ink-soft);
+    font-weight: 820;
+}
+
+.admin-checkbox-grid label {
+    margin: 0;
+}
+
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
@@ -1150,6 +1225,13 @@ tbody tr:hover {
     display: block;
     border-radius: 50%;
     object-fit: cover;
+}
+
+caption {
+    padding: 0.5rem 0;
+    color: var(--muted);
+    font-size: 0.86rem;
+    text-align: left;
 }
 
 .change-log {

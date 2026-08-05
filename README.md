@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-07-28T10:24:40+01:00`
+- Last verified README health review: `2026-08-05T12:00:41+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -20,17 +20,30 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 
 ## Core architecture
 
-- **Authentication**:
-  - Public service users: local email/password register + login
-  - Staff/admin users: APES Cloudron OIDC login with LDAP group resolution for role assignment
-- **Role mapping**:
-  - Staff access: `position.staff`, `position.students`, `position.volunteers`
-  - Admin access: `intranet.administrator`
-  - Superadmin access: `intranet.superadmin`
-- **Access compatibility**:
-  - `identity_type` distinguishes local accounts from Cloudron OIDC identities.
-  - Application access reads use `legacy_access_level`; writes also update `users.role` while that column exists.
-  - This is the Phase A compatibility layer. Granular permissions and protected RBAC roles are not installed yet.
+- **Authentication and session context**:
+  - Public service users authenticate with local email/password.
+  - Staff and administrators authenticate through APES Cloudron OIDC with exact LDAP group eligibility.
+  - One Laravel `web` guard carries explicit `password`, `cloudron_oidc`, or local/testing-only `qa` session provenance.
+  - Durable authorization epochs, recent directory-validation timestamps, suspension checks, remember-token rotation, and the Phase B session-cutover marker force reauthentication whenever authorization changes.
+- **Protected authorization**:
+  - The exact protected roles are `service-user`, `staff`, `administrator`, and `super-admin`.
+  - The code-owned permission catalogue is exactly `staff.access`, `admin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
+  - These thirteen permissions are synchronized from `AuthorizationProfile` and enforced by the application-owned Gate and policies.
+  - Direct user permissions remain an internal central-materializer capability with mandatory provenance and no arbitrary Admin assignment UI. Authorized Admin user details show the same deduplicated role-plus-direct effective set used by the Gate and list each direct source with only a system label or granting account ID.
+  - Spatie provides role/permission storage only. Its automatic Gate hook remains disabled while the teams schema and wildcard matching are enabled for the application-owned authorization path. Direct user permissions are allowed only through the central provenance materializer; direct pivot mutation remains disabled.
+  - Every effective role has `system`, `directory`, `local`, or `legacy-compatibility` provenance. Local assignments require the persisted user ID of the actor who granted them, may use custom roles, and cannot assign protected roles or replace missing directory eligibility; non-local sources cannot claim an actor.
+  - Staff assignment and notification eligibility requires an unsuspended protected staff-class pivot and a qualifying source for that same role. Production accepts directory provenance only; local/testing may also accept the approved system and legacy compatibility fixtures. A custom role containing `staff.access` never qualifies by itself.
+  - Privileged role, mapping, and user mutations lock the singleton authorization state before users or directory records, then revalidate the session method, user and global epochs, directory generation, suspension, exact-role provenance, and effective protected role. Final-super-admin safeguards use this same present-group-backed predicate; an unprovenanced or stale pivot cannot satisfy them.
+- **Directory catalogue and mappings**:
+  - The only immutable mappings are `myapes.staff` → `staff`, `myapes.admin` → `administrator`, and `myapes.superadmin` → `super-admin`.
+  - Matching is normalized and exact. Wildcards and legacy aliases are rejected.
+  - The catalogue stores normalized group identity, optional external ID, aggregate member count, presence state, and synchronization timestamps; individual directory members are never persisted.
+  - Manual and scheduled catalogue requests share one unique, coalesced job and the same database lease. Attempts, backoff, execution, queue reservation, and LDAP connection/search times are bounded; the queue reservation always exceeds one job attempt.
+- **Administration**:
+  - Admin Users supports safe identity detail, search/filtering, custom local-role assignment, suspension/reactivation, effective permissions, provenance, and audit history within target-aware authorization boundaries. Target lookup occurs only after authorization, so missing and existing identifiers produce the same sanitized denial for unauthorized actors.
+  - Admin Groups shows present/missing directory groups and aggregate counts; super-admins can manage mutable exact mappings and request asynchronous synchronization.
+  - Admin Roles lets authorized administrators inspect custom roles while only super-admins can create, update permissions for, or delete unassigned custom roles.
+  - Admin Permissions is a read-only view of the thirteen code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support tickets
@@ -134,14 +147,14 @@ All seeded users use this password:
 
 - `MyAPES-Local-QA-2026!`
 
-In local/testing, opening `/login` immediately signs into the seeded public account. Use the in-app QA role switcher to move between Public, Staff, and Admin without re-entering credentials.
+In local/testing, opening `/login` immediately signs into the seeded public account. Use the in-app QA role switcher to move between Public, Staff, and Admin without re-entering credentials. These are local identities with `qa` session provenance and system-provenanced protected baselines; they do not contain OIDC subjects, directory memberships, production group aliases, or direct user permissions. The Staff fixture also has the deterministic local custom role `local-qa-reviewer`.
 
 | Role | Login email | Login route | Primary QA coverage |
 | --- | --- | --- | --- |
 | Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC tickets, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
-| Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff visibility across all user records, assignment updates, staff notes and status workflows |
-| Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | All staff workflows plus `/admin` dashboard and admin navigation access |
-| Superadmin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Same as admin with superadmin role mapping coverage |
+| Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff visibility across all user records, assignment updates, staff notes, status workflows, and the local custom-role fixture |
+| Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus authorized Admin Users/Groups/Roles/Permissions views and allowed account mutations |
+| Super Admin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Custom-role and exact directory-mapping management boundaries |
 
 ### Feature test matrix by seeded role
 
@@ -149,7 +162,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 | --- | --- |
 | Public | Create/view own APES CIC tickets, update own shelter/pet care records, edit profile/settings, verify owner-only visibility |
 | Staff | See all users' tickets/cases/consultations, assign records to staff/admin, update statuses and staff notes |
-| Admin | Run full staff workflows plus access `/admin` summary and confirm admin navigation/permissions |
+| Admin | Run full staff workflows plus inspect Admin Users, Groups, Roles, and Permissions and exercise allowed user-management boundaries |
 
 ### Seeded data included for quick E2E checks
 
@@ -213,8 +226,8 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 
 ### Deployment triggers
 
-1. Push to `main` (automatic deployment after tests).
-2. Manual deployment request via **Actions → Test and deploy MyAPES Account → Run workflow**. Manual runs always deploy the current `main` revision.
+1. Push to `main` automatically deploys only after the SQLite/package job and both database-matrix jobs succeed.
+2. Pull requests and manual workflow runs execute structural verification but cannot deploy.
 
 ### Target app
 
@@ -242,77 +255,150 @@ Use the issuer `https://my.cloudron.apes.org.uk/openid` and the
 environment. The generated credentials must not be copied into GitHub,
 the repository, release archives, logs, or chat.
 
-Configure Cloudron app access for these directory groups:
+Before the v0.8.0 production migration, create and populate all three exact
+Cloudron directory groups and configure app access for them:
 
-- `position.staff`
-- `position.students`
-- `position.volunteers`
-- `intranet.administrator`
-- `intranet.superadmin`
+- `myapes.staff`
+- `myapes.admin`
+- `myapes.superadmin`
 
 The LAMP package injects rotating `CLOUDRON_LDAP_*` credentials. MyAPES uses
 OIDC for authentication and LDAP membership for authorization; LDAP credentials
-must not be copied into the Laravel environment file.
+must not be copied into the Laravel environment file. Group matching is
+lowercase-normalized and exact; legacy aliases and wildcards are rejected.
+LDAP connection and search limits default to five and ten seconds through
+`LDAP_CONNECT_TIMEOUT_SECONDS` and `LDAP_SEARCH_TIMEOUT_SECONDS`.
+`DB_QUEUE_RETRY_AFTER` defaults to 300 seconds and must remain greater than the
+directory job's own 240-second execution timeout. The Cloudron worker keeps a
+60-second default timeout so the hardened launcher retained during code
+rollback also remains below v0.7.1's 90-second queue reservation; the Phase B
+directory job's explicit timeout overrides that worker default.
 
-Before activation, production runs:
-
-```bash
-php artisan myapes:auth-check --no-interaction
-```
-
-The command validates the OIDC discovery contract, PKCE S256 support, LDAP
-connectivity and all five role groups without printing client, bind or user
-data. An authentication-readiness failure occurs before migrations and leaves
-the previous release active.
-
-Directory-backed sessions revalidate role membership at most every five
-minutes. Removing all approved groups downgrades and signs out the user;
-directory outages fail closed without changing the last stored role. Explicit
-staff logout clears the MyAPES session and forces a fresh Cloudron credential
-prompt on the next Staff Login. It does not end other Cloudron sessions because
-the provider does not publish a global logout endpoint.
-
-### Access compatibility synchronization
-
-Phase A keeps the previous `users.role` field for rollback compatibility while
-all application reads use `legacy_access_level`. The additive migration installs
-database triggers on SQLite, MySQL, and MariaDB so legacy inserts and updates
-continue to synchronize `legacy_access_level` and `identity_type` throughout
-cutover and rollback. Unsupported, null, or blank legacy access levels are
-rejected before they can reach the compatibility fields.
-
-Run the idempotent reconciliation check after migrations and immediately before
-activating a release:
+The authorization lifecycle commands are:
 
 ```bash
-php artisan myapes:access-compatibility-sync --no-interaction
+php artisan myapes:authorization-preflight --no-interaction --no-ansi
+php artisan myapes:authorization-sync --no-interaction --no-ansi
+php artisan myapes:authorization-check --no-interaction --no-ansi
+php artisan myapes:directory-sync --source=manual
+php artisan myapes:directory-sync --source=scheduled
 ```
 
-The command fails without printing user data when required compatibility
-fields are missing, the database guard is absent, unsupported legacy access
-values exist, or reconciliation does not reach its postcondition. It
-synchronizes the additive fields while `users.role` exists and becomes a
-successful no-op after Phase B removes that column. Phase B must drop the
-transitional database guard before dropping `users.role`.
+`myapes:authorization-preflight` runs before migration and validates the
+supported Phase A or retry-safe Phase B database state, OIDC discovery/PKCE,
+LDAP connectivity, and the three populated immutable groups without printing
+client, bind, member, or user data. `myapes:authorization-sync` repairs
+code-owned metadata, exact mappings, provenanced grants, compatibility mirrors,
+and the one-time session cutover. `myapes:authorization-check` performs the
+read-only Phase B postcondition gate. Directory catalogue synchronization is
+available for `manual` or `scheduled` sources. Both sources dispatch the same
+unique job, so pending or running work is coalesced; the job has three bounded
+attempts, bounded backoff and execution, and the database lease remains the
+final catalogue-integrity guard. Queued attempts persist their framework UUID,
+attempt number, and lease owner. A final resolver failure or hard timeout
+transactionally finalizes only that correlated attempt, clears only its lease,
+and advances the sanitized session generation idempotently. Repeated callbacks,
+including callbacks for an already-terminal attempt, still clear a matching
+stale lease but never disturb a newer owner. While a database
+lease remains active, it is itself a secondary fail-closed generation signal.
+
+Directory-backed sessions revalidate authorization at most every five minutes.
+Removing all approved groups revokes directory provenance, advances the
+authorization epoch, rotates remembered authentication, and signs the user out
+without removing permitted local custom roles. Directory outages fail closed
+without erasing stored authorization. Suspension, role changes, mapping
+changes, and the v0.8.0 cutover use the same backend-independent reauthentication
+boundary. Explicit staff logout clears the MyAPES session and forces a fresh
+Cloudron credential prompt on the next Staff Login; it does not end other
+Cloudron sessions because the provider does not publish a global logout
+endpoint.
+
+### Forward-only rollback contract
+
+Phase B removes `users.role` only after verifying the complete canonical Phase
+A trigger definitions and mirror, installing the Phase B schema/guard, and
+proving provenanced protected-role parity. Trigger names alone are never
+trusted. `legacy_access_level` is retained strictly as the rollback mirror and
+is not an application authorization source. The retained Phase B database
+guard keeps protected provenance and effective pivots aligned for writes from
+v0.7.1 code.
+
+Cutover reconciliation is database-owned. The verified Phase B guard
+self-assigns the current compatibility mirror so its insert/update triggers
+remove only stale canonical protected sources, retain clean source identity
+and timestamps, and preserve every pivot backed by another provenance source.
+Migration reconciliation, exact source/pivot parity, and its cutover marker run
+under one ordered user-lock transaction before the Phase A guard or
+`users.role` is removed.
+
+A roleless retry first requires the complete Phase B schema, exact trigger
+definitions, and the existing cutover marker, then repeats reconciliation and
+exact parity idempotently. A retry from the narrower Phase-A-guard-dropped
+boundary reinstalls and verifies that guard before resuming role removal.
+Authorization synchronization and the final integrity check use the same
+state-then-user lock order. These one-time gates can briefly delay concurrent
+account writes while the user set is reconciled; they do not require
+maintenance mode and never make partially verified authorization active.
+
+Code rollback is forward-only for the database: it atomically restores the
+previous application release under `/app/data/releases` and its shared runtime
+links, but never runs a down migration. The tested archive contains an exact
+four-entry `DEPLOYMENT-CONTROLS.sha256` manifest for activation, rollback,
+Apache, and launcher controls. Before any third-party action or package
+dependency runs, a dependency-independent job reads those four blobs from the
+exact Git revision and exports the trusted manifest digest. The deploy runner,
+activation script, and rollback path all require that exact digest, exact fixed
+paths, and complete-file hashes before executing or publishing a control.
+Activation copies the verified controls into the root-owned, application-
+non-writable `/app/data/deployment-controls/<sha>` directory; rollback executes
+and consumes only those copies, so verification and use share one protected
+content boundary. Rollback may therefore retain the authenticated v0.8.0
+production-pinned Apache configuration and launcher so restored v0.7.1 code
+cannot inherit a non-production `APP_ENV`, while marker-preserving altered
+content fails before the code link changes. v0.7.1 is compatible with the
+roleless schema through `legacy_access_level`. The pre-deployment Cloudron
+backup is the recovery boundary if database recovery, rather than code
+rollback, is required.
+
+A deliberate maintenance downgrade first requires Laravel maintenance mode and
+then fails before schema mutation when any suspension or non-default
+authorization epoch cannot be represented by Phase A. For a permitted
+downgrade, remember tokens and every supported server-side session are
+invalidated before Phase B-only fields are removed; unsupported session
+backends fail closed.
 
 ### Deployment flow (every deployment request)
 
-1. CI checks out the exact revision, validates the source-controlled release history, installs PHP 8.4 and Node 22 dependencies, runs the compatibility migration and command tests against MySQL plus the complete SQLite and frontend suites, validates shell scripts, and builds Vite assets.
-2. CI creates an immutable production archive containing Composer production dependencies, built assets, `VERSION`, and a `REVISION` file.
-3. A pre-deployment Cloudron backup is created.
-4. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>`.
-5. The activation script extracts to `/app/data/releases/<sha>`, links shared `.env` and Laravel storage, validates OIDC/LDAP readiness, runs migrations and cache warm-up, verifies the database compatibility guard, reconciles access data and its postcondition, then atomically updates `/app/data/current`.
-6. Cloudron restarts with Apache serving `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`.
-7. CI verifies `/healthz` reports healthy dependencies, the expected semantic application version, and the exact deployed commit, then checks that Staff Login redirects to the expected Cloudron authorization endpoint with PKCE S256. Failed verification restores the previous code release and leaves the backup available for database recovery.
+1. A dependency-independent job fetches the exact Git revision with the built-in runner tools, reads the four deployment-control blobs directly from Git, and exports their fixed-path manifest digest before any action or package dependency can influence it.
+2. The SQLite/package job checks out that revision, validates the append-only release history, runs the complete PHP and frontend suites, validates shell and PowerShell syntax, builds Vite assets, and creates an immutable production archive with exact `VERSION`, full-SHA `REVISION`, and deployment controls that must match the Git-derived digest.
+3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded cutover, lifecycle, compatibility, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
+4. Only a successful `main` push proceeds. Cloudron creates the pre-deployment backup before any upload or activation.
+5. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>` only after local verification of the externally exported control-manifest digest and all four complete control files.
+6. The activation script publishes a root-owned authenticated control copy, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores shared `.env`/storage links, forces and verifies `APP_ENV=production`, and runs every Artisan step as `www-data` through that release:
+   1. `optimize:clear`;
+   2. `myapes:authorization-preflight --no-interaction --no-ansi`;
+   3. `migrate --force`;
+   4. storage link plus configuration, route, and view caches;
+   5. `permission:cache-reset --no-interaction`;
+   6. `myapes:directory-sync --source=manual --no-interaction --no-ansi`;
+   7. `myapes:authorization-sync --no-interaction --no-ansi`;
+   8. `permission:cache-reset --no-interaction`;
+   9. `myapes:authorization-check --no-interaction --no-ansi`; and
+   10. the atomic `/app/data/current` switch.
+7. Cloudron restart is a separate operation after a successful switch. Apache serves `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`.
+8. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
+9. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Restart or verification failure for a new activation may roll back only when the current and previous links match the exact failed and pre-activation SHAs; any mismatch fails closed. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract.
 
 `version` in `/healthz` is the human-facing semantic application version. `release` is the immutable deployment commit SHA; neither replaces the other.
 
-Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provided environment variables and are not copied into the shared `.env`.
+Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provided environment variables and are not copied into the shared `.env`. Laravel environment selection is explicitly pinned to production for Apache, activation commands, queue workers, and the scheduler.
 
 ## Security and audit controls
 
 - **Audit log model** records security-sensitive events such as:
-  - OIDC login/logout and role access denials
+  - OIDC login/logout, authorization revocation, and permission denials
+  - protected/custom role, directory mapping, suspension/reactivation, and synchronization decisions
+  - sanitized Admin and assignment authorization denials without submitted identifiers
   - profile updates
   - ticket/case/consultation lifecycle updates
   - pet profile create/update actions
@@ -330,7 +416,11 @@ Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provide
 
 ## Data model highlights
 
-- `users`: identity source, transitional legacy access level, rollback-compatible role and database guard, and LDAP groups
+- `users`: identity source, rollback-only legacy access mirror, authorization epoch, suspension state, and bounded directory-group snapshot
+- `roles`, `permissions`, and Spatie pivots: one-guard protected/custom role and code-owned permission storage
+- `role_sources`: application-owned provenance ledger kept in parity with effective role pivots by the retained Phase B database guard
+- `authorization_states`: cutover/session markers, global authorization epoch, and the database-fenced directory synchronization lease
+- `directory_groups`, `directory_group_role_mappings`, and `directory_sync_runs`: aggregate catalogue, exact mappings, sanitized synchronization history, and non-secret queue-attempt/lease correlation
 - `user_profiles`: shared profile/settings data
 - `support_tickets` + `support_ticket_messages`: APES CIC support workflows
 - `pet_profiles`: shared pet record model (`shelter` or `petcare` domain)

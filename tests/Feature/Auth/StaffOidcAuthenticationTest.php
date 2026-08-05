@@ -8,9 +8,11 @@ use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
 use App\Http\Middleware\RevalidateDirectoryAccess;
 use App\Models\AuditLog;
+use App\Models\RoleSource;
 use App\Models\User;
 use App\Services\LdapGroupResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Fakes\FakeLdapGroupResolver;
 use Tests\Fakes\FakeOidcIdentityProvider;
 use Tests\TestCase;
@@ -51,7 +53,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'STAFF@EXAMPLE.COM',
             'APES Staff Member',
         );
-        $this->directory->groups = ['POSITION.STAFF', 'position.staff'];
+        $this->directory->groups = ['MYAPES.STAFF', 'myapes.staff'];
 
         $response = $this->get(route('staff.auth.callback'));
 
@@ -66,12 +68,43 @@ class StaffOidcAuthenticationTest extends TestCase
         $this->assertSame('APES Staff Member', $user->name);
         $this->assertSame(User::IDENTITY_CLOUDRON_OIDC, $user->identity_type);
         $this->assertSame(User::ROLE_STAFF, $user->accessLevel());
-        $this->assertSame(['position.staff'], $user->ldap_groups);
+        $this->assertSame(['myapes.staff'], $user->ldap_groups);
         $this->assertTrue($user->email_verified_at->isSameSecond(now()));
 
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.login_success',
             'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_callback_uses_the_exact_persisted_mapping_and_disables_remember_me(): void
+    {
+        $this->identityProvider->identity = new OidcIdentity(
+            'exact-mapping-subject',
+            'exact-mapping@example.com',
+            'Exact Mapping Staff',
+        );
+        $this->directory->groups = ['MYAPES.STAFF'];
+
+        $response = $this->get(route('staff.auth.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+        $response->assertSessionHas(
+            'myapes.authentication_method',
+            'cloudron_oidc',
+        );
+        $response->assertSessionHas('myapes.authorization_epoch', 1);
+        $response->assertSessionHas('myapes.directory_validated_at');
+
+        $user = User::query()->sole();
+        $this->assertSame(['staff'], $user->roles()->pluck('name')->all());
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'remember_token' => null,
+        ]);
+        $this->assertDatabaseHas('role_sources', [
+            'user_id' => $user->id,
+            'source' => RoleSource::SOURCE_DIRECTORY,
         ]);
     }
 
@@ -91,6 +124,57 @@ class StaffOidcAuthenticationTest extends TestCase
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.oidc_access_denied',
+        ]);
+    }
+
+    public function test_callback_refuses_login_when_eligibility_changes_before_authoritative_sync(): void
+    {
+        $this->identityProvider->identity = new OidcIdentity(
+            'mapping-race-subject',
+            'mapping-race@example.com',
+            'Mapping Race Staff',
+        );
+        $this->directory->groups = ['myapes.staff'];
+        User::creating(static function (): void {
+            DB::table('directory_group_role_mappings')->delete();
+        });
+
+        $response = $this->get(route('staff.auth.callback'));
+
+        $response->assertForbidden();
+        $this->assertGuest();
+        $this->assertDatabaseMissing('audit_logs', [
+            'event' => 'auth.login_success',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'auth.oidc_access_denied',
+        ]);
+    }
+
+    public function test_callback_denies_a_suspended_known_identity_before_directory_access(): void
+    {
+        $user = User::factory()
+            ->accessLevel(User::ROLE_STAFF)
+            ->cloudronIdentity('suspended-directory-subject')
+            ->create([
+                'email' => 'suspended-directory@example.com',
+                'suspended_at' => now(),
+                'suspension_reason' => 'Account review',
+            ]);
+        $this->identityProvider->identity = new OidcIdentity(
+            'suspended-directory-subject',
+            $user->email,
+            $user->name,
+        );
+        $this->directory->groups = ['myapes.staff'];
+
+        $this->get(route('staff.auth.callback'))->assertForbidden();
+
+        $this->assertGuest();
+        $this->assertSame([], $this->directory->resolvedEmails);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'auth.suspended_login_denied',
+            'user_id' => $user->id,
         ]);
     }
 
@@ -128,7 +212,7 @@ class StaffOidcAuthenticationTest extends TestCase
             ->cloudronIdentity('revoked-subject')
             ->create([
                 'email' => 'revoked@example.com',
-                'ldap_groups' => ['intranet.administrator'],
+                'ldap_groups' => ['myapes.admin'],
             ]);
         $this->identityProvider->identity = new OidcIdentity(
             'revoked-subject',
@@ -162,7 +246,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'existing@example.com',
             'Different Identity',
         );
-        $this->directory->groups = ['position.staff'];
+        $this->directory->groups = ['myapes.staff'];
 
         $response = $this->get(route('staff.auth.callback'));
 
@@ -175,6 +259,34 @@ class StaffOidcAuthenticationTest extends TestCase
             ->sole()
             ->context;
         $this->assertSame(['reason' => 'email_already_in_use'], $context);
+    }
+
+    public function test_callback_promotes_only_a_subject_linked_local_password_account_to_hybrid(): void
+    {
+        $user = User::factory()
+            ->accessLevel(User::ROLE_SERVICE_USER)
+            ->create([
+                'oidc_sub' => 'linked-local-subject',
+                'identity_type' => User::IDENTITY_LOCAL,
+                'email' => 'linked-local@example.com',
+                'password' => 'linked-local-password',
+            ]);
+        $passwordHash = $user->password;
+        $this->identityProvider->identity = new OidcIdentity(
+            'linked-local-subject',
+            'linked-local@example.com',
+            'Linked Local Account',
+        );
+        $this->directory->groups = ['myapes.staff'];
+
+        $response = $this->get(route('staff.auth.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+        $user->refresh();
+        $this->assertSame(User::IDENTITY_HYBRID, $user->identity_type);
+        $this->assertSame($passwordHash, $user->password);
+        $this->assertSame(User::ROLE_STAFF, $user->accessLevel());
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_callback_requires_both_email_and_subject_claims(): void

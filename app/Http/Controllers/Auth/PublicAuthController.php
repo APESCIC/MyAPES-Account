@@ -5,20 +5,30 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\AuthorizationAccountSynchronizer;
+use App\Services\AuthorizationProfile;
+use App\Services\SessionAuthorizationContext;
 use Database\Seeders\LocalQaSeeder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use RuntimeException;
 
 class PublicAuthController extends Controller
 {
+    public function __construct(
+        private readonly AuthorizationProfile $authorizationProfile,
+        private readonly AuthorizationAccountSynchronizer $accounts,
+        private readonly SessionAuthorizationContext $authorizationContext,
+    ) {}
+
     public function showLogin(Request $request, AuditLogger $auditLogger): View|RedirectResponse
     {
         if (app()->environment(['local', 'testing'])) {
-            $user = $this->findQaUserByRole(User::ROLE_SERVICE_USER);
+            $user = $this->findQaUserByRole('service_user');
 
             if ($user === null) {
                 $auditLogger->record('auth.qa_public_auto_login_skipped', null, null, [
@@ -29,8 +39,23 @@ class PublicAuthController extends Controller
                 return view('auth.public-login');
             }
 
-            Auth::login($user, true);
+            if ($user->suspended_at !== null) {
+                $auditLogger->record(
+                    'auth.suspended_login_denied',
+                    $user,
+                    $user,
+                    [
+                        'entry' => 'qa_public_auto_login',
+                        'method' => SessionAuthorizationContext::METHOD_QA,
+                    ],
+                );
+
+                return view('auth.public-login');
+            }
+
+            Auth::login($user, false);
             $request->session()->regenerate();
+            $this->authorizationContext->recordQa($request, $user);
             $auditLogger->record('auth.qa_public_auto_login', $user, $user, [
                 'entry' => 'public.login',
             ]);
@@ -62,7 +87,24 @@ class PublicAuthController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        if ($user->isStaff()) {
+        if ($user->suspended_at !== null) {
+            $this->denyAuthenticatedLogin(
+                $request,
+                $user,
+                $auditLogger,
+                'auth.suspended_login_denied',
+                route('public.login'),
+                'This account is suspended.',
+                SessionAuthorizationContext::METHOD_PASSWORD,
+            );
+
+            return redirect()
+                ->route('public.login')
+                ->withErrors(['email' => 'This account is suspended.']);
+        }
+
+        if ($user->identity_type !== User::IDENTITY_HYBRID
+            && $this->authorizationProfile->hasDirectoryProtectedEligibility($user)) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -73,6 +115,7 @@ class PublicAuthController extends Controller
                 ->withErrors(['email' => 'Staff accounts must sign in using Staff Login.']);
         }
 
+        $this->authorizationContext->recordPassword($request, $user);
         $auditLogger->record('auth.public_login_success', $user, $user);
 
         return redirect()->intended(route('dashboard'));
@@ -98,10 +141,12 @@ class PublicAuthController extends Controller
             'identity_type' => User::IDENTITY_LOCAL,
             'email_verified_at' => now(),
         ]);
-        $user->setAccessLevel(User::ROLE_SERVICE_USER)->save();
+        $user->save();
+        $this->accounts->grantPublicBaseline($user);
 
         Auth::login($user);
         $request->session()->regenerate();
+        $this->authorizationContext->recordPassword($request, $user);
         $auditLogger->record('auth.public_registration_success', $user, $user);
 
         return redirect()->route('dashboard');
@@ -118,7 +163,7 @@ class PublicAuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials, false)) {
             $auditLogger->record('auth.local_staff_login_failed', null, null, [
                 'email' => $credentials['email'],
             ]);
@@ -132,7 +177,23 @@ class PublicAuthController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        if (! $user->isStaff()) {
+        if ($user->suspended_at !== null) {
+            $this->denyAuthenticatedLogin(
+                $request,
+                $user,
+                $auditLogger,
+                'auth.suspended_login_denied',
+                route('staff.login'),
+                'This account is suspended.',
+                SessionAuthorizationContext::METHOD_QA,
+            );
+
+            return redirect()
+                ->route('staff.login')
+                ->withErrors(['email' => 'This account is suspended.']);
+        }
+
+        if (! $this->authorizationProfile->hasDirectoryProtectedEligibility($user)) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -143,8 +204,9 @@ class PublicAuthController extends Controller
                 ->withErrors(['email' => 'This local staff login is only for staff/admin accounts.']);
         }
 
+        $this->authorizationContext->recordQa($request, $user);
         $auditLogger->record('auth.local_staff_login_success', $user, $user, [
-            'role' => $user->accessLevel(),
+            'role' => $this->authorizationProfile->displayKey($user),
         ]);
 
         return redirect()->intended(route('dashboard'));
@@ -157,32 +219,49 @@ class PublicAuthController extends Controller
         }
 
         $validated = $request->validate([
-            'role' => ['required', 'in:service_user,staff,admin'],
+            'role' => [
+                'required',
+                Rule::in($this->authorizationProfile->qaSwitchSelectors()),
+            ],
         ]);
 
         /** @var User|null $currentUser */
         $currentUser = $request->user();
         $targetUser = $this->requireQaUserByRole($validated['role']);
 
+        if ($targetUser->suspended_at !== null) {
+            $auditLogger->record(
+                'auth.suspended_login_denied',
+                $targetUser,
+                $targetUser,
+                [
+                    'entry' => 'qa_role_switch',
+                    'method' => SessionAuthorizationContext::METHOD_QA,
+                ],
+            );
+
+            return back()->withErrors([
+                'role' => 'The selected QA account is suspended.',
+            ]);
+        }
+
         if ($currentUser !== null) {
             Auth::logout();
         }
 
-        Auth::login($targetUser, true);
+        Auth::login($targetUser, false);
         $request->session()->regenerate();
+        $this->authorizationContext->recordQa($request, $targetUser);
 
         $auditLogger->record('auth.qa_role_switch', $currentUser, $targetUser, [
-            'from_role' => $currentUser?->accessLevel(),
-            'to_role' => $targetUser->accessLevel(),
-            'target_email' => $targetUser->email,
+            'from_role' => $currentUser === null
+                ? null
+                : $this->authorizationProfile->displayKey($currentUser),
+            'to_role' => $this->authorizationProfile->displayKey($targetUser),
+            'target_user_id' => $targetUser->id,
         ]);
 
-        $roleLabel = match ($targetUser->accessLevel()) {
-            User::ROLE_SERVICE_USER => 'public service user',
-            User::ROLE_STAFF => 'staff user',
-            User::ROLE_ADMIN => 'admin user',
-            default => 'user',
-        };
+        $roleLabel = strtolower($this->authorizationProfile->displayLabel($targetUser)).' user';
 
         return redirect()
             ->route('dashboard')
@@ -192,19 +271,19 @@ class PublicAuthController extends Controller
     private function requireQaUserByRole(string $role): User
     {
         $email = match ($role) {
-            User::ROLE_SERVICE_USER => LocalQaSeeder::SERVICE_USER_EMAIL,
-            User::ROLE_STAFF => LocalQaSeeder::STAFF_EMAIL,
-            User::ROLE_ADMIN => LocalQaSeeder::ADMIN_EMAIL,
+            'service_user' => LocalQaSeeder::SERVICE_USER_EMAIL,
+            'staff' => LocalQaSeeder::STAFF_EMAIL,
+            'admin' => LocalQaSeeder::ADMIN_EMAIL,
             default => throw new RuntimeException("Unsupported QA role [{$role}]."),
         };
 
         /** @var User|null $user */
         $user = User::query()
             ->where('email', $email)
-            ->where(User::accessLevelColumn(), $role)
             ->first();
 
-        if ($user === null) {
+        if ($user === null
+            || ! $this->authorizationProfile->matchesQaSelector($user, $role)) {
             throw new RuntimeException(
                 "Seeded QA {$role} account is missing. Run php artisan db:seed in local/testing."
             );
@@ -220,5 +299,24 @@ class PublicAuthController extends Controller
         } catch (RuntimeException) {
             return null;
         }
+    }
+
+    private function denyAuthenticatedLogin(
+        Request $request,
+        User $user,
+        AuditLogger $auditLogger,
+        string $event,
+        string $redirect,
+        string $message,
+        string $method,
+    ): void {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        $auditLogger->record($event, $user, $user, [
+            'method' => $method,
+            'redirect' => $redirect,
+            'reason' => $message,
+        ]);
     }
 }

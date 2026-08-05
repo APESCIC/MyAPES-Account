@@ -7,6 +7,12 @@ use App\Exceptions\DirectoryUnavailable;
 
 class AuthReadinessChecker
 {
+    private const REQUIRED_GROUPS = [
+        'myapes.admin',
+        'myapes.staff',
+        'myapes.superadmin',
+    ];
+
     public function __construct(
         private readonly OidcDiscoveryValidator $discovery,
         private readonly LdapGroupResolver $directory,
@@ -35,20 +41,34 @@ class AuthReadinessChecker
 
         $groups = $this->configuredGroups();
 
-        if (count($groups) !== 5) {
-            throw new AuthReadinessException('ldap_groups', 'expected_five_groups');
+        if ($groups !== self::REQUIRED_GROUPS) {
+            throw new AuthReadinessException('ldap_groups', 'expected_three_groups');
         }
 
         try {
-            $existing = $this->directory->existingGroups($groups);
+            $catalogue = $this->directory->enumerateGroups();
         } catch (DirectoryUnavailable) {
             throw new AuthReadinessException('ldap_directory', 'unavailable');
         }
 
-        $missing = array_diff($groups, $existing);
+        $catalogue = collect($catalogue)->keyBy('name');
 
-        if ($missing !== []) {
-            throw new AuthReadinessException('ldap_groups', 'configured_group_missing');
+        foreach ($groups as $group) {
+            $entry = $catalogue->get($group);
+
+            if (! is_array($entry)) {
+                throw new AuthReadinessException(
+                    'ldap_groups',
+                    'required_group_missing',
+                );
+            }
+
+            if (($entry['member_count'] ?? 0) < 1) {
+                throw new AuthReadinessException(
+                    'ldap_groups',
+                    'required_group_empty',
+                );
+            }
         }
 
         return count($groups);
@@ -70,11 +90,7 @@ class AuthReadinessChecker
      */
     private function configuredGroups(): array
     {
-        $groups = array_merge(
-            (array) config('myapes.roles.staff_groups', []),
-            (array) config('myapes.roles.admin_groups', []),
-            (array) config('myapes.roles.superadmin_groups', []),
-        );
+        $groups = (array) config('myapes.directory.required_groups', []);
         $normalized = array_values(array_unique(array_filter(array_map(
             static fn (mixed $group): string => is_string($group) ? strtolower(trim($group)) : '',
             $groups,

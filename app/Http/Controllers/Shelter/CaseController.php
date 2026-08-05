@@ -7,32 +7,30 @@ use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\User;
 use App\Notifications\ShelterCaseUpdatedNotification;
+use App\Rules\EligibleStaffAssignee;
+use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Gate;
 
 class CaseController extends Controller
 {
     public function index(): View
     {
         $user = request()->user();
-        $query = ShelterCase::query()->with(['petProfile', 'assignedTo'])->latest();
-
-        if (! $user->isStaff()) {
-            $query->where('user_id', $user->id);
-        }
+        Gate::authorize('viewAny', ShelterCase::class);
+        $query = ShelterCase::query()
+            ->visibleTo($user)
+            ->with(['petProfile', 'assignedTo'])
+            ->latest();
 
         return view('shelter.cases.index', [
             'cases' => $query->paginate(20),
             'petProfiles' => PetProfile::query()
                 ->where('service_domain', PetProfile::DOMAIN_SHELTER)
-                ->when(! $user->isStaff(), fn ($q) => $q->where('user_id', $user->id))
-                ->orderBy('name')
-                ->get(),
-            'staffUsers' => User::query()
-                ->withAccessLevels(User::staffAccessLevels())
+                ->visibleTo($user)
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -48,7 +46,7 @@ class CaseController extends Controller
         ]);
 
         $pet = PetProfile::query()->findOrFail($validated['pet_profile_id']);
-        $this->authorizePet($pet);
+        Gate::authorize('createShelterCase', $pet);
 
         $case = ShelterCase::create([
             ...$validated,
@@ -64,47 +62,68 @@ class CaseController extends Controller
         return redirect()->route('shelter.cases.show', $case);
     }
 
-    public function show(ShelterCase $case): View
-    {
-        $this->authorizeCase($case);
+    public function show(
+        ShelterCase $case,
+        AssignmentAuthorization $assignments,
+    ): View {
+        Gate::authorize('view', $case);
+        $canChangeAssignment = $assignments->allows(
+            request()->user(),
+        );
 
         return view('shelter.cases.show', [
             'case' => $case->load(['petProfile', 'assignedTo']),
-            'staffUsers' => User::query()
-                ->withAccessLevels(User::staffAccessLevels())
-                ->orderBy('name')
-                ->get(),
+            'canChangeAssignment' => $canChangeAssignment,
+            'staffUsers' => $canChangeAssignment
+                ? User::query()
+                    ->eligibleStaff()
+                    ->orderBy('name')
+                    ->get()
+                : collect(),
         ]);
     }
 
-    public function update(Request $request, ShelterCase $case, AuditLogger $auditLogger): RedirectResponse
-    {
-        $this->authorizeCase($case);
+    public function update(
+        Request $request,
+        ShelterCase $case,
+        AuditLogger $auditLogger,
+        AssignmentAuthorization $assignments,
+    ): RedirectResponse {
+        Gate::authorize('update', $case);
+        $assignmentRequested = array_key_exists(
+            'assigned_to',
+            $request->all(),
+        );
+        if ($assignmentRequested) {
+            $assignments->authorizeChange(
+                $request,
+                $request->user(),
+                $case,
+            );
+        }
 
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_review,closed'],
             'assigned_to' => [
+                'sometimes',
                 'nullable',
-                Rule::exists('users', 'id')->where(
-                    fn ($query) => $query->whereIn(
-                        User::accessLevelColumn(),
-                        User::staffAccessLevels(),
-                    )
-                ),
+                'integer',
+                new EligibleStaffAssignee,
             ],
             'details' => ['nullable', 'string'],
         ]);
 
-        if (! $request->user()->isStaff()) {
-            $validated['assigned_to'] = null;
-        }
-
-        $case->update([
+        $updates = [
             'status' => $validated['status'],
-            'assigned_to' => $validated['assigned_to'] ?? null,
             'details' => $validated['details'] ?? $case->details,
             'closed_at' => $validated['status'] === 'closed' ? now() : null,
-        ]);
+        ];
+
+        if ($assignmentRequested) {
+            $updates['assigned_to'] = $validated['assigned_to'] ?? null;
+        }
+
+        $case->update($updates);
 
         $this->notifyCaseStakeholders($case, $request->user(), 'updated');
         $auditLogger->record('shelter.case.updated', $request->user(), $case, [
@@ -115,45 +134,14 @@ class CaseController extends Controller
         return redirect()->route('shelter.cases.show', $case)->with('status', 'Case updated.');
     }
 
-    private function authorizeCase(ShelterCase $case): void
-    {
-        $user = request()->user();
-
-        if ($user->isStaff()) {
-            return;
-        }
-
-        if ($case->user_id !== $user->id) {
-            abort(403);
-        }
-    }
-
-    private function authorizePet(PetProfile $pet): void
-    {
-        $user = request()->user();
-
-        if ($pet->service_domain !== PetProfile::DOMAIN_SHELTER) {
-            abort(403);
-        }
-
-        if ($user->isStaff()) {
-            return;
-        }
-
-        if ($pet->user_id !== $user->id) {
-            abort(403);
-        }
-    }
-
     private function notifyCaseStakeholders(ShelterCase $case, User $actor, string $eventLabel): void
     {
         $staffRecipients = User::query()
-            ->withAccessLevels(User::staffAccessLevels())
+            ->eligibleStaff()
             ->get();
 
         $recipients = $staffRecipients
             ->push($case->user)
-            ->when($case->assignedTo !== null, fn ($collection) => $collection->push($case->assignedTo))
             ->unique('id')
             ->reject(fn (User $recipient): bool => $recipient->id === $actor->id);
 

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Services\AuthorizationProfile;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,6 +25,13 @@ class PetProfile extends Model
     public const DOMAIN_SHELTER = 'shelter';
 
     public const DOMAIN_PETCARE = 'petcare';
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        return $user->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS)
+            ? $query
+            : $query->where('user_id', $user->id);
+    }
 
     public function user(): BelongsTo
     {

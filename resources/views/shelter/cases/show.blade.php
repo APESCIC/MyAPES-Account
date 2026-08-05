@@ -15,7 +15,7 @@
                     <label>Status</label>
                     <select name="status">@foreach(['open','in_review','closed'] as $status)<option value="{{ $status }}" @selected($case->status===$status)>{{ $status }}</option>@endforeach</select>
                 </div>
-                @if(auth()->user()->isStaff())
+                @if($canChangeAssignment)
                     <div>
                         <label>Assigned staff</label>
                         <select name="assigned_to">

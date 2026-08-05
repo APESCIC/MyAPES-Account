@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminGroupController;
+use App\Http\Controllers\Admin\AdminPermissionController;
+use App\Http\Controllers\Admin\AdminRoleController;
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
@@ -38,7 +42,11 @@ Route::prefix('staff/auth')->controller(OidcAuthController::class)->group(functi
     Route::post('/logout', 'logout')->middleware('auth')->name('auth.logout');
 });
 
-Route::middleware(['auth', 'directory.current'])->group(function (): void {
+Route::middleware([
+    'auth',
+    'authorization.context',
+    'directory.current',
+])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -68,7 +76,61 @@ Route::middleware(['auth', 'directory.current'])->group(function (): void {
             ->parameters(['consultations' => 'consultation']);
     });
 
-    Route::get('/admin', StaffAdminController::class)
-        ->middleware('role:admin,superadmin')
-        ->name('admin.index');
+    Route::prefix('admin')
+        ->name('admin.')
+        ->middleware('admin.denial-audit')
+        ->group(function (): void {
+            Route::get('/', StaffAdminController::class)
+                ->middleware('can:admin.access')
+                ->name('index');
+
+            Route::get('/users', [AdminUserController::class, 'index'])
+                ->middleware('can:admin.users.view')
+                ->name('users.index');
+            Route::get('/users/{user}', [AdminUserController::class, 'show'])
+                ->middleware('can:admin.users.view')
+                ->name('users.show');
+            Route::put('/users/{user}/roles', [AdminUserController::class, 'updateRoles'])
+                ->middleware('can:admin.users.manage')
+                ->name('users.roles.update');
+            Route::post('/users/{user}/suspension', [AdminUserController::class, 'suspend'])
+                ->middleware('can:admin.users.manage')
+                ->name('users.suspension.store');
+            Route::delete('/users/{user}/suspension', [AdminUserController::class, 'reactivate'])
+                ->middleware('can:admin.users.manage')
+                ->name('users.suspension.destroy');
+
+            Route::get('/groups', [AdminGroupController::class, 'index'])
+                ->middleware('can:admin.groups.view')
+                ->name('groups.index');
+            Route::post('/groups/sync', [AdminGroupController::class, 'sync'])
+                ->middleware('can:admin.group-mappings.manage')
+                ->name('groups.sync');
+            Route::post('/groups/{directoryGroup}/mappings', [AdminGroupController::class, 'storeMapping'])
+                ->middleware('can:admin.group-mappings.manage')
+                ->name('groups.mappings.store');
+            Route::delete('/groups/mappings/{mapping}', [AdminGroupController::class, 'destroyMapping'])
+                ->middleware('can:admin.group-mappings.manage')
+                ->name('groups.mappings.destroy');
+
+            Route::get('/roles', [AdminRoleController::class, 'index'])
+                ->middleware('can:admin.roles.view')
+                ->name('roles.index');
+            Route::post('/roles', [AdminRoleController::class, 'store'])
+                ->middleware('can:admin.roles.manage')
+                ->name('roles.store');
+            Route::get('/roles/{role}', [AdminRoleController::class, 'show'])
+                ->middleware('can:admin.roles.view')
+                ->name('roles.show');
+            Route::put('/roles/{role}', [AdminRoleController::class, 'update'])
+                ->middleware('can:admin.roles.manage')
+                ->name('roles.update');
+            Route::delete('/roles/{role}', [AdminRoleController::class, 'destroy'])
+                ->middleware('can:admin.roles.manage')
+                ->name('roles.destroy');
+
+            Route::get('/permissions', [AdminPermissionController::class, 'index'])
+                ->middleware('can:admin.permissions.view')
+                ->name('permissions.index');
+        });
 });

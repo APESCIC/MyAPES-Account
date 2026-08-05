@@ -4,13 +4,9 @@
 
 @section('content')
     @php
-        $roleLabel = match (auth()->user()->accessLevel()) {
-            \App\Models\User::ROLE_SERVICE_USER => 'Public',
-            \App\Models\User::ROLE_STAFF => 'Staff',
-            \App\Models\User::ROLE_ADMIN => 'Admin',
-            \App\Models\User::ROLE_SUPERADMIN => 'Superadmin',
-            default => 'Account',
-        };
+        $authorizationProfile = app(\App\Services\AuthorizationProfile::class);
+        $roleKey = $authorizationProfile->displayKey(auth()->user());
+        $roleLabel = $authorizationProfile->displayLabel(auth()->user());
     @endphp
 
     <div class="dashboard-layout">
@@ -19,7 +15,7 @@
                 <p class="identity-card__eyebrow">Welcome back,</p>
                 <h1 id="welcome-title">{{ auth()->user()->name }}</h1>
                 <p class="identity-card__role">
-                    <span>Role: <code>{{ auth()->user()->accessLevel() }}</code></span>
+                    <span>Role: <code>{{ $roleKey }}</code></span>
                     <span aria-hidden="true">•</span>
                     <strong>{{ $roleLabel }}</strong>
                 </p>
