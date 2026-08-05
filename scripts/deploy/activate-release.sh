@@ -1,13 +1,171 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+deployment_control_paths=(
+  scripts/deploy/activate-release.sh
+  scripts/deploy/rollback-release.sh
+  scripts/deploy/cloudron-app.conf
+  scripts/deploy/cloudron-run.sh
+)
+
+verify_deployment_controls() {
+  local source_root="${1:-}"
+  local expected_manifest_sha256="${2:-}"
+  local manifest_path="${source_root}/DEPLOYMENT-CONTROLS.sha256"
+  local actual_manifest_sha256=""
+  local index=0
+  local line=""
+  local digest=""
+  local manifest_control_path=""
+  local expected_path=""
+  local -a manifest_lines=()
+
+  if [[ -z "$source_root" || ! "$expected_manifest_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+    echo "Deployment control verification requires a source root and exact manifest SHA-256."
+    return 1
+  fi
+  if [[ ! -f "$manifest_path" || -L "$manifest_path" ]]; then
+    echo "Deployment control manifest is missing or unsafe."
+    return 1
+  fi
+
+  actual_manifest_sha256="$(sha256sum "$manifest_path" | awk '{print $1}')"
+  if [[ "$actual_manifest_sha256" != "$expected_manifest_sha256" ]]; then
+    echo "Deployment control manifest digest does not match the tested artifact."
+    return 1
+  fi
+
+  mapfile -t manifest_lines <"$manifest_path"
+  if [[ "${#manifest_lines[@]}" -ne "${#deployment_control_paths[@]}" ]]; then
+    echo "Deployment control manifest has an unexpected entry count."
+    return 1
+  fi
+
+  for index in "${!deployment_control_paths[@]}"; do
+    expected_path="${deployment_control_paths[$index]}"
+    line="${manifest_lines[$index]}"
+    digest="${line%%  *}"
+    manifest_control_path="${line#*  }"
+    if [[ ! "$digest" =~ ^[0-9a-f]{64}$ \
+      || "$manifest_control_path" != "$expected_path" \
+      || "$line" != "$digest  $expected_path" ]]; then
+      echo "Deployment control manifest contains an unexpected entry."
+      return 1
+    fi
+    if [[ ! -f "${source_root}/${expected_path}" || -L "${source_root}/${expected_path}" ]]; then
+      echo "Deployment control path is missing or unsafe: $expected_path"
+      return 1
+    fi
+  done
+
+  if ! (cd "$source_root" && sha256sum --check --strict --status DEPLOYMENT-CONTROLS.sha256); then
+    echo "Deployment control content authentication failed."
+    return 1
+  fi
+}
+
+assert_hardened_control_directory() {
+  local source_root="${1:-}"
+  local path=""
+  local expected_mode=""
+
+  if [[ ! -d "$source_root" || -L "$source_root" \
+    || "$(stat -c '%U:%G' "$source_root")" != "root:root" \
+    || "$(stat -c '%a' "$source_root")" != "700" ]]; then
+    echo "Deployment control directory is not root-owned and private."
+    return 1
+  fi
+
+  while IFS=':' read -r path expected_mode; do
+    if [[ ! -f "${source_root}/${path}" \
+      || -L "${source_root}/${path}" \
+      || "$(stat -c '%U:%G' "${source_root}/${path}")" != "root:root" \
+      || "$(stat -c '%a' "${source_root}/${path}")" != "$expected_mode" ]]; then
+      echo "Deployment control path is not root-owned and immutable: $path"
+      return 1
+    fi
+  done <<'CONTROL_MODES'
+DEPLOYMENT-CONTROLS.sha256:600
+scripts/deploy/activate-release.sh:700
+scripts/deploy/rollback-release.sh:700
+scripts/deploy/cloudron-app.conf:600
+scripts/deploy/cloudron-run.sh:700
+CONTROL_MODES
+
+  if sudo -u www-data test -w "$source_root"; then
+    echo "Application user can replace authenticated deployment controls."
+    return 1
+  fi
+}
+
+install_authenticated_controls() {
+  local source_root="${1:-}"
+  local destination_root="${2:-}"
+  local temporary_root="${destination_root}.installing"
+
+  verify_deployment_controls "$source_root" "$EXPECTED_CONTROLS_SHA256"
+  install -d -o root -g root -m 0700 "$CONTROL_RELEASES_DIR"
+
+  if [[ -e "$destination_root" || -L "$destination_root" ]]; then
+    if [[ -d "$destination_root" && ! -L "$destination_root" ]] \
+      && verify_deployment_controls \
+        "$destination_root" "$EXPECTED_CONTROLS_SHA256" \
+      && assert_hardened_control_directory "$destination_root"; then
+      return
+    fi
+
+    case "$destination_root" in
+      "${CONTROL_RELEASES_DIR}/"*) rm -rf -- "$destination_root" ;;
+      *) echo "Unsafe deployment control path: $destination_root"; return 1 ;;
+    esac
+  fi
+
+  if [[ -e "$temporary_root" || -L "$temporary_root" ]]; then
+    case "$temporary_root" in
+      "${CONTROL_RELEASES_DIR}/"*.installing) rm -rf -- "$temporary_root" ;;
+      *) echo "Unsafe temporary control path: $temporary_root"; return 1 ;;
+    esac
+  fi
+
+  install -d -o root -g root -m 0700 \
+    "$temporary_root" "$temporary_root/scripts" \
+    "$temporary_root/scripts/deploy"
+  install -o root -g root -m 0600 \
+    "$source_root/DEPLOYMENT-CONTROLS.sha256" \
+    "$temporary_root/DEPLOYMENT-CONTROLS.sha256"
+  install -o root -g root -m 0700 \
+    "$source_root/scripts/deploy/activate-release.sh" \
+    "$temporary_root/scripts/deploy/activate-release.sh"
+  install -o root -g root -m 0700 \
+    "$source_root/scripts/deploy/rollback-release.sh" \
+    "$temporary_root/scripts/deploy/rollback-release.sh"
+  install -o root -g root -m 0600 \
+    "$source_root/scripts/deploy/cloudron-app.conf" \
+    "$temporary_root/scripts/deploy/cloudron-app.conf"
+  install -o root -g root -m 0700 \
+    "$source_root/scripts/deploy/cloudron-run.sh" \
+    "$temporary_root/scripts/deploy/cloudron-run.sh"
+  verify_deployment_controls "$temporary_root" "$EXPECTED_CONTROLS_SHA256"
+  assert_hardened_control_directory "$temporary_root"
+  mv "$temporary_root" "$destination_root"
+}
+
+if [[ "${1:-}" == "--verify-controls" ]]; then
+  verify_deployment_controls "${2:-}" "${3:-}"
+  exit 0
+fi
+
 RELEASE_SHA="${1:-}"
+EXPECTED_CURRENT_SHA="${2:-}"
+EXPECTED_CONTROLS_SHA256="${3:-}"
 DATA_DIR="/app/data"
 DEPLOY_DIR="${DATA_DIR}/.deploy/${RELEASE_SHA}"
 ARCHIVE_PATH="${DEPLOY_DIR}/release.tar.gz"
 RELEASES_DIR="${DATA_DIR}/releases"
 RELEASE_DIR="${RELEASES_DIR}/${RELEASE_SHA}"
 TEMP_RELEASE_DIR="${RELEASE_DIR}.extracting"
+CONTROL_RELEASES_DIR="${DATA_DIR}/deployment-controls"
+CONTROL_RELEASE_DIR="${CONTROL_RELEASES_DIR}/${RELEASE_SHA}"
 SHARED_DIR="${DATA_DIR}/shared"
 CURRENT_LINK="${DATA_DIR}/current"
 PREVIOUS_LINK="${DATA_DIR}/previous"
@@ -18,10 +176,22 @@ if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
   exit 1
 fi
 
+if [[ ! "$EXPECTED_CONTROLS_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "Release activation requires the tested deployment-control manifest SHA-256."
+  exit 1
+fi
+
+if [[ -n "$EXPECTED_CURRENT_SHA" && ! "$EXPECTED_CURRENT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "Expected current release must be a full 40-character Git commit SHA."
+  exit 1
+fi
+
 if [[ ! -f "$ARCHIVE_PATH" ]]; then
   echo "Release archive is missing: $ARCHIVE_PATH"
   exit 1
 fi
+
+install_authenticated_controls "$DEPLOY_DIR" "$CONTROL_RELEASE_DIR"
 
 for release_link in "$CURRENT_LINK" "$PREVIOUS_LINK"; do
   if [[ -e "$release_link" && ! -L "$release_link" ]]; then
@@ -39,6 +209,17 @@ if [[ -L "$CURRENT_LINK" ]]; then
     echo "Current release symlink is dangling; refusing activation."
     exit 1
   fi
+fi
+
+if [[ -n "$CURRENT_TARGET_BEFORE" ]]; then
+  CURRENT_SHA_BEFORE="$(basename "$CURRENT_TARGET_BEFORE")"
+  if [[ -z "$EXPECTED_CURRENT_SHA" || "$CURRENT_SHA_BEFORE" != "$EXPECTED_CURRENT_SHA" ]]; then
+    echo "Current release does not match the pre-activation release identity."
+    exit 1
+  fi
+elif [[ -n "$EXPECTED_CURRENT_SHA" ]]; then
+  echo "A pre-activation release identity was supplied but no current release exists."
+  exit 1
 fi
 
 if [[ -L "$PREVIOUS_LINK" ]]; then
@@ -80,15 +261,26 @@ elif ! grep -Eq '^APP_ENV=production$' "${SHARED_DIR}/.env"; then
 fi
 
 required_paths=(
+  VERSION
+  REVISION
   artisan
   public/index.php
   vendor/autoload.php
   public/build/manifest.json
+  resources/data/releases.json
+  config/permission.php
+  database/migrations/2026_07_28_000000_create_permission_tables.php
+  database/migrations/2026_07_28_000100_cut_over_authorization_domain.php
+  app/Console/Commands/AuthorizationPreflight.php
+  app/Console/Commands/DirectorySync.php
+  app/Console/Commands/AuthorizationSync.php
+  app/Console/Commands/AuthorizationCheck.php
+  scripts/deploy/activate-release.sh
+  scripts/deploy/rollback-release.sh
   scripts/deploy/cloudron-app.conf
   scripts/deploy/cloudron-run.sh
   scripts/deploy/production.env.example
-  scripts/deploy/rollback-release.sh
-  REVISION
+  DEPLOYMENT-CONTROLS.sha256
 )
 
 reuse_existing_release=false
@@ -103,7 +295,8 @@ if [[ -d "$RELEASE_DIR" ]]; then
     fi
   done
 
-  if [[ "$existing_release_valid" == true && "$packaged_revision" == "$RELEASE_SHA" ]]; then
+  if [[ "$existing_release_valid" == true && "$packaged_revision" == "$RELEASE_SHA" ]] \
+    && verify_deployment_controls "$RELEASE_DIR" "$EXPECTED_CONTROLS_SHA256"; then
     reuse_existing_release=true
     echo "Reusing existing immutable release ${RELEASE_SHA}."
   elif [[ "$RELEASE_DIR" == "$CURRENT_TARGET_BEFORE" || "$RELEASE_DIR" == "$PREVIOUS_TARGET_BEFORE" ]]; then
@@ -140,13 +333,19 @@ if [[ "$reuse_existing_release" == false ]]; then
     exit 1
   fi
 
+  verify_deployment_controls "$TEMP_RELEASE_DIR" "$EXPECTED_CONTROLS_SHA256"
+
   rm -rf -- "${TEMP_RELEASE_DIR}/storage"
   ln -s "${SHARED_DIR}/storage" "${TEMP_RELEASE_DIR}/storage"
   ln -s "${SHARED_DIR}/.env" "${TEMP_RELEASE_DIR}/.env"
   install -d -o www-data -g www-data -m 0775 "${TEMP_RELEASE_DIR}/bootstrap/cache"
-  chown -R www-data:www-data "$TEMP_RELEASE_DIR"
+  chown -R www-data:www-data "${TEMP_RELEASE_DIR}/bootstrap/cache"
   mv "$TEMP_RELEASE_DIR" "$RELEASE_DIR"
 fi
+
+verify_deployment_controls "$RELEASE_DIR" "$EXPECTED_CONTROLS_SHA256"
+verify_deployment_controls "$CONTROL_RELEASE_DIR" "$EXPECTED_CONTROLS_SHA256"
+assert_hardened_control_directory "$CONTROL_RELEASE_DIR"
 
 rm -rf -- "${RELEASE_DIR}/storage"
 rm -f -- "${RELEASE_DIR}/.env"
@@ -154,16 +353,39 @@ ln -s "${SHARED_DIR}/storage" "${RELEASE_DIR}/storage"
 ln -s "${SHARED_DIR}/.env" "${RELEASE_DIR}/.env"
 install -d -o www-data -g www-data -m 0775 "${RELEASE_DIR}/bootstrap/cache"
 
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" optimize:clear
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" myapes:auth-check --no-interaction --no-ansi
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" migrate --force
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" storage:link --force
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" config:cache
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" route:cache
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" view:cache
+run_artisan() {
+  sudo -E -u www-data env APP_ENV=production \
+    "$PHP_BIN" "${RELEASE_DIR}/artisan" "$@"
+}
 
-install -m 0644 "${RELEASE_DIR}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf"
-install -m 0755 "${RELEASE_DIR}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh"
+run_artisan optimize:clear
+run_artisan myapes:authorization-preflight --no-interaction --no-ansi
+run_artisan migrate --force
+run_artisan storage:link --force
+run_artisan config:cache
+run_artisan route:cache
+run_artisan view:cache
+run_artisan permission:cache-reset --no-interaction --no-ansi
+run_artisan myapes:directory-sync --source=manual --no-interaction --no-ansi
+run_artisan myapes:authorization-sync --no-interaction --no-ansi
+run_artisan permission:cache-reset --no-interaction --no-ansi
+run_artisan myapes:authorization-check --no-interaction --no-ansi
+
+if ! run_artisan env --no-ansi | grep -Eq 'production'; then
+  echo "Effective Laravel environment verification failed."
+  exit 1
+fi
+
+install -m 0644 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf"
+install -m 0755 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh"
+
+if [[ "$CURRENT_TARGET_BEFORE" == "$RELEASE_DIR" ]]; then
+  if ! rm -rf -- "$DEPLOY_DIR"; then
+    echo "Warning: unable to remove deployment staging directory $DEPLOY_DIR."
+  fi
+  echo "MyAPES release ${RELEASE_SHA} is already active."
+  exit 0
+fi
 
 rm -f -- "${CURRENT_LINK}.next" "${PREVIOUS_LINK}.next"
 ln -s "$RELEASE_DIR" "${CURRENT_LINK}.next"
@@ -171,8 +393,6 @@ ln -s "$RELEASE_DIR" "${CURRENT_LINK}.next"
 NEXT_PREVIOUS_TARGET=""
 if [[ -n "$CURRENT_TARGET_BEFORE" && "$CURRENT_TARGET_BEFORE" != "$RELEASE_DIR" ]]; then
   NEXT_PREVIOUS_TARGET="$CURRENT_TARGET_BEFORE"
-elif [[ -n "$PREVIOUS_TARGET_BEFORE" && "$PREVIOUS_TARGET_BEFORE" != "$RELEASE_DIR" ]]; then
-  NEXT_PREVIOUS_TARGET="$PREVIOUS_TARGET_BEFORE"
 fi
 
 if [[ -n "$NEXT_PREVIOUS_TARGET" ]]; then
@@ -181,8 +401,6 @@ if [[ -n "$NEXT_PREVIOUS_TARGET" ]]; then
 else
   rm -f -- "$PREVIOUS_LINK"
 fi
-
-sudo -E -u www-data "$PHP_BIN" "${RELEASE_DIR}/artisan" myapes:access-compatibility-sync --no-interaction --no-ansi
 
 # This is the commit point: all fallible preparation happens before the atomic switch.
 mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Support\AccessCompatibilityDatabaseGuard;
 use Illuminate\Console\Command;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -16,6 +17,15 @@ use Tests\TestCase;
 class AccessCompatibilityCommandTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->runInMaintenanceMode(
+            fn () => $this->phaseBMigration()->down(),
+        );
+    }
 
     public function test_command_reconciles_compatibility_fields_from_legacy_sources(): void
     {
@@ -164,5 +174,15 @@ class AccessCompatibilityCommandTest extends TestCase
              FOR EACH ROW FOLLOWS users_access_compatibility_update
              SET NEW.legacy_access_level = 'staff'",
         );
+    }
+
+    private function phaseBMigration(): Migration
+    {
+        /** @var Migration $migration */
+        $migration = require database_path(
+            'migrations/2026_07_28_000100_cut_over_authorization_domain.php',
+        );
+
+        return $migration;
     }
 }

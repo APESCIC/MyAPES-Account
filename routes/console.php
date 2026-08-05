@@ -1,6 +1,8 @@
 <?php
 
+use App\Jobs\RunDirectorySync;
 use App\Models\AuditLog;
+use App\Models\DirectorySyncRun;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -22,3 +24,6 @@ Artisan::command('audit:prune {--days= : Number of days of audit records to keep
 })->purpose('Prune old audit logs using retention policy');
 
 Schedule::command('audit:prune')->daily();
+Schedule::job(new RunDirectorySync(DirectorySyncRun::SOURCE_SCHEDULED))
+    ->hourly()
+    ->withoutOverlapping();

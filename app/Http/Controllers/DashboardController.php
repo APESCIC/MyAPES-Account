@@ -14,17 +14,10 @@ class DashboardController extends Controller
     {
         $user = request()->user();
 
-        $ticketQuery = SupportTicket::query();
-        $shelterCasesQuery = ShelterCase::query();
-        $consultationsQuery = PetCareConsultation::query();
-        $petProfilesQuery = PetProfile::query();
-
-        if (! $user->isStaff()) {
-            $ticketQuery->where('user_id', $user->id);
-            $shelterCasesQuery->where('user_id', $user->id);
-            $consultationsQuery->where('user_id', $user->id);
-            $petProfilesQuery->where('user_id', $user->id);
-        }
+        $ticketQuery = SupportTicket::query()->visibleTo($user);
+        $shelterCasesQuery = ShelterCase::query()->visibleTo($user);
+        $consultationsQuery = PetCareConsultation::query()->visibleTo($user);
+        $petProfilesQuery = PetProfile::query()->visibleTo($user);
 
         $openTicketQuery = (clone $ticketQuery)
             ->whereNull('closed_at')

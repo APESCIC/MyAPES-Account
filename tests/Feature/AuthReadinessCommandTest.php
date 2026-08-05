@@ -31,13 +31,11 @@ class AuthReadinessCommandTest extends TestCase
             'myapes.oidc.scopes' => ['openid', 'profile', 'email'],
             'myapes.ldap.bind_dn' => 'cn=ldap-bind-dn-canary,dc=cloudron',
             'myapes.ldap.bind_password' => 'ldap-bind-password-canary',
-            'myapes.roles.staff_groups' => [
-                'position.staff',
-                'position.students',
-                'position.volunteers',
+            'myapes.directory.required_groups' => [
+                'myapes.staff',
+                'myapes.admin',
+                'myapes.superadmin',
             ],
-            'myapes.roles.admin_groups' => ['intranet.administrator'],
-            'myapes.roles.superadmin_groups' => ['intranet.superadmin'],
         ]);
 
         Http::preventStrayRequests();
@@ -50,12 +48,11 @@ class AuthReadinessCommandTest extends TestCase
             self::DISCOVERY => Http::response($this->validMetadata()),
         ]);
 
-        $groups = $this->configuredGroups();
-        $this->mock(LdapGroupResolver::class, function (MockInterface $mock) use ($groups): void {
-            $mock->shouldReceive('existingGroups')
+        $catalogue = $this->configuredCatalogue();
+        $this->mock(LdapGroupResolver::class, function (MockInterface $mock) use ($catalogue): void {
+            $mock->shouldReceive('enumerateGroups')
                 ->once()
-                ->with($groups)
-                ->andReturn($groups);
+                ->andReturn($catalogue);
         });
 
         $exitCode = $this->callCommand();
@@ -65,7 +62,7 @@ class AuthReadinessCommandTest extends TestCase
         $this->assertStringContainsString('OIDC configuration: ok', $output);
         $this->assertStringContainsString('OIDC discovery: ok', $output);
         $this->assertStringContainsString('LDAP bind: ok', $output);
-        $this->assertStringContainsString('LDAP groups: ok (5 configured)', $output);
+        $this->assertStringContainsString('LDAP groups: ok (3 required)', $output);
         $this->assertStringContainsString('Authentication readiness: ok', $output);
         $this->assertCanariesAreAbsent($output);
         Http::assertSentCount(1);
@@ -220,7 +217,7 @@ class AuthReadinessCommandTest extends TestCase
         ]);
 
         $this->mock(LdapGroupResolver::class, function (MockInterface $mock): void {
-            $mock->shouldNotReceive('existingGroups');
+            $mock->shouldNotReceive('enumerateGroups');
         });
 
         $exitCode = $this->callCommand();
@@ -288,7 +285,7 @@ class AuthReadinessCommandTest extends TestCase
         ]);
 
         $this->mock(LdapGroupResolver::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('existingGroups')
+            $mock->shouldReceive('enumerateGroups')
                 ->once()
                 ->andThrow(new DirectoryUnavailable(
                     'ldap-bind-password-canary for person-canary@example.test',
@@ -312,12 +309,14 @@ class AuthReadinessCommandTest extends TestCase
             self::DISCOVERY => Http::response($this->validMetadata()),
         ]);
 
-        $groups = $this->configuredGroups();
-        $this->mock(LdapGroupResolver::class, function (MockInterface $mock) use ($groups): void {
-            $mock->shouldReceive('existingGroups')
+        $catalogue = array_values(array_filter(
+            $this->configuredCatalogue(),
+            static fn (array $group): bool => $group['name'] !== 'myapes.staff',
+        ));
+        $this->mock(LdapGroupResolver::class, function (MockInterface $mock) use ($catalogue): void {
+            $mock->shouldReceive('enumerateGroups')
                 ->once()
-                ->with($groups)
-                ->andReturn(array_values(array_diff($groups, ['position.volunteers'])));
+                ->andReturn($catalogue);
         });
 
         $exitCode = $this->callCommand();
@@ -325,22 +324,50 @@ class AuthReadinessCommandTest extends TestCase
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString(
-            'Authentication readiness: failed (ldap_groups/configured_group_missing)',
+            'Authentication readiness: failed (ldap_groups/required_group_missing)',
             $output,
         );
-        $this->assertStringNotContainsString('position.volunteers', $output);
+        $this->assertStringNotContainsString('myapes.staff', $output);
         $this->assertCanariesAreAbsent($output);
     }
 
-    public function test_command_requires_exactly_five_unique_configured_groups_before_contacting_ldap(): void
+    public function test_command_rejects_a_required_group_without_members(): void
     {
-        config(['myapes.roles.superadmin_groups' => []]);
+        Http::fake([
+            self::DISCOVERY => Http::response($this->validMetadata()),
+        ]);
+
+        $catalogue = $this->configuredCatalogue();
+        $catalogue[0]['member_count'] = 0;
+        $this->mock(LdapGroupResolver::class, function (MockInterface $mock) use ($catalogue): void {
+            $mock->shouldReceive('enumerateGroups')
+                ->once()
+                ->andReturn($catalogue);
+        });
+
+        $exitCode = $this->callCommand();
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString(
+            'Authentication readiness: failed (ldap_groups/required_group_empty)',
+            $output,
+        );
+        $this->assertCanariesAreAbsent($output);
+    }
+
+    public function test_command_requires_exactly_three_unique_groups_before_contacting_ldap(): void
+    {
+        config(['myapes.directory.required_groups' => [
+            'myapes.staff',
+            'myapes.admin',
+        ]]);
         Http::fake([
             self::DISCOVERY => Http::response($this->validMetadata()),
         ]);
 
         $this->mock(LdapGroupResolver::class, function (MockInterface $mock): void {
-            $mock->shouldNotReceive('existingGroups');
+            $mock->shouldNotReceive('enumerateGroups');
         });
 
         $exitCode = $this->callCommand();
@@ -348,7 +375,7 @@ class AuthReadinessCommandTest extends TestCase
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString(
-            'Authentication readiness: failed (ldap_groups/expected_five_groups)',
+            'Authentication readiness: failed (ldap_groups/expected_three_groups)',
             $output,
         );
         $this->assertCanariesAreAbsent($output);
@@ -380,12 +407,25 @@ class AuthReadinessCommandTest extends TestCase
     private function configuredGroups(): array
     {
         return [
-            'intranet.administrator',
-            'intranet.superadmin',
-            'position.staff',
-            'position.students',
-            'position.volunteers',
+            'myapes.admin',
+            'myapes.staff',
+            'myapes.superadmin',
         ];
+    }
+
+    /**
+     * @return array<int, array{name: string, external_id: ?string, member_count: int}>
+     */
+    private function configuredCatalogue(): array
+    {
+        return array_map(
+            static fn (string $group): array => [
+                'name' => $group,
+                'external_id' => null,
+                'member_count' => 1,
+            ],
+            $this->configuredGroups(),
+        );
     }
 
     private function callCommand(): int

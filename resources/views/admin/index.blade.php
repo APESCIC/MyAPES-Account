@@ -3,6 +3,8 @@
 @section('title', 'Admin | MyAPES Account')
 
 @section('content')
+    @include('admin._navigation')
+
     <div class="panel">
         <h1>Admin operations</h1>
         <p class="muted">Administrator and superadmin visibility for APES staff operations.</p>
@@ -21,20 +23,22 @@
             </div>
         </div>
     </div>
-    <div class="panel">
-        <h2>Recent accounts</h2>
-        <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Created</th></tr></thead>
-            <tbody>
-            @foreach($recentUsers as $user)
-                <tr>
-                    <td>{{ $user->name }}</td>
-                    <td>{{ $user->email }}</td>
-                    <td>{{ $user->accessLevel() }}</td>
-                    <td>{{ $user->created_at }}</td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-    </div>
+    @can('admin.users.view')
+        <div class="panel">
+            <h2>Recent accounts</h2>
+            <table>
+                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Created</th></tr></thead>
+                <tbody>
+                @foreach($recentUsers as $user)
+                    <tr>
+                        <td>{{ $user->name }}</td>
+                        <td>{{ $user->email }}</td>
+                        <td>{{ $authorizationProfile->displayKey($user) }}</td>
+                        <td>{{ $user->created_at }}</td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endcan
 @endsection

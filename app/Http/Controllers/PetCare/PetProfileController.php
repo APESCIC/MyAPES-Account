@@ -9,17 +9,18 @@ use App\Services\SecureUploadService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class PetProfileController extends Controller
 {
     public function index(): View
     {
         $user = request()->user();
-        $query = PetProfile::query()->where('service_domain', PetProfile::DOMAIN_PETCARE)->latest();
-
-        if (! $user->isStaff()) {
-            $query->where('user_id', $user->id);
-        }
+        Gate::authorize('viewAny', PetProfile::class);
+        $query = PetProfile::query()
+            ->where('service_domain', PetProfile::DOMAIN_PETCARE)
+            ->visibleTo($user)
+            ->latest();
 
         return view('petcare.pets.index', [
             'pets' => $query->paginate(20),
@@ -65,7 +66,7 @@ class PetProfileController extends Controller
 
     public function show(PetProfile $pet): View
     {
-        $this->authorizePet($pet, PetProfile::DOMAIN_PETCARE);
+        $this->authorizeDomainPet($pet, PetProfile::DOMAIN_PETCARE, 'view');
 
         return view('petcare.pets.show', ['pet' => $pet]);
     }
@@ -76,7 +77,7 @@ class PetProfileController extends Controller
         SecureUploadService $secureUploadService,
         AuditLogger $auditLogger
     ): RedirectResponse {
-        $this->authorizePet($pet, PetProfile::DOMAIN_PETCARE);
+        $this->authorizeDomainPet($pet, PetProfile::DOMAIN_PETCARE, 'update');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -108,20 +109,15 @@ class PetProfileController extends Controller
         return redirect()->route('petcare.pets.show', $pet)->with('status', 'Pet profile updated.');
     }
 
-    private function authorizePet(PetProfile $pet, string $domain): void
-    {
-        $user = request()->user();
-
+    private function authorizeDomainPet(
+        PetProfile $pet,
+        string $domain,
+        string $ability,
+    ): void {
         if ($pet->service_domain !== $domain) {
             abort(404);
         }
 
-        if ($user->isStaff()) {
-            return;
-        }
-
-        if ($pet->user_id !== $user->id) {
-            abort(403);
-        }
+        Gate::authorize($ability, $pet);
     }
 }

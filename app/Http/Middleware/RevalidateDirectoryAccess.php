@@ -6,22 +6,22 @@ use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DirectoryRoleSynchronizer;
 use App\Services\LdapGroupResolver;
-use App\Services\RoleMapper;
+use App\Services\SessionAuthorizationContext;
 use Closure;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class RevalidateDirectoryAccess
 {
-    public const SESSION_KEY = 'myapes.directory_validated_at';
+    public const SESSION_KEY = SessionAuthorizationContext::DIRECTORY_VALIDATED_AT_KEY;
 
     public function __construct(
         private readonly LdapGroupResolver $directory,
-        private readonly RoleMapper $roles,
+        private readonly DirectoryRoleSynchronizer $roles,
+        private readonly SessionAuthorizationContext $authorizationContext,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -37,10 +37,10 @@ class RevalidateDirectoryAccess
             return $next($request);
         }
 
-        $interval = max(1, (int) config('myapes.directory.revalidate_seconds', 300));
-        $validatedAt = (int) $request->session()->get(self::SESSION_KEY, 0);
-
-        if ($validatedAt > 0 && now()->timestamp - $validatedAt < $interval) {
+        if ($this->authorizationContext->permitsDirectoryRestricted(
+            $request,
+            $user,
+        )) {
             return $next($request);
         }
 
@@ -56,36 +56,38 @@ class RevalidateDirectoryAccess
             abort(503, 'Staff access verification is temporarily unavailable.');
         }
 
-        $role = $this->roles->map($groups);
+        $result = $this->roles->synchronize($user, $groups);
 
-        if ($role === null) {
-            return $this->revoke($request, $user, 'no_approved_group');
+        if (! $result->eligible) {
+            return $this->logoutAfterRevocation(
+                $request,
+                $user,
+                $result->previousProtectedRole,
+                'no_approved_group',
+            );
         }
 
-        $normalizedGroups = $this->normalizedGroups($groups);
-        $storedGroups = $this->normalizedGroups($user->ldap_groups ?? []);
-        $previousRole = $user->accessLevel();
-
-        if ($role !== $previousRole || $normalizedGroups !== $storedGroups) {
-            $user->forceFill(['ldap_groups' => $normalizedGroups]);
-            $user->setAccessLevel($role)->save();
-
+        if ($result->authorizationChanged) {
             $this->auditLogger->record('auth.directory_role_changed', $user, $user, [
-                'from_role' => $previousRole,
-                'to_role' => $role,
-                'group_count' => count($normalizedGroups),
+                'from_role' => $result->previousProtectedRole,
+                'to_role' => $result->protectedRole,
+                'group_count' => count($groups),
             ]);
         }
 
-        $request->session()->put(self::SESSION_KEY, now()->timestamp);
+        $user->refresh();
+        $this->authorizationContext->recordCloudronOidc($request, $user);
         $request->setUserResolver(static fn (): User => $user);
+        Auth::setUser($user);
 
         return $next($request);
     }
 
     private function requiresRevalidation(User $user): bool
     {
-        if (! $user->isCloudronIdentity()) {
+        if (! $user->hasDirectoryIdentity()
+            || $this->authorizationContext->authenticationMethod(request())
+                !== SessionAuthorizationContext::METHOD_CLOUDRON_OIDC) {
             return false;
         }
 
@@ -96,14 +98,24 @@ class RevalidateDirectoryAccess
         return true;
     }
 
-    private function revoke(Request $request, User $user, string $reason): RedirectResponse
+    private function revoke(Request $request, User $user, string $reason): Response
     {
-        $previousRole = $user->accessLevel();
-        $user->forceFill(['ldap_groups' => []]);
-        $user->setAccessLevel(User::ROLE_SERVICE_USER);
-        $user->setRememberToken(Str::random(60));
-        $user->save();
+        $result = $this->roles->revoke($user);
 
+        return $this->logoutAfterRevocation(
+            $request,
+            $user,
+            $result->previousProtectedRole,
+            $reason,
+        );
+    }
+
+    private function logoutAfterRevocation(
+        Request $request,
+        User $user,
+        ?string $previousRole,
+        string $reason,
+    ): Response {
         $this->auditLogger->record('auth.directory_access_revoked', $user, $user, [
             'from_role' => $previousRole,
             'reason' => $reason,
@@ -113,23 +125,12 @@ class RevalidateDirectoryAccess
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
         return redirect()
             ->route('staff.login')
             ->withErrors(['staff' => 'Your Cloudron account no longer has MyAPES staff access.']);
-    }
-
-    /**
-     * @param  array<int, string>  $groups
-     * @return array<int, string>
-     */
-    private function normalizedGroups(array $groups): array
-    {
-        $normalized = array_values(array_unique(array_map(
-            static fn (string $group): string => strtolower(trim($group)),
-            $groups,
-        )));
-        sort($normalized);
-
-        return $normalized;
     }
 }

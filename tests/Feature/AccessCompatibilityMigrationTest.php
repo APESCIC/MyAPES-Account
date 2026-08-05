@@ -17,6 +17,15 @@ class AccessCompatibilityMigrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->runInMaintenanceMode(
+            fn () => $this->phaseBMigration()->down(),
+        );
+    }
+
     public function test_fresh_install_adds_access_compatibility_columns_without_removing_role(): void
     {
         $this->assertTrue(Schema::hasColumns('users', [
@@ -85,6 +94,47 @@ class AccessCompatibilityMigrationTest extends TestCase
         DB::table('users')->insert(
             $this->legacyUser(1, 'invalid@example.com', 'owner', null),
         );
+    }
+
+    public function test_database_guard_rejects_same_name_tampered_definitions_and_reinstalls_canonical_triggers(): void
+    {
+        $guard = app(AccessCompatibilityDatabaseGuard::class);
+        $guard->drop();
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            DB::unprepared(
+                'CREATE TRIGGER users_access_compatibility_insert
+                 AFTER INSERT ON users BEGIN SELECT 1; END',
+            );
+            DB::unprepared(
+                'CREATE TRIGGER users_access_compatibility_update
+                 AFTER UPDATE ON users BEGIN SELECT 1; END',
+            );
+        } else {
+            DB::unprepared(
+                'CREATE TRIGGER users_access_compatibility_insert
+                 BEFORE INSERT ON users FOR EACH ROW SET @myapes_guard = 1',
+            );
+            DB::unprepared(
+                'CREATE TRIGGER users_access_compatibility_update
+                 BEFORE UPDATE ON users FOR EACH ROW SET @myapes_guard = 1',
+            );
+        }
+
+        $this->assertFalse($guard->isInstalled());
+
+        $guard->install();
+
+        $this->assertTrue($guard->isInstalled());
+        DB::table('users')->insert(
+            $this->legacyUser(10, 'canonical@example.com', 'staff', null),
+        );
+        $this->assertDatabaseHas('users', [
+            'id' => 10,
+            'legacy_access_level' => 'staff',
+            'identity_type' => 'local',
+        ]);
     }
 
     public function test_upgrade_rejects_unknown_roles_before_adding_columns(): void
@@ -189,6 +239,16 @@ class AccessCompatibilityMigrationTest extends TestCase
         /** @var Migration $migration */
         $migration = require database_path(
             'migrations/2026_07_27_130000_add_access_compatibility_to_users_table.php',
+        );
+
+        return $migration;
+    }
+
+    private function phaseBMigration(): Migration
+    {
+        /** @var Migration $migration */
+        $migration = require database_path(
+            'migrations/2026_07_28_000100_cut_over_authorization_domain.php',
         );
 
         return $migration;

@@ -7,32 +7,30 @@ use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\User;
 use App\Notifications\ConsultationUpdatedNotification;
+use App\Rules\EligibleStaffAssignee;
+use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Gate;
 
 class ConsultationController extends Controller
 {
     public function index(): View
     {
         $user = request()->user();
-        $query = PetCareConsultation::query()->with(['petProfile', 'assignedTo'])->latest();
-
-        if (! $user->isStaff()) {
-            $query->where('user_id', $user->id);
-        }
+        Gate::authorize('viewAny', PetCareConsultation::class);
+        $query = PetCareConsultation::query()
+            ->visibleTo($user)
+            ->with(['petProfile', 'assignedTo'])
+            ->latest();
 
         return view('petcare.consultations.index', [
             'consultations' => $query->paginate(20),
             'petProfiles' => PetProfile::query()
                 ->where('service_domain', PetProfile::DOMAIN_PETCARE)
-                ->when(! $user->isStaff(), fn ($q) => $q->where('user_id', $user->id))
-                ->orderBy('name')
-                ->get(),
-            'staffUsers' => User::query()
-                ->withAccessLevels(User::staffAccessLevels())
+                ->visibleTo($user)
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -48,7 +46,7 @@ class ConsultationController extends Controller
         ]);
 
         $pet = PetProfile::query()->findOrFail($validated['pet_profile_id']);
-        $this->authorizePet($pet);
+        Gate::authorize('createConsultation', $pet);
 
         $consultation = PetCareConsultation::create([
             ...$validated,
@@ -64,49 +62,70 @@ class ConsultationController extends Controller
         return redirect()->route('petcare.consultations.show', $consultation);
     }
 
-    public function show(PetCareConsultation $consultation): View
-    {
-        $this->authorizeConsultation($consultation);
+    public function show(
+        PetCareConsultation $consultation,
+        AssignmentAuthorization $assignments,
+    ): View {
+        Gate::authorize('view', $consultation);
+        $canChangeAssignment = $assignments->allows(
+            request()->user(),
+        );
 
         return view('petcare.consultations.show', [
             'consultation' => $consultation->load(['petProfile', 'assignedTo']),
-            'staffUsers' => User::query()
-                ->withAccessLevels(User::staffAccessLevels())
-                ->orderBy('name')
-                ->get(),
+            'canChangeAssignment' => $canChangeAssignment,
+            'staffUsers' => $canChangeAssignment
+                ? User::query()
+                    ->eligibleStaff()
+                    ->orderBy('name')
+                    ->get()
+                : collect(),
         ]);
     }
 
-    public function update(Request $request, PetCareConsultation $consultation, AuditLogger $auditLogger): RedirectResponse
-    {
-        $this->authorizeConsultation($consultation);
+    public function update(
+        Request $request,
+        PetCareConsultation $consultation,
+        AuditLogger $auditLogger,
+        AssignmentAuthorization $assignments,
+    ): RedirectResponse {
+        Gate::authorize('update', $consultation);
+        $assignmentRequested = array_key_exists(
+            'assigned_to',
+            $request->all(),
+        );
+        if ($assignmentRequested) {
+            $assignments->authorizeChange(
+                $request,
+                $request->user(),
+                $consultation,
+            );
+        }
 
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_progress,closed'],
             'assigned_to' => [
+                'sometimes',
                 'nullable',
-                Rule::exists('users', 'id')->where(
-                    fn ($query) => $query->whereIn(
-                        User::accessLevelColumn(),
-                        User::staffAccessLevels(),
-                    )
-                ),
+                'integer',
+                new EligibleStaffAssignee,
             ],
             'notes' => ['nullable', 'string'],
             'scheduled_for' => ['nullable', 'date'],
         ]);
 
-        if (! $request->user()->isStaff()) {
-            $validated['assigned_to'] = null;
-        }
-
-        $consultation->update([
+        $updates = [
             'status' => $validated['status'],
-            'assigned_to' => $validated['assigned_to'] ?? null,
             'notes' => $validated['notes'] ?? $consultation->notes,
             'scheduled_for' => $validated['scheduled_for'] ?? $consultation->scheduled_for,
             'closed_at' => $validated['status'] === 'closed' ? now() : null,
-        ]);
+        ];
+
+        if ($assignmentRequested) {
+            $updates['assigned_to'] = $validated['assigned_to'] ?? null;
+        }
+
+        $consultation->update($updates);
 
         $this->notifyConsultationStakeholders($consultation, $request->user(), 'updated');
         $auditLogger->record('petcare.consultation.updated', $request->user(), $consultation, [
@@ -118,45 +137,14 @@ class ConsultationController extends Controller
         return redirect()->route('petcare.consultations.show', $consultation)->with('status', 'Consultation updated.');
     }
 
-    private function authorizeConsultation(PetCareConsultation $consultation): void
-    {
-        $user = request()->user();
-
-        if ($user->isStaff()) {
-            return;
-        }
-
-        if ($consultation->user_id !== $user->id) {
-            abort(403);
-        }
-    }
-
-    private function authorizePet(PetProfile $pet): void
-    {
-        $user = request()->user();
-
-        if ($pet->service_domain !== PetProfile::DOMAIN_PETCARE) {
-            abort(403);
-        }
-
-        if ($user->isStaff()) {
-            return;
-        }
-
-        if ($pet->user_id !== $user->id) {
-            abort(403);
-        }
-    }
-
     private function notifyConsultationStakeholders(PetCareConsultation $consultation, User $actor, string $eventLabel): void
     {
         $staffRecipients = User::query()
-            ->withAccessLevels(User::staffAccessLevels())
+            ->eligibleStaff()
             ->get();
 
         $recipients = $staffRecipients
             ->push($consultation->user)
-            ->when($consultation->assignedTo !== null, fn ($collection) => $collection->push($consultation->assignedTo))
             ->unique('id')
             ->reject(fn (User $recipient): bool => $recipient->id === $actor->id);
 

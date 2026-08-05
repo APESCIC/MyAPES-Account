@@ -5,8 +5,10 @@ namespace Tests\Feature\Auth;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
 use App\Http\Middleware\RevalidateDirectoryAccess;
+use App\Models\DirectorySyncRun;
 use App\Models\User;
 use App\Services\LdapGroupResolver;
+use App\Services\SessionAuthorizationContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Fakes\FakeLdapGroupResolver;
@@ -45,29 +47,79 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_directory_is_not_queried_before_five_minutes_have_elapsed(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['position.staff']);
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
 
         $response = $this
             ->actingAs($user)
-            ->withSession([
-                RevalidateDirectoryAccess::SESSION_KEY => $this->now->subSeconds(299)->timestamp,
-            ])
+            ->withSession($this->oidcContext(
+                $user,
+                $this->now->subSeconds(299)->timestamp,
+            ))
             ->get(route('dashboard'));
 
         $response->assertOk();
         $this->assertSame([], $this->directory->resolvedEmails);
     }
 
-    public function test_role_is_demoted_before_authorization_on_the_due_request(): void
+    public function test_completed_catalogue_failure_immediately_stales_a_current_oidc_session(): void
     {
-        $user = $this->directoryUser(User::ROLE_ADMIN, ['intranet.administrator']);
-        $this->directory->groups = ['position.staff'];
+        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapes.admin']);
+        $context = $this->oidcContext(
+            $user,
+            $this->now->subSeconds(299)->timestamp,
+        );
+        $failedRun = DirectorySyncRun::query()->create([
+            'source' => DirectorySyncRun::SOURCE_SCHEDULED,
+            'status' => DirectorySyncRun::STATUS_FAILED,
+            'started_at' => $this->now,
+            'finished_at' => $this->now,
+            'groups_seen' => 0,
+            'groups_missing' => 0,
+            'error_code' => 'directory_unavailable',
+        ]);
+        $this->directory->failure = new DirectoryUnavailable(
+            'sensitive connection details',
+        );
 
         $response = $this
             ->actingAs($user)
-            ->withSession([
-                RevalidateDirectoryAccess::SESSION_KEY => $this->now->subSeconds(300)->timestamp,
-            ])
+            ->withSession($context)
+            ->get(route('admin.index'));
+
+        $response->assertStatus(503);
+        $response->assertDontSee('sensitive connection details');
+        $this->assertSame([$user->email], $this->directory->resolvedEmails);
+        $response->assertSessionHas(
+            SessionAuthorizationContext::DIRECTORY_GENERATION_KEY,
+            0,
+        );
+        $this->assertAuthenticatedAs($user);
+
+        $this->directory->failure = null;
+        $this->directory->groups = ['myapes.admin'];
+        $recovered = $this
+            ->actingAs($user)
+            ->withSession($context)
+            ->get(route('admin.index'));
+
+        $recovered->assertOk();
+        $recovered->assertSessionHas(
+            SessionAuthorizationContext::DIRECTORY_GENERATION_KEY,
+            $failedRun->id,
+        );
+    }
+
+    public function test_role_is_demoted_before_authorization_on_the_due_request(): void
+    {
+        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapes.admin']);
+        $this->directory->groups = ['myapes.staff'];
+
+        $response = $this
+            ->actingAs($user)
+            ->withSession($this->oidcContext(
+                $user,
+                $this->now->subSeconds(300)->timestamp,
+            ))
             ->get(route('admin.index'));
 
         $response->assertForbidden();
@@ -75,7 +127,7 @@ class DirectoryRevalidationTest extends TestCase
 
         $user->refresh();
         $this->assertSame(User::ROLE_STAFF, $user->accessLevel());
-        $this->assertSame(['position.staff'], $user->ldap_groups);
+        $this->assertSame(['myapes.staff'], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_role_changed',
             'user_id' => $user->id,
@@ -84,14 +136,15 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_role_promotion_applies_to_the_same_request(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['position.staff']);
-        $this->directory->groups = ['intranet.administrator'];
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
+        $this->directory->groups = ['myapes.admin'];
 
         $response = $this
             ->actingAs($user)
-            ->withSession([
-                RevalidateDirectoryAccess::SESSION_KEY => $this->now->subSeconds(300)->timestamp,
-            ])
+            ->withSession($this->oidcContext(
+                $user,
+                $this->now->subSeconds(300)->timestamp,
+            ))
             ->get(route('admin.index'));
 
         $response->assertOk();
@@ -102,16 +155,47 @@ class DirectoryRevalidationTest extends TestCase
         );
     }
 
+    public function test_due_revalidation_uses_persisted_mappings_and_rotates_the_epoch(): void
+    {
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
+        $user->refresh();
+        $originalRememberToken = $user->remember_token;
+        $this->directory->groups = ['myapes.admin'];
+
+        $response = $this
+            ->actingAs($user)
+            ->withSession($this->oidcContext(
+                $user,
+                $this->now->subSeconds(300)->timestamp,
+            ))
+            ->get(route('admin.index'));
+
+        $response->assertOk();
+        $user->refresh();
+        $this->assertSame(2, $user->authorization_epoch);
+        $this->assertNotSame($originalRememberToken, $user->remember_token);
+        $this->assertSame(
+            ['administrator'],
+            $user->roles()->pluck('name')->all(),
+        );
+        $response->assertSessionHas('myapes.authorization_epoch', 2);
+        $response->assertSessionHas(
+            RevalidateDirectoryAccess::SESSION_KEY,
+            $this->now->timestamp,
+        );
+    }
+
     public function test_directory_revocation_downgrades_and_logs_out_the_user(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['position.staff']);
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
         $this->directory->failure = new DirectoryIdentityNotFound('not found');
 
         $response = $this
             ->actingAs($user)
-            ->withSession([
-                RevalidateDirectoryAccess::SESSION_KEY => $this->now->subSeconds(300)->timestamp,
-            ])
+            ->withSession($this->oidcContext(
+                $user,
+                $this->now->subSeconds(300)->timestamp,
+            ))
             ->get(route('dashboard'));
 
         $response->assertRedirect(route('staff.login'));
@@ -127,17 +211,37 @@ class DirectoryRevalidationTest extends TestCase
         ]);
     }
 
+    public function test_directory_revocation_returns_unauthorized_for_json_requests(): void
+    {
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
+        $this->directory->failure = new DirectoryIdentityNotFound('not found');
+
+        $response = $this
+            ->actingAs($user)
+            ->withSession($this->oidcContext(
+                $user,
+                $this->now->subSeconds(300)->timestamp,
+            ))
+            ->getJson(route('dashboard'));
+
+        $this->assertSame(401, $response->getStatusCode());
+        $response->assertExactJson(['message' => 'Unauthenticated.']);
+        $this->assertGuest();
+        $this->assertSame(
+            User::ROLE_SERVICE_USER,
+            $user->fresh()->accessLevel(),
+        );
+    }
+
     public function test_directory_outage_fails_closed_without_changing_stored_access(): void
     {
-        $user = $this->directoryUser(User::ROLE_ADMIN, ['intranet.administrator']);
+        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapes.admin']);
         $validatedAt = $this->now->subSeconds(300)->timestamp;
         $this->directory->failure = new DirectoryUnavailable('sensitive connection details');
 
         $response = $this
             ->actingAs($user)
-            ->withSession([
-                RevalidateDirectoryAccess::SESSION_KEY => $validatedAt,
-            ])
+            ->withSession($this->oidcContext($user, $validatedAt))
             ->get(route('admin.index'));
 
         $response->assertStatus(503);
@@ -147,7 +251,7 @@ class DirectoryRevalidationTest extends TestCase
 
         $user->refresh();
         $this->assertSame(User::ROLE_ADMIN, $user->accessLevel());
-        $this->assertSame(['intranet.administrator'], $user->ldap_groups);
+        $this->assertSame(['myapes.admin'], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_unavailable',
             'user_id' => $user->id,
@@ -187,5 +291,27 @@ class DirectoryRevalidationTest extends TestCase
             ->accessLevel($role)
             ->cloudronIdentity('cloudron-'.str()->uuid())
             ->create(['ldap_groups' => $groups]);
+    }
+
+    /**
+     * @return array<string, int|string>
+     */
+    private function oidcContext(User $user, int $validatedAt): array
+    {
+        $user->refresh();
+
+        return [
+            'myapes.authentication_method' => 'cloudron_oidc',
+            'myapes.authorization_epoch' => $user->authorization_epoch,
+            RevalidateDirectoryAccess::SESSION_KEY => $validatedAt,
+            SessionAuthorizationContext::DIRECTORY_GENERATION_KEY => (int) (
+                DirectorySyncRun::query()
+                    ->whereIn('status', [
+                        DirectorySyncRun::STATUS_SUCCEEDED,
+                        DirectorySyncRun::STATUS_FAILED,
+                    ])
+                    ->max('id') ?? 0
+            ),
+        ];
     }
 }

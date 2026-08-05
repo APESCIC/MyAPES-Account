@@ -17,10 +17,6 @@
                 <label for="password">Password</label>
                 <input id="password" type="password" name="password" required>
 
-                <label class="inline-check">
-                    <input type="checkbox" name="remember" value="1"> Remember me
-                </label>
-
                 <div class="actions">
                     <button type="submit">Local Staff Login</button>
                 </div>

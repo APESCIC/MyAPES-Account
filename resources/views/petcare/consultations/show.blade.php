@@ -19,7 +19,7 @@
                     <label>Scheduled for</label>
                     <input type="datetime-local" name="scheduled_for" value="{{ $consultation->scheduled_for ? $consultation->scheduled_for->format('Y-m-d\\TH:i') : '' }}">
                 </div>
-                @if(auth()->user()->isStaff())
+                @if($canChangeAssignment)
                     <div>
                         <label>Assigned staff</label>
                         <select name="assigned_to">

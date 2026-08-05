@@ -15,23 +15,76 @@ permissions:
   contents: read
 
 jobs:
+  deployment-control-authentication:
+    name: Authenticate deployment controls from Git
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deployment_controls_sha256: ${{ steps.authenticate.outputs.deployment_controls_sha256 }}
+    steps:
+      - name: Derive deployment-control digest from exact revision
+        id: authenticate
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REQUESTED_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          requested_ref="$REQUESTED_REVISION"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            requested_ref="refs/heads/main"
+          fi
+
+          authentication_root="$(mktemp -d)"
+          trap 'rm -rf -- "$authentication_root"' EXIT
+          repository_root="$authentication_root/repository"
+          controls_root="$authentication_root/controls"
+          git init --quiet "$repository_root"
+          git -C "$repository_root" remote add origin \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          authorization="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\r\n')"
+          git -C "$repository_root" \
+            -c "http.extraHeader=AUTHORIZATION: basic $authorization" \
+            fetch --quiet --depth=1 origin "$requested_ref"
+          unset authorization GITHUB_TOKEN
+          release_sha="$(git -C "$repository_root" rev-parse FETCH_HEAD)"
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then
+            [[ "$release_sha" == "$REQUESTED_REVISION" ]]
+          fi
+
+          deployment_control_paths=(
+            scripts/deploy/activate-release.sh
+            scripts/deploy/rollback-release.sh
+            scripts/deploy/cloudron-app.conf
+            scripts/deploy/cloudron-run.sh
+          )
+          install -d -m 0700 "$controls_root"
+          : > "$controls_root/DEPLOYMENT-CONTROLS.sha256"
+          for control_path in "${deployment_control_paths[@]}"; do
+            install -d -m 0700 "$controls_root/$(dirname "$control_path")"
+            git -C "$repository_root" show \
+              "$release_sha:$control_path" > "$controls_root/$control_path"
+            test -s "$controls_root/$control_path"
+            control_digest="$(sha256sum "$controls_root/$control_path" | awk '{print $1}')"
+            printf '%s  %s\n' "$control_digest" "$control_path" \
+              >> "$controls_root/DEPLOYMENT-CONTROLS.sha256"
+          done
+          deployment_controls_sha256="$(sha256sum "$controls_root/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$deployment_controls_sha256" =~ ^[0-9a-f]{64}$ ]]
+          (
+            cd "$controls_root"
+            sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
+          )
+          echo "deployment_controls_sha256=$deployment_controls_sha256" \
+            >> "$GITHUB_OUTPUT"
+
   quality:
-    name: Test and package
+    name: SQLite test and package
+    needs: deployment-control-authentication
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-          MYSQL_DATABASE: myapes_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --silent"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
     outputs:
       release_sha: ${{ steps.release.outputs.sha }}
       app_version: ${{ steps.release.outputs.app_version }}
@@ -65,9 +118,11 @@ jobs:
             test "$release_sha" = "$(git rev-parse origin/main)"
           fi
 
-          echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
-          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
-          echo "artifact_name=myapes-release-$release_sha" >> "$GITHUB_OUTPUT"
+          {
+            echo "sha=$release_sha"
+            echo "app_version=$app_version"
+            echo "artifact_name=myapes-release-$release_sha"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -87,19 +142,6 @@ jobs:
         run: |
           composer install --no-interaction --prefer-dist
           npm ci --no-audit --no-fund
-
-      - name: Run MySQL access compatibility tests
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: myapes_test
-          DB_USERNAME: root
-          DB_PASSWORD: ''
-        run: |
-          php artisan test \
-            tests/Feature/AccessCompatibilityMigrationTest.php \
-            tests/Feature/AccessCompatibilityCommandTest.php
 
       - name: Validate source-controlled release history
         shell: bash
@@ -168,6 +210,7 @@ jobs:
         shell: bash
         env:
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          TRUSTED_CONTROLS_SHA256: ${{ needs.deployment-control-authentication.outputs.deployment_controls_sha256 }}
         run: |
           set -euo pipefail
 
@@ -190,6 +233,21 @@ jobs:
             --exclude '/.phpunit.result.cache'
 
           printf '%s\n' "$RELEASE_SHA" > build/release/REVISION
+          deployment_control_paths=(
+            scripts/deploy/activate-release.sh
+            scripts/deploy/rollback-release.sh
+            scripts/deploy/cloudron-app.conf
+            scripts/deploy/cloudron-run.sh
+          )
+          : > build/release/DEPLOYMENT-CONTROLS.sha256
+          for control_path in "${deployment_control_paths[@]}"; do
+            control_digest="$(sha256sum "build/release/$control_path" | awk '{print $1}')"
+            printf '%s  %s\n' "$control_digest" "$control_path" \
+              >> build/release/DEPLOYMENT-CONTROLS.sha256
+          done
+          deployment_controls_sha256="$(sha256sum build/release/DEPLOYMENT-CONTROLS.sha256 | awk '{print $1}')"
+          [[ "$deployment_controls_sha256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$deployment_controls_sha256" == "$TRUSTED_CONTROLS_SHA256" ]]
           tar --create --gzip --file "build/myapes-$RELEASE_SHA.tar.gz" --directory build/release .
           test -s "build/myapes-$RELEASE_SHA.tar.gz"
 
@@ -198,7 +256,20 @@ jobs:
           grep -qx './VERSION' build/archive-list.txt
           grep -qx './artisan' build/archive-list.txt
           grep -qx './public/build/manifest.json' build/archive-list.txt
+          grep -qx './resources/data/releases.json' build/archive-list.txt
+          grep -qx './config/permission.php' build/archive-list.txt
+          grep -qx './database/migrations/2026_07_28_000000_create_permission_tables.php' build/archive-list.txt
+          grep -qx './database/migrations/2026_07_28_000100_cut_over_authorization_domain.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/AuthorizationPreflight.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/DirectorySync.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/AuthorizationSync.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/AuthorizationCheck.php' build/archive-list.txt
           grep -qx './scripts/deploy/activate-release.sh' build/archive-list.txt
+          grep -qx './scripts/deploy/rollback-release.sh' build/archive-list.txt
+          grep -qx './scripts/deploy/cloudron-app.conf' build/archive-list.txt
+          grep -qx './scripts/deploy/cloudron-run.sh' build/archive-list.txt
+          grep -qx './scripts/deploy/production.env.example' build/archive-list.txt
+          grep -qx './DEPLOYMENT-CONTROLS.sha256' build/archive-list.txt
 
           if grep -Eq '^\./(\.git($|/)|\.env($|\.)|docs/|node_modules/|scripts/local/|storage/|tests/)' build/archive-list.txt; then
             echo "Release archive contains an excluded path."
@@ -213,10 +284,100 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  database-compatibility:
+    name: Phase B database contract (${{ matrix.engine }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: MySQL 8.4
+            image: mysql:8.4
+            connection: mysql
+            health: mysqladmin ping --host=127.0.0.1 --user=root --silent
+          - engine: MariaDB 11.4
+            image: mariadb:11.4
+            connection: mariadb
+            health: healthcheck.sh --connect --innodb_initialized
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: myapes_test
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 'yes'
+          MARIADB_DATABASE: myapes_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="${{ matrix.health }}"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
+          fetch-depth: 1
+
+      - name: Set up PHP 8.4 with MySQL support
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pcntl, pdo_mysql, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run Phase B database contract
+        env:
+          DB_CONNECTION: ${{ matrix.connection }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: myapes_test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+          DB_URL: ''
+        run: |
+          php artisan test \
+            tests/Feature/AuthorizationSchemaTest.php \
+            tests/Feature/AuthorizationRoleMaterializerTest.php \
+            tests/Feature/AuthorizationCutoverGuardTest.php \
+            tests/Feature/AuthorizationCutoverConcurrencyTest.php \
+            tests/Feature/PermissionSchemaMigrationTest.php \
+            tests/Feature/AccessCompatibilityMigrationTest.php \
+            tests/Feature/AccessCompatibilityCommandTest.php \
+            tests/Feature/RolelessApplicationCompatibilityTest.php \
+            tests/Feature/UserAccessCompatibilityTest.php \
+            tests/Feature/AuthorizationLifecycleCommandTest.php \
+            tests/Feature/DirectoryCatalogueSynchronizerTest.php \
+            tests/Feature/DirectorySyncWiringTest.php \
+            tests/Feature/Auth/DirectoryRevalidationTest.php \
+            tests/Feature/DirectoryGroupMappingServiceTest.php \
+            tests/Feature/DirectoryRoleSynchronizerTest.php
+
+          php artisan migrate:fresh --seed --force --no-interaction
+          php tests/Support/directory-sync-timeout-probe.php prepare
+          set +e
+          php artisan queue:work database \
+            --stop-when-empty \
+            --queue=security-timeout \
+            --sleep=1 \
+            --timeout=2 \
+            --tries=1
+          worker_status=$?
+          set -e
+          echo "Timeout probe worker exit status: $worker_status"
+          php tests/Support/directory-sync-timeout-probe.php assert
+
   deploy:
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     name: Deploy to Cloudron
-    needs: quality
+    needs: [deployment-control-authentication, quality, database-compatibility]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: cloudron-deploy
@@ -229,6 +390,7 @@ jobs:
       CLOUDRON_TOKEN: ${{ secrets.CLOUDRON_TOKEN }}
       RELEASE_SHA: ${{ needs.quality.outputs.release_sha }}
       APP_VERSION: ${{ needs.quality.outputs.app_version }}
+      DEPLOYMENT_CONTROLS_SHA256: ${{ needs.deployment-control-authentication.outputs.deployment_controls_sha256 }}
     steps:
       - name: Download tested release
         uses: actions/download-artifact@v4
@@ -241,7 +403,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for required_name in CLOUDRON_FQDN CLOUDRON_TOKEN CLOUDRON_APP_ID RELEASE_SHA APP_VERSION; do
+          for required_name in CLOUDRON_FQDN CLOUDRON_TOKEN CLOUDRON_APP_ID RELEASE_SHA APP_VERSION DEPLOYMENT_CONTROLS_SHA256; do
             if [[ -z "${!required_name:-}" ]]; then
               echo "Missing required Cloudron deployment value: $required_name"
               exit 1
@@ -250,7 +412,46 @@ jobs:
 
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$APP_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          [[ "$DEPLOYMENT_CONTROLS_SHA256" =~ ^[0-9a-f]{64}$ ]]
           test -s "build/myapes-$RELEASE_SHA.tar.gz"
+
+          verification_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$verification_dir"' EXIT
+          tar --extract --gzip \
+            --file "build/myapes-$RELEASE_SHA.tar.gz" \
+            --directory "$verification_dir" \
+            ./DEPLOYMENT-CONTROLS.sha256 \
+            ./scripts/deploy/activate-release.sh \
+            ./scripts/deploy/rollback-release.sh \
+            ./scripts/deploy/cloudron-app.conf \
+            ./scripts/deploy/cloudron-run.sh
+          test -f "$verification_dir/DEPLOYMENT-CONTROLS.sha256"
+          test ! -L "$verification_dir/DEPLOYMENT-CONTROLS.sha256"
+          for control_path in \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh; do
+            test -f "$verification_dir/$control_path"
+            test ! -L "$verification_dir/$control_path"
+          done
+          actual_controls_sha256="$(sha256sum "$verification_dir/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$actual_controls_sha256" == "$DEPLOYMENT_CONTROLS_SHA256" ]]
+          cat >"$verification_dir/expected-control-paths" <<'PATHS'
+          scripts/deploy/activate-release.sh
+          scripts/deploy/rollback-release.sh
+          scripts/deploy/cloudron-app.conf
+          scripts/deploy/cloudron-run.sh
+          PATHS
+          awk '{print $2}' "$verification_dir/DEPLOYMENT-CONTROLS.sha256" \
+            >"$verification_dir/actual-control-paths"
+          diff -u \
+            "$verification_dir/expected-control-paths" \
+            "$verification_dir/actual-control-paths"
+          (
+            cd "$verification_dir"
+            sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
+          )
 
       - name: Install pinned Cloudron CLI
         run: npm install --global cloudron@8.2.6
@@ -261,6 +462,36 @@ jobs:
           set -euo pipefail
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             backup create --app "$CLOUDRON_APP_ID"
+
+      - name: Capture current release identity for rollback verification
+        id: previous
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          response="$(curl --fail --silent --show-error --max-time 10 "$CLOUDRON_APP_URL/healthz" || true)"
+          previous_version="$(jq -r '.version // empty' <<<"$response" 2>/dev/null || true)"
+          previous_release="$(jq -r '.release // empty' <<<"$response" 2>/dev/null || true)"
+
+          available=false
+          same_release=false
+          if [[ "$previous_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ \
+            && "$previous_release" =~ ^[0-9a-f]{40}$ ]]; then
+            available=true
+            if [[ "$previous_release" == "$RELEASE_SHA" ]]; then
+              same_release=true
+            fi
+          else
+            previous_version=""
+            previous_release=""
+            echo "No exact current release identity is available for rollback verification."
+          fi
+          {
+            echo "available=$available"
+            echo "previous_version=$previous_version"
+            echo "previous_release=$previous_release"
+            echo "same_release=$same_release"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload release
         shell: bash
@@ -282,28 +513,95 @@ jobs:
           set -euo pipefail
 
           remote_dir="/app/data/.deploy/$RELEASE_SHA"
+          remote_command="$(cat <<'BASH'
+          set -euo pipefail
+          remote_dir="$1"
+          release_sha="$2"
+          previous_release="$3"
+          expected_controls_sha256="$4"
+          tar --extract --gzip \
+            --file "$remote_dir/release.tar.gz" \
+            --directory "$remote_dir" \
+            ./DEPLOYMENT-CONTROLS.sha256 \
+            ./scripts/deploy/activate-release.sh \
+            ./scripts/deploy/rollback-release.sh \
+            ./scripts/deploy/cloudron-app.conf \
+            ./scripts/deploy/cloudron-run.sh
+          test -f "$remote_dir/DEPLOYMENT-CONTROLS.sha256"
+          test ! -L "$remote_dir/DEPLOYMENT-CONTROLS.sha256"
+          for control_path in \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh; do
+            test -f "$remote_dir/$control_path"
+            test ! -L "$remote_dir/$control_path"
+          done
+          actual_controls_sha256="$(sha256sum "$remote_dir/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$actual_controls_sha256" == "$expected_controls_sha256" ]]
+          cat >"$remote_dir/expected-control-paths" <<'PATHS'
+          scripts/deploy/activate-release.sh
+          scripts/deploy/rollback-release.sh
+          scripts/deploy/cloudron-app.conf
+          scripts/deploy/cloudron-run.sh
+          PATHS
+          awk '{print $2}' "$remote_dir/DEPLOYMENT-CONTROLS.sha256" \
+            >"$remote_dir/actual-control-paths"
+          diff -u \
+            "$remote_dir/expected-control-paths" \
+            "$remote_dir/actual-control-paths"
+          (
+            cd "$remote_dir"
+            sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
+          )
+          bash "$remote_dir/scripts/deploy/activate-release.sh" \
+            "$release_sha" "$previous_release" "$expected_controls_sha256"
+          BASH
+          )"
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             exec --app "$CLOUDRON_APP_ID" -- \
-            bash -c "tar --extract --gzip --file '$remote_dir/release.tar.gz' --directory '$remote_dir' './scripts/deploy/activate-release.sh' && bash '$remote_dir/scripts/deploy/activate-release.sh' '$RELEASE_SHA'"
+            bash -c "$remote_command" -- \
+              "$remote_dir" "$RELEASE_SHA" \
+              "${{ steps.previous.outputs.previous_release }}" \
+              "$DEPLOYMENT_CONTROLS_SHA256"
+
+      - name: Restart activated release
+        id: restart
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
 
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             restart --app "$CLOUDRON_APP_ID"
 
       - name: Verify exact release health and OIDC redirect
         id: verify
+        if: steps.restart.outcome == 'success'
         shell: bash
         continue-on-error: true
         run: |
           set -euo pipefail
 
           release_verified=false
-          for attempt in {1..18}; do
+          for _ in {1..18}; do
             response="$(curl --fail --silent --show-error --max-time 10 "$CLOUDRON_APP_URL/healthz" || true)"
             reported_version="$(jq -r '.version // empty' <<<"$response" 2>/dev/null || true)"
             reported_release="$(jq -r '.release // empty' <<<"$response" 2>/dev/null || true)"
             reported_status="$(jq -r '.status // empty' <<<"$response" 2>/dev/null || true)"
+            reported_database="$(jq -r '.checks.database // empty' <<<"$response" 2>/dev/null || true)"
+            reported_cache="$(jq -r '.checks.cache // empty' <<<"$response" 2>/dev/null || true)"
+            reported_environment="$(jq -r '.checks.environment // empty' <<<"$response" 2>/dev/null || true)"
 
-            if [[ "$reported_status" == "ok" && "$reported_version" == "$APP_VERSION" && "$reported_release" == "$RELEASE_SHA" ]]; then
+            [[ "$reported_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || continue
+            [[ "$reported_release" =~ ^[0-9a-f]{40}$ ]] || continue
+
+            if [[ "$reported_status" == "ok" \
+              && "$reported_version" == "$APP_VERSION" \
+              && "$reported_release" == "$RELEASE_SHA" \
+              && "$reported_database" == "ok" \
+              && "$reported_cache" == "ok" \
+              && "$reported_environment" == "ok" ]]; then
               echo "Verified healthy app version $APP_VERSION at release $RELEASE_SHA."
               release_verified=true
               break
@@ -386,19 +684,193 @@ jobs:
           print("OIDC redirect verification passed.")
           PY
 
-      - name: Roll back code after failed release verification
-        if: steps.verify.outcome == 'failure'
+      - name: Roll back code after failed release restart or verification
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
         shell: bash
+        env:
+          PREVIOUS_RELEASE: ${{ steps.previous.outputs.previous_release }}
         run: |
           set -euo pipefail
 
+          rollback_command="$(cat <<'BASH'
+          set -euo pipefail
+          previous_release="$1"
+          failed_release="$2"
+          expected_controls_sha256="$3"
+          control_root="/app/data/deployment-controls/$failed_release"
+          test -d "$control_root"
+          test ! -L "$control_root"
+          test "$(stat -c '%U:%G' "$control_root")" = "root:root"
+          test "$(stat -c '%a' "$control_root")" = "700"
+          test -f "$control_root/DEPLOYMENT-CONTROLS.sha256"
+          test ! -L "$control_root/DEPLOYMENT-CONTROLS.sha256"
+          for control_path in \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh; do
+            test -f "$control_root/$control_path"
+            test ! -L "$control_root/$control_path"
+          done
+          actual_controls_sha256="$(sha256sum "$control_root/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$actual_controls_sha256" == "$expected_controls_sha256" ]]
+          expected_paths="$(printf '%s\n' \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh)"
+          actual_paths="$(awk '{print $2}' "$control_root/DEPLOYMENT-CONTROLS.sha256")"
+          [[ "$actual_paths" == "$expected_paths" ]]
+          (
+            cd "$control_root"
+            sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
+          )
+          bash "/app/data/deployment-controls/$failed_release/scripts/deploy/rollback-release.sh" \
+            "$previous_release" "$failed_release" "$expected_controls_sha256"
+          BASH
+          )"
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             exec --app "$CLOUDRON_APP_ID" -- \
-            bash /app/data/current/scripts/deploy/rollback-release.sh
+            bash -c "$rollback_command" -- \
+              "$PREVIOUS_RELEASE" "$RELEASE_SHA" \
+              "$DEPLOYMENT_CONTROLS_SHA256"
 
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             restart --app "$CLOUDRON_APP_ID"
 
-          echo "Deployment failed release verification and code rollback was attempted."
-          echo "Database migrations were not reversed; use the pre-deployment Cloudron backup if required."
+      - name: Verify restored release effective Laravel environment
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          restored_environment="$(
+            cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+              exec --app "$CLOUDRON_APP_ID" -- \
+              sudo -E -u www-data /usr/bin/php8.4 \
+                /app/data/current/artisan env --no-ansi
+          )"
+
+          if ! grep -Eq '(^|[[:space:]])production([[:space:]]|$)' \
+            <<<"$restored_environment"; then
+            echo "Restored release effective Laravel environment verification failed."
+            exit 1
+          fi
+
+      - name: Verify restored release health and OIDC redirect
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        shell: bash
+        env:
+          PREVIOUS_AVAILABLE: ${{ steps.previous.outputs.available }}
+          PREVIOUS_VERSION: ${{ steps.previous.outputs.previous_version }}
+          PREVIOUS_RELEASE: ${{ steps.previous.outputs.previous_release }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$PREVIOUS_AVAILABLE" != true ]]; then
+            echo "Rollback completed, but no exact previous release identity was captured."
+            exit 1
+          fi
+
+          restored=false
+          for _ in {1..18}; do
+            response="$(curl --fail --silent --show-error --max-time 10 "$CLOUDRON_APP_URL/healthz" || true)"
+            reported_version="$(jq -r '.version // empty' <<<"$response" 2>/dev/null || true)"
+            reported_release="$(jq -r '.release // empty' <<<"$response" 2>/dev/null || true)"
+            reported_status="$(jq -r '.status // empty' <<<"$response" 2>/dev/null || true)"
+            reported_database="$(jq -r '.checks.database // empty' <<<"$response" 2>/dev/null || true)"
+            reported_cache="$(jq -r '.checks.cache // empty' <<<"$response" 2>/dev/null || true)"
+
+            [[ "$reported_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || continue
+            [[ "$reported_release" =~ ^[0-9a-f]{40}$ ]] || continue
+
+            if [[ "$reported_status" == "ok" \
+              && "$reported_version" == "$PREVIOUS_VERSION" \
+              && "$reported_release" == "$PREVIOUS_RELEASE" \
+              && "$reported_database" == "ok" \
+              && "$reported_cache" == "ok" ]]; then
+              restored=true
+              break
+            fi
+
+            sleep 5
+          done
+
+          if [[ "$restored" != true ]]; then
+            echo "Rollback health verification did not confirm the captured previous release."
+            exit 1
+          fi
+
+          headers_dir="$(mktemp -d)"
+          headers_file="$headers_dir/headers"
+          trap 'rm -rf -- "$headers_dir"' EXIT
+
+          status_code="$(curl --silent --show-error --max-time 10 \
+            --output /dev/null \
+            --dump-header "$headers_file" \
+            --write-out '%{http_code}' \
+            "$CLOUDRON_APP_URL/staff/auth/login")"
+          [[ "$status_code" == 302 ]]
+
+          export OIDC_HEADERS_FILE="$headers_file"
+          python3 <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+          from urllib.parse import parse_qs, urlparse
+
+          locations = [
+              line.split(b":", 1)[1].strip().decode("ascii")
+              for line in Path(os.environ["OIDC_HEADERS_FILE"]).read_bytes().splitlines()
+              if line.lower().startswith(b"location:")
+          ]
+          if len(locations) != 1:
+              sys.exit("Restored OIDC verification returned an invalid Location header.")
+
+          redirect = urlparse(locations[0])
+          expected = urlparse(os.environ["CLOUDRON_OIDC_AUTH_URL"])
+          params = parse_qs(redirect.query, keep_blank_values=True)
+
+          def one(name):
+              values = params.get(name, [])
+              if len(values) != 1 or not values[0]:
+                  sys.exit(f"Restored OIDC verification is missing {name}.")
+              return values[0]
+
+          if (redirect.scheme, redirect.netloc, redirect.path) != (
+              expected.scheme,
+              expected.netloc,
+              expected.path,
+          ):
+              sys.exit("Restored OIDC verification targeted an unexpected provider.")
+          if one("response_type") != "code":
+              sys.exit("Restored OIDC verification used an unexpected response type.")
+          if one("redirect_uri") != os.environ["CLOUDRON_OIDC_REDIRECT_URI"]:
+              sys.exit("Restored OIDC verification used an unexpected callback.")
+          if not {"openid", "profile", "email"}.issubset(set(one("scope").split())):
+              sys.exit("Restored OIDC verification is missing a required scope.")
+
+          one("client_id")
+          one("state")
+          one("nonce")
+          if one("code_challenge_method") != "S256":
+              sys.exit("Restored OIDC verification did not use S256.")
+          if re.fullmatch(r"[A-Za-z0-9_-]{43}", one("code_challenge")) is None:
+              sys.exit("Restored OIDC verification returned a malformed challenge.")
+          PY
+
+      - name: Fail an idempotent deployment after restart or verification failure
+        if: always() && steps.previous.outputs.same_release == 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        shell: bash
+        run: |
+          echo "The already-active release failed verification; no stale rollback was attempted."
+          exit 1
+
+      - name: Fail deployment after attempted rollback
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        shell: bash
+        run: |
+          echo "Deployment failed after restart or verification; any attempted code rollback did not make this deployment successful."
+          echo "Database migrations were retained; use the pre-deployment Cloudron backup if database recovery is required."
           exit 1

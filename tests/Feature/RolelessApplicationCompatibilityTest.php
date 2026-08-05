@@ -57,7 +57,7 @@ class RolelessApplicationCompatibilityTest extends TestCase
             'Roleless Staff',
         );
         $directory = new FakeLdapGroupResolver;
-        $directory->groups = ['position.staff'];
+        $directory->groups = ['myapes.staff'];
         $this->app->instance(OidcIdentityProvider::class, $identityProvider);
         $this->app->instance(LdapGroupResolver::class, $directory);
 
@@ -89,6 +89,10 @@ class RolelessApplicationCompatibilityTest extends TestCase
 
     private function dropRoleColumn(): void
     {
+        if (! Schema::hasColumn('users', 'role')) {
+            return;
+        }
+
         app(AccessCompatibilityDatabaseGuard::class)->drop();
 
         Schema::table('users', function (Blueprint $table) {

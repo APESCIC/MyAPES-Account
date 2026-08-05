@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Support\AccessCompatibilityDatabaseGuard;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +15,15 @@ use Tests\TestCase;
 class UserAccessCompatibilityTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->runInMaintenanceMode(
+            fn () => $this->phaseBMigration()->down(),
+        );
+    }
 
     public function test_access_level_reads_legacy_value_and_dual_writes_role_when_present(): void
     {
@@ -142,5 +152,15 @@ class UserAccessCompatibilityTest extends TestCase
         $this->assertSame(User::ROLE_STAFF, $user->getRawOriginal('role'));
         $this->assertSame(User::IDENTITY_CLOUDRON_OIDC, $user->identity_type);
         $this->assertSame('factory-subject', $user->oidc_sub);
+    }
+
+    private function phaseBMigration(): Migration
+    {
+        /** @var Migration $migration */
+        $migration = require database_path(
+            'migrations/2026_07_28_000100_cut_over_authorization_domain.php',
+        );
+
+        return $migration;
     }
 }

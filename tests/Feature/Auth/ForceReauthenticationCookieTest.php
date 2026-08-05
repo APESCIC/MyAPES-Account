@@ -114,7 +114,7 @@ class ForceReauthenticationCookieTest extends TestCase
             'staff@example.com',
             'Staff Member',
         );
-        $this->directory->groups = ['position.staff'];
+        $this->directory->groups = ['myapes.staff'];
 
         $response = $this
             ->withCookie(OidcReauthenticationCookie::NAME, '1')

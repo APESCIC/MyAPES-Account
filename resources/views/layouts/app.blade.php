@@ -91,12 +91,12 @@
                         <i data-lucide="heart" aria-hidden="true"></i>
                         <span>APES Pet Care</span>
                     </a>
-                    @if(auth()->user()->isAdmin())
+                    @can('admin.access')
                         <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('admin.*')]) @if(request()->routeIs('admin.*')) aria-current="page" @endif>
                             <i data-lucide="settings" aria-hidden="true"></i>
                             <span>Admin</span>
                         </a>
-                    @endif
+                    @endcan
                 @else
                     <a href="{{ route('public.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.login')]) @if(request()->routeIs('public.login')) aria-current="page" @endif>
                         <i data-lucide="log-in" aria-hidden="true"></i>
@@ -150,13 +150,13 @@
 <main id="main-content" class="app-main" tabindex="-1">
     @if(app()->environment(['local', 'testing']))
         @php
-            $activeRole = auth()->user()?->accessLevel();
-            $activeRoleLabel = match ($activeRole) {
-                \App\Models\User::ROLE_SERVICE_USER => 'Public',
-                \App\Models\User::ROLE_STAFF => 'Staff',
-                \App\Models\User::ROLE_ADMIN => 'Admin',
-                default => 'Guest',
-            };
+            $authorizationProfile = app(\App\Services\AuthorizationProfile::class);
+            $activeRole = auth()->user() === null
+                ? null
+                : $authorizationProfile->qaSelectorFor(auth()->user());
+            $activeRoleLabel = auth()->user() === null
+                ? 'Guest'
+                : $authorizationProfile->displayLabel(auth()->user());
         @endphp
         <section class="qa-switcher" aria-label="Local QA role switcher">
             <div class="qa-switcher__identity">
@@ -169,9 +169,9 @@
             </div>
             <div class="qa-switcher__forms" aria-label="Switch active role">
                 @foreach([
-                    \App\Models\User::ROLE_SERVICE_USER => 'Public',
-                    \App\Models\User::ROLE_STAFF => 'Staff',
-                    \App\Models\User::ROLE_ADMIN => 'Admin',
+                    'service_user' => 'Public',
+                    'staff' => 'Staff',
+                    'admin' => 'Admin',
                 ] as $role => $label)
                     <form method="post" action="{{ route('qa.switch-role') }}">
                         @csrf

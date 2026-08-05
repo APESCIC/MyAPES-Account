@@ -8,11 +8,11 @@ use App\Exceptions\DirectoryUnavailable;
 use App\Exceptions\OidcProviderException;
 use App\Http\Controllers\Controller;
 use App\Http\Cookies\OidcReauthenticationCookie;
-use App\Http\Middleware\RevalidateDirectoryAccess;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DirectoryRoleSynchronizer;
 use App\Services\LdapGroupResolver;
-use App\Services\RoleMapper;
+use App\Services\SessionAuthorizationContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -52,7 +52,8 @@ class OidcAuthController extends Controller
         Request $request,
         OidcIdentityProvider $identityProvider,
         LdapGroupResolver $ldapGroupResolver,
-        RoleMapper $roleMapper,
+        DirectoryRoleSynchronizer $roles,
+        SessionAuthorizationContext $authorizationContext,
         AuditLogger $auditLogger,
         OidcReauthenticationCookie $reauthenticationCookie,
     ): RedirectResponse {
@@ -77,11 +78,27 @@ class OidcAuthController extends Controller
 
         $email = Str::lower($identity->email);
         $sub = $identity->subject;
+        $knownUser = User::query()->where('oidc_sub', $sub)->first();
+
+        if ($knownUser?->suspended_at !== null) {
+            $auditLogger->record(
+                'auth.suspended_login_denied',
+                $knownUser,
+                $knownUser,
+                ['method' => SessionAuthorizationContext::METHOD_CLOUDRON_OIDC],
+            );
+            abort(403, 'This account is suspended.');
+        }
 
         try {
             $groups = $ldapGroupResolver->resolveByEmail($email);
         } catch (DirectoryIdentityNotFound) {
-            $this->revokeKnownIdentity($sub, $auditLogger, 'identity_not_found');
+            $this->revokeKnownIdentity(
+                $sub,
+                $roles,
+                $auditLogger,
+                'identity_not_found',
+            );
             $auditLogger->record('auth.oidc_access_denied', context: [
                 'reason' => 'identity_not_found',
             ]);
@@ -93,10 +110,15 @@ class OidcAuthController extends Controller
             abort(503, 'Staff access verification is temporarily unavailable.');
         }
 
-        $role = $roleMapper->map($groups);
+        $role = $roles->protectedRoleForGroups($groups);
 
         if ($role === null) {
-            $this->revokeKnownIdentity($sub, $auditLogger, 'no_approved_group');
+            $this->revokeKnownIdentity(
+                $sub,
+                $roles,
+                $auditLogger,
+                'no_approved_group',
+            );
             $auditLogger->record('auth.oidc_access_denied', context: [
                 'reason' => 'no_approved_group',
                 'group_count' => count($groups),
@@ -104,9 +126,7 @@ class OidcAuthController extends Controller
             abort(403, 'Your Cloudron account does not have MyAPES staff access.');
         }
 
-        $user = User::query()
-            ->where('oidc_sub', $sub)
-            ->first();
+        $user = $knownUser;
 
         if ($user === null) {
             $emailCollision = User::query()
@@ -132,22 +152,35 @@ class OidcAuthController extends Controller
         }
 
         $user->oidc_sub = $sub;
-        $user->identity_type = User::IDENTITY_CLOUDRON_OIDC;
+        if ($knownUser !== null
+            && $user->identity_type === User::IDENTITY_LOCAL
+            && is_string($user->password)
+            && trim($user->password) !== '') {
+            $user->identity_type = User::IDENTITY_HYBRID;
+        } elseif ($user->identity_type !== User::IDENTITY_HYBRID) {
+            $user->identity_type = User::IDENTITY_CLOUDRON_OIDC;
+        }
         $user->name = $identity->name ?? $email;
         $user->email = $email;
-        $user->setAccessLevel($role);
-        $user->ldap_groups = array_values(array_unique(array_map(
-            static fn (string $group): string => strtolower(trim($group)),
-            $groups,
-        )));
         $user->email_verified_at = now();
         $user->save();
+        $result = $roles->synchronize($user, $groups);
 
-        Auth::login($user, true);
+        if (! $result->eligible) {
+            $auditLogger->record('auth.oidc_access_denied', $user, $user, [
+                'reason' => 'eligibility_changed_before_reconciliation',
+                'group_count' => count($groups),
+            ]);
+            abort(403, 'Your Cloudron account does not have MyAPES staff access.');
+        }
+
+        $user->refresh();
+
+        Auth::login($user, false);
         $request->session()->regenerate();
-        $request->session()->put(RevalidateDirectoryAccess::SESSION_KEY, now()->timestamp);
+        $authorizationContext->recordCloudronOidc($request, $user);
         $auditLogger->record('auth.login_success', $user, $user, [
-            'role' => $user->accessLevel(),
+            'role' => $result->protectedRole,
             'group_count' => count($groups),
         ]);
 
@@ -165,7 +198,7 @@ class OidcAuthController extends Controller
     ): RedirectResponse {
         /** @var User|null $user */
         $user = $request->user();
-        $directoryBacked = $user?->isCloudronIdentity() ?? false;
+        $directoryBacked = $user?->hasDirectoryIdentity() ?? false;
 
         if ($user !== null) {
             $auditLogger->record('auth.logout', $user, $user);
@@ -182,22 +215,22 @@ class OidcAuthController extends Controller
             : $response;
     }
 
-    private function revokeKnownIdentity(string $subject, AuditLogger $auditLogger, string $reason): void
-    {
+    private function revokeKnownIdentity(
+        string $subject,
+        DirectoryRoleSynchronizer $roles,
+        AuditLogger $auditLogger,
+        string $reason,
+    ): void {
         $user = User::query()->where('oidc_sub', $subject)->first();
 
         if ($user === null) {
             return;
         }
 
-        $previousRole = $user->accessLevel();
-        $user->forceFill(['ldap_groups' => []]);
-        $user->setAccessLevel(User::ROLE_SERVICE_USER);
-        $user->setRememberToken(Str::random(60));
-        $user->save();
+        $result = $roles->revoke($user);
 
         $auditLogger->record('auth.directory_access_revoked', $user, $user, [
-            'from_role' => $previousRole,
+            'from_role' => $result->previousProtectedRole,
             'reason' => $reason,
         ]);
     }

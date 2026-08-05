@@ -27,7 +27,7 @@
                         @endforeach
                     </select>
                 </div>
-                @if(auth()->user()->isStaff())
+                @if($canChangeAssignment)
                     <div>
                         <label for="assigned_to">Assigned staff</label>
                         <select id="assigned_to" name="assigned_to">
@@ -46,13 +46,13 @@
                 <a href="{{ route('apes-cic.tickets.index') }}">Back</a>
             </div>
         </form>
-        @if(auth()->user()->isStaff())
+        @can('delete', $ticket)
             <form method="post" action="{{ route('apes-cic.tickets.destroy', $ticket) }}" onsubmit="return confirm('Delete this ticket?')">
                 @csrf
                 @method('delete')
                 <button type="submit" class="danger-btn">Delete ticket</button>
             </form>
-        @endif
+        @endcan
     </div>
     <div class="panel">
         <h2>Activity</h2>

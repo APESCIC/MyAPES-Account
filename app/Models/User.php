@@ -3,17 +3,21 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\AuthorizationProfile;
+use App\Services\LegacyAccessCompatibilityAdapter;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Cast;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use InvalidArgumentException;
+use LogicException;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable([
     'oidc_sub',
@@ -30,6 +34,8 @@ class User extends Authenticatable
 
     public const IDENTITY_CLOUDRON_OIDC = 'cloudron_oidc';
 
+    public const IDENTITY_HYBRID = 'hybrid';
+
     public const ROLE_SERVICE_USER = 'service_user';
 
     public const ROLE_STAFF = 'staff';
@@ -39,7 +45,17 @@ class User extends Authenticatable
     public const ROLE_SUPERADMIN = 'superadmin';
 
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
+
+    public static function bootHasRoles(): void
+    {
+        // The verified database guard owns atomic provenance/pivot cleanup.
+    }
+
+    public static function bootHasPermissions(): void
+    {
+        // Direct permissions are closed and orphan cleanup is database-owned.
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -53,6 +69,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'ldap_groups' => 'array',
+            'authorization_epoch' => 'integer',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -66,14 +84,59 @@ class User extends Authenticatable
         return $this->hasMany(SupportTicket::class);
     }
 
+    public function suspendedBy(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'suspended_by');
+    }
+
+    public function roleSources(): HasMany
+    {
+        return $this->hasMany(RoleSource::class);
+    }
+
+    public function permissionSources(): HasMany
+    {
+        return $this->hasMany(PermissionSource::class);
+    }
+
+    public function givePermissionTo(...$permissions): static
+    {
+        throw new LogicException('Direct user permissions are disabled.');
+    }
+
+    public function syncPermissions(...$permissions): static
+    {
+        throw new LogicException('Direct user permissions are disabled.');
+    }
+
+    public function revokePermissionTo($permission): static
+    {
+        throw new LogicException('Direct user permissions are disabled.');
+    }
+
+    public function assignRole(...$roles): static
+    {
+        throw new LogicException('Unprovenanced user role mutations are disabled.');
+    }
+
+    public function removeRole(...$role): static
+    {
+        throw new LogicException('Unprovenanced user role mutations are disabled.');
+    }
+
+    public function syncRoles(...$roles): static
+    {
+        throw new LogicException('Unprovenanced user role mutations are disabled.');
+    }
+
     public function accessLevel(): string
     {
-        return (string) $this->getAttribute('legacy_access_level');
+        return app(LegacyAccessCompatibilityAdapter::class)->read($this);
     }
 
     public static function accessLevelColumn(): string
     {
-        return 'legacy_access_level';
+        return LegacyAccessCompatibilityAdapter::COLUMN;
     }
 
     /**
@@ -107,17 +170,8 @@ class User extends Authenticatable
 
     public function setAccessLevel(string $accessLevel): static
     {
-        if (! in_array($accessLevel, self::accessLevels(), true)) {
-            throw new InvalidArgumentException("Unsupported access level [{$accessLevel}].");
-        }
-
-        $this->setAttribute('legacy_access_level', $accessLevel);
-
-        if ($this->getConnection()->getSchemaBuilder()->hasColumn($this->getTable(), 'role')) {
-            $this->setAttribute('role', $accessLevel);
-        }
-
-        return $this;
+        return app(LegacyAccessCompatibilityAdapter::class)
+            ->write($this, $accessLevel);
     }
 
     /**
@@ -125,7 +179,180 @@ class User extends Authenticatable
      */
     public function scopeWithAccessLevels(Builder $query, array $accessLevels): Builder
     {
-        return $query->whereIn(self::accessLevelColumn(), $accessLevels);
+        return app(LegacyAccessCompatibilityAdapter::class)
+            ->scope($query, $accessLevels);
+    }
+
+    public function scopeWithAuthorizationPermission(
+        Builder $query,
+        string $permission,
+    ): Builder {
+        return $query
+            ->whereNull('suspended_at')
+            ->whereHas(
+                'roles.permissions',
+                static fn (Builder $permissionQuery): Builder => $permissionQuery
+                    ->where('permissions.guard_name', 'web')
+                    ->where('permissions.name', $permission),
+            );
+    }
+
+    public function scopeEligibleStaff(Builder $query): Builder
+    {
+        return $this->scopeEligibleForProtectedRoles($query, [
+            AuthorizationProfile::ROLE_STAFF,
+            AuthorizationProfile::ROLE_ADMINISTRATOR,
+            AuthorizationProfile::ROLE_SUPER_ADMIN,
+        ]);
+    }
+
+    public function scopeEligibleSuperAdmins(Builder $query): Builder
+    {
+        return $this->scopeEligibleForProtectedRoles($query, [
+            AuthorizationProfile::ROLE_SUPER_ADMIN,
+        ]);
+    }
+
+    /**
+     * @param  array<int, string>  $roleNames
+     */
+    public function scopeEligibleForProtectedRoles(
+        Builder $query,
+        array $roleNames,
+    ): Builder {
+        $modelType = $query->getModel()->getMorphClass();
+        $allowCompatibilitySources = app()->environment(['local', 'testing']);
+        $directorySourceKey = match (
+            $query->getModel()->getConnection()->getDriverName()
+        ) {
+            'sqlite' => "'directory:' || CAST(eligible_sources.directory_group_id AS TEXT)",
+            'mysql', 'mariadb' => "CONCAT('directory:', eligible_sources.directory_group_id)",
+            default => throw new LogicException(
+                'Staff eligibility requires a supported database driver.',
+            ),
+        };
+
+        return $query
+            ->whereNull('suspended_at')
+            ->whereExists(
+                static function ($eligible) use (
+                    $allowCompatibilitySources,
+                    $directorySourceKey,
+                    $modelType,
+                    $roleNames,
+                ): void {
+                    $eligible
+                        ->selectRaw('1')
+                        ->from('role_sources as eligible_sources')
+                        ->join(
+                            'roles as eligible_roles',
+                            'eligible_roles.id',
+                            '=',
+                            'eligible_sources.role_id',
+                        )
+                        ->join(
+                            'model_has_roles as eligible_pivots',
+                            static function ($join): void {
+                                $join
+                                    ->on(
+                                        'eligible_pivots.role_id',
+                                        '=',
+                                        'eligible_sources.role_id',
+                                    )
+                                    ->on(
+                                        'eligible_pivots.model_id',
+                                        '=',
+                                        'eligible_sources.user_id',
+                                    );
+                            },
+                        )
+                        ->whereColumn(
+                            'eligible_sources.user_id',
+                            'users.id',
+                        )
+                        ->where(
+                            'eligible_pivots.model_type',
+                            $modelType,
+                        )
+                        ->where('eligible_roles.guard_name', 'web')
+                        ->where('eligible_roles.is_protected', true)
+                        ->whereIn('eligible_roles.name', $roleNames)
+                        ->where(
+                            static function ($provenance) use (
+                                $allowCompatibilitySources,
+                                $directorySourceKey,
+                            ): void {
+                                $provenance->where(
+                                    static function ($directory) use (
+                                        $directorySourceKey,
+                                    ): void {
+                                        $directory
+                                            ->where(
+                                                'eligible_sources.source',
+                                                RoleSource::SOURCE_DIRECTORY,
+                                            )
+                                            ->whereNotNull(
+                                                'eligible_sources.directory_group_id',
+                                            )
+                                            ->whereRaw(
+                                                'eligible_sources.source_key = '
+                                                .$directorySourceKey,
+                                            )
+                                            ->whereExists(
+                                                static function ($mapping): void {
+                                                    $mapping
+                                                        ->selectRaw('1')
+                                                        ->from(
+                                                            'directory_group_role_mappings as eligible_mappings',
+                                                        )
+                                                        ->join(
+                                                            'directory_groups as eligible_groups',
+                                                            'eligible_groups.id',
+                                                            '=',
+                                                            'eligible_mappings.directory_group_id',
+                                                        )
+                                                        ->whereColumn(
+                                                            'eligible_mappings.directory_group_id',
+                                                            'eligible_sources.directory_group_id',
+                                                        )
+                                                        ->whereColumn(
+                                                            'eligible_mappings.role_id',
+                                                            'eligible_sources.role_id',
+                                                        )
+                                                        ->where(
+                                                            'eligible_groups.status',
+                                                            DirectoryGroup::STATUS_PRESENT,
+                                                        );
+                                                },
+                                            );
+                                    },
+                                );
+
+                                if ($allowCompatibilitySources) {
+                                    $provenance->orWhere(
+                                        static function ($compatibility): void {
+                                            $compatibility
+                                                ->whereIn(
+                                                    'eligible_sources.source',
+                                                    [
+                                                        RoleSource::SOURCE_SYSTEM,
+                                                        RoleSource::SOURCE_LEGACY_COMPATIBILITY,
+                                                    ],
+                                                )
+                                                ->whereNull(
+                                                    'eligible_sources.directory_group_id',
+                                                )
+                                                ->whereColumn(
+                                                    'eligible_sources.source_key',
+                                                    'eligible_sources.source',
+                                                );
+                                        },
+                                    );
+                                }
+                            },
+                        );
+                },
+            );
     }
 
     public function isCloudronIdentity(): bool
@@ -135,13 +362,24 @@ class User extends Authenticatable
             && trim($this->oidc_sub) !== '';
     }
 
+    public function hasDirectoryIdentity(): bool
+    {
+        return in_array(
+            $this->identity_type,
+            [self::IDENTITY_CLOUDRON_OIDC, self::IDENTITY_HYBRID],
+            true,
+        )
+            && is_string($this->oidc_sub)
+            && trim($this->oidc_sub) !== '';
+    }
+
     public function isStaff(): bool
     {
-        return in_array($this->accessLevel(), self::staffAccessLevels(), true);
+        return app(LegacyAccessCompatibilityAdapter::class)->staff($this);
     }
 
     public function isAdmin(): bool
     {
-        return in_array($this->accessLevel(), self::adminAccessLevels(), true);
+        return app(LegacyAccessCompatibilityAdapter::class)->admin($this);
     }
 }

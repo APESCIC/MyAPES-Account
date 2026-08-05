@@ -7,6 +7,62 @@ use App\Exceptions\DirectoryUnavailable;
 
 class LdapGroupResolver
 {
+    private const LDAP_SUCCESS = 0;
+
+    /**
+     * @return array<int, array{
+     *     name: string,
+     *     external_id: ?string,
+     *     member_count: int
+     * }>
+     */
+    public function enumerateGroups(): array
+    {
+        $config = $this->configuration();
+        $groupsBaseDn = $this->requiredString($config, 'groups_base_dn');
+        $entries = $this->successfulEntries(
+            $this->fetchGroupEntries(
+                $config,
+                $groupsBaseDn,
+                '(objectclass=group)',
+                ['cn', 'gidnumber', 'memberuid'],
+            ),
+        );
+        $groups = [];
+
+        for ($i = 0; $i < (int) ($entries['count'] ?? 0); $i++) {
+            $entry = $entries[$i] ?? null;
+            $name = is_array($entry) ? ($entry['cn'][0] ?? null) : null;
+
+            if (! is_string($name) || trim($name) === '') {
+                throw new DirectoryUnavailable(
+                    'LDAP group search returned an invalid result.',
+                );
+            }
+
+            $externalId = $entry['gidnumber'][0] ?? null;
+            $externalId = is_string($externalId) && trim($externalId) !== ''
+                ? trim($externalId)
+                : null;
+            $members = $entry['memberuid'] ?? null;
+
+            $groups[] = [
+                'name' => strtolower(trim($name)),
+                'external_id' => $externalId,
+                'member_count' => is_array($members)
+                    ? max(0, (int) ($members['count'] ?? 0))
+                    : 0,
+            ];
+        }
+
+        usort(
+            $groups,
+            static fn (array $left, array $right): int => $left['name'] <=> $right['name'],
+        );
+
+        return $groups;
+    }
+
     /**
      * @return array<int, string>
      */
@@ -25,47 +81,42 @@ class LdapGroupResolver
             throw new DirectoryUnavailable('LDAP group attribute is invalid.');
         }
 
-        $ldap = $this->connect($config);
+        $escapedEmail = ldap_escape($email, '', LDAP_ESCAPE_FILTER);
+        $filter = sprintf($userFilter, $escapedEmail);
+        $entries = $this->successfulEntries(
+            $this->fetchSearchEntries(
+                $config,
+                $baseDn,
+                $filter,
+                [$groupAttribute],
+            ),
+        );
+        $entryCount = (int) ($entries['count'] ?? 0);
 
-        try {
-            $escapedEmail = ldap_escape($email, '', LDAP_ESCAPE_FILTER);
-            $filter = sprintf($userFilter, $escapedEmail);
-            $search = @ldap_search($ldap, $baseDn, $filter, [$groupAttribute]);
-
-            if ($search === false) {
-                throw new DirectoryUnavailable('LDAP user search failed.');
-            }
-
-            $entries = ldap_get_entries($ldap, $search);
-            $entryCount = is_array($entries) ? (int) ($entries['count'] ?? 0) : 0;
-
-            if ($entryCount === 0) {
-                throw new DirectoryIdentityNotFound('No LDAP identity matched the authenticated user.');
-            }
-
-            if ($entryCount !== 1) {
-                throw new DirectoryUnavailable('LDAP identity search returned an ambiguous result.');
-            }
-
-            $entry = $entries[0];
-            $values = $entry[strtolower($groupAttribute)] ?? null;
-
-            if (! is_array($values) || ($values['count'] ?? 0) === 0) {
-                return [];
-            }
-
-            $groups = [];
-
-            for ($i = 0; $i < (int) $values['count']; $i++) {
-                if (isset($values[$i]) && is_string($values[$i])) {
-                    $groups[] = $this->normalizeGroupName($values[$i]);
-                }
-            }
-
-            return array_values(array_unique($groups));
-        } finally {
-            @ldap_unbind($ldap);
+        if ($entryCount === 0) {
+            throw new DirectoryIdentityNotFound('No LDAP identity matched the authenticated user.');
         }
+
+        if ($entryCount !== 1) {
+            throw new DirectoryUnavailable('LDAP identity search returned an ambiguous result.');
+        }
+
+        $entry = $entries[0];
+        $values = $entry[strtolower($groupAttribute)] ?? null;
+
+        if (! is_array($values) || ($values['count'] ?? 0) === 0) {
+            return [];
+        }
+
+        $groups = [];
+
+        for ($i = 0; $i < (int) $values['count']; $i++) {
+            if (isset($values[$i]) && is_string($values[$i])) {
+                $groups[] = $this->normalizeGroupName($values[$i]);
+            }
+        }
+
+        return array_values(array_unique($groups));
     }
 
     /**
@@ -85,40 +136,129 @@ class LdapGroupResolver
 
         $config = $this->configuration();
         $groupsBaseDn = $this->requiredString($config, 'groups_base_dn');
+        $clauses = array_map(
+            static fn (string $group): string => '(cn='.ldap_escape($group, '', LDAP_ESCAPE_FILTER).')',
+            $expected,
+        );
+        $filter = '(&(objectclass=group)(|'.implode('', $clauses).'))';
+        $entries = $this->successfulEntries(
+            $this->fetchSearchEntries(
+                $config,
+                $groupsBaseDn,
+                $filter,
+                ['cn'],
+            ),
+        );
+        $existing = [];
+
+        for ($i = 0; $i < (int) ($entries['count'] ?? 0); $i++) {
+            $cn = $entries[$i]['cn'][0] ?? null;
+
+            if (is_string($cn) && trim($cn) !== '') {
+                $existing[] = strtolower(trim($cn));
+            }
+        }
+
+        return array_values(array_unique($existing));
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @param  array<int, string>  $attributes
+     * @return array<string|int, mixed>
+     */
+    protected function fetchGroupEntries(
+        array $config,
+        string $baseDn,
+        string $filter,
+        array $attributes,
+    ): array {
+        return $this->fetchSearchEntries(
+            $config,
+            $baseDn,
+            $filter,
+            $attributes,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @param  array<int, string>  $attributes
+     * @return array<string|int, mixed>
+     */
+    protected function fetchSearchEntries(
+        array $config,
+        string $baseDn,
+        string $filter,
+        array $attributes,
+    ): array {
         $ldap = $this->connect($config);
 
         try {
-            $clauses = array_map(
-                static fn (string $group): string => '(cn='.ldap_escape($group, '', LDAP_ESCAPE_FILTER).')',
-                $expected,
+            $search = @ldap_search(
+                $ldap,
+                $baseDn,
+                $filter,
+                $attributes,
+                0,
+                0,
+                (int) ($config['search_timeout_seconds'] ?? 10),
             );
-            $filter = '(&(objectclass=group)(|'.implode('', $clauses).'))';
-            $search = @ldap_search($ldap, $groupsBaseDn, $filter, ['cn']);
 
             if ($search === false) {
                 throw new DirectoryUnavailable('LDAP group search failed.');
             }
 
+            $resultCode = null;
+
+            if (! @ldap_parse_result($ldap, $search, $resultCode)
+                || ! is_int($resultCode)) {
+                throw new DirectoryUnavailable(
+                    'LDAP search result could not be verified.',
+                );
+            }
+
+            if ($resultCode !== self::LDAP_SUCCESS) {
+                return [
+                    'count' => 0,
+                    'result_code' => $resultCode,
+                ];
+            }
+
             $entries = ldap_get_entries($ldap, $search);
 
             if (! is_array($entries)) {
-                throw new DirectoryUnavailable('LDAP group search returned an invalid result.');
+                throw new DirectoryUnavailable(
+                    'LDAP group search returned an invalid result.',
+                );
             }
 
-            $existing = [];
+            $entries['result_code'] = $resultCode;
 
-            for ($i = 0; $i < (int) ($entries['count'] ?? 0); $i++) {
-                $cn = $entries[$i]['cn'][0] ?? null;
-
-                if (is_string($cn) && trim($cn) !== '') {
-                    $existing[] = strtolower(trim($cn));
-                }
-            }
-
-            return array_values(array_unique($existing));
+            return $entries;
         } finally {
-            @ldap_unbind($ldap);
+            $this->unbindConnection($ldap);
         }
+    }
+
+    /**
+     * @param  array<string|int, mixed>  $result
+     * @return array<string|int, mixed>
+     */
+    private function successfulEntries(array $result): array
+    {
+        $resultCode = $result['result_code'] ?? null;
+
+        if (! is_int($resultCode)
+            || $resultCode !== self::LDAP_SUCCESS) {
+            throw new DirectoryUnavailable(
+                'LDAP search did not complete successfully.',
+            );
+        }
+
+        unset($result['result_code']);
+
+        return $result;
     }
 
     private function normalizeGroupName(string $group): string
@@ -157,26 +297,66 @@ class LdapGroupResolver
         $host = $this->requiredString($config, 'host');
         $bindDn = $this->requiredString($config, 'bind_dn');
         $bindPassword = $this->requiredString($config, 'bind_password');
-        $ldap = @ldap_connect($host, (int) ($config['port'] ?? 389));
+        $ldap = $this->openConnection(
+            $host,
+            (int) ($config['port'] ?? 389),
+        );
 
         if ($ldap === false) {
             throw new DirectoryUnavailable('Unable to connect to LDAP.');
         }
 
-        ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
-        ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
+        if (! $this->applyConnectionOption(
+            $ldap,
+            LDAP_OPT_PROTOCOL_VERSION,
+            3,
+        )
+            || ! $this->applyConnectionOption(
+                $ldap,
+                LDAP_OPT_REFERRALS,
+                0,
+            )
+            || ! $this->applyConnectionOption(
+                $ldap,
+                LDAP_OPT_NETWORK_TIMEOUT,
+                (int) ($config['connect_timeout_seconds'] ?? 5),
+            )) {
+            $this->unbindConnection($ldap);
+
+            throw new DirectoryUnavailable(
+                'LDAP connection options could not be applied.',
+            );
+        }
 
         if (($config['start_tls'] ?? false) === true && ! @ldap_start_tls($ldap)) {
-            @ldap_unbind($ldap);
+            $this->unbindConnection($ldap);
             throw new DirectoryUnavailable('LDAP STARTTLS negotiation failed.');
         }
 
         if (! @ldap_bind($ldap, $bindDn, $bindPassword)) {
-            @ldap_unbind($ldap);
+            $this->unbindConnection($ldap);
             throw new DirectoryUnavailable('LDAP bind failed.');
         }
 
         return $ldap;
+    }
+
+    protected function openConnection(string $host, int $port): mixed
+    {
+        return @ldap_connect($host, $port);
+    }
+
+    protected function applyConnectionOption(
+        mixed $connection,
+        int $option,
+        mixed $value,
+    ): bool {
+        return @ldap_set_option($connection, $option, $value);
+    }
+
+    protected function unbindConnection(mixed $connection): void
+    {
+        @ldap_unbind($connection);
     }
 
     /**
