@@ -108,8 +108,8 @@ EXPECTED_CURRENT_SHA="${2:-}"
 EXPECTED_CONTROLS_SHA256="${3:-}"
 DATA_DIR="/app/data"
 RELEASES_DIR="${DATA_DIR}/releases"
-CONTROL_RELEASES_DIR="${DATA_DIR}/deployment-controls"
-CONTROL_ROOT="${CONTROL_RELEASES_DIR}/${EXPECTED_CURRENT_SHA}"
+CONTROL_RELEASES_DIR="/run/myapes-deployment-controls"
+CONTROL_ROOT="${4:-}"
 SHARED_DIR="${DATA_DIR}/shared"
 CURRENT_LINK="${DATA_DIR}/current"
 PREVIOUS_LINK="${DATA_DIR}/previous"
@@ -120,8 +120,9 @@ if [[ ! -L "$PREVIOUS_LINK" ]]; then
 fi
 
 if [[ ! "$EXPECTED_ROLLBACK_SHA" =~ ^[0-9a-f]{40}$ \
-  || ! "$EXPECTED_CURRENT_SHA" =~ ^[0-9a-f]{40}$ \
-  || ! "$EXPECTED_CONTROLS_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+    || ! "$EXPECTED_CURRENT_SHA" =~ ^[0-9a-f]{40}$ \
+    || ! "$EXPECTED_CONTROLS_SHA256" =~ ^[0-9a-f]{64}$ \
+    || "$CONTROL_ROOT" != "${CONTROL_RELEASES_DIR}/${EXPECTED_CURRENT_SHA}" ]]; then
   echo "Rollback requires exact release identities and deployment-control manifest SHA-256."
   exit 1
 fi
@@ -206,6 +207,13 @@ if [[ "$(tr -d '\r\n' <"${ROLLBACK_TARGET}/REVISION")" != "$ROLLBACK_SHA" ]]; th
   exit 1
 fi
 
+for protected_path in "$ROLLBACK_TARGET" "${ROLLBACK_TARGET}/public"; do
+  if sudo -u www-data test -w "$protected_path"; then
+    echo "Previous release lost its immutable write boundary; refusing unauthenticated rollback."
+    exit 1
+  fi
+done
+
 if [[ -e "$CURRENT_LINK" && ! -L "$CURRENT_LINK" ]]; then
   echo "Current release path is not a symlink; refusing code rollback."
   exit 1
@@ -224,8 +232,28 @@ for runtime_link in storage .env; do
   ln -s "$shared_path" "$target_path"
 done
 
-install -m 0644 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf.rollback"
-install -m 0755 "${CONTROL_ROOT}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh.rollback"
+PUBLIC_STORAGE_LINK="${ROLLBACK_TARGET}/public/storage"
+SHARED_PUBLIC_STORAGE="${SHARED_DIR}/storage/app/public"
+if [[ -L "$PUBLIC_STORAGE_LINK" ]]; then
+  if [[ "$(readlink -f "$PUBLIC_STORAGE_LINK" 2>/dev/null || true)" != "$SHARED_PUBLIC_STORAGE" ]]; then
+    echo "Previous release public storage link targets an unexpected path."
+    exit 1
+  fi
+elif [[ -e "$PUBLIC_STORAGE_LINK" ]]; then
+  echo "Previous release public storage path is not a symlink."
+  exit 1
+else
+  ln -s "$SHARED_PUBLIC_STORAGE" "$PUBLIC_STORAGE_LINK"
+fi
+
+chmod -R a-w -- "$ROLLBACK_TARGET"
+install -d -o www-data -g www-data -m 0770 "${ROLLBACK_TARGET}/bootstrap/cache"
+chown -R www-data:www-data "${ROLLBACK_TARGET}/bootstrap/cache"
+chmod -R u+rwX,g+rwX,o-rwx "${ROLLBACK_TARGET}/bootstrap/cache"
+chmod 0555 "$DATA_DIR" "$RELEASES_DIR" "$ROLLBACK_TARGET" "${ROLLBACK_TARGET}/public"
+
+install -m 0444 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf.rollback"
+install -m 0555 "${CONTROL_ROOT}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh.rollback"
 
 rm -f -- "${CURRENT_LINK}.rollback"
 ln -s "$ROLLBACK_TARGET" "${CURRENT_LINK}.rollback"
@@ -233,5 +261,20 @@ mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"
 mv -Tf "${DATA_DIR}/apache/app.conf.rollback" "${DATA_DIR}/apache/app.conf"
 mv -Tf "${DATA_DIR}/run.sh.rollback" "${DATA_DIR}/run.sh"
 rm -f -- "$PREVIOUS_LINK"
+chmod 0555 "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR"
+
+for protected_path in \
+  "$DATA_DIR" \
+  "${DATA_DIR}/apache" \
+  "${DATA_DIR}/apache/app.conf" \
+  "${DATA_DIR}/run.sh" \
+  "$RELEASES_DIR" \
+  "$ROLLBACK_TARGET" \
+  "${ROLLBACK_TARGET}/public"; do
+  if sudo -u www-data test -w "$protected_path"; then
+    echo "Application user can mutate restored release control: $protected_path"
+    exit 1
+  fi
+done
 
 echo "Rolled back code to ${ROLLBACK_SHA}. Database migrations were retained and were not reversed."

@@ -575,9 +575,120 @@ jobs:
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
             restart --app "$CLOUDRON_APP_ID"
 
+      - name: Reconstitute authenticated runtime controls after restart
+        id: runtime_controls
+        if: steps.restart.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          runtime_controls_command="$(cat <<'BASH'
+          set -euo pipefail
+          release_sha="$1"
+          expected_controls_sha256="$2"
+          archive_path="/app/data/.deploy/$release_sha/release.tar.gz"
+          control_parent="/run/myapes-deployment-controls"
+          control_root="/run/myapes-deployment-controls/$release_sha"
+          temporary_root="$control_root.installing"
+
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$expected_controls_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test -f "$archive_path"
+          test ! -L "$archive_path"
+          case "$control_root" in
+            "$control_parent/"*) ;;
+            *) echo "Unsafe runtime-control destination."; exit 1 ;;
+          esac
+
+          rm -rf -- "$temporary_root"
+          install -d -o root -g root -m 0700 \
+            "$control_parent" "$temporary_root"
+          tar --extract --gzip --no-same-owner --no-same-permissions \
+            --file "$archive_path" \
+            --directory "$temporary_root" \
+            ./DEPLOYMENT-CONTROLS.sha256 \
+            ./scripts/deploy/activate-release.sh \
+            ./scripts/deploy/rollback-release.sh \
+            ./scripts/deploy/cloudron-app.conf \
+            ./scripts/deploy/cloudron-run.sh
+
+          expected_files="$(printf '%s\n' \
+            DEPLOYMENT-CONTROLS.sha256 \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh | LC_ALL=C sort)"
+          actual_files="$(cd "$temporary_root" && find . -type f -printf '%P\n' | LC_ALL=C sort)"
+          [[ "$actual_files" == "$expected_files" ]]
+          test -z "$(find "$temporary_root" -type l -print -quit)"
+
+          actual_controls_sha256="$(sha256sum "$temporary_root/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$actual_controls_sha256" == "$expected_controls_sha256" ]]
+          expected_paths="$(printf '%s\n' \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh)"
+          actual_paths="$(awk '{print $2}' "$temporary_root/DEPLOYMENT-CONTROLS.sha256")"
+          [[ "$actual_paths" == "$expected_paths" ]]
+          (
+            cd "$temporary_root"
+            sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
+          )
+
+          chown -R root:root "$temporary_root"
+          find "$temporary_root" -type d -exec chmod 0700 {} +
+          chmod 0600 \
+            "$temporary_root/DEPLOYMENT-CONTROLS.sha256" \
+            "$temporary_root/scripts/deploy/cloudron-app.conf"
+          chmod 0700 \
+            "$temporary_root/scripts/deploy/activate-release.sh" \
+            "$temporary_root/scripts/deploy/rollback-release.sh" \
+            "$temporary_root/scripts/deploy/cloudron-run.sh"
+
+          rm -rf -- "$control_root"
+          mv "$temporary_root" "$control_root"
+          test "$(stat -c '%U:%G' "$control_root")" = "root:root"
+          test "$(stat -c '%a' "$control_root")" = "700"
+          while IFS=':' read -r control_path expected_mode; do
+            test "$(stat -c '%U:%G' "$control_root/$control_path")" = "root:root"
+            test "$(stat -c '%a' "$control_root/$control_path")" = "$expected_mode"
+          done <<'CONTROL_MODES'
+          DEPLOYMENT-CONTROLS.sha256:600
+          scripts/deploy/activate-release.sh:700
+          scripts/deploy/rollback-release.sh:700
+          scripts/deploy/cloudron-app.conf:600
+          scripts/deploy/cloudron-run.sh:700
+          CONTROL_MODES
+          if sudo -u www-data test -w "$control_root"; then
+            echo "Application user can replace authenticated runtime controls."
+            exit 1
+          fi
+
+          current_target="$(readlink -f /app/data/current)"
+          [[ "$current_target" == "/app/data/releases/$release_sha" ]]
+          if sudo -u www-data test -w /app/data; then exit 1; fi
+          if sudo -u www-data test -w /app/data/current; then exit 1; fi
+          if sudo -u www-data test -w /app/data/current/public; then exit 1; fi
+          if [[ -L /app/data/previous ]]; then
+            if sudo -u www-data test -w /app/data/previous; then exit 1; fi
+            if sudo -u www-data test -w /app/data/previous/public; then exit 1; fi
+          fi
+          if sudo -u www-data test -w /app/data/run.sh; then exit 1; fi
+          if sudo -u www-data test -w /app/data/apache/app.conf; then exit 1; fi
+          sudo -u www-data test -w /app/data/current/bootstrap/cache
+          sudo -u www-data test -w /app/data/shared/storage
+          BASH
+          )"
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            exec --app "$CLOUDRON_APP_ID" -- \
+            bash -c "$runtime_controls_command" -- \
+              "$RELEASE_SHA" "$DEPLOYMENT_CONTROLS_SHA256"
+
       - name: Verify exact release health and OIDC redirect
         id: verify
-        if: steps.restart.outcome == 'success'
+        if: steps.restart.outcome == 'success' && steps.runtime_controls.outcome == 'success'
         shell: bash
         continue-on-error: true
         run: |
@@ -685,7 +796,8 @@ jobs:
           PY
 
       - name: Roll back code after failed release restart or verification
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        id: rollback
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
         shell: bash
         env:
           PREVIOUS_RELEASE: ${{ steps.previous.outputs.previous_release }}
@@ -697,7 +809,69 @@ jobs:
           previous_release="$1"
           failed_release="$2"
           expected_controls_sha256="$3"
-          control_root="/app/data/deployment-controls/$failed_release"
+          archive_path="/app/data/.deploy/$failed_release/release.tar.gz"
+          control_parent="/run/myapes-deployment-controls"
+          control_root="/run/myapes-deployment-controls/$failed_release"
+          temporary_root="$control_root.installing"
+
+          [[ "$previous_release" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$failed_release" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$expected_controls_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test -f "$archive_path"
+          test ! -L "$archive_path"
+          case "$control_root" in
+            "$control_parent/"*) ;;
+            *) echo "Unsafe rollback-control destination."; exit 1 ;;
+          esac
+
+          rm -rf -- "$temporary_root"
+          install -d -o root -g root -m 0700 \
+            "$control_parent" "$temporary_root"
+          tar --extract --gzip --no-same-owner --no-same-permissions \
+            --file "$archive_path" \
+            --directory "$temporary_root" \
+            ./DEPLOYMENT-CONTROLS.sha256 \
+            ./scripts/deploy/activate-release.sh \
+            ./scripts/deploy/rollback-release.sh \
+            ./scripts/deploy/cloudron-app.conf \
+            ./scripts/deploy/cloudron-run.sh
+
+          expected_files="$(printf '%s\n' \
+            DEPLOYMENT-CONTROLS.sha256 \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh | LC_ALL=C sort)"
+          actual_files="$(cd "$temporary_root" && find . -type f -printf '%P\n' | LC_ALL=C sort)"
+          [[ "$actual_files" == "$expected_files" ]]
+          test -z "$(find "$temporary_root" -type l -print -quit)"
+
+          actual_controls_sha256="$(sha256sum "$temporary_root/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$actual_controls_sha256" == "$expected_controls_sha256" ]]
+          expected_paths="$(printf '%s\n' \
+            scripts/deploy/activate-release.sh \
+            scripts/deploy/rollback-release.sh \
+            scripts/deploy/cloudron-app.conf \
+            scripts/deploy/cloudron-run.sh)"
+          actual_paths="$(awk '{print $2}' "$temporary_root/DEPLOYMENT-CONTROLS.sha256")"
+          [[ "$actual_paths" == "$expected_paths" ]]
+          (
+            cd "$temporary_root"
+            sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
+          )
+
+          chown -R root:root "$temporary_root"
+          find "$temporary_root" -type d -exec chmod 0700 {} +
+          chmod 0600 \
+            "$temporary_root/DEPLOYMENT-CONTROLS.sha256" \
+            "$temporary_root/scripts/deploy/cloudron-app.conf"
+          chmod 0700 \
+            "$temporary_root/scripts/deploy/activate-release.sh" \
+            "$temporary_root/scripts/deploy/rollback-release.sh" \
+            "$temporary_root/scripts/deploy/cloudron-run.sh"
+          rm -rf -- "$control_root"
+          mv "$temporary_root" "$control_root"
+
           test -d "$control_root"
           test ! -L "$control_root"
           test "$(stat -c '%U:%G' "$control_root")" = "root:root"
@@ -712,6 +886,16 @@ jobs:
             test -f "$control_root/$control_path"
             test ! -L "$control_root/$control_path"
           done
+          while IFS=':' read -r control_path expected_mode; do
+            test "$(stat -c '%U:%G' "$control_root/$control_path")" = "root:root"
+            test "$(stat -c '%a' "$control_root/$control_path")" = "$expected_mode"
+          done <<'CONTROL_MODES'
+          DEPLOYMENT-CONTROLS.sha256:600
+          scripts/deploy/activate-release.sh:700
+          scripts/deploy/rollback-release.sh:700
+          scripts/deploy/cloudron-app.conf:600
+          scripts/deploy/cloudron-run.sh:700
+          CONTROL_MODES
           actual_controls_sha256="$(sha256sum "$control_root/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
           [[ "$actual_controls_sha256" == "$expected_controls_sha256" ]]
           expected_paths="$(printf '%s\n' \
@@ -725,8 +909,12 @@ jobs:
             cd "$control_root"
             sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
           )
-          bash "/app/data/deployment-controls/$failed_release/scripts/deploy/rollback-release.sh" \
-            "$previous_release" "$failed_release" "$expected_controls_sha256"
+          if sudo -u www-data test -w "$control_root"; then
+            echo "Application user can replace authenticated rollback controls."
+            exit 1
+          fi
+          bash "$control_root/scripts/deploy/rollback-release.sh" \
+            "$previous_release" "$failed_release" "$expected_controls_sha256" "$control_root"
           BASH
           )"
           cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
@@ -739,7 +927,7 @@ jobs:
             restart --app "$CLOUDRON_APP_ID"
 
       - name: Verify restored release effective Laravel environment
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
         shell: bash
         run: |
           set -euo pipefail
@@ -758,7 +946,7 @@ jobs:
           fi
 
       - name: Verify restored release health and OIDC redirect
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
         shell: bash
         env:
           PREVIOUS_AVAILABLE: ${{ steps.previous.outputs.available }}
@@ -860,15 +1048,37 @@ jobs:
               sys.exit("Restored OIDC verification returned a malformed challenge.")
           PY
 
+      - name: Remove deployment staging after accepted outcome
+        if: always() && (steps.verify.outcome == 'success' || steps.rollback.outcome == 'success')
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cleanup_command="$(cat <<'BASH'
+          set -euo pipefail
+          release_sha="$1"
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          staging_root="/app/data/.deploy/$release_sha"
+          case "$staging_root" in
+            /app/data/.deploy/[0-9a-f][0-9a-f]*) rm -rf -- "$staging_root" ;;
+            *) echo "Unsafe deployment staging cleanup path."; exit 1 ;;
+          esac
+          BASH
+          )"
+          cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+            exec --app "$CLOUDRON_APP_ID" -- \
+            bash -c "$cleanup_command" -- "$RELEASE_SHA"
+
       - name: Fail an idempotent deployment after restart or verification failure
-        if: always() && steps.previous.outputs.same_release == 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        if: always() && steps.previous.outputs.same_release == 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
         shell: bash
         run: |
           echo "The already-active release failed verification; no stale rollback was attempted."
           exit 1
 
       - name: Fail deployment after attempted rollback
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.verify.outcome == 'failure')
+        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
         shell: bash
         run: |
           echo "Deployment failed after restart or verification; any attempted code rollback did not make this deployment successful."

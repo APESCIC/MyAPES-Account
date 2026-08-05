@@ -129,11 +129,13 @@ class DeploymentAuthenticationContractTest extends TestCase
 
         $activation = $this->position($workflow, '- name: Extract and activate uploaded release');
         $restart = $this->position($workflow, '- name: Restart activated release');
+        $runtimeControls = $this->position($workflow, '- name: Reconstitute authenticated runtime controls after restart');
         $verify = $this->position($workflow, '- name: Verify exact release health and OIDC redirect');
         $rollback = $this->position($workflow, '- name: Roll back code after failed release restart or verification');
 
         $this->assertLessThan($restart, $activation);
-        $this->assertLessThan($verify, $restart);
+        $this->assertLessThan($runtimeControls, $restart);
+        $this->assertLessThan($verify, $runtimeControls);
         $this->assertLessThan($rollback, $verify);
         $this->assertMatchesRegularExpression(
             '/name:\s*Restart activated release\R\s+id:\s*restart\R\s+continue-on-error:\s*true/s',
@@ -144,13 +146,10 @@ class DeploymentAuthenticationContractTest extends TestCase
             $workflow,
         );
         $this->assertMatchesRegularExpression(
-            '/\bif:\s*(?:\$\{\{\s*)?steps\.restart\.outcome\s*==\s*[\'"]success[\'"](?:\s*\}\})?/',
+            '/\bif:\s*(?:\$\{\{\s*)?steps\.restart\.outcome\s*==\s*[\'"]success[\'"]\s*&&\s*steps\.runtime_controls\.outcome\s*==\s*[\'"]success[\'"](?:\s*\}\})?/',
             $workflow,
         );
-        $this->assertMatchesRegularExpression(
-            '/\bif:\s*(?:\$\{\{\s*)?always\(\)\s*&&\s*steps\.previous\.outputs\.same_release\s*!=\s*[\'"]true[\'"]\s*&&\s*\(steps\.restart\.outcome\s*==\s*[\'"]failure[\'"]\s*\|\|\s*steps\.verify\.outcome\s*==\s*[\'"]failure[\'"]\)(?:\s*\}\})?/',
-            $workflow,
-        );
+        $this->assertStringContainsString("steps.runtime_controls.outcome == 'failure'", $workflow);
         $this->assertStringContainsString(
             "steps.previous.outputs.same_release == 'true'",
             $workflow,
@@ -164,11 +163,11 @@ class DeploymentAuthenticationContractTest extends TestCase
             $workflow,
         );
         $this->assertStringContainsString(
-            'bash "/app/data/deployment-controls/$failed_release/scripts/deploy/rollback-release.sh"',
+            'bash "$control_root/scripts/deploy/rollback-release.sh"',
             $workflow,
         );
         $this->assertStringContainsString(
-            '"$previous_release" "$failed_release" "$expected_controls_sha256"',
+            '"$previous_release" "$failed_release" "$expected_controls_sha256" "$control_root"',
             $workflow,
         );
         $this->assertStringContainsString('previous_version', $workflow);
@@ -204,6 +203,7 @@ class DeploymentAuthenticationContractTest extends TestCase
     public function test_workflow_validates_versions_on_pull_requests_without_deploying_them(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $deployJob = substr($workflow, $this->position($workflow, '  deploy:'), 500);
 
         $this->assertMatchesRegularExpression('/pull_request:\s*\R/', $workflow);
         $this->assertStringContainsString('fetch-depth: 0', $workflow);
@@ -213,13 +213,14 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('npm run test:frontend', $workflow);
         $this->assertMatchesRegularExpression(
             '/deploy:\s*\R(?:(?!\n\S).)*if:\s*\$\{\{\s*github\.event_name\s*==\s*[\'"]push[\'"]\s*&&\s*github\.ref\s*==\s*[\'"]refs\/heads\/main[\'"]\s*\}\}/s',
-            $workflow,
+            $deployJob,
         );
     }
 
     public function test_workflow_runs_the_phase_b_contract_on_mysql_and_mariadb(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $deployJob = substr($workflow, $this->position($workflow, '  deploy:'), 500);
 
         $this->assertStringContainsString('database-compatibility:', $workflow);
         $this->assertStringContainsString('fail-fast: false', $workflow);
@@ -279,7 +280,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
         $this->assertMatchesRegularExpression(
             '/deploy:\s*\R(?:(?!\n\S).)*needs:\s*\[\s*deployment-control-authentication,\s*quality,\s*database-compatibility\s*\]/s',
-            $workflow,
+            $deployJob,
         );
     }
 
@@ -370,7 +371,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertLessThan(
             strpos(
                 $workflow,
-                'bash "/app/data/deployment-controls/$failed_release/scripts/deploy/rollback-release.sh"',
+                'bash "$control_root/scripts/deploy/rollback-release.sh"',
             ),
             strpos(
                 $workflow,
@@ -446,7 +447,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $rollback = $this->read('scripts/deploy/rollback-release.sh');
 
         $this->assertStringContainsString(
-            'CONTROL_RELEASES_DIR="${DATA_DIR}/deployment-controls"',
+            'CONTROL_RELEASES_DIR="/run/myapes-deployment-controls"',
             $activation,
         );
         $this->assertStringContainsString(
@@ -470,7 +471,12 @@ class DeploymentAuthenticationContractTest extends TestCase
             $activation,
         );
         $this->assertStringContainsString(
-            'CONTROL_ROOT="${CONTROL_RELEASES_DIR}/${EXPECTED_CURRENT_SHA}"',
+            'CONTROL_RELEASES_DIR="/run/myapes-deployment-controls"',
+            $rollback,
+        );
+        $this->assertStringContainsString('CONTROL_ROOT="${4:-}"', $rollback);
+        $this->assertStringContainsString(
+            '"$CONTROL_ROOT" != "${CONTROL_RELEASES_DIR}/${EXPECTED_CURRENT_SHA}"',
             $rollback,
         );
         $this->assertStringContainsString(
@@ -486,9 +492,57 @@ class DeploymentAuthenticationContractTest extends TestCase
             $rollback,
         );
         $this->assertStringContainsString(
-            'bash "/app/data/deployment-controls/$failed_release/scripts/deploy/rollback-release.sh"',
+            'bash "$control_root/scripts/deploy/rollback-release.sh"',
             $workflow,
         );
+        $this->assertStringNotContainsString('/app/data/deployment-controls', $workflow.$activation.$rollback);
+    }
+
+    public function test_post_restart_controls_are_reauthenticated_outside_app_data_and_write_boundaries_are_checked(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+
+        $this->assertStringContainsString(
+            '- name: Reconstitute authenticated runtime controls after restart',
+            $workflow,
+        );
+        $this->assertStringContainsString('id: runtime_controls', $workflow);
+        $this->assertStringContainsString(
+            'control_root="/run/myapes-deployment-controls/$release_sha"',
+            $workflow,
+        );
+        $this->assertGreaterThanOrEqual(2, substr_count(
+            $workflow,
+            'tar --extract --gzip',
+        ));
+        $this->assertGreaterThanOrEqual(2, substr_count(
+            $workflow,
+            'sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256',
+        ));
+        $this->assertStringContainsString(
+            'sudo -u www-data test -w "$control_root"',
+            $workflow,
+        );
+        foreach ([
+            '/app/data',
+            '/app/data/current',
+            '/app/data/current/public',
+            '/app/data/run.sh',
+            '/app/data/apache/app.conf',
+        ] as $protectedPath) {
+            $this->assertStringContainsString(
+                'sudo -u www-data test -w '.$protectedPath,
+                $workflow,
+            );
+        }
+        $this->assertStringContainsString('chmod -R a-w -- "$release_root"', $activation);
+        $this->assertStringContainsString('chmod 0555 "$DATA_DIR" "$RELEASES_DIR"', $activation);
+        $this->assertStringContainsString(
+            'harden_release_write_boundaries "$CURRENT_TARGET_BEFORE"',
+            $activation,
+        );
+        $this->assertStringNotContainsString('rm -rf -- "$DEPLOY_DIR"', $activation);
     }
 
     public function test_control_verifiers_reject_marker_preserving_tampering_and_unsafe_manifests(): void
@@ -612,6 +666,24 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $this->assertStringContainsString('export APP_ENV=production', $runScript);
         $this->assertStringContainsString('SetEnv APP_ENV production', $apache);
+        foreach ([
+            '/app/data',
+            '/app/data/releases',
+            '"$CURRENT_DIR"',
+            '"${CURRENT_DIR}/public"',
+            '/app/data/run.sh',
+            '/app/data/apache/app.conf',
+        ] as $protectedPath) {
+            $this->assertStringContainsString($protectedPath, $runScript);
+        }
+        $this->assertStringContainsString(
+            'sudo -u www-data test -w "$protected_path"',
+            $runScript,
+        );
+        $this->assertStringContainsString(
+            'sudo -u www-data test -w "${CURRENT_DIR}/bootstrap/cache"',
+            $runScript,
+        );
     }
 
     public function test_retained_worker_timeout_is_safe_for_v071_without_narrowing_the_phase_b_job(): void
@@ -674,11 +746,15 @@ class DeploymentAuthenticationContractTest extends TestCase
             $script,
         );
         $this->assertStringContainsString(
-            'install -m 0644 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf"',
+            'Previous release lost its immutable write boundary',
             $script,
         );
         $this->assertStringContainsString(
-            'install -m 0755 "${CONTROL_ROOT}/scripts/deploy/cloudron-run.sh"',
+            'install -m 0444 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf"',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'install -m 0555 "${CONTROL_ROOT}/scripts/deploy/cloudron-run.sh"',
             $script,
         );
         $this->assertStringNotContainsString(
@@ -703,7 +779,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $runtimeStaging = $this->position(
             $script,
-            'install -m 0644 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf"',
+            'install -m 0444 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf"',
         );
         $applicationSwitch = $this->position(
             $script,

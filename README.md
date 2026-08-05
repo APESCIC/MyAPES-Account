@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-05T13:50:36+01:00`
+- Last verified README health review: `2026-08-05T14:35:02+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -349,16 +349,22 @@ dependency runs, a dependency-independent job reads those four blobs from the
 exact Git revision and exports the trusted manifest digest. The deploy runner,
 activation script, and rollback path all require that exact digest, exact fixed
 paths, and complete-file hashes before executing or publishing a control.
-Activation copies the verified controls into the root-owned, application-
-non-writable `/app/data/deployment-controls/<sha>` directory; rollback executes
-and consumes only those copies, so verification and use share one protected
-content boundary. Rollback may therefore retain the authenticated v0.8.0
-production-pinned Apache configuration and launcher so restored v0.7.1 code
-cannot inherit a non-production `APP_ENV`, while marker-preserving altered
-content fails before the code link changes. v0.7.1 is compatible with the
-roleless schema through `legacy_access_level`. The pre-deployment Cloudron
-backup is the recovery boundary if database recovery, rather than code
-rollback, is required.
+Cloudron's LAMP startup normalizes ownership below `/app/data` to the application
+user. The deployment therefore removes application write bits from `/app/data`,
+the active and rollback release roots, their public directories, the Apache
+configuration, and the launcher while leaving only Laravel's cache and shared
+storage paths writable. These mode boundaries survive that ownership change and
+are checked by the launcher and again after restart. Activation authenticates a
+root-only control copy under `/run/myapes-deployment-controls/<sha>`. After the
+restart, CI recreates that copy from the retained tested archive, requires the
+externally exported manifest digest and every complete-file hash, and verifies
+the live application write boundaries before health acceptance. Rollback repeats
+the same extraction and authentication immediately before use and refuses a
+previous release that lost its immutable boundary. The staging archive is
+removed only after a successful release verification or completed code
+rollback. Marker-preserving altered content therefore fails before a control is
+executed or a code link changes. The pre-deployment Cloudron backup remains the
+recovery boundary if database recovery, rather than code rollback, is required.
 
 A deliberate maintenance downgrade first requires Laravel maintenance mode and
 then fails before schema mutation when any suspension or non-default
@@ -374,7 +380,7 @@ backends fail closed.
 3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded cutover, lifecycle, compatibility, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
 4. Only a successful `main` push proceeds. Cloudron creates the pre-deployment backup before any upload or activation.
 5. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>` only after local verification of the externally exported control-manifest digest and all four complete control files.
-6. The activation script publishes a root-owned authenticated control copy, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It fails if that link does not resolve to shared public storage or if `www-data` can mutate the immutable release `public` directory. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
+6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It removes application write bits from the new and rollback release boundaries while restoring explicit write access only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
    1. `optimize:clear`;
    2. `myapes:authorization-preflight --no-interaction --no-ansi`;
    3. `migrate --force`;
@@ -385,9 +391,10 @@ backends fail closed.
    8. `permission:cache-reset --no-interaction`;
    9. `myapes:authorization-check --no-interaction --no-ansi`; and
    10. the atomic `/app/data/current` switch.
-7. Cloudron restart is a separate operation after a successful switch. Apache serves `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`.
-8. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
-9. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Restart or verification failure for a new activation may roll back only when the current and previous links match the exact failed and pre-activation SHAs; any mismatch fails closed. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract.
+7. Cloudron restart is a separate operation after a successful switch. Apache serves `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`. The launcher fails closed if ownership normalization made a protected release or runtime-control path writable.
+8. The deploy job re-extracts the four fixed controls from the retained archive into root-only `/run`, verifies the external manifest digest and every file hash, and checks the post-restart active/rollback release, launcher, Apache, cache, and shared-storage write boundaries.
+9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
+10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Restart or verification failure for a new activation may roll back only when the current and previous links match the exact failed and pre-activation SHAs; any mismatch fails closed. Rollback reauthenticates its control copy under `/run` immediately before execution. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted health or a completed rollback.
 
 `version` in `/healthz` is the human-facing semantic application version. `release` is the immutable deployment commit SHA; neither replaces the other.
 

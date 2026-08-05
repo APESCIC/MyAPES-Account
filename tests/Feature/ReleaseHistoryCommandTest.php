@@ -17,25 +17,26 @@ class ReleaseHistoryCommandTest extends TestCase
         $repository = app(ReleaseHistoryRepository::class);
         $releases = $repository->all();
 
-        $this->assertSame('0.8.1', $repository->version());
-        $this->assertSame('0.8.1', $repository->current()['version']);
+        $this->assertSame('0.8.2', $repository->version());
+        $this->assertSame('0.8.2', $repository->current()['version']);
         $this->assertSame(
-            ['0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
+            ['0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
             array_column($releases, 'version'),
         );
         $this->assertSame('2026-08-05', $releases[0]['date']);
         $this->assertSame('2026-08-05', $releases[1]['date']);
-        $this->assertSame('2026-07-28', $releases[2]['date']);
-        $this->assertSame('2026-07-27', $releases[3]['date']);
+        $this->assertSame('2026-08-05', $releases[2]['date']);
+        $this->assertSame('2026-07-28', $releases[3]['date']);
         $this->assertSame('2026-07-27', $releases[4]['date']);
         $this->assertSame('2026-07-27', $releases[5]['date']);
         $this->assertSame('2026-07-27', $releases[6]['date']);
+        $this->assertSame('2026-07-27', $releases[7]['date']);
 
-        foreach (array_slice($releases, 7) as $release) {
+        foreach (array_slice($releases, 8) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 6) as $release) {
+        foreach (array_slice($releases, 7) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
 
@@ -54,7 +55,7 @@ class ReleaseHistoryCommandTest extends TestCase
             strtolower(implode(' ', $current['known_limitations'])),
         );
 
-        $phaseB = $releases[1];
+        $phaseB = $releases[2];
         $this->assertStringContainsString(
             'issue #11',
             strtolower(implode(' ', $phaseB['known_limitations'])),
@@ -72,7 +73,7 @@ class ReleaseHistoryCommandTest extends TestCase
     public function test_validation_command_accepts_the_bootstrap_history(): void
     {
         $this->artisan('myapes:changelog-validate')
-            ->expectsOutputToContain('Release history is valid at v0.8.1')
+            ->expectsOutputToContain('Release history is valid at v0.8.2')
             ->assertSuccessful();
     }
 
