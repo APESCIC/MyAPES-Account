@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-05T12:00:41+01:00`
+- Last verified README health review: `2026-08-05T13:50:36+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -374,11 +374,11 @@ backends fail closed.
 3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded cutover, lifecycle, compatibility, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
 4. Only a successful `main` push proceeds. Cloudron creates the pre-deployment backup before any upload or activation.
 5. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>` only after local verification of the externally exported control-manifest digest and all four complete control files.
-6. The activation script publishes a root-owned authenticated control copy, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores shared `.env`/storage links, forces and verifies `APP_ENV=production`, and runs every Artisan step as `www-data` through that release:
+6. The activation script publishes a root-owned authenticated control copy, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It fails if that link does not resolve to shared public storage or if `www-data` can mutate the immutable release `public` directory. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
    1. `optimize:clear`;
    2. `myapes:authorization-preflight --no-interaction --no-ansi`;
    3. `migrate --force`;
-   4. storage link plus configuration, route, and view caches;
+   4. configuration, route, and view caches;
    5. `permission:cache-reset --no-interaction`;
    6. `myapes:directory-sync --source=manual --no-interaction --no-ansi`;
    7. `myapes:authorization-sync --no-interaction --no-ansi`;

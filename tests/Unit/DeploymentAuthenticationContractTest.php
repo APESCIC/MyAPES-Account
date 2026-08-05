@@ -15,7 +15,6 @@ class DeploymentAuthenticationContractTest extends TestCase
             'optimize:clear',
             'myapes:authorization-preflight --no-interaction --no-ansi',
             'migrate --force',
-            'storage:link --force',
             'config:cache',
             'route:cache',
             'view:cache',
@@ -61,6 +60,37 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertSame(1, substr_count($script, 'myapes:authorization-check'));
         $this->assertStringNotContainsString('myapes:auth-check', $script);
         $this->assertStringNotContainsString('myapes:access-compatibility-sync', $script);
+    }
+
+    public function test_activation_installs_public_storage_link_as_root_before_artisan(): void
+    {
+        $script = $this->read('scripts/deploy/activate-release.sh');
+
+        $storageLink = $this->position(
+            $script,
+            'install_public_storage_link "$RELEASE_DIR"',
+        );
+        $firstArtisan = $this->position($script, 'run_artisan optimize:clear');
+
+        $this->assertLessThan($firstArtisan, $storageLink);
+        $this->assertStringContainsString(
+            'PUBLIC_STORAGE_LINK="${release_root}/public/storage"',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'SHARED_PUBLIC_STORAGE="${SHARED_DIR}/storage/app/public"',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'ln -s "$SHARED_PUBLIC_STORAGE" "$PUBLIC_STORAGE_LINK"',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'sudo -u www-data test -w "${release_root}/public"',
+            $script,
+        );
+        $this->assertStringNotContainsString('storage:link --force', $script);
+        $this->assertStringNotContainsString('run_artisan storage:link', $script);
     }
 
     public function test_activation_requires_the_complete_phase_b_runtime_payload(): void
