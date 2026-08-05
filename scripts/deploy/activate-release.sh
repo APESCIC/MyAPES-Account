@@ -171,6 +171,47 @@ CURRENT_LINK="${DATA_DIR}/current"
 PREVIOUS_LINK="${DATA_DIR}/previous"
 PHP_BIN="/usr/bin/php8.4"
 
+install_public_storage_link() {
+  local release_root="${1:-}"
+  local public_root="${release_root}/public"
+  local PUBLIC_STORAGE_LINK="${release_root}/public/storage"
+  local SHARED_PUBLIC_STORAGE="${SHARED_DIR}/storage/app/public"
+  local resolved_storage_link=""
+
+  if [[ -z "$release_root" \
+    || "$release_root" != "${RELEASES_DIR}/"* \
+    || ! -d "$release_root" \
+    || ! -d "$public_root" \
+    || -L "$public_root" ]]; then
+    echo "Public storage link requires a valid immutable release directory."
+    return 1
+  fi
+
+  if [[ -L "$PUBLIC_STORAGE_LINK" ]]; then
+    resolved_storage_link="$(readlink -f "$PUBLIC_STORAGE_LINK" 2>/dev/null || true)"
+    if [[ "$resolved_storage_link" != "$SHARED_PUBLIC_STORAGE" ]]; then
+      echo "Public storage link does not target the shared public storage directory."
+      return 1
+    fi
+  elif [[ -e "$PUBLIC_STORAGE_LINK" ]]; then
+    echo "Public storage path exists and is not a symlink."
+    return 1
+  else
+    ln -s "$SHARED_PUBLIC_STORAGE" "$PUBLIC_STORAGE_LINK"
+  fi
+
+  if [[ ! -L "$PUBLIC_STORAGE_LINK" \
+    || "$(readlink -f "$PUBLIC_STORAGE_LINK" 2>/dev/null || true)" != "$SHARED_PUBLIC_STORAGE" ]]; then
+    echo "Public storage link verification failed."
+    return 1
+  fi
+
+  if sudo -u www-data test -w "${release_root}/public"; then
+    echo "Application user can mutate the immutable release public directory."
+    return 1
+  fi
+}
+
 if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
   echo "Release SHA must be a full 40-character Git commit SHA."
   exit 1
@@ -352,6 +393,7 @@ rm -f -- "${RELEASE_DIR}/.env"
 ln -s "${SHARED_DIR}/storage" "${RELEASE_DIR}/storage"
 ln -s "${SHARED_DIR}/.env" "${RELEASE_DIR}/.env"
 install -d -o www-data -g www-data -m 0775 "${RELEASE_DIR}/bootstrap/cache"
+install_public_storage_link "$RELEASE_DIR"
 
 run_artisan() {
   sudo -E -u www-data env APP_ENV=production \
@@ -361,7 +403,6 @@ run_artisan() {
 run_artisan optimize:clear
 run_artisan myapes:authorization-preflight --no-interaction --no-ansi
 run_artisan migrate --force
-run_artisan storage:link --force
 run_artisan config:cache
 run_artisan route:cache
 run_artisan view:cache
