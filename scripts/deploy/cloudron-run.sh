@@ -16,6 +16,36 @@ if [[ ! -f "${CURRENT_DIR}/artisan" ]]; then
   exit 0
 fi
 
+CURRENT_TARGET="$(readlink -f "$CURRENT_DIR" 2>/dev/null || true)"
+if [[ ! "$CURRENT_TARGET" =~ ^/app/data/releases/[0-9a-f]{40}$ \
+  || ! -d "$CURRENT_TARGET" ]]; then
+  echo "Current release does not resolve to an immutable release directory."
+  exit 1
+fi
+
+for protected_path in \
+  /app/data \
+  /app/data/releases \
+  "$CURRENT_DIR" \
+  "${CURRENT_DIR}/public" \
+  /app/data/run.sh \
+  /app/data/apache/app.conf; do
+  if [[ ! -e "$protected_path" && ! -L "$protected_path" ]]; then
+    echo "Protected runtime path is missing: $protected_path"
+    exit 1
+  fi
+  if sudo -u www-data test -w "$protected_path"; then
+    echo "Application user can replace a protected runtime path: $protected_path"
+    exit 1
+  fi
+done
+
+if ! sudo -u www-data test -w "${CURRENT_DIR}/bootstrap/cache" \
+  || ! sudo -u www-data test -w /app/data/shared/storage; then
+  echo "Required Laravel runtime paths are not writable by the application user."
+  exit 1
+fi
+
 install -d -o www-data -g www-data -m 0775 "$LOG_DIR"
 touch "${LOG_DIR}/queue-worker.log" "${LOG_DIR}/scheduler.log"
 chown www-data:www-data "${LOG_DIR}/queue-worker.log" "${LOG_DIR}/scheduler.log"

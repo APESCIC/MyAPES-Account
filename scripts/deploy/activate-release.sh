@@ -164,7 +164,7 @@ ARCHIVE_PATH="${DEPLOY_DIR}/release.tar.gz"
 RELEASES_DIR="${DATA_DIR}/releases"
 RELEASE_DIR="${RELEASES_DIR}/${RELEASE_SHA}"
 TEMP_RELEASE_DIR="${RELEASE_DIR}.extracting"
-CONTROL_RELEASES_DIR="${DATA_DIR}/deployment-controls"
+CONTROL_RELEASES_DIR="/run/myapes-deployment-controls"
 CONTROL_RELEASE_DIR="${CONTROL_RELEASES_DIR}/${RELEASE_SHA}"
 SHARED_DIR="${DATA_DIR}/shared"
 CURRENT_LINK="${DATA_DIR}/current"
@@ -210,6 +210,68 @@ install_public_storage_link() {
     echo "Application user can mutate the immutable release public directory."
     return 1
   fi
+}
+
+harden_release_write_boundaries() {
+  local release_root="${1:-}"
+
+  if [[ -z "$release_root" \
+    || "$release_root" != "${RELEASES_DIR}/"* \
+    || ! -d "$release_root" ]]; then
+    echo "Release hardening requires a valid immutable release directory."
+    return 1
+  fi
+
+  chmod -R a-w -- "$release_root"
+  install -d -o www-data -g www-data -m 0770 "${release_root}/bootstrap/cache"
+  chown -R www-data:www-data "${release_root}/bootstrap/cache"
+  chmod -R u+rwX,g+rwX,o-rwx "${release_root}/bootstrap/cache"
+  chmod 0555 "$DATA_DIR" "$RELEASES_DIR" "$release_root" "${release_root}/public"
+
+  for protected_path in \
+    "$DATA_DIR" \
+    "$RELEASES_DIR" \
+    "$release_root" \
+    "${release_root}/public"; do
+    if sudo -u www-data test -w "$protected_path"; then
+      echo "Application user can mutate protected runtime path: $protected_path"
+      return 1
+    fi
+  done
+
+  if ! sudo -u www-data test -w "${release_root}/bootstrap/cache" \
+    || ! sudo -u www-data test -w "${SHARED_DIR}/storage"; then
+    echo "Required Laravel runtime paths are not writable by the application user."
+    return 1
+  fi
+}
+
+assert_published_runtime_controls() {
+  local protected_path=""
+  local -a protected_paths=(
+    "$DATA_DIR"
+    "${DATA_DIR}/apache"
+    "${DATA_DIR}/apache/app.conf"
+    "${DATA_DIR}/run.sh"
+    "$RELEASES_DIR"
+    "$RELEASE_DIR"
+    "${RELEASE_DIR}/public"
+  )
+
+  if [[ -n "${CURRENT_TARGET_BEFORE:-}" \
+    && "$CURRENT_TARGET_BEFORE" != "$RELEASE_DIR" ]]; then
+    protected_paths+=(
+      "$CURRENT_TARGET_BEFORE"
+      "${CURRENT_TARGET_BEFORE}/public"
+    )
+  fi
+
+  for protected_path in "${protected_paths[@]}"; do
+    if sudo -u www-data test -w "$protected_path"; then
+      echo "Application user can replace protected release control: $protected_path"
+      return 1
+    fi
+  done
 }
 
 if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
@@ -394,6 +456,11 @@ ln -s "${SHARED_DIR}/storage" "${RELEASE_DIR}/storage"
 ln -s "${SHARED_DIR}/.env" "${RELEASE_DIR}/.env"
 install -d -o www-data -g www-data -m 0775 "${RELEASE_DIR}/bootstrap/cache"
 install_public_storage_link "$RELEASE_DIR"
+harden_release_write_boundaries "$RELEASE_DIR"
+if [[ -n "$CURRENT_TARGET_BEFORE" && "$CURRENT_TARGET_BEFORE" != "$RELEASE_DIR" ]]; then
+  harden_release_write_boundaries "$CURRENT_TARGET_BEFORE"
+  install_public_storage_link "$CURRENT_TARGET_BEFORE"
+fi
 
 run_artisan() {
   sudo -E -u www-data env APP_ENV=production \
@@ -417,13 +484,12 @@ if ! run_artisan env --no-ansi | grep -Eq 'production'; then
   exit 1
 fi
 
-install -m 0644 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf"
-install -m 0755 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh"
+install -m 0444 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf"
+install -m 0555 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh"
+chmod 0555 "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR"
+assert_published_runtime_controls
 
 if [[ "$CURRENT_TARGET_BEFORE" == "$RELEASE_DIR" ]]; then
-  if ! rm -rf -- "$DEPLOY_DIR"; then
-    echo "Warning: unable to remove deployment staging directory $DEPLOY_DIR."
-  fi
   echo "MyAPES release ${RELEASE_SHA} is already active."
   exit 0
 fi
@@ -462,9 +528,5 @@ for candidate in "${RELEASES_DIR}"/*; do
     esac
   fi
 done
-
-if ! rm -rf -- "$DEPLOY_DIR"; then
-  echo "Warning: unable to remove deployment staging directory $DEPLOY_DIR."
-fi
 
 echo "Activated MyAPES release ${RELEASE_SHA}."
