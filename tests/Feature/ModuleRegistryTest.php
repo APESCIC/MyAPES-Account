@@ -9,7 +9,9 @@ use App\Modules\ModuleInstanceDefinition;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleRegistryValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
+use Mockery;
 use Tests\TestCase;
 
 class ModuleRegistryTest extends TestCase
@@ -185,6 +187,26 @@ class ModuleRegistryTest extends TestCase
             $profile->isDirectoryRestrictedPermission(
                 'apes-cic.tickets.assign',
             ),
+        );
+    }
+
+    public function test_authorization_profile_is_request_scoped_and_memoizes_its_permission_catalogue(): void
+    {
+        $registry = Mockery::mock(ModuleRegistry::class);
+        $registry->shouldReceive('permissions')->once()->andReturn([]);
+        Schema::shouldReceive('hasTable')
+            ->once()
+            ->with('module_installations')
+            ->andReturnTrue();
+        $profile = new AuthorizationProfile($registry);
+
+        $firstMatrix = $profile->permissionMatrix();
+        $this->assertSame($firstMatrix, $profile->permissionMatrix());
+        $firstPermissions = $profile->permissions();
+        $this->assertSame($firstPermissions, $profile->permissions());
+        $this->assertSame(
+            app(AuthorizationProfile::class),
+            app(AuthorizationProfile::class),
         );
     }
 }

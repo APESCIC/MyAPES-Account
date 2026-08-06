@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'sub_core_key',
     'module_key',
     'enabled',
+    'lock_version',
     'installed_at',
     'installed_by',
     'enabled_at',
@@ -23,6 +24,7 @@ class ModuleInstallation extends Model
     {
         return [
             'enabled' => 'boolean',
+            'lock_version' => 'integer',
             'installed_at' => 'datetime',
             'enabled_at' => 'datetime',
             'disabled_at' => 'datetime',

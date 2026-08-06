@@ -5,6 +5,7 @@ use App\Exceptions\ModuleLifecycleException;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\ModuleInstanceLock;
+use App\Services\ModuleRollbackCompatibilityChecker;
 use App\Services\PrivilegedMutationAuthorizer;
 use Illuminate\Contracts\Console\Kernel;
 
@@ -20,7 +21,18 @@ $application->make(Kernel::class)->bootstrap();
 );
 
 if (! is_string($mode)
-    || ! in_array($mode, ['disable', 'enable', 'write-hold'], true)
+    || ! in_array(
+        $mode,
+        [
+            'disable',
+            'enable',
+            'write-hold',
+            'rollback-check',
+            'lock-hold',
+            'lock-probe',
+        ],
+        true,
+    )
     || filter_var($actorId, FILTER_VALIDATE_INT) === false
     || filter_var($ownerId, FILTER_VALIDATE_INT) === false
     || ! is_string($version)
@@ -57,7 +69,32 @@ $waitFor = static function (string $name) use ($stateDirectory): void {
 };
 
 try {
-    if ($mode === 'write-hold') {
+    if ($mode === 'lock-hold') {
+        $application->make(ModuleInstanceLock::class)->run(
+            'apes-cic',
+            'tickets',
+            static function () use ($signal, $waitFor): void {
+                $signal('lock-held');
+                $waitFor('release-lock');
+            },
+        );
+    } elseif ($mode === 'lock-probe') {
+        $signal('lock-probe-ready');
+        $waitFor('start-lock-probe');
+        $application->make(ModuleInstanceLock::class)->run(
+            'apes-cic',
+            'tickets',
+            static function () use ($signal): void {
+                $signal('lock-probe-result', ['status' => 'success']);
+            },
+        );
+    } elseif ($mode === 'rollback-check') {
+        $signal('rollback-check-ready');
+        $waitFor('start-rollback-check');
+        $application->make(ModuleRollbackCompatibilityChecker::class)
+            ->check($version);
+        $signal('rollback-check-result', ['status' => 'success']);
+    } elseif ($mode === 'write-hold') {
         $application->make(ModuleInstanceLock::class)->run(
             'apes-cic',
             'tickets',

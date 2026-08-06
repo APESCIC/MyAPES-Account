@@ -100,7 +100,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
                 'version' => $this->installation(
                     'apes-cic',
                     'tickets',
-                )->updated_at->toISOString(),
+                )->lock_version,
             ])
             ->assertForbidden();
     }
@@ -136,7 +136,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             ->from('/admin/modules')
             ->post('/admin/modules/apes-cic/tickets/transition', [
                 'action' => 'disable',
-                'version' => $installation->updated_at->toISOString(),
+                'version' => $installation->lock_version,
             ])
             ->assertRedirect('/admin/modules')
             ->assertSessionHasErrors(['confirm_action', 'confirm_navigation']);
@@ -159,7 +159,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
                 'action' => 'disable',
                 'confirm_action' => '1',
                 'confirm_navigation' => '1',
-                'version' => $installation->updated_at->toISOString(),
+                'version' => $installation->lock_version,
             ])
             ->assertRedirect('/admin/modules')
             ->assertSessionHas('status');
@@ -179,7 +179,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             'version' => $this->installation(
                 'apes-cic',
                 'tickets',
-            )->updated_at->toISOString(),
+            )->lock_version,
         ];
 
         $existing = $this->actingAs($administrator)

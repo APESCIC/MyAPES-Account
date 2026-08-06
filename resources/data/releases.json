@@ -9,7 +9,9 @@
     "changes": [
       "Registered the permanent APES CIC, Shelter and Rescue, and Pet Care Clinic sub-cores with four reusable module types and five enabled shipped instances.",
       "Added an accessible Admin module matrix, dependency and active-record safeguards, consistent disabled-route handling, generated sub-core navigation, and registry-backed dashboard summaries.",
-      "Added deployment preflight, synchronization, integrity, locking, and forward-only rollback compatibility checks for module state."
+      "Added deployment preflight, dependency-aware synchronization, integrity, durable full-operation locking, and forward-only rollback compatibility checks for module state.",
+      "Hardened stale-transition protection, post-commit projection publication, and rollback authorization reconciliation while preserving non-disclosing module availability responses.",
+      "Updated the Markdown rendering dependency to its patched release after the locked dependency audit."
     ],
     "affected_areas": [
       "Sub-core navigation, dashboard summaries, module administration, authorization, and guarded deployment rollback"
@@ -23,14 +25,14 @@
     ],
     "version_rationale": "A backward-compatible minor release adding the first-party module registry and lifecycle foundation while preserving existing feature URLs and authorization behavior.",
     "validation": [
-      "Registry validation and dependency cycles, compatibility, permissions, lifecycle, active records, cross-sub-core route isolation, navigation, atomic cache invalidation, migration, manifest-version rollback compatibility, and deployment contracts are covered on SQLite, MySQL 8.4, and MariaDB 11.4.",
+      "Registry validation and dependency cycles, compatibility, permissions, lifecycle, same-second stale forms, long-running locks, active records, cross-sub-core route isolation, navigation, committed cache invalidation, dependency-aware repair, reordered manifests, target authorization reconciliation, migration, rollback compatibility, and deployment contracts are covered on SQLite, MySQL 8.4, and MariaDB 11.4.",
       "The release gate retains full PHP and frontend suites, production asset compilation, append-only change-log validation, cache compilation, and accessible responsive browser review."
     ],
     "known_limitations": [
       "Compatible Tickets instances for Shelter and Rescue and Pet Care Clinic, and Cases for APES CIC, are shown as Code not shipped and cannot be installed in this release.",
       "Reusable feature refactors and granular module-policy cutovers remain scoped to issues #12, #13, and #14; v0.9.0 keeps the existing feature policies layered beneath module state."
     ],
-    "rollback": "Restore only a target release that passes the module capability check. A target without a capability manifest is treated as v0.8.3 and is allowed only while the exact five legacy-visible instances remain enabled with no additional installation state.",
+  "rollback": "Restore only a target release that passes the quiesced module capability check. A target without a capability manifest is treated as v0.8.3 and is allowed only while the exact five legacy-visible instances remain enabled with no additional installation state. Before switching code, rollback synchronizes and verifies the target release's authorization matrix; a pre-switch failure restores the current matrix before maintenance can end.",
     "provenance": "Defined by the reviewed v0.9.0 implementation for MyAPES Account issue #11; the date must be corrected if merge occurs after 2026-08-06.",
     "references": [
       {

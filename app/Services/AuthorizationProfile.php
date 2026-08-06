@@ -74,6 +74,12 @@ class AuthorizationProfile
         'superadmin' => self::ROLE_SUPER_ADMIN,
     ];
 
+    /** @var array<string, array<int, string>>|null */
+    private ?array $cachedPermissionMatrix = null;
+
+    /** @var array<int, string>|null */
+    private ?array $cachedPermissions = null;
+
     public function __construct(
         private readonly ModuleRegistry $modules,
     ) {}
@@ -83,6 +89,10 @@ class AuthorizationProfile
      */
     public function permissionMatrix(): array
     {
+        if ($this->cachedPermissionMatrix !== null) {
+            return $this->cachedPermissionMatrix;
+        }
+
         $matrix = self::BASE_PERMISSION_MATRIX;
 
         if (Schema::hasTable('module_installations')) {
@@ -99,7 +109,7 @@ class AuthorizationProfile
         }
         unset($permissions);
 
-        return $matrix;
+        return $this->cachedPermissionMatrix = $matrix;
     }
 
     /**
@@ -107,12 +117,22 @@ class AuthorizationProfile
      */
     public function permissions(): array
     {
+        if ($this->cachedPermissions !== null) {
+            return $this->cachedPermissions;
+        }
+
         $permissions = array_values(array_unique(array_merge(
             ...array_values($this->permissionMatrix()),
         )));
         sort($permissions);
 
-        return $permissions;
+        return $this->cachedPermissions = $permissions;
+    }
+
+    public function flushRuntimeCache(): void
+    {
+        $this->cachedPermissionMatrix = null;
+        $this->cachedPermissions = null;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ModuleInstallation;
 use App\Models\User;
 use App\Services\ModuleInstallationSynchronizer;
+use App\Services\ModuleProjectionCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
@@ -21,6 +22,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
             'sub_core_key',
             'module_key',
             'enabled',
+            'lock_version',
             'installed_at',
             'installed_by',
             'enabled_at',
@@ -108,6 +110,53 @@ class ModuleInstallationSynchronizationTest extends TestCase
             'sub_core_key' => 'shelter-rescue',
             'module_key' => 'tickets',
         ]);
+    }
+
+    public function test_synchronization_does_not_enable_a_recreated_dependent_when_its_dependency_is_disabled(): void
+    {
+        $synchronizer = app(ModuleInstallationSynchronizer::class);
+        $dependency = ModuleInstallation::query()
+            ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'pet-profiles')
+            ->firstOrFail();
+        $dependency->forceFill([
+            'enabled' => false,
+            'disabled_at' => now(),
+            'enabled_at' => null,
+        ])->save();
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'cases')
+            ->delete();
+
+        $this->assertSame(
+            ['created' => 1, 'existing' => 4],
+            $synchronizer->synchronize(),
+        );
+        $case = ModuleInstallation::query()
+            ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'cases')
+            ->firstOrFail();
+        $this->assertFalse($case->enabled);
+        $this->assertNull($case->enabled_at);
+    }
+
+    public function test_synchronization_invalidates_projections_only_when_it_creates_rows(): void
+    {
+        $synchronizer = app(ModuleInstallationSynchronizer::class);
+        $cache = app(ModuleProjectionCache::class);
+        $before = $cache->version();
+
+        $synchronizer->synchronize();
+        $this->assertSame($before, $cache->version());
+
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'apes-cic')
+            ->where('module_key', 'tickets')
+            ->delete();
+        $synchronizer->synchronize();
+
+        $this->assertSame($before + 1, $cache->version());
     }
 
     public function test_module_lifecycle_commands_validate_and_synchronize_the_registry(): void

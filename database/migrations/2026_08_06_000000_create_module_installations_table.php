@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\AuthorizationMetadataSynchronizer;
+use App\Services\AuthorizationProfile;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ return new class extends Migration
                 $table->string('sub_core_key', 64);
                 $table->string('module_key', 64);
                 $table->boolean('enabled')->default(false)->index();
+                $table->unsignedBigInteger('lock_version')->default(1);
                 $table->timestamp('installed_at', precision: 6);
                 $table->foreignId('installed_by')
                     ->nullable()
@@ -49,6 +51,7 @@ return new class extends Migration
                 'sub_core_key' => $subCoreKey,
                 'module_key' => $moduleKey,
                 'enabled' => true,
+                'lock_version' => 1,
                 'installed_at' => $now,
                 'installed_by' => null,
                 'enabled_at' => $now,
@@ -60,6 +63,7 @@ return new class extends Migration
             ]);
         }
 
+        app(AuthorizationProfile::class)->flushRuntimeCache();
         app(AuthorizationMetadataSynchronizer::class)->synchronize();
     }
 

@@ -43,11 +43,7 @@ class EnsureModuleAvailable
                     return $next($request);
                 },
             );
-        } catch (ModuleLifecycleException $exception) {
-            if ($exception->reason === 'instance_busy') {
-                abort(409);
-            }
-
+        } catch (ModuleLifecycleException) {
             abort(404);
         }
     }

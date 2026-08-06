@@ -42,14 +42,14 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
         User $actor,
         string $subCoreKey,
         string $moduleKey,
-        string $expectedUpdatedAt,
+        int $expectedVersion,
     ): ModuleInstallation {
         return $this->transition(
             'enable',
             $actor,
             $subCoreKey,
             $moduleKey,
-            $expectedUpdatedAt,
+            $expectedVersion,
         );
     }
 
@@ -57,14 +57,14 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
         User $actor,
         string $subCoreKey,
         string $moduleKey,
-        string $expectedUpdatedAt,
+        int $expectedVersion,
     ): ModuleInstallation {
         return $this->transition(
             'disable',
             $actor,
             $subCoreKey,
             $moduleKey,
-            $expectedUpdatedAt,
+            $expectedVersion,
         );
     }
 
@@ -73,7 +73,7 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
         User $actor,
         string $subCoreKey,
         string $moduleKey,
-        ?string $expectedUpdatedAt,
+        ?int $expectedVersion,
     ): ModuleInstallation {
         try {
             return $this->lock->run(
@@ -84,7 +84,7 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
                     $actor,
                     $subCoreKey,
                     $moduleKey,
-                    $expectedUpdatedAt,
+                    $expectedVersion,
                 ): ModuleInstallation {
                     try {
                         $installation = DB::transaction(function () use (
@@ -92,7 +92,7 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
                             $actor,
                             $subCoreKey,
                             $moduleKey,
-                            $expectedUpdatedAt,
+                            $expectedVersion,
                         ): ModuleInstallation {
                             [$lockedActor] = $this->authorizer->lock($actor);
 
@@ -149,6 +149,7 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
                                     'sub_core_key' => $subCoreKey,
                                     'module_key' => $moduleKey,
                                     'enabled' => true,
+                                    'lock_version' => 1,
                                     'installed_at' => $now,
                                     'installed_by' => $lockedActor->id,
                                     'enabled_at' => $now,
@@ -166,7 +167,7 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
 
                                 $this->assertCurrentVersion(
                                     $installation,
-                                    (string) $expectedUpdatedAt,
+                                    (int) $expectedVersion,
                                 );
 
                                 if ($action === 'enable') {
@@ -186,6 +187,7 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
                                         'enabled_by' => $lockedActor->id,
                                         'disabled_at' => null,
                                         'disabled_by' => null,
+                                        'lock_version' => $installation->lock_version + 1,
                                     ])->save();
                                 } elseif ($action === 'disable') {
                                     if (! $installation->enabled) {
@@ -217,6 +219,7 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
                                         'enabled' => false,
                                         'disabled_at' => now(),
                                         'disabled_by' => $lockedActor->id,
+                                        'lock_version' => $installation->lock_version + 1,
                                     ])->save();
                                 } else {
                                     throw new ModuleLifecycleException(
@@ -264,7 +267,21 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
                         throw new ModuleLifecycleException('transition_failed');
                     }
 
-                    $this->cache->invalidate();
+                    try {
+                        $this->cache->invalidate();
+                    } catch (Throwable) {
+                        $this->audit->record(
+                            'module.projection_invalidation_failed',
+                            $actor,
+                            $installation,
+                            [
+                                'sub_core_key' => $subCoreKey,
+                                'module_key' => $moduleKey,
+                                'action' => $action,
+                                'reason' => 'cache_unavailable',
+                            ],
+                        );
+                    }
 
                     return $installation;
                 },
@@ -287,13 +304,10 @@ class DatabaseModuleLifecycleManager implements ModuleLifecycleManager
 
     private function assertCurrentVersion(
         ModuleInstallation $installation,
-        string $expectedUpdatedAt,
+        int $expectedVersion,
     ): void {
-        if ($expectedUpdatedAt === ''
-            || ! hash_equals(
-                $installation->updated_at->toISOString(),
-                $expectedUpdatedAt,
-            )) {
+        if ($expectedVersion < 1
+            || $installation->lock_version !== $expectedVersion) {
             throw new ModuleLifecycleException('stale_transition');
         }
     }

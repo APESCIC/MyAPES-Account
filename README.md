@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-06T18:48:48+01:00`
+- Last verified README health review: `2026-08-06T22:07:41+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -49,8 +49,8 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Immutable Laravel contracts define the permanent `apes-cic`, `shelter-rescue`, and `pet-care-clinic` sub-cores plus the `tickets`, `cases`, `pet-profiles`, and `consultations` module types. Executable providers, detectors, routes, and summaries are registered from reviewed source code only; database or writable-storage discovery is unsupported.
   - The five shipped instances are APES CIC Tickets; Shelter and Rescue Pet Profiles and Cases; and Pet Care Clinic Pet Profiles and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state.
   - Shelter Tickets, Pet Care Clinic Tickets, and APES CIC Cases are compatible but display as **Code not shipped** and have no install action. All other matrix cells are explicitly incompatible.
-  - Lifecycle operations are transactional, super-admin-only, and serialized with module write requests through the same bounded per-instance cache lock. Dependencies and active records are rechecked under the transition transaction; disablement never deletes records, and no uninstall operation exists.
-  - Direct route checks read authoritative installation state. Generated navigation and aggregate dashboard summaries use a short versioned projection cache, invalidated only after a committed lifecycle transition.
+  - Lifecycle operations are transactional, super-admin-only, and serialized with module write requests through the same durable per-instance advisory/file lock. Lock acquisition has a bounded wait, while ownership lasts for the complete operation. Dependencies and active records are rechecked under the transition transaction; disablement never deletes records, and no uninstall operation exists.
+  - Each installation carries a monotonic transition version, so even multiple enable/disable operations within one second invalidate stale Admin forms. Direct route checks read authoritative installation state. Generated navigation and aggregate dashboard summaries use a short versioned projection cache, invalidated after committed lifecycle transitions and synchronization repairs.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support tickets
@@ -302,16 +302,22 @@ php artisan myapes:modules:rollback-check --target-release=/absolute/release/pat
 
 `myapes:modules:preflight` validates the supported database driver and complete
 3×4 code registry before migration. `myapes:modules:sync` creates missing
-shipped defaults without changing existing installation state or actor history.
+shipped defaults without changing existing installation state or actor history;
+a repaired dependent remains disabled while any prerequisite is disabled.
 `myapes:modules:check` verifies shipped installation, dependency, and permission
-postconditions. The rollback command is read-only and checks whether current
-database state is representable by the target release contract.
+postconditions. The rollback command is read-only, drains all code-owned module
+instance locks, and checks whether current database state is representable by
+the target release contract.
 
-Module locks default to 15 seconds with a five-second bounded wait through
-`MODULE_LOCK_SECONDS` and `MODULE_LOCK_WAIT_SECONDS`. Navigation and dashboard
-projections default to 30 seconds through `MODULE_PROJECTION_CACHE_SECONDS`;
-the version key is advanced atomically only after a lifecycle transaction
-commits, so concurrent transitions cannot retain a stale projection.
+Module locks use MySQL/MariaDB connection-scoped advisory locks in production
+and operating-system file locks on SQLite. `MODULE_LOCK_WAIT_SECONDS` bounds
+acquisition (five seconds by default), but an acquired lock does not expire
+while its operation is still running. Navigation and dashboard projections
+default to 30 seconds through `MODULE_PROJECTION_CACHE_SECONDS`; the version key
+is advanced atomically after a lifecycle transaction commits or synchronization
+creates a missing installation. A cache outage is recorded with a stable reason
+without converting an already-committed transition into a failed response; the
+short projection TTL remains the bounded recovery path.
 
 `myapes:authorization-preflight` runs before migration and validates the
 supported Phase A or retry-safe Phase B database state, OIDC discovery/PKCE,
@@ -403,8 +409,9 @@ altered content therefore fails before a control is executed or a code link
 changes. The pre-deployment Cloudron backup remains the recovery boundary if
 database recovery, rather than code rollback, is required.
 
-Before any rollback-path link or runtime mutation, the active release runs the
-read-only module compatibility check against the exact target directory. A
+Before any rollback-path link or release/runtime-file mutation, the active
+release enters maintenance and runs the read-only module compatibility check
+against the exact target directory. A
 target with `resources/data/module-runtime-contract.json` must support every
 persisted installation. A target without that manifest is treated as the
 v0.8.3 legacy contract and is representable only when exactly the five
@@ -412,6 +419,15 @@ legacy-visible instances remain enabled and no extra installation exists.
 Disabled legacy-visible modules therefore deliberately block rollback to
 v0.8.3; operators must re-enable them through the guarded lifecycle or retain
 the current release and assess database recovery.
+
+Code rollback enters Laravel maintenance mode before compatibility validation,
+then acquires every code-owned module-instance lock so in-flight writes finish
+before the representability snapshot. While requests remain quiesced, the
+rollback target synchronizes and verifies its own authorization matrix before
+the atomic link switch. A failure before the switch restores and verifies the
+current release's authorization matrix before service can leave maintenance;
+an unverifiable restoration remains fail-closed in maintenance mode. Database
+migrations are never reversed by this code-rollback path.
 
 A deliberate maintenance downgrade first requires Laravel maintenance mode and
 then fails before schema mutation when any suspension or non-default
@@ -444,7 +460,7 @@ backends fail closed.
 7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
 8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
 9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
-10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Restart or verification failure for a new activation may roll back only when the current and previous links match the exact failed and pre-activation SHAs; any mismatch fails closed. Rollback reauthenticates its control copy under `/run` immediately before execution. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted health or a completed rollback.
+10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Restart or verification failure for a new activation may roll back only when the current and previous links match the exact failed and pre-activation SHAs; any mismatch fails closed. Rollback reauthenticates its control copy under `/run`, enters maintenance, drains durable module locks, verifies module representability, and synchronizes/checks the target authorization matrix before switching. A pre-switch failure restores the current matrix before lifting maintenance. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted health or a completed rollback.
 
 `version` in `/healthz` is the human-facing semantic application version. `release` is the immutable deployment commit SHA; neither replaces the other.
 
@@ -478,7 +494,7 @@ Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provide
 - `role_sources`: application-owned provenance ledger kept in parity with effective role pivots by the retained Phase B database guard
 - `authorization_states`: cutover/session markers, global authorization epoch, and the database-fenced directory synchronization lease
 - `directory_groups`, `directory_group_role_mappings`, and `directory_sync_runs`: aggregate catalogue, exact mappings, sanitized synchronization history, and non-secret queue-attempt/lease correlation
-- `module_installations`: durable per-sub-core shipped-module state with transition timestamps and sanitized actor account IDs; state is unique by `(sub_core_key, module_key)` and never stores executable class names
+- `module_installations`: durable per-sub-core shipped-module state with a monotonic transition version, transition timestamps, and sanitized actor account IDs; state is unique by `(sub_core_key, module_key)` and never stores executable class names
 - `user_profiles`: shared profile/settings data
 - `support_tickets` + `support_ticket_messages`: APES CIC support workflows
 - `pet_profiles`: shared pet record model (`shelter` or `petcare` domain)

@@ -194,6 +194,36 @@ class ModuleRollbackCompatibilityTest extends TestCase
         }
     }
 
+    public function test_manifest_object_key_order_does_not_change_its_meaning(): void
+    {
+        $target = $this->temporaryRelease();
+        $manifest = json_decode(
+            (string) file_get_contents(
+                resource_path('data/module-runtime-contract.json'),
+            ),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        file_put_contents(
+            $target.'/resources/data/module-runtime-contract.json',
+            json_encode([
+                'application_version' => $manifest['application_version'],
+                'schema_version' => $manifest['schema_version'],
+                'module_types' => $manifest['module_types'],
+                'sub_cores' => $manifest['sub_cores'],
+                'legacy_visible_instances' => $manifest['legacy_visible_instances'],
+                'shipped_instances' => $manifest['shipped_instances'],
+            ], JSON_THROW_ON_ERROR),
+        );
+        copy(base_path('VERSION'), $target.'/VERSION');
+
+        $this->assertSame(
+            'manifest',
+            app(ModuleRollbackCompatibilityChecker::class)
+                ->check($target)['contract'],
+        );
+    }
+
     public function test_rollback_command_is_read_only_and_reports_only_contract_counts(): void
     {
         $before = ModuleInstallation::query()->orderBy('id')->get();

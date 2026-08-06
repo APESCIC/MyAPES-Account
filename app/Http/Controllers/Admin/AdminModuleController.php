@@ -36,8 +36,8 @@ class AdminModuleController extends Controller
                     static fn (): bool => $request->input('action') !== 'install',
                 ),
                 'nullable',
-                'string',
-                'max:64',
+                'integer',
+                'min:1',
             ],
         ]);
 
@@ -72,13 +72,13 @@ class AdminModuleController extends Controller
                     $request->user(),
                     $subCoreKey,
                     $moduleKey,
-                    $validated['version'],
+                    (int) $validated['version'],
                 ),
                 'disable' => $lifecycle->disable(
                     $request->user(),
                     $subCoreKey,
                     $moduleKey,
-                    $validated['version'],
+                    (int) $validated['version'],
                 ),
             };
         } catch (ModuleLifecycleException) {

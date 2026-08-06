@@ -103,7 +103,7 @@
                                             @csrf
                                             <input type="hidden" name="action" value="{{ $action }}">
                                             @if($installation)
-                                                <input type="hidden" name="version" value="{{ $installation->updated_at->toISOString() }}">
+                                                <input type="hidden" name="version" value="{{ $installation->lock_version }}">
                                             @endif
                                             <label>
                                                 <input type="checkbox" name="confirm_action" value="1" required>

@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\ModuleLifecycleException;
 use App\Models\ModuleInstallation;
 use App\Models\PetProfile;
 use App\Models\User;
 use App\Services\ModuleInstallationSynchronizer;
+use App\Services\ModuleInstanceLock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -82,6 +84,20 @@ class ModuleStateMiddlewareTest extends TestCase
         $get->assertNotFound();
         $post->assertNotFound();
         $this->assertSame($get->getStatusCode(), $post->getStatusCode());
+    }
+
+    public function test_a_busy_module_write_returns_the_same_non_disclosing_not_found_response(): void
+    {
+        $this->mock(ModuleInstanceLock::class, function ($mock): void {
+            $mock->shouldReceive('run')
+                ->once()
+                ->andThrow(new ModuleLifecycleException('instance_busy'));
+        });
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/apes-cic/tickets', [])
+            ->assertNotFound();
     }
 
     public function test_shared_pet_profile_bindings_cannot_cross_sub_core_boundaries(): void

@@ -56,7 +56,7 @@ class ModuleLifecycleConcurrencyTest extends TestCase
             ->create();
         $installation = $this->tickets();
         $state = $this->newStateDirectory();
-        $version = $installation->updated_at->toISOString();
+        $version = (string) $installation->lock_version;
         $disable = $this->startWorker('disable', $actor->id, 0, $version, $state);
         $enable = $this->startWorker('enable', $actor->id, 0, $version, $state);
 
@@ -76,6 +76,36 @@ class ModuleLifecycleConcurrencyTest extends TestCase
             ['already_enabled', 'stale_transition'],
         );
         $this->assertFalse($installation->fresh()->enabled);
+    }
+
+    public function test_instance_lock_remains_held_until_the_operation_finishes(): void
+    {
+        config([
+            'modules.lock_seconds' => 1,
+            'modules.lock_wait_seconds' => 5,
+        ]);
+        $state = $this->newStateDirectory();
+        $holder = $this->startWorker('lock-hold', 0, 0, '-', $state);
+        $this->waitForSignal($state, 'lock-held', $holder);
+
+        usleep(1_250_000);
+        $probe = $this->startWorker('lock-probe', 0, 0, '-', $state);
+        $this->waitForSignal($state, 'lock-probe-ready', $probe);
+        touch($state.DIRECTORY_SEPARATOR.'start-lock-probe');
+        usleep(250_000);
+
+        $this->assertTrue(
+            $probe->isRunning(),
+            'The instance lock expired before its operation completed.',
+        );
+
+        touch($state.DIRECTORY_SEPARATOR.'release-lock');
+        $this->waitSuccessfully($holder);
+        $this->waitSuccessfully($probe);
+        $this->assertSame(
+            'success',
+            $this->readSignal($state, 'lock-probe-result')['status'],
+        );
     }
 
     public function test_a_concurrent_module_write_completes_before_disablement_rechecks_active_records(): void
@@ -100,7 +130,7 @@ class ModuleLifecycleConcurrencyTest extends TestCase
             'disable',
             $actor->id,
             0,
-            $installation->updated_at->toISOString(),
+            (string) $installation->lock_version,
             $state,
         );
         $this->waitForSignal($state, 'disable-ready', $disable);
@@ -117,6 +147,97 @@ class ModuleLifecycleConcurrencyTest extends TestCase
         $this->assertSame('active_records', $result['reason']);
         $this->assertTrue($installation->fresh()->enabled);
         $this->assertSame(1, SupportTicket::query()->count());
+    }
+
+    public function test_module_lock_ownership_outlives_the_former_cache_lease_duration(): void
+    {
+        $this->requireMysqlFamily();
+        config([
+            'modules.lock_seconds' => 1,
+            'modules.lock_wait_seconds' => 5,
+        ]);
+        $actor = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SUPER_ADMIN)
+            ->create();
+        $owner = User::factory()->create();
+        $installation = $this->tickets();
+        $state = $this->newStateDirectory();
+        $writer = $this->startWorker(
+            'write-hold',
+            $actor->id,
+            $owner->id,
+            '-',
+            $state,
+        );
+        $this->waitForSignal($state, 'write-locked', $writer);
+
+        usleep(1_250_000);
+        $disable = $this->startWorker(
+            'disable',
+            $actor->id,
+            0,
+            (string) $installation->lock_version,
+            $state,
+        );
+        $this->waitForSignal($state, 'disable-ready', $disable);
+        touch($state.DIRECTORY_SEPARATOR.'start-disable');
+        usleep(250_000);
+
+        $this->assertTrue(
+            $disable->isRunning(),
+            'The writer lost its instance lock while the operation was still running.',
+        );
+
+        touch($state.DIRECTORY_SEPARATOR.'release-write');
+        $this->waitSuccessfully($writer);
+        $this->waitSuccessfully($disable);
+
+        $result = $this->readSignal($state, 'disable-result');
+        $this->assertSame('refused', $result['status']);
+        $this->assertSame('active_records', $result['reason']);
+        $this->assertTrue($installation->fresh()->enabled);
+    }
+
+    public function test_rollback_compatibility_waits_for_in_flight_module_writes(): void
+    {
+        $this->requireMysqlFamily();
+        config(['modules.lock_wait_seconds' => 5]);
+        $actor = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SUPER_ADMIN)
+            ->create();
+        $owner = User::factory()->create();
+        $state = $this->newStateDirectory();
+        $writer = $this->startWorker(
+            'write-hold',
+            $actor->id,
+            $owner->id,
+            '-',
+            $state,
+        );
+        $this->waitForSignal($state, 'write-locked', $writer);
+        $rollback = $this->startWorker(
+            'rollback-check',
+            0,
+            0,
+            base_path(),
+            $state,
+        );
+        $this->waitForSignal($state, 'rollback-check-ready', $rollback);
+        touch($state.DIRECTORY_SEPARATOR.'start-rollback-check');
+        usleep(250_000);
+
+        $this->assertTrue(
+            $rollback->isRunning(),
+            'Rollback compatibility did not drain the active module writer.',
+        );
+
+        touch($state.DIRECTORY_SEPARATOR.'release-write');
+        $this->waitSuccessfully($writer);
+        $this->waitSuccessfully($rollback);
+        $this->assertSame(
+            'success',
+            $this->readSignal($state, 'rollback-check-result')['status'],
+        );
     }
 
     private function requireMysqlFamily(): void
@@ -174,6 +295,14 @@ class ModuleLifecycleConcurrencyTest extends TestCase
                 'DB_USERNAME' => (string) ($connection['username'] ?? ''),
                 'DB_PASSWORD' => (string) ($connection['password'] ?? ''),
                 'DB_URL' => '',
+                'MODULE_LOCK_SECONDS' => (string) config(
+                    'modules.lock_seconds',
+                    15,
+                ),
+                'MODULE_LOCK_WAIT_SECONDS' => (string) config(
+                    'modules.lock_wait_seconds',
+                    5,
+                ),
             ],
         );
         $process->setTimeout(90);

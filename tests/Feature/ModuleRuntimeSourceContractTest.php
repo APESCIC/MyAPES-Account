@@ -80,12 +80,34 @@ class ModuleRuntimeSourceContractTest extends TestCase
     {
         $frontend = File::get(resource_path('js/app.js'));
 
-        foreach (['Building2', 'HeartPulse'] as $icon) {
+        foreach (
+            ['Building2', 'CirclePause', 'HeartPulse', 'PawPrint'] as $icon
+        ) {
             $this->assertGreaterThanOrEqual(
                 2,
                 substr_count($frontend, $icon),
                 "{$icon} must be imported and passed to createIcons.",
             );
         }
+    }
+
+    public function test_module_instance_locks_are_durable_for_the_full_operation(): void
+    {
+        $source = File::get(app_path('Services/ModuleInstanceLock.php'));
+
+        $this->assertStringContainsString('GET_LOCK', $source);
+        $this->assertStringContainsString('RELEASE_LOCK', $source);
+        $this->assertStringContainsString('flock(', $source);
+        $this->assertStringNotContainsString('Cache::lock(', $source);
+    }
+
+    public function test_rollback_compatibility_drains_every_code_owned_instance_lock(): void
+    {
+        $source = File::get(
+            app_path('Services/ModuleRollbackCompatibilityChecker.php'),
+        );
+
+        $this->assertStringContainsString('->runMany(', $source);
+        $this->assertStringContainsString('->matrix()', $source);
     }
 }

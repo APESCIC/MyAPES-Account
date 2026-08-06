@@ -20,6 +20,7 @@ use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleInstanceLock;
 use App\Services\ModuleProjectionCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -51,7 +52,7 @@ class ModuleLifecycleTest extends TestCase
             $this->superAdmin,
             'apes-cic',
             'tickets',
-            $installation->updated_at->toISOString(),
+            (int) $installation->lock_version,
         );
 
         $this->assertFalse($disabled->enabled);
@@ -62,7 +63,7 @@ class ModuleLifecycleTest extends TestCase
             $this->superAdmin,
             'apes-cic',
             'tickets',
-            $disabled->updated_at->toISOString(),
+            (int) $disabled->lock_version,
         );
 
         $this->assertTrue($enabled->enabled);
@@ -87,7 +88,7 @@ class ModuleLifecycleTest extends TestCase
                 $administrator,
                 'apes-cic',
                 'tickets',
-                $installation->updated_at->toISOString(),
+                (int) $installation->lock_version,
             );
             $this->fail('An administrator mutated module state.');
         } catch (ModuleLifecycleException $exception) {
@@ -195,7 +196,7 @@ class ModuleLifecycleTest extends TestCase
                     $this->superAdmin,
                     $subCore,
                     $module,
-                    $installation->updated_at->toISOString(),
+                    (int) $installation->lock_version,
                 );
                 $this->fail('A dependency root was disabled while in use.');
             } catch (ModuleLifecycleException $exception) {
@@ -224,7 +225,7 @@ class ModuleLifecycleTest extends TestCase
                 $this->superAdmin,
                 'apes-cic',
                 'tickets',
-                $installation->updated_at->toISOString(),
+                (int) $installation->lock_version,
             );
             $this->fail('A module with active records was disabled.');
         } catch (ModuleLifecycleException $exception) {
@@ -297,7 +298,7 @@ class ModuleLifecycleTest extends TestCase
                 $this->superAdmin,
                 'apes-cic',
                 'tickets',
-                '2020-01-01T00:00:00.000000Z',
+                (int) $installation->lock_version + 1,
             );
             $this->fail('A stale module transition was accepted.');
         } catch (ModuleLifecycleException $exception) {
@@ -305,6 +306,43 @@ class ModuleLifecycleTest extends TestCase
         }
 
         $this->assertTrue($installation->fresh()->enabled);
+    }
+
+    public function test_transition_versions_advance_even_when_multiple_changes_share_one_second(): void
+    {
+        Carbon::setTestNow('2026-08-06 12:00:00');
+        try {
+            $installation = $this->installation('apes-cic', 'tickets');
+            $initialVersion = (int) $installation->lock_version;
+            $disabled = $this->lifecycle->disable(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+                $initialVersion,
+            );
+            $enabled = $this->lifecycle->enable(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+                (int) $disabled->lock_version,
+            );
+
+            $this->assertSame($initialVersion + 2, $enabled->lock_version);
+
+            try {
+                $this->lifecycle->disable(
+                    $this->superAdmin,
+                    'apes-cic',
+                    'tickets',
+                    $initialVersion,
+                );
+                $this->fail('A same-second stale transition token was reused.');
+            } catch (ModuleLifecycleException $exception) {
+                $this->assertSame('stale_transition', $exception->reason);
+            }
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_lock_refusals_are_audited_without_sensitive_actor_data(): void
@@ -321,7 +359,7 @@ class ModuleLifecycleTest extends TestCase
                 $this->superAdmin,
                 'apes-cic',
                 'tickets',
-                $installation->updated_at->toISOString(),
+                (int) $installation->lock_version,
             );
             $this->fail('A busy module lock was not reported.');
         } catch (ModuleLifecycleException $exception) {
@@ -354,7 +392,7 @@ class ModuleLifecycleTest extends TestCase
                 $this->superAdmin,
                 'apes-cic',
                 'tickets',
-                $installation->updated_at->toISOString(),
+                (int) $installation->lock_version,
             );
             $this->fail('A failed detector allowed a state transition.');
         } catch (ModuleLifecycleException $exception) {
@@ -384,7 +422,7 @@ class ModuleLifecycleTest extends TestCase
                 $this->superAdmin,
                 'apes-cic',
                 'tickets',
-                'stale-version',
+                0,
             );
         } catch (ModuleLifecycleException) {
             // The failed transition must not publish a new projection version.
@@ -396,10 +434,38 @@ class ModuleLifecycleTest extends TestCase
             $this->superAdmin,
             'apes-cic',
             'tickets',
-            $installation->updated_at->toISOString(),
+            (int) $installation->lock_version,
         );
 
         $this->assertSame($before + 1, $cache->version());
+    }
+
+    public function test_a_projection_cache_failure_does_not_turn_a_committed_transition_into_an_error(): void
+    {
+        $this->mock(ModuleProjectionCache::class, function ($mock): void {
+            $mock->shouldReceive('invalidate')
+                ->once()
+                ->andThrow(new RuntimeException('unsafe cache details'));
+        });
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        $disabled = app(ModuleLifecycleManager::class)->disable(
+            $this->superAdmin,
+            'apes-cic',
+            'tickets',
+            (int) $installation->lock_version,
+        );
+
+        $this->assertFalse($disabled->enabled);
+        $audit = AuditLog::query()
+            ->where('event', 'module.projection_invalidation_failed')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('cache_unavailable', $audit->context['reason']);
+        $this->assertStringNotContainsString(
+            'unsafe cache details',
+            json_encode($audit->context, JSON_THROW_ON_ERROR),
+        );
     }
 
     public function test_projection_cache_uses_an_atomic_version_increment(): void

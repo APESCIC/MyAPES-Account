@@ -878,7 +878,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('PREVIOUS_TARGET_BEFORE=""', $script);
     }
 
-    public function test_code_rollback_validates_the_previous_release_and_never_reverses_migrations(): void
+    public function test_code_rollback_quiesces_mutations_reconciles_authorization_and_never_reverses_migrations(): void
     {
         $script = $this->read('scripts/deploy/rollback-release.sh');
 
@@ -932,6 +932,18 @@ class DeploymentAuthenticationContractTest extends TestCase
             $script,
             'myapes:modules:rollback-check',
         );
+        $maintenanceStart = $this->position(
+            $script,
+            '"${CURRENT_TARGET}/artisan" down --retry=60 --no-interaction --no-ansi',
+        );
+        $rollbackAuthorizationSync = $this->position(
+            $script,
+            '"${ROLLBACK_TARGET}/artisan" myapes:authorization-sync --no-interaction --no-ansi',
+        );
+        $rollbackAuthorizationCheck = $this->position(
+            $script,
+            '"${ROLLBACK_TARGET}/artisan" myapes:authorization-check --no-interaction --no-ansi',
+        );
         $firstRollbackMutation = $this->position(
             $script,
             'rm -f -- "$target_path"',
@@ -946,6 +958,19 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $this->assertLessThan($applicationSwitch, $runtimeStaging);
         $this->assertLessThan($runtimePublish, $applicationSwitch);
+        $this->assertLessThan($moduleCompatibility, $maintenanceStart);
+        $this->assertLessThan(
+            $rollbackAuthorizationSync,
+            $moduleCompatibility,
+        );
+        $this->assertLessThan(
+            $rollbackAuthorizationCheck,
+            $rollbackAuthorizationSync,
+        );
+        $this->assertLessThan(
+            $applicationSwitch,
+            $rollbackAuthorizationCheck,
+        );
         $this->assertLessThan($firstRollbackMutation, $moduleCompatibility);
         $this->assertStringContainsString(
             '"${CURRENT_TARGET}/artisan" myapes:modules:rollback-check',
@@ -959,11 +984,22 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"', $script);
         $this->assertStringContainsString('scripts/deploy/cloudron-app.conf', $script);
         $this->assertStringContainsString('scripts/deploy/cloudron-run.sh', $script);
+        $this->assertStringContainsString(
+            '"${ROLLBACK_TARGET}/artisan" up --no-interaction --no-ansi',
+            $script,
+        );
+        $this->assertStringContainsString(
+            '"${CURRENT_TARGET}/artisan" myapes:authorization-sync --no-interaction --no-ansi',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'trap restore_current_release EXIT',
+            $script,
+        );
         $this->assertStringContainsString('Database migrations were retained', $script);
         $this->assertStringNotContainsString('migrate:rollback', $script);
         $this->assertStringNotContainsString('migrate:reset', $script);
         $this->assertStringNotContainsString('migrate:fresh', $script);
-        $this->assertDoesNotMatchRegularExpression('/\bdown\b/', $script);
     }
 
     public function test_restored_release_verification_supports_the_v071_health_contract(): void

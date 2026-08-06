@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\ModuleRegistry;
 use App\Exceptions\ModuleLifecycleException;
 use App\Models\ModuleInstallation;
 use JsonException;
@@ -19,6 +20,11 @@ class ModuleRollbackCompatibilityChecker
         'shelter-rescue:pet-profiles',
     ];
 
+    public function __construct(
+        private readonly ModuleRegistry $registry,
+        private readonly ModuleInstanceLock $locks,
+    ) {}
+
     /** @return array{contract: string, installations: int, target_version: string} */
     public function check(string $targetRelease): array
     {
@@ -31,6 +37,18 @@ class ModuleRollbackCompatibilityChecker
             );
         }
 
+        return $this->locks->runMany(
+            array_map(
+                static fn ($instance): string => $instance->key(),
+                $this->registry->matrix(),
+            ),
+            fn (): array => $this->checkLocked($target),
+        );
+    }
+
+    /** @return array{contract: string, installations: int, target_version: string} */
+    private function checkLocked(string $target): array
+    {
         $installations = ModuleInstallation::query()
             ->orderBy('sub_core_key')
             ->orderBy('module_key')
@@ -158,7 +176,8 @@ class ModuleRollbackCompatibilityChecker
         ];
 
         if (! is_array($decoded)
-            || array_keys($decoded) !== $required
+            || count($decoded) !== count($required)
+            || array_diff($required, array_keys($decoded)) !== []
             || $decoded['schema_version'] !== 1
             || ! is_string($decoded['application_version'])
             || preg_match('/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/D', $decoded['application_version']) !== 1

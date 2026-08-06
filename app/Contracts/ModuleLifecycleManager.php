@@ -17,13 +17,13 @@ interface ModuleLifecycleManager
         User $actor,
         string $subCoreKey,
         string $moduleKey,
-        string $expectedUpdatedAt,
+        int $expectedVersion,
     ): ModuleInstallation;
 
     public function disable(
         User $actor,
         string $subCoreKey,
         string $moduleKey,
-        string $expectedUpdatedAt,
+        int $expectedVersion,
     ): ModuleInstallation;
 }
