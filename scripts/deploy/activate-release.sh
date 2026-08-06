@@ -212,8 +212,35 @@ install_public_storage_link() {
   fi
 }
 
+restore_data_root_ownership() {
+  local cache_root=""
+  local unexpected_owner=""
+
+  find "$DATA_DIR" -xdev \
+    -path "${SHARED_DIR}/storage" -prune -o \
+    -path "${RELEASES_DIR}/*/bootstrap/cache" -prune -o \
+    -exec chown -h root:root {} +
+  chown -hR www-data:www-data "${SHARED_DIR}/storage"
+  chown root:www-data "${SHARED_DIR}/.env"
+
+  for cache_root in "${RELEASES_DIR}"/*/bootstrap/cache; do
+    [[ -d "$cache_root" ]] || continue
+    chown -hR www-data:www-data "$cache_root"
+  done
+
+  unexpected_owner="$(find "$DATA_DIR" -xdev \
+    -path "${SHARED_DIR}/storage" -prune -o \
+    -path "${RELEASES_DIR}/*/bootstrap/cache" -prune -o \
+    ! -user root -print -quit)"
+  if [[ -n "$unexpected_owner" ]]; then
+    echo "Application data contains an unexpected application-owned path."
+    return 1
+  fi
+}
+
 harden_release_write_boundaries() {
   local release_root="${1:-}"
+  local unexpected_owner=""
 
   if [[ -z "$release_root" \
     || "$release_root" != "${RELEASES_DIR}/"* \
@@ -222,18 +249,30 @@ harden_release_write_boundaries() {
     return 1
   fi
 
+  chown -hR root:root "$release_root"
   chmod -R a-w -- "$release_root"
   install -d -o www-data -g www-data -m 0770 "${release_root}/bootstrap/cache"
-  chown -R www-data:www-data "${release_root}/bootstrap/cache"
+  chown -hR www-data:www-data "${release_root}/bootstrap/cache"
   chmod -R u+rwX,g+rwX,o-rwx "${release_root}/bootstrap/cache"
   chmod 0555 "$DATA_DIR" "$RELEASES_DIR" "$release_root" "${release_root}/public"
+
+  unexpected_owner="$(find "$release_root" -xdev \
+    ! -user root \
+    ! -path "${release_root}/bootstrap/cache" \
+    ! -path "${release_root}/bootstrap/cache/*" \
+    -print -quit)"
+  if [[ -n "$unexpected_owner" ]]; then
+    echo "Immutable release contains an application-owned path."
+    return 1
+  fi
 
   for protected_path in \
     "$DATA_DIR" \
     "$RELEASES_DIR" \
     "$release_root" \
     "${release_root}/public"; do
-    if sudo -u www-data test -w "$protected_path"; then
+    if [[ "$(stat -Lc '%U:%G' "$protected_path")" != "root:root" ]] \
+      || sudo -u www-data test -w "$protected_path"; then
       echo "Application user can mutate protected runtime path: $protected_path"
       return 1
     fi
@@ -246,6 +285,29 @@ harden_release_write_boundaries() {
   fi
 }
 
+harden_shared_runtime_boundaries() {
+  if [[ ! -d "$SHARED_DIR" || ! -d "${SHARED_DIR}/storage" \
+    || ! -f "${SHARED_DIR}/.env" || -L "${SHARED_DIR}/.env" ]]; then
+    echo "Shared Laravel runtime paths are incomplete or unsafe."
+    return 1
+  fi
+
+  chown root:root "$SHARED_DIR"
+  chmod 0555 "$SHARED_DIR"
+  chown root:www-data "${SHARED_DIR}/.env"
+  chmod 0640 "${SHARED_DIR}/.env"
+  chown -hR www-data:www-data "${SHARED_DIR}/storage"
+
+  if [[ "$(stat -Lc '%U:%G' "$SHARED_DIR")" != "root:root" \
+    || "$(stat -Lc '%U:%G' "${SHARED_DIR}/.env")" != "root:www-data" ]] \
+    || sudo -u www-data test -w "$SHARED_DIR" \
+    || sudo -u www-data test -w "${SHARED_DIR}/.env" \
+    || ! sudo -u www-data test -w "${SHARED_DIR}/storage"; then
+    echo "Shared Laravel runtime ownership is unsafe."
+    return 1
+  fi
+}
+
 assert_published_runtime_controls() {
   local protected_path=""
   local -a protected_paths=(
@@ -254,6 +316,7 @@ assert_published_runtime_controls() {
     "${DATA_DIR}/apache/app.conf"
     "${DATA_DIR}/run.sh"
     "$RELEASES_DIR"
+    "$SHARED_DIR"
     "$RELEASE_DIR"
     "${RELEASE_DIR}/public"
   )
@@ -267,8 +330,23 @@ assert_published_runtime_controls() {
   fi
 
   for protected_path in "${protected_paths[@]}"; do
-    if sudo -u www-data test -w "$protected_path"; then
+    if [[ "$(stat -Lc '%U:%G' "$protected_path")" != "root:root" ]] \
+      || sudo -u www-data test -w "$protected_path"; then
       echo "Application user can replace protected release control: $protected_path"
+      return 1
+    fi
+  done
+
+  if [[ "$(stat -Lc '%U:%G' "${SHARED_DIR}/.env")" != "root:www-data" ]] \
+    || sudo -u www-data test -w "${SHARED_DIR}/.env"; then
+    echo "Application user can replace the shared production environment."
+    return 1
+  fi
+
+  for release_link in "$CURRENT_LINK" "$PREVIOUS_LINK"; do
+    if [[ -L "$release_link" \
+      && "$(stat -c '%U:%G' "$release_link")" != "root:root" ]]; then
+      echo "Release link is not root-owned: $release_link"
       return 1
     fi
   done
@@ -355,13 +433,23 @@ if [[ ! -f "${SHARED_DIR}/.env" ]]; then
     ./scripts/deploy/production.env.example >"${SHARED_DIR}/.env"
   APP_KEY_VALUE="$("$PHP_BIN" -r 'echo "base64:".base64_encode(random_bytes(32));')"
   sed -i "s|^APP_KEY=.*$|APP_KEY=${APP_KEY_VALUE}|" "${SHARED_DIR}/.env"
-  chown www-data:www-data "${SHARED_DIR}/.env"
+  chown root:www-data "${SHARED_DIR}/.env"
   chmod 0640 "${SHARED_DIR}/.env"
   echo "Created the shared production environment. Configure OIDC values in the Cloudron app environment and rerun deployment if the authentication gate fails."
 elif ! grep -Eq '^APP_ENV=production$' "${SHARED_DIR}/.env"; then
   echo "Refusing deployment because ${SHARED_DIR}/.env is not marked APP_ENV=production."
   exit 1
 fi
+
+harden_shared_runtime_boundaries
+restore_data_root_ownership
+chown root:root "$DATA_DIR" "$RELEASES_DIR"
+for release_link in "$CURRENT_LINK" "$PREVIOUS_LINK"; do
+  if [[ -L "$release_link" ]]; then
+    chown -h root:root "$release_link"
+  fi
+done
+chmod 0555 "$DATA_DIR" "$RELEASES_DIR" "$SHARED_DIR"
 
 required_paths=(
   VERSION
@@ -442,7 +530,7 @@ if [[ "$reuse_existing_release" == false ]]; then
   ln -s "${SHARED_DIR}/storage" "${TEMP_RELEASE_DIR}/storage"
   ln -s "${SHARED_DIR}/.env" "${TEMP_RELEASE_DIR}/.env"
   install -d -o www-data -g www-data -m 0775 "${TEMP_RELEASE_DIR}/bootstrap/cache"
-  chown -R www-data:www-data "${TEMP_RELEASE_DIR}/bootstrap/cache"
+  chown -hR www-data:www-data "${TEMP_RELEASE_DIR}/bootstrap/cache"
   mv "$TEMP_RELEASE_DIR" "$RELEASE_DIR"
 fi
 
@@ -486,7 +574,14 @@ fi
 
 install -m 0444 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf"
 install -m 0555 "${CONTROL_RELEASE_DIR}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh"
-chmod 0555 "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR"
+chown root:root "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR" "$SHARED_DIR" \
+  "${DATA_DIR}/apache/app.conf" "${DATA_DIR}/run.sh"
+for release_link in "$CURRENT_LINK" "$PREVIOUS_LINK"; do
+  if [[ -L "$release_link" ]]; then
+    chown -h root:root "$release_link"
+  fi
+done
+chmod 0555 "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR" "$SHARED_DIR"
 assert_published_runtime_controls
 
 if [[ "$CURRENT_TARGET_BEFORE" == "$RELEASE_DIR" ]]; then

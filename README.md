@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-05T14:35:02+01:00`
+- Last verified README health review: `2026-08-06T09:01:12+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -350,21 +350,29 @@ exact Git revision and exports the trusted manifest digest. The deploy runner,
 activation script, and rollback path all require that exact digest, exact fixed
 paths, and complete-file hashes before executing or publishing a control.
 Cloudron's LAMP startup normalizes ownership below `/app/data` to the application
-user. The deployment therefore removes application write bits from `/app/data`,
-the active and rollback release roots, their public directories, the Apache
-configuration, and the launcher while leaving only Laravel's cache and shared
-storage paths writable. These mode boundaries survive that ownership change and
-are checked by the launcher and again after restart. Activation authenticates a
+user. The launcher therefore refuses to run Laravel while any protected path is
+not root-controlled. Because the package sources the trusted launcher before
+its recursive normalization and starts Apache afterward, the launcher accepts
+only that exact normalization signature, restores and verifies ownership
+synchronously, starts Laravel workers, and then permits Apache to start. A
+changed or incomplete package contract fails closed. The deployment restores
+root ownership to `/app/data`, the release and shared-runtime parents, the
+launcher, Apache configuration, package-generated runtime files, and every path
+in the active and rollback releases except their explicit Laravel cache
+directories. The shared environment remains owned by root and readable by the
+application group; only Laravel cache and shared storage remain
+application-owned and writable. Activation authenticates a
 root-only control copy under `/run/myapes-deployment-controls/<sha>`. After the
-restart, CI recreates that copy from the retained tested archive, requires the
-externally exported manifest digest and every complete-file hash, and verifies
-the live application write boundaries before health acceptance. Rollback repeats
-the same extraction and authentication immediately before use and refuses a
-previous release that lost its immutable boundary. The staging archive is
-removed only after a successful release verification or completed code
-rollback. Marker-preserving altered content therefore fails before a control is
-executed or a code link changes. The pre-deployment Cloudron backup remains the
-recovery boundary if database recovery, rather than code rollback, is required.
+restart, CI restores those ownership boundaries before reading the retained
+archive, recreates the control copy, requires the externally exported manifest
+digest and every complete-file hash, and verifies ownership and write access
+before health acceptance. Rollback repeats the same extraction and
+authentication immediately before use and refuses a previous release that lost
+its root-owned immutable boundary. The staging archive is removed only after a
+successful release verification or completed code rollback. Marker-preserving
+altered content therefore fails before a control is executed or a code link
+changes. The pre-deployment Cloudron backup remains the recovery boundary if
+database recovery, rather than code rollback, is required.
 
 A deliberate maintenance downgrade first requires Laravel maintenance mode and
 then fails before schema mutation when any suspension or non-default
@@ -380,7 +388,7 @@ backends fail closed.
 3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded cutover, lifecycle, compatibility, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
 4. Only a successful `main` push proceeds. Cloudron creates the pre-deployment backup before any upload or activation.
 5. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>` only after local verification of the externally exported control-manifest digest and all four complete control files.
-6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It removes application write bits from the new and rollback release boundaries while restoring explicit write access only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
+6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It assigns protected runtime and release paths to root while restoring application ownership only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
    1. `optimize:clear`;
    2. `myapes:authorization-preflight --no-interaction --no-ansi`;
    3. `migrate --force`;
@@ -391,8 +399,8 @@ backends fail closed.
    8. `permission:cache-reset --no-interaction`;
    9. `myapes:authorization-check --no-interaction --no-ansi`; and
    10. the atomic `/app/data/current` switch.
-7. Cloudron restart is a separate operation after a successful switch. Apache serves `/app/data/current/public`; the queue worker and scheduler start from `/app/data/run.sh`. The launcher fails closed if ownership normalization made a protected release or runtime-control path writable.
-8. The deploy job re-extracts the four fixed controls from the retained archive into root-only `/run`, verifies the external manifest digest and every file hash, and checks the post-restart active/rollback release, launcher, Apache, cache, and shared-storage write boundaries.
+7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
+8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
 9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
 10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Restart or verification failure for a new activation may roll back only when the current and previous links match the exact failed and pre-activation SHAs; any mismatch fails closed. Rollback reauthenticates its control copy under `/run` immediately before execution. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted health or a completed rollback.
 

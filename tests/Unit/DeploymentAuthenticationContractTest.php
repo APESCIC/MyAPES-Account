@@ -545,6 +545,126 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringNotContainsString('rm -rf -- "$DEPLOY_DIR"', $activation);
     }
 
+    public function test_cloudron_restart_restores_root_ownership_before_application_code_runs(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+        $rollback = $this->read('scripts/deploy/rollback-release.sh');
+        $launcher = $this->read('scripts/deploy/cloudron-run.sh');
+
+        $ownershipRestore = $this->position(
+            $workflow,
+            'restore_runtime_ownership "$release_sha"',
+        );
+        $archiveRead = $this->position(
+            $workflow,
+            'test -f "$archive_path"',
+        );
+        $this->assertLessThan($archiveRead, $ownershipRestore);
+        $this->assertStringContainsString(
+            'chown -hR root:root "$release_root"',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'chown root:root /app/data /app/data/releases /app/data/shared /app/data/apache',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'chown root:www-data /app/data/shared/.env',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'chown -hR www-data:www-data /app/data/shared/storage',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            "if: always() && steps.restart.outcome != 'skipped'",
+            $workflow,
+        );
+
+        foreach ([$workflow, $activation, $rollback, $launcher] as $source) {
+            $this->assertStringContainsString(
+                "stat -Lc '%U:%G'",
+                $source,
+            );
+            $this->assertStringContainsString('root:root', $source);
+        }
+
+        foreach ([$workflow, $activation, $rollback] as $source) {
+            $this->assertStringContainsString(
+                '! -path "${release_root}/bootstrap/cache"',
+                $source,
+            );
+            $this->assertStringContainsString(
+                '! -path "${release_root}/bootstrap/cache/*"',
+                $source,
+            );
+        }
+
+        $this->assertStringContainsString(
+            'chown -hR root:root "$release_root"',
+            $activation,
+        );
+        $parentOwnership = $this->position(
+            $activation,
+            'chown root:root "$DATA_DIR" "$RELEASES_DIR"',
+        );
+        $releaseHardening = $this->position(
+            $activation,
+            'harden_release_write_boundaries "$RELEASE_DIR"',
+        );
+        $this->assertLessThan($releaseHardening, $parentOwnership);
+        $this->assertStringContainsString(
+            'chown -hR root:root "$ROLLBACK_TARGET"',
+            $rollback,
+        );
+        $this->assertStringContainsString(
+            'Application runtime ownership is not root-controlled.',
+            $launcher,
+        );
+        $this->assertStringContainsString('chown() {', $launcher);
+        $this->assertStringContainsString('command chown "$@"', $launcher);
+        $this->assertStringContainsString(
+            'restore_runtime_ownership',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            'start_laravel_runtime',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            'MYAPES_OWNERSHIP_RESTORED=true',
+            $launcher,
+        );
+        $this->assertStringContainsString('exec() {', $launcher);
+        $this->assertStringContainsString(
+            'Refusing process replacement before root ownership restoration.',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            '"$3" != "/app/data" || "$4" != "/run/apache2"',
+            $launcher,
+        );
+        foreach ([$workflow, $launcher] as $source) {
+            $this->assertStringContainsString(
+                "-path '/app/data/releases/*/bootstrap/cache' -prune",
+                $source,
+            );
+        }
+        $this->assertStringContainsString(
+            '-path "${RELEASES_DIR}/*/bootstrap/cache" -prune',
+            $activation,
+        );
+        $this->assertStringContainsString(
+            'sudo -u www-data test -w "${CURRENT_DIR}/bootstrap/cache"',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            'sudo -u www-data test -w /app/data/shared/storage',
+            $launcher,
+        );
+    }
+
     public function test_control_verifiers_reject_marker_preserving_tampering_and_unsafe_manifests(): void
     {
         $temporaryRoot = sys_get_temp_dir()
