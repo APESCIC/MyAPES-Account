@@ -3,6 +3,7 @@
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\AuditAdminAuthorizationDenial;
 use App\Http\Middleware\EnsureAuthorizationContext;
+use App\Http\Middleware\EnsureModuleAvailable;
 use App\Http\Middleware\RevalidateDirectoryAccess;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.denial-audit' => AuditAdminAuthorizationDenial::class,
             'authorization.context' => EnsureAuthorizationContext::class,
             'directory.current' => RevalidateDirectoryAccess::class,
+            'module.available' => EnsureModuleAvailable::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

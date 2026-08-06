@@ -257,13 +257,21 @@ jobs:
           grep -qx './artisan' build/archive-list.txt
           grep -qx './public/build/manifest.json' build/archive-list.txt
           grep -qx './resources/data/releases.json' build/archive-list.txt
+          grep -qx './resources/data/module-runtime-contract.json' build/archive-list.txt
+          grep -qx './config/modules.php' build/archive-list.txt
           grep -qx './config/permission.php' build/archive-list.txt
           grep -qx './database/migrations/2026_07_28_000000_create_permission_tables.php' build/archive-list.txt
           grep -qx './database/migrations/2026_07_28_000100_cut_over_authorization_domain.php' build/archive-list.txt
+          grep -qx './database/migrations/2026_08_06_000000_create_module_installations_table.php' build/archive-list.txt
           grep -qx './app/Console/Commands/AuthorizationPreflight.php' build/archive-list.txt
           grep -qx './app/Console/Commands/DirectorySync.php' build/archive-list.txt
           grep -qx './app/Console/Commands/AuthorizationSync.php' build/archive-list.txt
           grep -qx './app/Console/Commands/AuthorizationCheck.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/ModulesPreflight.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/ModulesSync.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/ModulesCheck.php' build/archive-list.txt
+          grep -qx './app/Console/Commands/ModulesRollbackCheck.php' build/archive-list.txt
+          grep -qx './app/Services/ModuleRollbackCompatibilityChecker.php' build/archive-list.txt
           grep -qx './scripts/deploy/activate-release.sh' build/archive-list.txt
           grep -qx './scripts/deploy/rollback-release.sh' build/archive-list.txt
           grep -qx './scripts/deploy/cloudron-app.conf' build/archive-list.txt
@@ -285,7 +293,7 @@ jobs:
           retention-days: 7
 
   database-compatibility:
-    name: Phase B database contract (${{ matrix.engine }})
+    name: Authorization and module database contract (${{ matrix.engine }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -333,7 +341,7 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run Phase B database contract
+      - name: Run authorization and module database contract
         env:
           DB_CONNECTION: ${{ matrix.connection }}
           DB_HOST: 127.0.0.1
@@ -358,7 +366,12 @@ jobs:
             tests/Feature/DirectorySyncWiringTest.php \
             tests/Feature/Auth/DirectoryRevalidationTest.php \
             tests/Feature/DirectoryGroupMappingServiceTest.php \
-            tests/Feature/DirectoryRoleSynchronizerTest.php
+            tests/Feature/DirectoryRoleSynchronizerTest.php \
+            tests/Feature/ModuleRegistryTest.php \
+            tests/Feature/ModuleInstallationSynchronizationTest.php \
+            tests/Feature/ModuleLifecycleTest.php \
+            tests/Feature/ModuleLifecycleConcurrencyTest.php \
+            tests/Feature/ModuleRollbackCompatibilityTest.php
 
           php artisan migrate:fresh --seed --force --no-interaction
           php tests/Support/directory-sync-timeout-probe.php prepare

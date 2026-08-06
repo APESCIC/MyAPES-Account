@@ -3,35 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
+use App\Services\ModuleDashboardSummaryService;
+use App\Services\ModuleState;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    public function __invoke(): View
-    {
+    public function __invoke(
+        ModuleDashboardSummaryService $summaries,
+        ModuleState $modules,
+    ): View {
         $user = request()->user();
+        $attentionItems = collect();
 
-        $ticketQuery = SupportTicket::query()->visibleTo($user);
-        $shelterCasesQuery = ShelterCase::query()->visibleTo($user);
-        $consultationsQuery = PetCareConsultation::query()->visibleTo($user);
-        $petProfilesQuery = PetProfile::query()->visibleTo($user);
-
-        $openTicketQuery = (clone $ticketQuery)
-            ->whereNull('closed_at')
-            ->whereNotIn('status', ['resolved', 'closed']);
-        $openShelterCaseQuery = (clone $shelterCasesQuery)
-            ->whereNull('closed_at')
-            ->where('status', '!=', 'closed');
-        $openConsultationQuery = (clone $consultationsQuery)
-            ->whereNull('closed_at')
-            ->where('status', '!=', 'closed');
-
-        $attentionItems = collect()
-            ->concat(
-                (clone $openTicketQuery)
+        if ($modules->enabled('apes-cic', 'tickets')) {
+            $openTickets = SupportTicket::query()
+                ->visibleTo($user)
+                ->whereNull('closed_at')
+                ->whereNotIn('status', ['resolved', 'closed']);
+            $attentionItems = $attentionItems->concat(
+                (clone $openTickets)
                     ->with('user')
                     ->get()
                     ->map(fn (SupportTicket $ticket): array => [
@@ -43,13 +37,22 @@ class DashboardController extends Controller
                         'status' => $ticket->status,
                         'priority' => $ticket->priority,
                         'context' => null,
-                        'owner' => $ticket->user ? "From: {$ticket->user->name}" : null,
+                        'owner' => $ticket->user
+                            ? "From: {$ticket->user->name}"
+                            : null,
                         'updatedAt' => $ticket->updated_at,
                         'url' => route('apes-cic.tickets.show', $ticket),
-                    ])
-            )
-            ->concat(
-                (clone $openShelterCaseQuery)
+                    ]),
+            );
+        }
+
+        if ($modules->enabled('shelter-rescue', 'cases')) {
+            $openCases = ShelterCase::query()
+                ->visibleTo($user)
+                ->whereNull('closed_at')
+                ->where('status', '<>', 'closed');
+            $attentionItems = $attentionItems->concat(
+                (clone $openCases)
                     ->with(['petProfile', 'user'])
                     ->get()
                     ->map(fn (ShelterCase $case): array => [
@@ -60,14 +63,26 @@ class DashboardController extends Controller
                         'title' => $case->title,
                         'status' => $case->status,
                         'priority' => null,
-                        'context' => str($case->case_type)->replace('_', ' ')->title()->toString(),
-                        'owner' => $case->petProfile ? "Pet: {$case->petProfile->name}" : null,
+                        'context' => str($case->case_type)
+                            ->replace('_', ' ')
+                            ->title()
+                            ->toString(),
+                        'owner' => $case->petProfile
+                            ? "Pet: {$case->petProfile->name}"
+                            : null,
                         'updatedAt' => $case->updated_at,
                         'url' => route('shelter.cases.show', $case),
-                    ])
-            )
-            ->concat(
-                (clone $openConsultationQuery)
+                    ]),
+            );
+        }
+
+        if ($modules->enabled('pet-care-clinic', 'consultations')) {
+            $openConsultations = PetCareConsultation::query()
+                ->visibleTo($user)
+                ->whereNull('closed_at')
+                ->where('status', '<>', 'closed');
+            $attentionItems = $attentionItems->concat(
+                (clone $openConsultations)
                     ->with(['petProfile', 'user'])
                     ->get()
                     ->map(fn (PetCareConsultation $consultation): array => [
@@ -79,30 +94,40 @@ class DashboardController extends Controller
                         'status' => $consultation->status,
                         'priority' => null,
                         'context' => $consultation->scheduled_for
-                            ? 'Scheduled '.$consultation->scheduled_for->diffForHumans()
+                            ? 'Scheduled '.$consultation->scheduled_for
+                                ->diffForHumans()
                             : null,
-                        'owner' => $consultation->petProfile ? "Pet: {$consultation->petProfile->name}" : null,
+                        'owner' => $consultation->petProfile
+                            ? "Pet: {$consultation->petProfile->name}"
+                            : null,
                         'updatedAt' => $consultation->updated_at,
-                        'url' => route('petcare.consultations.show', $consultation),
-                    ])
+                        'url' => route(
+                            'petcare.consultations.show',
+                            $consultation,
+                        ),
+                    ]),
+            );
+        }
+
+        return view('dashboard', [
+            'moduleSummaries' => $summaries->forUser($user),
+            'attentionItems' => $this->sortedAttention($attentionItems),
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortedAttention(Collection $items): array
+    {
+        return $items
+            ->sortByDesc(
+                static fn (array $item): int => $item['updatedAt']
+                    ->getTimestamp(),
             )
-            ->sortByDesc(fn (array $item): int => $item['updatedAt']->getTimestamp())
             ->take(6)
             ->values()
             ->all();
-
-        return view('dashboard', [
-            'ticketCount' => (clone $ticketQuery)->count(),
-            'openTicketCount' => (clone $openTicketQuery)->count(),
-            'highPriorityTicketCount' => (clone $openTicketQuery)
-                ->whereIn('priority', ['high', 'urgent'])
-                ->count(),
-            'shelterCaseCount' => (clone $shelterCasesQuery)->count(),
-            'openShelterCaseCount' => (clone $openShelterCaseQuery)->count(),
-            'consultationCount' => (clone $consultationsQuery)->count(),
-            'openConsultationCount' => (clone $openConsultationQuery)->count(),
-            'petProfileCount' => (clone $petProfilesQuery)->count(),
-            'attentionItems' => $attentionItems,
-        ]);
     }
 }

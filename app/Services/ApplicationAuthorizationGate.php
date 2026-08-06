@@ -22,37 +22,42 @@ class ApplicationAuthorizationGate
             return false;
         }
 
-        if (! $this->profile->isDirectoryRestrictedPermission($ability)) {
+        if (! $this->profile->isApplicationPermission($ability)) {
             return null;
         }
 
-        if (! $this->context->permitsDirectoryRestricted(
-            $this->request,
-            $user,
-        )) {
-            return false;
-        }
+        $directoryRestricted = $this->profile
+            ->isDirectoryRestrictedPermission($ability);
 
-        $eligible = User::query();
+        if ($directoryRestricted) {
+            if (! $this->context->permitsDirectoryRestricted(
+                $this->request,
+                $user,
+            )) {
+                return false;
+            }
 
-        if ($this->profile->isSuperAdminOnlyPermission($ability)) {
-            $eligible->eligibleSuperAdmins();
-        } else {
-            $eligible->eligibleStaff();
-        }
+            $eligible = User::query();
 
-        if (! $eligible
-            ->whereKey($user->getKey())
-            ->exists()) {
-            return false;
-        }
+            if ($this->profile->isSuperAdminOnlyPermission($ability)) {
+                $eligible->eligibleSuperAdmins();
+            } else {
+                $eligible->eligibleStaff();
+            }
 
-        if ($this->profile->isSuperAdminOnlyPermission($ability)) {
-            return $this->profile->isSuperAdmin($user);
-        }
+            if (! $eligible
+                ->whereKey($user->getKey())
+                ->exists()) {
+                return false;
+            }
 
-        if ($this->profile->isSuperAdmin($user)) {
-            return true;
+            if ($this->profile->isSuperAdminOnlyPermission($ability)) {
+                return $this->profile->isSuperAdmin($user);
+            }
+
+            if ($this->profile->isSuperAdmin($user)) {
+                return true;
+            }
         }
 
         return $this->hasApplicationPermission($user, $ability);

@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-06T09:01:12+01:00`
+- Last verified README health review: `2026-08-06T18:48:48+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -27,8 +27,9 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Durable authorization epochs, recent directory-validation timestamps, suspension checks, remember-token rotation, and the Phase B session-cutover marker force reauthentication whenever authorization changes.
 - **Protected authorization**:
   - The exact protected roles are `service-user`, `staff`, `administrator`, and `super-admin`.
-  - The code-owned permission catalogue is exactly `staff.access`, `admin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
-  - These thirteen permissions are synchronized from `AuthorizationProfile` and enforced by the application-owned Gate and policies.
+  - The core code-owned permission catalogue contains `staff.access`, `admin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
+  - The first-party registry contributes 32 namespaced permissions for shipped instances. All 45 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
+  - Administrators retain `admin.modules.view`; `admin.modules.manage` is super-admin-only.
   - Direct user permissions remain an internal central-materializer capability with mandatory provenance and no arbitrary Admin assignment UI. Authorized Admin user details show the same deduplicated role-plus-direct effective set used by the Gate and list each direct source with only a system label or granting account ID.
   - Spatie provides role/permission storage only. Its automatic Gate hook remains disabled while the teams schema and wildcard matching are enabled for the application-owned authorization path. Direct user permissions are allowed only through the central provenance materializer; direct pivot mutation remains disabled.
   - Every effective role has `system`, `directory`, `local`, or `legacy-compatibility` provenance. Local assignments require the persisted user ID of the actor who granted them, may use custom roles, and cannot assign protected roles or replace missing directory eligibility; non-local sources cannot claim an actor.
@@ -43,7 +44,13 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Admin Users supports safe identity detail, search/filtering, custom local-role assignment, suspension/reactivation, effective permissions, provenance, and audit history within target-aware authorization boundaries. Target lookup occurs only after authorization, so missing and existing identifiers produce the same sanitized denial for unauthorized actors.
   - Admin Groups shows present/missing directory groups and aggregate counts; super-admins can manage mutable exact mappings and request asynchronous synchronization.
   - Admin Roles lets authorized administrators inspect custom roles while only super-admins can create, update permissions for, or delete unassigned custom roles.
-  - Admin Permissions is a read-only view of the thirteen code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
+  - Admin Permissions is a read-only view of the core and shipped-module code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
+- **First-party module registry**:
+  - Immutable Laravel contracts define the permanent `apes-cic`, `shelter-rescue`, and `pet-care-clinic` sub-cores plus the `tickets`, `cases`, `pet-profiles`, and `consultations` module types. Executable providers, detectors, routes, and summaries are registered from reviewed source code only; database or writable-storage discovery is unsupported.
+  - The five shipped instances are APES CIC Tickets; Shelter and Rescue Pet Profiles and Cases; and Pet Care Clinic Pet Profiles and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state.
+  - Shelter Tickets, Pet Care Clinic Tickets, and APES CIC Cases are compatible but display as **Code not shipped** and have no install action. All other matrix cells are explicitly incompatible.
+  - Lifecycle operations are transactional, super-admin-only, and serialized with module write requests through the same bounded per-instance cache lock. Dependencies and active records are rechecked under the transition transaction; disablement never deletes records, and no uninstall operation exists.
+  - Direct route checks read authoritative installation state. Generated navigation and aggregate dashboard summaries use a short versioned projection cache, invalidated only after a committed lifecycle transition.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support tickets
@@ -154,7 +161,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 | Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC tickets, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
 | Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff visibility across all user records, assignment updates, staff notes, status workflows, and the local custom-role fixture |
 | Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus authorized Admin Users/Groups/Roles/Permissions views and allowed account mutations |
-| Super Admin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Custom-role and exact directory-mapping management boundaries |
+| Super Admin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Custom-role, exact directory-mapping, and guarded module-lifecycle management boundaries |
 
 ### Feature test matrix by seeded role
 
@@ -162,7 +169,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 | --- | --- |
 | Public | Create/view own APES CIC tickets, update own shelter/pet care records, edit profile/settings, verify owner-only visibility |
 | Staff | See all users' tickets/cases/consultations, assign records to staff/admin, update statuses and staff notes |
-| Admin | Run full staff workflows plus inspect Admin Users, Groups, Roles, and Permissions and exercise allowed user-management boundaries |
+| Admin | Run full staff workflows plus inspect Admin Users, Groups, Roles, Permissions, and Modules and exercise allowed user-management boundaries |
 
 ### Seeded data included for quick E2E checks
 
@@ -284,6 +291,28 @@ php artisan myapes:directory-sync --source=manual
 php artisan myapes:directory-sync --source=scheduled
 ```
 
+The module lifecycle deployment commands are:
+
+```bash
+php artisan myapes:modules:preflight --no-interaction --no-ansi
+php artisan myapes:modules:sync --no-interaction --no-ansi
+php artisan myapes:modules:check --no-interaction --no-ansi
+php artisan myapes:modules:rollback-check --target-release=/absolute/release/path --no-interaction --no-ansi
+```
+
+`myapes:modules:preflight` validates the supported database driver and complete
+3×4 code registry before migration. `myapes:modules:sync` creates missing
+shipped defaults without changing existing installation state or actor history.
+`myapes:modules:check` verifies shipped installation, dependency, and permission
+postconditions. The rollback command is read-only and checks whether current
+database state is representable by the target release contract.
+
+Module locks default to 15 seconds with a five-second bounded wait through
+`MODULE_LOCK_SECONDS` and `MODULE_LOCK_WAIT_SECONDS`. Navigation and dashboard
+projections default to 30 seconds through `MODULE_PROJECTION_CACHE_SECONDS`;
+the version key is advanced atomically only after a lifecycle transaction
+commits, so concurrent transitions cannot retain a stale projection.
+
 `myapes:authorization-preflight` runs before migration and validates the
 supported Phase A or retry-safe Phase B database state, OIDC discovery/PKCE,
 LDAP connectivity, and the three populated immutable groups without printing
@@ -374,6 +403,16 @@ altered content therefore fails before a control is executed or a code link
 changes. The pre-deployment Cloudron backup remains the recovery boundary if
 database recovery, rather than code rollback, is required.
 
+Before any rollback-path link or runtime mutation, the active release runs the
+read-only module compatibility check against the exact target directory. A
+target with `resources/data/module-runtime-contract.json` must support every
+persisted installation. A target without that manifest is treated as the
+v0.8.3 legacy contract and is representable only when exactly the five
+legacy-visible instances remain enabled and no extra installation exists.
+Disabled legacy-visible modules therefore deliberately block rollback to
+v0.8.3; operators must re-enable them through the guarded lifecycle or retain
+the current release and assess database recovery.
+
 A deliberate maintenance downgrade first requires Laravel maintenance mode and
 then fails before schema mutation when any suspension or non-default
 authorization epoch cannot be represented by Phase A. For a permitted
@@ -385,20 +424,23 @@ backends fail closed.
 
 1. A dependency-independent job fetches the exact Git revision with the built-in runner tools, reads the four deployment-control blobs directly from Git, and exports their fixed-path manifest digest before any action or package dependency can influence it.
 2. The SQLite/package job checks out that revision, validates the append-only release history, runs the complete PHP and frontend suites, validates shell and PowerShell syntax, builds Vite assets, and creates an immutable production archive with exact `VERSION`, full-SHA `REVISION`, and deployment controls that must match the Git-derived digest.
-3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded cutover, lifecycle, compatibility, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
+3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded authorization cutover plus module migration, synchronization, dependency, rollback, concurrent lifecycle/write-lock, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
 4. Only a successful `main` push proceeds. Cloudron creates the pre-deployment backup before any upload or activation.
 5. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>` only after local verification of the externally exported control-manifest digest and all four complete control files.
-6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete Phase B payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It assigns protected runtime and release paths to root while restoring application ownership only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
+6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete application payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It assigns protected runtime and release paths to root while restoring application ownership only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
    1. `optimize:clear`;
    2. `myapes:authorization-preflight --no-interaction --no-ansi`;
-   3. `migrate --force`;
-   4. configuration, route, and view caches;
-   5. `permission:cache-reset --no-interaction`;
-   6. `myapes:directory-sync --source=manual --no-interaction --no-ansi`;
-   7. `myapes:authorization-sync --no-interaction --no-ansi`;
-   8. `permission:cache-reset --no-interaction`;
-   9. `myapes:authorization-check --no-interaction --no-ansi`; and
-   10. the atomic `/app/data/current` switch.
+   3. `myapes:modules:preflight --no-interaction --no-ansi`;
+   4. `migrate --force`;
+   5. `myapes:modules:sync --no-interaction --no-ansi`;
+   6. configuration, route, and view caches;
+   7. `permission:cache-reset --no-interaction`;
+   8. `myapes:directory-sync --source=manual --no-interaction --no-ansi`;
+   9. `myapes:authorization-sync --no-interaction --no-ansi`;
+   10. `permission:cache-reset --no-interaction`;
+   11. `myapes:modules:check --no-interaction --no-ansi`;
+   12. `myapes:authorization-check --no-interaction --no-ansi`; and
+   13. the atomic `/app/data/current` switch.
 7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
 8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
 9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
@@ -436,6 +478,7 @@ Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provide
 - `role_sources`: application-owned provenance ledger kept in parity with effective role pivots by the retained Phase B database guard
 - `authorization_states`: cutover/session markers, global authorization epoch, and the database-fenced directory synchronization lease
 - `directory_groups`, `directory_group_role_mappings`, and `directory_sync_runs`: aggregate catalogue, exact mappings, sanitized synchronization history, and non-secret queue-attempt/lease correlation
+- `module_installations`: durable per-sub-core shipped-module state with transition timestamps and sanitized actor account IDs; state is unique by `(sub_core_key, module_key)` and never stores executable class names
 - `user_profiles`: shared profile/settings data
 - `support_tickets` + `support_ticket_messages`: APES CIC support workflows
 - `pet_profiles`: shared pet record model (`shelter` or `petcare` domain)

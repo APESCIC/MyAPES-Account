@@ -14,7 +14,9 @@ class DeploymentAuthenticationContractTest extends TestCase
         $orderedCommands = [
             'optimize:clear',
             'myapes:authorization-preflight --no-interaction --no-ansi',
+            'myapes:modules:preflight --no-interaction --no-ansi',
             'migrate --force',
+            'myapes:modules:sync --no-interaction --no-ansi',
             'config:cache',
             'route:cache',
             'view:cache',
@@ -22,6 +24,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             'myapes:directory-sync --source=manual --no-interaction --no-ansi',
             'myapes:authorization-sync --no-interaction --no-ansi',
             'permission:cache-reset --no-interaction',
+            'myapes:modules:check --no-interaction --no-ansi',
             'myapes:authorization-check --no-interaction --no-ansi',
             'mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"',
         ];
@@ -55,6 +58,9 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $this->assertSame(2, substr_count($script, 'permission:cache-reset'));
         $this->assertSame(1, substr_count($script, 'myapes:authorization-preflight'));
+        $this->assertSame(1, substr_count($script, 'myapes:modules:preflight'));
+        $this->assertSame(1, substr_count($script, 'myapes:modules:sync'));
+        $this->assertSame(1, substr_count($script, 'myapes:modules:check'));
         $this->assertSame(1, substr_count($script, 'myapes:directory-sync'));
         $this->assertSame(1, substr_count($script, 'myapes:authorization-sync'));
         $this->assertSame(1, substr_count($script, 'myapes:authorization-check'));
@@ -106,13 +112,21 @@ class DeploymentAuthenticationContractTest extends TestCase
             'vendor/autoload.php',
             'public/build/manifest.json',
             'resources/data/releases.json',
+            'resources/data/module-runtime-contract.json',
+            'config/modules.php',
             'config/permission.php',
             'database/migrations/2026_07_28_000000_create_permission_tables.php',
             'database/migrations/2026_07_28_000100_cut_over_authorization_domain.php',
+            'database/migrations/2026_08_06_000000_create_module_installations_table.php',
             'app/Console/Commands/AuthorizationPreflight.php',
             'app/Console/Commands/DirectorySync.php',
             'app/Console/Commands/AuthorizationSync.php',
             'app/Console/Commands/AuthorizationCheck.php',
+            'app/Console/Commands/ModulesPreflight.php',
+            'app/Console/Commands/ModulesSync.php',
+            'app/Console/Commands/ModulesCheck.php',
+            'app/Console/Commands/ModulesRollbackCheck.php',
+            'app/Services/ModuleRollbackCompatibilityChecker.php',
             'scripts/deploy/activate-release.sh',
             'scripts/deploy/rollback-release.sh',
             'scripts/deploy/cloudron-app.conf',
@@ -250,6 +264,11 @@ class DeploymentAuthenticationContractTest extends TestCase
             'Auth/DirectoryRevalidationTest.php',
             'DirectoryGroupMappingServiceTest.php',
             'DirectoryRoleSynchronizerTest.php',
+            'ModuleRegistryTest.php',
+            'ModuleInstallationSynchronizationTest.php',
+            'ModuleLifecycleTest.php',
+            'ModuleLifecycleConcurrencyTest.php',
+            'ModuleRollbackCompatibilityTest.php',
         ] as $testFile) {
             $this->assertStringContainsString(
                 "tests/Feature/{$testFile}",
@@ -293,13 +312,21 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString("grep -qx './VERSION' build/archive-list.txt", $workflow);
         foreach ([
             'resources/data/releases.json',
+            'resources/data/module-runtime-contract.json',
+            'config/modules.php',
             'config/permission.php',
             'database/migrations/2026_07_28_000000_create_permission_tables.php',
             'database/migrations/2026_07_28_000100_cut_over_authorization_domain.php',
+            'database/migrations/2026_08_06_000000_create_module_installations_table.php',
             'app/Console/Commands/AuthorizationPreflight.php',
             'app/Console/Commands/DirectorySync.php',
             'app/Console/Commands/AuthorizationSync.php',
             'app/Console/Commands/AuthorizationCheck.php',
+            'app/Console/Commands/ModulesPreflight.php',
+            'app/Console/Commands/ModulesSync.php',
+            'app/Console/Commands/ModulesCheck.php',
+            'app/Console/Commands/ModulesRollbackCheck.php',
+            'app/Services/ModuleRollbackCompatibilityChecker.php',
             'scripts/deploy/activate-release.sh',
             'scripts/deploy/rollback-release.sh',
             'scripts/deploy/cloudron-app.conf',
@@ -901,6 +928,14 @@ class DeploymentAuthenticationContractTest extends TestCase
             $script,
             'install -m 0444 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf"',
         );
+        $moduleCompatibility = $this->position(
+            $script,
+            'myapes:modules:rollback-check',
+        );
+        $firstRollbackMutation = $this->position(
+            $script,
+            'rm -f -- "$target_path"',
+        );
         $applicationSwitch = $this->position(
             $script,
             'mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"',
@@ -911,6 +946,15 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $this->assertLessThan($applicationSwitch, $runtimeStaging);
         $this->assertLessThan($runtimePublish, $applicationSwitch);
+        $this->assertLessThan($firstRollbackMutation, $moduleCompatibility);
+        $this->assertStringContainsString(
+            '"${CURRENT_TARGET}/artisan" myapes:modules:rollback-check',
+            $script,
+        );
+        $this->assertStringContainsString(
+            '--target-release="$ROLLBACK_TARGET" --no-interaction --no-ansi',
+            $script,
+        );
         $this->assertStringContainsString('ln -s "$ROLLBACK_TARGET" "${CURRENT_LINK}.rollback"', $script);
         $this->assertStringContainsString('mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"', $script);
         $this->assertStringContainsString('scripts/deploy/cloudron-app.conf', $script);

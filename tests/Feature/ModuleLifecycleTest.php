@@ -1,0 +1,428 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Contracts\ModuleActiveRecordDetector;
+use App\Contracts\ModuleLifecycleManager;
+use App\Contracts\ModuleRegistry;
+use App\Exceptions\ModuleLifecycleException;
+use App\Models\AuditLog;
+use App\Models\ModuleInstallation;
+use App\Models\PetCareConsultation;
+use App\Models\PetProfile;
+use App\Models\ShelterCase;
+use App\Models\SupportTicket;
+use App\Models\User;
+use App\Modules\Detectors\SupportTicketActiveRecordDetector;
+use App\Services\AuthorizationMetadataSynchronizer;
+use App\Services\AuthorizationProfile;
+use App\Services\ModuleInstallationSynchronizer;
+use App\Services\ModuleInstanceLock;
+use App\Services\ModuleProjectionCache;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use RuntimeException;
+use Tests\TestCase;
+
+class ModuleLifecycleTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private ModuleLifecycleManager $lifecycle;
+
+    private User $superAdmin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        app(ModuleInstallationSynchronizer::class)->synchronize();
+        $this->superAdmin = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SUPER_ADMIN)
+            ->create();
+        $this->actingAs($this->superAdmin);
+        $this->lifecycle = app(ModuleLifecycleManager::class);
+    }
+
+    public function test_super_admin_can_disable_and_enable_an_inactive_module_without_losing_data(): void
+    {
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        $disabled = $this->lifecycle->disable(
+            $this->superAdmin,
+            'apes-cic',
+            'tickets',
+            $installation->updated_at->toISOString(),
+        );
+
+        $this->assertFalse($disabled->enabled);
+        $this->assertSame($this->superAdmin->id, $disabled->disabled_by);
+        $this->assertNotNull($disabled->disabled_at);
+
+        $enabled = $this->lifecycle->enable(
+            $this->superAdmin,
+            'apes-cic',
+            'tickets',
+            $disabled->updated_at->toISOString(),
+        );
+
+        $this->assertTrue($enabled->enabled);
+        $this->assertSame($this->superAdmin->id, $enabled->enabled_by);
+        $this->assertNull($enabled->disabled_at);
+        $this->assertNull($enabled->disabled_by);
+        $this->assertSame(2, AuditLog::query()
+            ->where('event', 'module.lifecycle_succeeded')
+            ->count());
+    }
+
+    public function test_only_an_eligible_current_super_admin_can_mutate_module_state(): void
+    {
+        $administrator = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_ADMINISTRATOR)
+            ->create();
+        $this->actingAs($administrator);
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        try {
+            $this->lifecycle->disable(
+                $administrator,
+                'apes-cic',
+                'tickets',
+                $installation->updated_at->toISOString(),
+            );
+            $this->fail('An administrator mutated module state.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('forbidden', $exception->reason);
+        }
+
+        $this->assertTrue($installation->fresh()->enabled);
+        $audit = AuditLog::query()
+            ->where('event', 'module.lifecycle_refused')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('forbidden', $audit->context['reason']);
+        $this->assertSame($administrator->id, $audit->user_id);
+        $this->assertArrayNotHasKey('email', $audit->context);
+        $this->assertArrayNotHasKey('name', $audit->context);
+    }
+
+    public function test_install_rejects_duplicate_unshipped_and_incompatible_instances(): void
+    {
+        foreach ([
+            ['apes-cic', 'tickets', 'duplicate_installation'],
+            ['shelter-rescue', 'tickets', 'code_not_shipped'],
+            ['apes-cic', 'pet-profiles', 'incompatible'],
+        ] as [$subCore, $module, $reason]) {
+            try {
+                $this->lifecycle->install(
+                    $this->superAdmin,
+                    $subCore,
+                    $module,
+                );
+                $this->fail("Unexpected install succeeded for {$subCore}:{$module}.");
+            } catch (ModuleLifecycleException $exception) {
+                $this->assertSame($reason, $exception->reason);
+            }
+        }
+
+        $this->assertDatabaseCount('module_installations', 5);
+    }
+
+    public function test_install_recreates_an_available_shipped_instance_with_actor_provenance(): void
+    {
+        $this->installation('apes-cic', 'tickets')->delete();
+
+        $installation = $this->lifecycle->install(
+            $this->superAdmin,
+            'apes-cic',
+            'tickets',
+        );
+
+        $this->assertTrue($installation->enabled);
+        $this->assertSame($this->superAdmin->id, $installation->installed_by);
+        $this->assertSame($this->superAdmin->id, $installation->enabled_by);
+        $this->assertNotNull($installation->installed_at);
+        $this->assertNotNull($installation->enabled_at);
+    }
+
+    public function test_failed_permission_provisioning_rolls_back_installation(): void
+    {
+        $this->installation('apes-cic', 'tickets')->delete();
+        $this->mock(
+            AuthorizationMetadataSynchronizer::class,
+            function ($mock): void {
+                $mock->shouldReceive('synchronize')
+                    ->once()
+                    ->andThrow(new RuntimeException('unsafe provisioning detail'));
+            },
+        );
+
+        try {
+            app(ModuleLifecycleManager::class)->install(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+            );
+            $this->fail('A failed permission provision left an installation.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('transition_failed', $exception->reason);
+        }
+
+        $this->assertDatabaseMissing('module_installations', [
+            'sub_core_key' => 'apes-cic',
+            'module_key' => 'tickets',
+        ]);
+        $audit = AuditLog::query()
+            ->where('event', 'module.lifecycle_rolled_back')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('transition_failed', $audit->context['reason']);
+        $this->assertStringNotContainsString(
+            'unsafe provisioning detail',
+            json_encode($audit->context, JSON_THROW_ON_ERROR),
+        );
+    }
+
+    public function test_enabled_dependents_prevent_disabling_pet_profiles(): void
+    {
+        foreach ([
+            ['shelter-rescue', 'pet-profiles'],
+            ['pet-care-clinic', 'pet-profiles'],
+        ] as [$subCore, $module]) {
+            $installation = $this->installation($subCore, $module);
+
+            try {
+                $this->lifecycle->disable(
+                    $this->superAdmin,
+                    $subCore,
+                    $module,
+                    $installation->updated_at->toISOString(),
+                );
+                $this->fail('A dependency root was disabled while in use.');
+            } catch (ModuleLifecycleException $exception) {
+                $this->assertSame('enabled_dependent', $exception->reason);
+            }
+        }
+    }
+
+    public function test_active_records_prevent_disablement_and_are_never_deleted(): void
+    {
+        $owner = User::factory()->create();
+        $ticket = SupportTicket::query()->create([
+            'user_id' => $owner->id,
+            'assigned_to' => null,
+            'service_area' => 'general',
+            'subject' => 'Retain this record',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'Lifecycle checks must preserve module data.',
+            'closed_at' => null,
+        ]);
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        try {
+            $this->lifecycle->disable(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+                $installation->updated_at->toISOString(),
+            );
+            $this->fail('A module with active records was disabled.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('active_records', $exception->reason);
+        }
+
+        $this->assertTrue($installation->fresh()->enabled);
+        $this->assertDatabaseHas('support_tickets', ['id' => $ticket->id]);
+        $audit = AuditLog::query()
+            ->where('event', 'module.lifecycle_refused')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame(1, $audit->context['active_record_count']);
+    }
+
+    public function test_each_shipped_module_detector_counts_only_its_active_domain_records(): void
+    {
+        $owner = User::factory()->create();
+        $shelterPet = PetProfile::query()->create([
+            'user_id' => $owner->id,
+            'service_domain' => PetProfile::DOMAIN_SHELTER,
+            'name' => 'Shelter animal',
+            'species' => 'bird',
+        ]);
+        $petCarePet = PetProfile::query()->create([
+            'user_id' => $owner->id,
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Clinic animal',
+            'species' => 'reptile',
+        ]);
+        SupportTicket::query()->create([
+            'user_id' => $owner->id,
+            'service_area' => 'it',
+            'subject' => 'Open ticket',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'Active ticket.',
+        ]);
+        ShelterCase::query()->create([
+            'pet_profile_id' => $shelterPet->id,
+            'user_id' => $owner->id,
+            'case_type' => 'rescue',
+            'status' => 'open',
+            'title' => 'Open case',
+        ]);
+        PetCareConsultation::query()->create([
+            'pet_profile_id' => $petCarePet->id,
+            'user_id' => $owner->id,
+            'subject' => 'Open consultation',
+            'status' => 'open',
+        ]);
+
+        $registry = app(ModuleRegistry::class);
+        foreach (array_keys($registry->shippedInstances()) as $key) {
+            [$subCore, $module] = explode(':', $key, 2);
+            $instance = $registry->instance($subCore, $module);
+            /** @var ModuleActiveRecordDetector $detector */
+            $detector = app($instance->module->activeRecordDetector);
+
+            $this->assertSame(1, $detector->count($instance), $key);
+        }
+    }
+
+    public function test_stale_transitions_are_rejected_without_changing_state(): void
+    {
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        try {
+            $this->lifecycle->disable(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+                '2020-01-01T00:00:00.000000Z',
+            );
+            $this->fail('A stale module transition was accepted.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('stale_transition', $exception->reason);
+        }
+
+        $this->assertTrue($installation->fresh()->enabled);
+    }
+
+    public function test_lock_refusals_are_audited_without_sensitive_actor_data(): void
+    {
+        $this->mock(ModuleInstanceLock::class, function ($mock): void {
+            $mock->shouldReceive('run')
+                ->once()
+                ->andThrow(new ModuleLifecycleException('instance_busy'));
+        });
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        try {
+            app(ModuleLifecycleManager::class)->disable(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+                $installation->updated_at->toISOString(),
+            );
+            $this->fail('A busy module lock was not reported.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('instance_busy', $exception->reason);
+        }
+
+        $audit = AuditLog::query()
+            ->where('event', 'module.lifecycle_refused')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('instance_busy', $audit->context['reason']);
+        $this->assertArrayNotHasKey('email', $audit->context);
+        $this->assertArrayNotHasKey('name', $audit->context);
+    }
+
+    public function test_unexpected_detector_failures_roll_back_and_are_reason_coded(): void
+    {
+        $this->mock(
+            SupportTicketActiveRecordDetector::class,
+            function ($mock): void {
+                $mock->shouldReceive('count')
+                    ->once()
+                    ->andThrow(new RuntimeException('unsafe details'));
+            },
+        );
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        try {
+            $this->lifecycle->disable(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+                $installation->updated_at->toISOString(),
+            );
+            $this->fail('A failed detector allowed a state transition.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('transition_failed', $exception->reason);
+        }
+
+        $this->assertTrue($installation->fresh()->enabled);
+        $audit = AuditLog::query()
+            ->where('event', 'module.lifecycle_rolled_back')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('transition_failed', $audit->context['reason']);
+        $this->assertStringNotContainsString(
+            'unsafe details',
+            json_encode($audit->context, JSON_THROW_ON_ERROR),
+        );
+    }
+
+    public function test_only_committed_transitions_invalidate_projection_cache(): void
+    {
+        $cache = app(ModuleProjectionCache::class);
+        $before = $cache->version();
+        $installation = $this->installation('apes-cic', 'tickets');
+
+        try {
+            $this->lifecycle->disable(
+                $this->superAdmin,
+                'apes-cic',
+                'tickets',
+                'stale-version',
+            );
+        } catch (ModuleLifecycleException) {
+            // The failed transition must not publish a new projection version.
+        }
+
+        $this->assertSame($before, $cache->version());
+
+        $this->lifecycle->disable(
+            $this->superAdmin,
+            'apes-cic',
+            'tickets',
+            $installation->updated_at->toISOString(),
+        );
+
+        $this->assertSame($before + 1, $cache->version());
+    }
+
+    public function test_projection_cache_uses_an_atomic_version_increment(): void
+    {
+        $source = file_get_contents(
+            app_path('Services/ModuleProjectionCache.php'),
+        );
+
+        $this->assertIsString($source);
+        $this->assertStringContainsString('Cache::increment(', $source);
+        $this->assertStringNotContainsString(
+            'Cache::forever(self::VERSION_KEY, $this->version() + 1)',
+            $source,
+        );
+    }
+
+    private function installation(
+        string $subCore,
+        string $module,
+    ): ModuleInstallation {
+        return ModuleInstallation::query()
+            ->where('sub_core_key', $subCore)
+            ->where('module_key', $module)
+            ->firstOrFail();
+    }
+}

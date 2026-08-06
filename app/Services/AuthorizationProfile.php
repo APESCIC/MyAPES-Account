@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Contracts\ModuleRegistry;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 class AuthorizationProfile
 {
@@ -18,7 +20,7 @@ class AuthorizationProfile
 
     public const PERMISSION_ADMIN_ACCESS = 'admin.access';
 
-    private const PERMISSION_MATRIX = [
+    private const BASE_PERMISSION_MATRIX = [
         self::ROLE_SERVICE_USER => [],
         self::ROLE_STAFF => [
             self::PERMISSION_STAFF_ACCESS,
@@ -32,7 +34,6 @@ class AuthorizationProfile
             'admin.roles.view',
             'admin.permissions.view',
             'admin.modules.view',
-            'admin.modules.manage',
             'admin.analytics.view',
             'admin.maintenance.manage',
         ],
@@ -63,6 +64,7 @@ class AuthorizationProfile
     private const SUPER_ADMIN_ONLY_PERMISSIONS = [
         'admin.group-mappings.manage',
         'admin.roles.manage',
+        'admin.modules.manage',
     ];
 
     private const LEGACY_TO_PROTECTED = [
@@ -72,12 +74,32 @@ class AuthorizationProfile
         'superadmin' => self::ROLE_SUPER_ADMIN,
     ];
 
+    public function __construct(
+        private readonly ModuleRegistry $modules,
+    ) {}
+
     /**
      * @return array<string, array<int, string>>
      */
     public function permissionMatrix(): array
     {
-        return self::PERMISSION_MATRIX;
+        $matrix = self::BASE_PERMISSION_MATRIX;
+
+        if (Schema::hasTable('module_installations')) {
+            foreach ($this->modules->permissions() as $permission) {
+                foreach ($permission->defaultRoles as $role) {
+                    $matrix[$role][] = $permission->name;
+                }
+            }
+        }
+
+        foreach ($matrix as &$permissions) {
+            $permissions = array_values(array_unique($permissions));
+            sort($permissions);
+        }
+        unset($permissions);
+
+        return $matrix;
     }
 
     /**
@@ -86,7 +108,7 @@ class AuthorizationProfile
     public function permissions(): array
     {
         $permissions = array_values(array_unique(array_merge(
-            ...array_values(self::PERMISSION_MATRIX),
+            ...array_values($this->permissionMatrix()),
         )));
         sort($permissions);
 
@@ -103,10 +125,18 @@ class AuthorizationProfile
 
     public function isProtectedRole(string $roleName): bool
     {
-        return array_key_exists($roleName, self::PERMISSION_MATRIX);
+        return array_key_exists($roleName, self::BASE_PERMISSION_MATRIX);
     }
 
     public function isDirectoryRestrictedPermission(string $permission): bool
+    {
+        $modulePermission = $this->modules->permission($permission);
+
+        return $modulePermission?->requiresDirectoryContext
+            ?? in_array($permission, $this->permissions(), true);
+    }
+
+    public function isApplicationPermission(string $permission): bool
     {
         return in_array($permission, $this->permissions(), true);
     }

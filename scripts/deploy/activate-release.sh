@@ -459,13 +459,21 @@ required_paths=(
   vendor/autoload.php
   public/build/manifest.json
   resources/data/releases.json
+  resources/data/module-runtime-contract.json
+  config/modules.php
   config/permission.php
   database/migrations/2026_07_28_000000_create_permission_tables.php
   database/migrations/2026_07_28_000100_cut_over_authorization_domain.php
+  database/migrations/2026_08_06_000000_create_module_installations_table.php
   app/Console/Commands/AuthorizationPreflight.php
   app/Console/Commands/DirectorySync.php
   app/Console/Commands/AuthorizationSync.php
   app/Console/Commands/AuthorizationCheck.php
+  app/Console/Commands/ModulesPreflight.php
+  app/Console/Commands/ModulesSync.php
+  app/Console/Commands/ModulesCheck.php
+  app/Console/Commands/ModulesRollbackCheck.php
+  app/Services/ModuleRollbackCompatibilityChecker.php
   scripts/deploy/activate-release.sh
   scripts/deploy/rollback-release.sh
   scripts/deploy/cloudron-app.conf
@@ -557,7 +565,9 @@ run_artisan() {
 
 run_artisan optimize:clear
 run_artisan myapes:authorization-preflight --no-interaction --no-ansi
+run_artisan myapes:modules:preflight --no-interaction --no-ansi
 run_artisan migrate --force
+run_artisan myapes:modules:sync --no-interaction --no-ansi
 run_artisan config:cache
 run_artisan route:cache
 run_artisan view:cache
@@ -565,6 +575,7 @@ run_artisan permission:cache-reset --no-interaction --no-ansi
 run_artisan myapes:directory-sync --source=manual --no-interaction --no-ansi
 run_artisan myapes:authorization-sync --no-interaction --no-ansi
 run_artisan permission:cache-reset --no-interaction --no-ansi
+run_artisan myapes:modules:check --no-interaction --no-ansi
 run_artisan myapes:authorization-check --no-interaction --no-ansi
 
 if ! run_artisan env --no-ansi | grep -Eq 'production'; then

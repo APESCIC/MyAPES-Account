@@ -135,6 +135,7 @@ CONTROL_ROOT="${4:-}"
 SHARED_DIR="${DATA_DIR}/shared"
 CURRENT_LINK="${DATA_DIR}/current"
 PREVIOUS_LINK="${DATA_DIR}/previous"
+PHP_BIN="/usr/bin/php8.4"
 
 if [[ ! -L "$PREVIOUS_LINK" ]]; then
   echo "No previous release is available for code rollback."
@@ -251,6 +252,10 @@ if [[ -e "$CURRENT_LINK" && ! -L "$CURRENT_LINK" ]]; then
   echo "Current release path is not a symlink; refusing code rollback."
   exit 1
 fi
+
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${CURRENT_TARGET}/artisan" myapes:modules:rollback-check \
+  --target-release="$ROLLBACK_TARGET" --no-interaction --no-ansi
 
 for runtime_link in storage .env; do
   target_path="${ROLLBACK_TARGET}/${runtime_link}"
