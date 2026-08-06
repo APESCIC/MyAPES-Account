@@ -98,6 +98,28 @@ CONTROL_MODES
   fi
 }
 
+assert_release_root_ownership() {
+  local release_root="${1:-}"
+  local unexpected_owner=""
+
+  if [[ -z "$release_root" || ! -d "$release_root" ]]; then
+    echo "Release ownership verification requires an existing release directory."
+    return 1
+  fi
+
+  unexpected_owner="$(find "$release_root" -xdev \
+    ! -user root \
+    ! -path "${release_root}/bootstrap/cache" \
+    ! -path "${release_root}/bootstrap/cache/*" \
+    -print -quit)"
+  if [[ -n "$unexpected_owner" \
+    || "$(stat -Lc '%U:%G' "$release_root")" != "root:root" \
+    || "$(stat -Lc '%U:%G' "${release_root}/public")" != "root:root" ]]; then
+    echo "Release ownership is not root-controlled."
+    return 1
+  fi
+}
+
 if [[ "${1:-}" == "--verify-controls" ]]; then
   verify_deployment_controls "${2:-}" "${3:-}"
   exit 0
@@ -207,6 +229,17 @@ if [[ "$(tr -d '\r\n' <"${ROLLBACK_TARGET}/REVISION")" != "$ROLLBACK_SHA" ]]; th
   exit 1
 fi
 
+assert_release_root_ownership "$ROLLBACK_TARGET"
+
+if [[ "$(stat -Lc '%U:%G' "$DATA_DIR")" != "root:root" \
+  || "$(stat -Lc '%U:%G' "$RELEASES_DIR")" != "root:root" \
+  || "$(stat -Lc '%U:%G' "$SHARED_DIR")" != "root:root" \
+  || "$(stat -Lc '%U:%G' "${SHARED_DIR}/.env")" != "root:www-data" ]] \
+  || sudo -u www-data test -w "${SHARED_DIR}/.env"; then
+  echo "Shared rollback ownership is not root-controlled."
+  exit 1
+fi
+
 for protected_path in "$ROLLBACK_TARGET" "${ROLLBACK_TARGET}/public"; do
   if sudo -u www-data test -w "$protected_path"; then
     echo "Previous release lost its immutable write boundary; refusing unauthenticated rollback."
@@ -246,9 +279,10 @@ else
   ln -s "$SHARED_PUBLIC_STORAGE" "$PUBLIC_STORAGE_LINK"
 fi
 
+chown -hR root:root "$ROLLBACK_TARGET"
 chmod -R a-w -- "$ROLLBACK_TARGET"
 install -d -o www-data -g www-data -m 0770 "${ROLLBACK_TARGET}/bootstrap/cache"
-chown -R www-data:www-data "${ROLLBACK_TARGET}/bootstrap/cache"
+chown -hR www-data:www-data "${ROLLBACK_TARGET}/bootstrap/cache"
 chmod -R u+rwX,g+rwX,o-rwx "${ROLLBACK_TARGET}/bootstrap/cache"
 chmod 0555 "$DATA_DIR" "$RELEASES_DIR" "$ROLLBACK_TARGET" "${ROLLBACK_TARGET}/public"
 
@@ -261,7 +295,14 @@ mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"
 mv -Tf "${DATA_DIR}/apache/app.conf.rollback" "${DATA_DIR}/apache/app.conf"
 mv -Tf "${DATA_DIR}/run.sh.rollback" "${DATA_DIR}/run.sh"
 rm -f -- "$PREVIOUS_LINK"
-chmod 0555 "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR"
+chown root:root "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR" "$SHARED_DIR" \
+  "${DATA_DIR}/apache/app.conf" "${DATA_DIR}/run.sh"
+chown -h root:root "$CURRENT_LINK"
+chown root:www-data "${SHARED_DIR}/.env"
+chmod 0640 "${SHARED_DIR}/.env"
+chmod 0555 "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR" "$SHARED_DIR"
+
+assert_release_root_ownership "$ROLLBACK_TARGET"
 
 for protected_path in \
   "$DATA_DIR" \
@@ -271,7 +312,8 @@ for protected_path in \
   "$RELEASES_DIR" \
   "$ROLLBACK_TARGET" \
   "${ROLLBACK_TARGET}/public"; do
-  if sudo -u www-data test -w "$protected_path"; then
+  if [[ "$(stat -Lc '%U:%G' "$protected_path")" != "root:root" ]] \
+    || sudo -u www-data test -w "$protected_path"; then
     echo "Application user can mutate restored release control: $protected_path"
     exit 1
   fi

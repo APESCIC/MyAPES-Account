@@ -577,7 +577,7 @@ jobs:
 
       - name: Reconstitute authenticated runtime controls after restart
         id: runtime_controls
-        if: steps.restart.outcome == 'success'
+        if: always() && steps.restart.outcome != 'skipped'
         continue-on-error: true
         shell: bash
         run: |
@@ -592,8 +592,81 @@ jobs:
           control_root="/run/myapes-deployment-controls/$release_sha"
           temporary_root="$control_root.installing"
 
+          restore_release_ownership() {
+            local release_root="$1"
+            local unexpected_owner=""
+
+            [[ "$release_root" =~ ^/app/data/releases/[0-9a-f]{40}$ ]]
+            test -d "$release_root"
+            chown -hR root:root "$release_root"
+            install -d -o www-data -g www-data -m 0770 "$release_root/bootstrap/cache"
+            chown -hR www-data:www-data "$release_root/bootstrap/cache"
+            chmod -R u+rwX,g+rwX,o-rwx "$release_root/bootstrap/cache"
+            chmod -R a-w "$release_root"
+            chmod -R u+rwX,g+rwX,o-rwx "$release_root/bootstrap/cache"
+            chmod 0555 "$release_root" "$release_root/public"
+
+            unexpected_owner="$(find "$release_root" -xdev \
+              ! -user root \
+              ! -path "${release_root}/bootstrap/cache" \
+              ! -path "${release_root}/bootstrap/cache/*" \
+              -print -quit)"
+            [[ -z "$unexpected_owner" ]]
+          }
+
+          restore_runtime_ownership() {
+            local expected_release_sha="$1"
+            local current_target=""
+            local previous_target=""
+            local unexpected_owner=""
+
+            current_target="$(readlink -f /app/data/current)"
+            [[ "$current_target" == "/app/data/releases/$expected_release_sha" ]]
+            test -d /app/data/shared/storage
+            test ! -L /app/data/shared/storage
+            test -f /app/data/shared/.env
+            test ! -L /app/data/shared/.env
+            find /app/data -xdev \
+              -path /app/data/shared/storage -prune -o \
+              -path '/app/data/releases/*/bootstrap/cache' -prune -o \
+              -exec chown -h root:root {} +
+            chown root:root /app/data /app/data/releases /app/data/shared /app/data/apache
+            chown root:root /app/data/run.sh /app/data/apache/app.conf
+            chown -h root:root /app/data/current
+            chown root:www-data /app/data/shared/.env
+            chown -hR www-data:www-data /app/data/shared/storage
+            chmod 0555 /app/data /app/data/releases /app/data/shared /app/data/apache
+            chmod 0555 /app/data/run.sh
+            chmod 0444 /app/data/apache/app.conf
+            chmod 0640 /app/data/shared/.env
+
+            restore_release_ownership "$current_target"
+            if [[ -L /app/data/previous ]]; then
+              previous_target="$(readlink -f /app/data/previous)"
+              [[ "$previous_target" =~ ^/app/data/releases/[0-9a-f]{40}$ ]]
+              [[ "$previous_target" != "$current_target" ]]
+              chown -h root:root /app/data/previous
+              restore_release_ownership "$previous_target"
+            fi
+
+            if [[ -d "/app/data/.deploy/$expected_release_sha" ]]; then
+              test ! -L /app/data/.deploy
+              test ! -L "/app/data/.deploy/$expected_release_sha"
+              chown root:root /app/data/.deploy
+              chown -hR root:root "/app/data/.deploy/$expected_release_sha"
+              chmod 0700 /app/data/.deploy "/app/data/.deploy/$expected_release_sha"
+            fi
+
+            unexpected_owner="$(find /app/data -xdev \
+              -path /app/data/shared/storage -prune -o \
+              -path '/app/data/releases/*/bootstrap/cache' -prune -o \
+              ! -user root -print -quit)"
+            [[ -z "$unexpected_owner" ]]
+          }
+
           [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
           [[ "$expected_controls_sha256" =~ ^[0-9a-f]{64}$ ]]
+          restore_runtime_ownership "$release_sha"
           test -f "$archive_path"
           test ! -L "$archive_path"
           case "$control_root" in
@@ -668,15 +741,25 @@ jobs:
 
           current_target="$(readlink -f /app/data/current)"
           [[ "$current_target" == "/app/data/releases/$release_sha" ]]
-          if sudo -u www-data test -w /app/data; then exit 1; fi
-          if sudo -u www-data test -w /app/data/current; then exit 1; fi
-          if sudo -u www-data test -w /app/data/current/public; then exit 1; fi
+          if [[ "$(stat -Lc '%U:%G' /app/data)" != "root:root" ]] \
+            || sudo -u www-data test -w /app/data; then exit 1; fi
+          if [[ "$(stat -c '%U:%G' /app/data/current)" != "root:root" ]] \
+            || sudo -u www-data test -w /app/data/current; then exit 1; fi
+          if [[ "$(stat -Lc '%U:%G' /app/data/current/public)" != "root:root" ]] \
+            || sudo -u www-data test -w /app/data/current/public; then exit 1; fi
           if [[ -L /app/data/previous ]]; then
-            if sudo -u www-data test -w /app/data/previous; then exit 1; fi
-            if sudo -u www-data test -w /app/data/previous/public; then exit 1; fi
+            if [[ "$(stat -c '%U:%G' /app/data/previous)" != "root:root" ]] \
+              || sudo -u www-data test -w /app/data/previous; then exit 1; fi
+            if [[ "$(stat -Lc '%U:%G' /app/data/previous/public)" != "root:root" ]] \
+              || sudo -u www-data test -w /app/data/previous/public; then exit 1; fi
           fi
-          if sudo -u www-data test -w /app/data/run.sh; then exit 1; fi
-          if sudo -u www-data test -w /app/data/apache/app.conf; then exit 1; fi
+          if [[ "$(stat -Lc '%U:%G' /app/data/run.sh)" != "root:root" ]] \
+            || sudo -u www-data test -w /app/data/run.sh; then exit 1; fi
+          if [[ "$(stat -Lc '%U:%G' /app/data/apache/app.conf)" != "root:root" ]] \
+            || sudo -u www-data test -w /app/data/apache/app.conf; then exit 1; fi
+          [[ "$(stat -Lc '%U:%G' /app/data/shared)" == "root:root" ]]
+          [[ "$(stat -Lc '%U:%G' /app/data/shared/.env)" == "root:www-data" ]]
+          ! sudo -u www-data test -w /app/data/shared/.env
           sudo -u www-data test -w /app/data/current/bootstrap/cache
           sudo -u www-data test -w /app/data/shared/storage
           BASH

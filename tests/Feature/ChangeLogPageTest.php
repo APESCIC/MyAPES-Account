@@ -18,16 +18,16 @@ class ChangeLogPageTest extends TestCase
         $response
             ->assertOk()
             ->assertSeeText('Change Log Hub')
-            ->assertSeeText('Current version v0.8.2')
+            ->assertSeeText('Current version v0.8.3')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
-            ->assertSee('href="#release-v0-8-2"', false)
+            ->assertSee('href="#release-v0-8-3"', false)
             ->assertSee('<details', false)
             ->assertSeeText('Post-restart deployment-control hardening');
 
-        $this->assertSame(15, substr_count($response->getContent(), 'data-release-record'));
+        $this->assertSame(16, substr_count($response->getContent(), 'data-release-record'));
 
-        foreach (['0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'] as $version) {
+        foreach (['0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'] as $version) {
             $response->assertSeeText("v{$version}");
         }
 
@@ -42,7 +42,7 @@ class ChangeLogPageTest extends TestCase
             $this->actingAs($user)
                 ->get('/change-log')
                 ->assertOk()
-                ->assertSeeText('Current version v0.8.2');
+                ->assertSeeText('Current version v0.8.3');
 
             $this->post(route('auth.logout'));
         }
@@ -54,13 +54,13 @@ class ChangeLogPageTest extends TestCase
             $this->get($path)
                 ->assertOk()
                 ->assertSee('href="'.route('change-log.index').'"', false)
-                ->assertSee('aria-label="View the MyAPES Account change log for version v0.8.2"', false)
-                ->assertSeeText('v0.8.2');
+                ->assertSee('aria-label="View the MyAPES Account change log for version v0.8.3"', false)
+                ->assertSeeText('v0.8.3');
         }
 
         $this->view('auth.public-login')
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.8.2');
+            ->assertSeeText('v0.8.3');
 
         $user = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
 
@@ -68,14 +68,14 @@ class ChangeLogPageTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.8.2');
+            ->assertSeeText('v0.8.3');
     }
 
     private function assertProgressiveDetailsContainReleaseContent(TestResponse $response): void
     {
         $content = $response->getContent();
         $firstDetails = strpos($content, '<details');
-        $firstChange = strpos($content, 'Added mode-based immutable release boundaries');
+        $firstChange = strpos($content, 'Made the launcher accept only the verified Cloudron');
 
         $this->assertNotFalse($firstDetails);
         $this->assertNotFalse($firstChange);
