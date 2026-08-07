@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\ModuleRegistry;
 use App\Services\AuthorizationMetadataSynchronizer;
 use App\Services\AuthorizationProfile;
 use Illuminate\Database\Migrations\Migration;
@@ -71,21 +72,18 @@ return new class extends Migration
     {
         Schema::dropIfExists('module_installations');
 
-        $prefixes = [
-            'apes-cic.%',
-            'shelter-rescue.%',
-            'pet-care-clinic.%',
-        ];
         if (! Schema::hasTable('permissions')) {
             return;
         }
 
+        $permissionNames = array_map(
+            static fn ($permission): string => $permission->name,
+            app(ModuleRegistry::class)->permissions(),
+        );
         $permissionIds = DB::table('permissions')
-            ->where(function ($query) use ($prefixes): void {
-                foreach ($prefixes as $prefix) {
-                    $query->orWhere('name', 'like', $prefix);
-                }
-            })
+            ->where('guard_name', 'web')
+            ->where('is_code_owned', true)
+            ->whereIn('name', $permissionNames)
             ->pluck('id');
 
         if ($permissionIds->isNotEmpty()) {

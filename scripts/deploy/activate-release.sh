@@ -98,6 +98,130 @@ CONTROL_MODES
   fi
 }
 
+classify_activation_targets() {
+  local release_sha="${1:-}"
+  local prior_release_sha="${2:-}"
+  local previous_available="${3:-}"
+  local same_release="${4:-}"
+  local current_target="${5:-}"
+  local previous_target="${6:-}"
+  local releases_dir="${7:-}"
+  local target=""
+
+  if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ \
+    || ! "$previous_available" =~ ^(true|false)$ \
+    || ! "$same_release" =~ ^(true|false)$ \
+    || -z "$releases_dir" ]]; then
+    echo "Activation classification inputs are invalid." >&2
+    return 1
+  fi
+  if [[ "$previous_available" == true ]]; then
+    if [[ ! "$prior_release_sha" =~ ^[0-9a-f]{40}$ ]]; then
+      echo "Captured prior release identity is invalid." >&2
+      return 1
+    fi
+  elif [[ -n "$prior_release_sha" ]]; then
+    echo "Unavailable prior release identity must be empty." >&2
+    return 1
+  fi
+  if [[ "$same_release" == true \
+    && ("$previous_available" != true || "$prior_release_sha" != "$release_sha") ]]; then
+    echo "Same-release classification does not match the captured identity." >&2
+    return 1
+  fi
+
+  for target in "$current_target" "$previous_target"; do
+    [[ -n "$target" ]] || continue
+    if [[ ! "$target" =~ ^${releases_dir}/[0-9a-f]{40}$ ]]; then
+      echo "Activation classification found an unsafe release target." >&2
+      return 1
+    fi
+  done
+
+  if [[ "$same_release" == true ]]; then
+    if [[ "$current_target" != "${releases_dir}/${release_sha}" ]]; then
+      echo "Same-release activation no longer points at the captured release." >&2
+      return 1
+    fi
+    echo "same-release"
+    return 0
+  fi
+
+  if [[ -z "$current_target" ]]; then
+    if [[ "$previous_available" == false && -z "$previous_target" ]]; then
+      echo "first-deployment"
+      return 0
+    fi
+    echo "Activation left an ambiguous empty current release." >&2
+    return 1
+  fi
+
+  if [[ "$current_target" == "${releases_dir}/${release_sha}" ]]; then
+    if [[ "$previous_available" == false ]]; then
+      if [[ -n "$previous_target" ]]; then
+        echo "Activation switched without an authenticated prior release." >&2
+        return 1
+      fi
+      echo "unavailable-rollback"
+      return 0
+    fi
+    if [[ "$previous_target" != "${releases_dir}/${prior_release_sha}" ]]; then
+      echo "Post-switch previous release does not match the captured identity." >&2
+      return 1
+    fi
+    echo "post-switch"
+    return 0
+  fi
+
+  if [[ "$previous_available" == true \
+    && "$current_target" == "${releases_dir}/${prior_release_sha}" ]]; then
+    echo "pre-switch"
+    return 0
+  fi
+
+  echo "Activation links do not match a safe recovery state." >&2
+  return 1
+}
+
+classify_activation_state() {
+  local release_sha="${1:-}"
+  local prior_release_sha="${2:-}"
+  local previous_available="${3:-}"
+  local same_release="${4:-}"
+  local data_dir="${5:-/app/data}"
+  local releases_dir="${data_dir}/releases"
+  local current_link="${data_dir}/current"
+  local previous_link="${data_dir}/previous"
+  local current_target=""
+  local previous_target=""
+
+  for release_link in "$current_link" "$previous_link"; do
+    if [[ -e "$release_link" && ! -L "$release_link" ]]; then
+      echo "Activation classification requires authoritative release symlinks." >&2
+      return 1
+    fi
+  done
+  if [[ -L "$current_link" ]]; then
+    current_target="$(readlink -f "$current_link" 2>/dev/null || true)"
+    if [[ -z "$current_target" || ! -d "$current_target" ]]; then
+      echo "Current release link is dangling during activation classification." >&2
+      return 1
+    fi
+  fi
+  if [[ -L "$previous_link" ]]; then
+    previous_target="$(readlink -f "$previous_link" 2>/dev/null || true)"
+    if [[ -z "$previous_target" || ! -d "$previous_target" ]]; then
+      echo "Previous release link is dangling during activation classification." >&2
+      return 1
+    fi
+  fi
+
+  classify_activation_targets \
+    "$release_sha" "$prior_release_sha" \
+    "$previous_available" "$same_release" \
+    "$current_target" "$previous_target" "$releases_dir"
+}
+
 install_authenticated_controls() {
   local source_root="${1:-}"
   local destination_root="${2:-}"
@@ -149,6 +273,12 @@ install_authenticated_controls() {
   assert_hardened_control_directory "$temporary_root"
   mv "$temporary_root" "$destination_root"
 }
+
+if [[ "${1:-}" == "--classify-activation-state" ]]; then
+  classify_activation_state \
+    "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-/app/data}"
+  exit 0
+fi
 
 if [[ "${1:-}" == "--verify-controls" ]]; then
   verify_deployment_controls "${2:-}" "${3:-}"

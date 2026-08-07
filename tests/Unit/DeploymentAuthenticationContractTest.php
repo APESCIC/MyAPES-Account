@@ -261,7 +261,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertLessThan($verify, $runtimeControls);
         $this->assertLessThan($rollback, $verify);
         $this->assertMatchesRegularExpression(
-            '/name:\s*Restart activated release\R\s+id:\s*restart\R\s+continue-on-error:\s*true/s',
+            '/name:\s*Restart activated release\R\s+id:\s*restart\R\s+if:\s*steps\.activate\.outcome\s*==\s*[\'"]success[\'"]\R\s+continue-on-error:\s*true/s',
             $workflow,
         );
         $this->assertMatchesRegularExpression(
@@ -272,9 +272,9 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/\bif:\s*(?:\$\{\{\s*)?steps\.restart\.outcome\s*==\s*[\'"]success[\'"]\s*&&\s*steps\.runtime_controls\.outcome\s*==\s*[\'"]success[\'"](?:\s*\}\})?/',
             $workflow,
         );
-        $this->assertStringContainsString("steps.runtime_controls.outcome == 'failure'", $workflow);
+        $this->assertStringContainsString('steps.runtime_controls.outcome', $workflow);
         $this->assertStringContainsString(
-            "steps.previous.outputs.same_release == 'true'",
+            "steps.recovery.outputs.rollback_required == 'true'",
             $workflow,
         );
         $this->assertStringContainsString(
@@ -1111,6 +1111,162 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringNotContainsString('migrate:fresh', $script);
     }
 
+    public function test_activation_target_classifier_covers_safe_recovery_states_and_rejects_ambiguous_links(): void
+    {
+        $newRelease = str_repeat('a', 40);
+        $priorRelease = str_repeat('b', 40);
+        $olderRelease = str_repeat('c', 40);
+        $releaseRoot = '/app/data/releases';
+
+        foreach ([
+            'pre-switch' => [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                "{$releaseRoot}/{$priorRelease}",
+                "{$releaseRoot}/{$olderRelease}",
+                $releaseRoot,
+            ],
+            'post-switch' => [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                "{$releaseRoot}/{$newRelease}",
+                "{$releaseRoot}/{$priorRelease}",
+                $releaseRoot,
+            ],
+            'same-release' => [
+                $newRelease,
+                $newRelease,
+                'true',
+                'true',
+                "{$releaseRoot}/{$newRelease}",
+                "{$releaseRoot}/{$olderRelease}",
+                $releaseRoot,
+            ],
+            'first-deployment' => [
+                $newRelease,
+                '',
+                'false',
+                'false',
+                '',
+                '',
+                $releaseRoot,
+            ],
+            'unavailable-rollback' => [
+                $newRelease,
+                '',
+                'false',
+                'false',
+                "{$releaseRoot}/{$newRelease}",
+                '',
+                $releaseRoot,
+            ],
+        ] as $expectedState => $arguments) {
+            $process = $this->runActivationTargetClassifierHarness($arguments);
+
+            $this->assertTrue(
+                $process->isSuccessful(),
+                $expectedState.': '.$process->getErrorOutput(),
+            );
+            $this->assertSame($expectedState, trim($process->getOutput()));
+        }
+
+        foreach ([
+            [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                '/tmp/untrusted-release',
+                "{$releaseRoot}/{$priorRelease}",
+                $releaseRoot,
+            ],
+            [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                "{$releaseRoot}/{$newRelease}",
+                '',
+                $releaseRoot,
+            ],
+        ] as $arguments) {
+            $process = $this->runActivationTargetClassifierHarness($arguments);
+
+            $this->assertFalse($process->isSuccessful());
+        }
+    }
+
+    public function test_workflow_classifies_activation_failure_before_restart_and_uses_one_recovery_decision(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $activation = $this->position(
+            $workflow,
+            '- name: Extract and activate uploaded release',
+        );
+        $classification = $this->position(
+            $workflow,
+            '- name: Classify activation failure',
+        );
+        $restart = $this->position(
+            $workflow,
+            '- name: Restart activated release',
+        );
+        $recovery = $this->position(
+            $workflow,
+            '- name: Determine deployment recovery',
+        );
+        $rollback = $this->position(
+            $workflow,
+            '- name: Roll back code after failed release restart or verification',
+        );
+
+        $this->assertLessThan($classification, $activation);
+        $this->assertLessThan($restart, $classification);
+        $this->assertLessThan($rollback, $recovery);
+
+        $activationBlock = substr($workflow, $activation, $classification - $activation);
+        $classificationBlock = substr($workflow, $classification, $restart - $classification);
+        $restartBlock = substr($workflow, $restart, $recovery - $restart);
+        $recoveryBlock = substr($workflow, $recovery, $rollback - $recovery);
+
+        $this->assertStringContainsString('id: activate', $activationBlock);
+        $this->assertStringContainsString('continue-on-error: true', $activationBlock);
+        $this->assertStringContainsString('id: activation_state', $classificationBlock);
+        $this->assertStringContainsString(
+            "if: always() && steps.activate.outcome == 'failure'",
+            $classificationBlock,
+        );
+        $this->assertStringContainsString(
+            '--classify-activation-state',
+            $classificationBlock,
+        );
+        $this->assertStringContainsString(
+            "if: steps.activate.outcome == 'success'",
+            $restartBlock,
+        );
+        $this->assertStringContainsString('id: recovery', $recoveryBlock);
+        $this->assertStringContainsString('failure_detected=', $recoveryBlock);
+        $this->assertStringContainsString('rollback_required=', $recoveryBlock);
+        $this->assertStringContainsString('failure_scope=', $recoveryBlock);
+
+        $this->assertSame(3, substr_count(
+            $workflow,
+            "if: always() && steps.recovery.outputs.rollback_required == 'true'",
+        ));
+        $this->assertStringContainsString(
+            "if: always() && steps.recovery.outputs.failure_detected == 'true'",
+            $workflow,
+        );
+        $this->assertStringNotContainsString(
+            "steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure'",
+            $workflow,
+        );
+    }
+
     public function test_restored_release_verification_supports_the_v071_health_contract(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
@@ -1124,7 +1280,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $nextStep = $this->position(
             $workflow,
-            '- name: Fail an idempotent deployment after restart or verification failure',
+            '- name: Fail deployment after unsuccessful outcome',
         );
 
         $this->assertLessThan($healthGate, $environmentGate);
@@ -1344,6 +1500,39 @@ BASH;
         }
 
         return compact('process', 'commands');
+    }
+
+    /**
+     * @param  list<string>  $arguments
+     */
+    private function runActivationTargetClassifierHarness(array $arguments): Process
+    {
+        $temporaryRoot = sys_get_temp_dir()
+            .DIRECTORY_SEPARATOR
+            .'myapes-activation-classifier-'.bin2hex(random_bytes(8));
+        $this->assertTrue(mkdir($temporaryRoot, 0700, true));
+        $harnessPath = $temporaryRoot.DIRECTORY_SEPARATOR.'harness.sh';
+        $function = $this->bashFunction(
+            $this->read('scripts/deploy/activate-release.sh'),
+            'classify_activation_targets',
+        );
+        $this->assertNotFalse(file_put_contents(
+            $harnessPath,
+            "#!/usr/bin/env bash\nset -euo pipefail\n\n{$function}\nclassify_activation_targets \"\$@\"\n",
+        ));
+        $process = new Process([
+            $this->bashExecutable(),
+            $this->bashPath($harnessPath),
+            ...$arguments,
+        ]);
+
+        try {
+            $process->run();
+        } finally {
+            $this->removeTemporaryDirectory($temporaryRoot);
+        }
+
+        return $process;
     }
 
     private function bashFunction(string $script, string $name): string

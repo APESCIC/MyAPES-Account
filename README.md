@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-07T13:33:29+01:00`
+- Last verified README health review: `2026-08-07T15:29:24+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -53,7 +53,7 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Each installation carries a monotonic transition version, so even multiple enable/disable operations within one second invalidate stale Admin forms. Direct route checks read authoritative installation state. Generated navigation and aggregate dashboard summaries use a short versioned projection cache, invalidated after committed lifecycle transitions and synchronization repairs.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
-  - **APES CIC** (`/apes-cic`) - organisational support tickets
+  - **APES CIC** (`/apes-cic`) - organisational support tickets. Owners can add non-empty messages to their own tickets through `apes-cic.tickets.comment-own`; status/priority changes, terminal transitions, and assignment changes independently require `apes-cic.tickets.update-all`, `apes-cic.tickets.close`, and `apes-cic.tickets.assign`.
   - **APES Shelter and Rescue** (`/shelter`) - pet profiles and case management
   - **APES Pet Care** (`/petcare`) - pet profiles and consultation management
 - **Cloudron service integrations**: MySQL, Redis (cache/session/queue), and sendmail-compatible SMTP delivery.
@@ -310,7 +310,11 @@ transition completes before dependency state is materialized.
 `myapes:modules:check` verifies shipped installation, dependency, and permission
 postconditions. The rollback command is read-only, drains all code-owned module
 instance locks, and checks whether current database state is representable by
-the target release contract.
+the target release contract. Migration teardown derives the exact module
+permission names from the immutable registry and removes only `web` records
+that are still marked code-owned; similarly prefixed custom permissions,
+other guards, and exact-name permissions deliberately demoted to custom
+ownership are preserved with their pivots and provenance.
 
 Module locks use MySQL/MariaDB connection-scoped advisory locks in production
 and operating-system file locks on SQLite. Each database advisory-lock name is
@@ -471,13 +475,18 @@ backends fail closed.
    reopens it. Failed restoration or reopening leaves maintenance active while
    preserving the original activation failure. First deployment and
    same-release activation skip this quiescence. Immediately after the atomic
-   switch is marked committed, the new release explicitly leaves maintenance;
-   a failure at that boundary remains fail-closed and does not run stale-release
-   recovery.
+   switch is marked committed, the new release explicitly leaves maintenance.
+   If activation fails, the workflow reauthenticates the tested controls and
+   classifies the authoritative `current` and `previous` symlinks against the
+   new and captured prior SHAs. A verified pre-switch failure leaves the
+   recovered prior release active without rollback; a verified post-switch
+   failure, including failure to leave maintenance, enters the authenticated
+   exact-release rollback path. Missing prior identity or any ambiguous link
+   state remains fail-closed with backup and staging evidence retained.
 7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
 8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
 9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
-10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Restart or verification failure for a new activation may roll back only when the current and previous links match the exact failed and pre-activation SHAs; any mismatch fails closed. Rollback reauthenticates its control copy under `/run`, enters maintenance, drains durable module locks, verifies module representability, and synchronizes/checks the target authorization matrix before switching. A pre-switch failure restores the current matrix before lifting maintenance. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted health or a completed rollback.
+10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Activation, restart, runtime-control, or verification failure for a new release may roll back only after the normalized recovery decision proves that `current` is the exact failed SHA and `previous` is the captured pre-activation SHA; any mismatch or unavailable prior identity fails closed. Rollback reauthenticates its control copy under `/run`, enters maintenance, drains durable module locks, verifies module representability, and synchronizes/checks the target authorization matrix before switching. A pre-switch failure restores the current matrix before lifting maintenance and is never sent through a stale rollback. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted health or a completed rollback.
 
 `version` in `/healthz` is the human-facing semantic application version. `release` is the immutable deployment commit SHA; neither replaces the other.
 

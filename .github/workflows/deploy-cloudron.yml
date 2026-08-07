@@ -368,6 +368,7 @@ jobs:
             tests/Feature/DirectoryGroupMappingServiceTest.php \
             tests/Feature/DirectoryRoleSynchronizerTest.php \
             tests/Feature/ModuleRegistryTest.php \
+            tests/Feature/ModulePermissionMigrationTest.php \
             tests/Feature/ModuleInstallationSynchronizationTest.php \
             tests/Feature/ModuleLifecycleTest.php \
             tests/Feature/ModuleLifecycleConcurrencyTest.php \
@@ -521,6 +522,8 @@ jobs:
             "build/myapes-$RELEASE_SHA.tar.gz" "$remote_dir/release.tar.gz"
 
       - name: Extract and activate uploaded release
+        id: activate
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -578,8 +581,64 @@ jobs:
               "${{ steps.previous.outputs.previous_release }}" \
               "$DEPLOYMENT_CONTROLS_SHA256"
 
+      - name: Classify activation failure
+        id: activation_state
+        if: always() && steps.activate.outcome == 'failure'
+        continue-on-error: true
+        shell: bash
+        env:
+          PREVIOUS_AVAILABLE: ${{ steps.previous.outputs.available }}
+          PREVIOUS_RELEASE: ${{ steps.previous.outputs.previous_release }}
+          SAME_RELEASE: ${{ steps.previous.outputs.same_release }}
+        run: |
+          set -euo pipefail
+
+          remote_dir="/app/data/.deploy/$RELEASE_SHA"
+          classify_command="$(cat <<'BASH'
+          set -euo pipefail
+          remote_dir="$1"
+          release_sha="$2"
+          previous_release="$3"
+          previous_available="$4"
+          same_release="$5"
+          expected_controls_sha256="$6"
+
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$expected_controls_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test -f "$remote_dir/DEPLOYMENT-CONTROLS.sha256"
+          test ! -L "$remote_dir/DEPLOYMENT-CONTROLS.sha256"
+          test -f "$remote_dir/scripts/deploy/activate-release.sh"
+          test ! -L "$remote_dir/scripts/deploy/activate-release.sh"
+          actual_controls_sha256="$(sha256sum "$remote_dir/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$actual_controls_sha256" == "$expected_controls_sha256" ]]
+          (
+            cd "$remote_dir"
+            sha256sum --check --strict --status DEPLOYMENT-CONTROLS.sha256
+          )
+          bash "$remote_dir/scripts/deploy/activate-release.sh" \
+            --classify-activation-state \
+            "$release_sha" "$previous_release" \
+            "$previous_available" "$same_release"
+          BASH
+          )"
+          classification="$(
+            cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+              exec --app "$CLOUDRON_APP_ID" -- \
+              bash -c "$classify_command" -- \
+                "$remote_dir" "$RELEASE_SHA" "$PREVIOUS_RELEASE" \
+                "$PREVIOUS_AVAILABLE" "$SAME_RELEASE" \
+                "$DEPLOYMENT_CONTROLS_SHA256" \
+              | tail -n 1
+          )"
+          case "$classification" in
+            pre-switch|post-switch|same-release|first-deployment|unavailable-rollback) ;;
+            *) echo "Activation failure could not be classified safely."; exit 1 ;;
+          esac
+          echo "state=$classification" >> "$GITHUB_OUTPUT"
+
       - name: Restart activated release
         id: restart
+        if: steps.activate.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -890,9 +949,62 @@ jobs:
           print("OIDC redirect verification passed.")
           PY
 
+      - name: Determine deployment recovery
+        id: recovery
+        if: always()
+        shell: bash
+        env:
+          ACTIVATION_STATE: ${{ steps.activation_state.outputs.state }}
+          PREVIOUS_AVAILABLE: ${{ steps.previous.outputs.available }}
+          SAME_RELEASE: ${{ steps.previous.outputs.same_release }}
+        run: |
+          set -euo pipefail
+
+          failure_detected=false
+          rollback_required=false
+          failure_scope=none
+
+          if [[ "${{ steps.activate.outcome }}" == failure ]]; then
+            failure_detected=true
+            case "$ACTIVATION_STATE" in
+              post-switch)
+                if [[ "$PREVIOUS_AVAILABLE" == true && "$SAME_RELEASE" != true ]]; then
+                  rollback_required=true
+                  failure_scope=post-switch-activation
+                else
+                  failure_scope=unavailable-rollback
+                fi
+                ;;
+              pre-switch|same-release|first-deployment|unavailable-rollback)
+                failure_scope="$ACTIVATION_STATE"
+                ;;
+              *)
+                failure_scope=activation-unclassified
+                ;;
+            esac
+          elif [[ "${{ steps.restart.outcome }}" == failure \
+            || "${{ steps.runtime_controls.outcome }}" == failure \
+            || "${{ steps.verify.outcome }}" == failure ]]; then
+            failure_detected=true
+            if [[ "$SAME_RELEASE" == true ]]; then
+              failure_scope=same-release
+            elif [[ "$PREVIOUS_AVAILABLE" == true ]]; then
+              rollback_required=true
+              failure_scope=post-switch-runtime
+            else
+              failure_scope=unavailable-rollback
+            fi
+          fi
+
+          {
+            echo "failure_detected=$failure_detected"
+            echo "rollback_required=$rollback_required"
+            echo "failure_scope=$failure_scope"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Roll back code after failed release restart or verification
         id: rollback
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
+        if: always() && steps.recovery.outputs.rollback_required == 'true'
         shell: bash
         env:
           PREVIOUS_RELEASE: ${{ steps.previous.outputs.previous_release }}
@@ -1022,7 +1134,7 @@ jobs:
             restart --app "$CLOUDRON_APP_ID"
 
       - name: Verify restored release effective Laravel environment
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
+        if: always() && steps.recovery.outputs.rollback_required == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -1041,7 +1153,7 @@ jobs:
           fi
 
       - name: Verify restored release health and OIDC redirect
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
+        if: always() && steps.recovery.outputs.rollback_required == 'true'
         shell: bash
         env:
           PREVIOUS_AVAILABLE: ${{ steps.previous.outputs.available }}
@@ -1144,7 +1256,7 @@ jobs:
           PY
 
       - name: Remove deployment staging after accepted outcome
-        if: always() && (steps.verify.outcome == 'success' || steps.rollback.outcome == 'success')
+        if: always() && (steps.verify.outcome == 'success' || (steps.recovery.outputs.rollback_required == 'true' && steps.rollback.outcome == 'success'))
         continue-on-error: true
         shell: bash
         run: |
@@ -1165,17 +1277,36 @@ jobs:
             exec --app "$CLOUDRON_APP_ID" -- \
             bash -c "$cleanup_command" -- "$RELEASE_SHA"
 
-      - name: Fail an idempotent deployment after restart or verification failure
-        if: always() && steps.previous.outputs.same_release == 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
+      - name: Fail deployment after unsuccessful outcome
+        if: always() && steps.recovery.outputs.failure_detected == 'true'
         shell: bash
+        env:
+          FAILURE_SCOPE: ${{ steps.recovery.outputs.failure_scope }}
+          ROLLBACK_REQUIRED: ${{ steps.recovery.outputs.rollback_required }}
+          ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
         run: |
-          echo "The already-active release failed verification; no stale rollback was attempted."
-          exit 1
+          set -euo pipefail
 
-      - name: Fail deployment after attempted rollback
-        if: always() && steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure' || steps.runtime_controls.outcome == 'failure' || steps.verify.outcome == 'failure')
-        shell: bash
-        run: |
-          echo "Deployment failed after restart or verification; any attempted code rollback did not make this deployment successful."
+          case "$FAILURE_SCOPE" in
+            pre-switch)
+              echo "Activation failed before the atomic switch; the recovered previous release remains authoritative."
+              ;;
+            post-switch-activation|post-switch-runtime)
+              if [[ "$ROLLBACK_REQUIRED" == true && "$ROLLBACK_OUTCOME" == success ]]; then
+                echo "Deployment failed after the atomic switch; the authenticated exact previous release was restored."
+              else
+                echo "Deployment failed after the atomic switch and exact-release rollback was not verified."
+              fi
+              ;;
+            same-release)
+              echo "The already-active release failed; no stale rollback was attempted."
+              ;;
+            first-deployment|unavailable-rollback|activation-unclassified)
+              echo "Deployment failed without an authenticated rollback target; maintenance and staging evidence were retained."
+              ;;
+            *)
+              echo "Deployment failed with an unexpected recovery classification."
+              ;;
+          esac
           echo "Database migrations were retained; use the pre-deployment Cloudron backup if database recovery is required."
           exit 1

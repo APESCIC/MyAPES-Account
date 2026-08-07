@@ -20,6 +20,14 @@ class TicketController extends Controller
 {
     private const SERVICE_AREAS = ['legal', 'human_resources', 'it', 'web_dev', 'operations', 'other'];
 
+    private const PERMISSION_ASSIGN = 'apes-cic.tickets.assign';
+
+    private const PERMISSION_CLOSE = 'apes-cic.tickets.close';
+
+    private const PERMISSION_COMMENT_OWN = 'apes-cic.tickets.comment-own';
+
+    private const PERMISSION_UPDATE_ALL = 'apes-cic.tickets.update-all';
+
     public function index(): View
     {
         $user = request()->user();
@@ -70,7 +78,11 @@ class TicketController extends Controller
     ): View {
         Gate::authorize('view', $ticket);
         $user = request()->user();
-        $canChangeAssignment = $assignments->allows($user);
+        $canChangeAssignment = $assignments->allows($user)
+            && $user->can(self::PERMISSION_ASSIGN);
+        $canUpdateTicket = $user->can(self::PERMISSION_UPDATE_ALL);
+        $canCloseTicket = $user->can(self::PERMISSION_CLOSE);
+        $canCommentTicket = $user->can(self::PERMISSION_COMMENT_OWN);
 
         $messagesQuery = $ticket->messages()->with('user')->latest('created_at');
         if (! $user->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS)) {
@@ -81,6 +93,9 @@ class TicketController extends Controller
             'ticket' => $ticket->load(['user', 'assignedTo']),
             'messages' => $messagesQuery->get(),
             'canChangeAssignment' => $canChangeAssignment,
+            'canUpdateTicket' => $canUpdateTicket,
+            'canCloseTicket' => $canCloseTicket,
+            'canCommentTicket' => $canCommentTicket,
             'staffUsers' => $canChangeAssignment
                 ? User::query()
                     ->eligibleStaff()
@@ -97,10 +112,14 @@ class TicketController extends Controller
         AssignmentAuthorization $assignments,
     ): RedirectResponse {
         Gate::authorize('update', $ticket);
+        $input = $request->all();
         $assignmentRequested = array_key_exists(
             'assigned_to',
-            $request->all(),
+            $input,
         );
+        $ticketUpdateRequested = array_key_exists('status', $input)
+            || array_key_exists('priority', $input);
+        $messageRequested = array_key_exists('message', $input);
         $isStaff = $request->user()->can(
             AuthorizationProfile::PERMISSION_STAFF_ACCESS,
         );
@@ -111,31 +130,72 @@ class TicketController extends Controller
                 $request->user(),
                 $ticket,
             );
+            Gate::authorize(self::PERMISSION_ASSIGN);
         }
 
-        $validated = $request->validate([
-            'status' => ['required', 'in:open,in_progress,resolved,closed'],
-            'priority' => ['required', 'in:low,medium,high,urgent'],
-            'assigned_to' => [
+        if ($ticketUpdateRequested) {
+            Gate::authorize(self::PERMISSION_UPDATE_ALL);
+
+            $requestedStatus = $request->input('status');
+            if (is_string($requestedStatus)
+                && in_array($requestedStatus, ['resolved', 'closed'], true)
+                && $requestedStatus !== $ticket->status) {
+                Gate::authorize(self::PERMISSION_CLOSE);
+            }
+        }
+
+        if ($messageRequested) {
+            Gate::authorize(self::PERMISSION_COMMENT_OWN);
+        }
+
+        $rules = [
+            'message' => [
+                $ticketUpdateRequested || $assignmentRequested
+                    ? 'nullable'
+                    : 'required',
+                'string',
+            ],
+        ];
+        if ($ticketUpdateRequested) {
+            $rules['status'] = [
+                'required',
+                'in:open,in_progress,resolved,closed',
+            ];
+            $rules['priority'] = [
+                'required',
+                'in:low,medium,high,urgent',
+            ];
+        }
+        if ($assignmentRequested) {
+            $rules['assigned_to'] = [
                 'sometimes',
                 'nullable',
                 'integer',
                 new EligibleStaffAssignee,
-            ],
-            'message' => ['nullable', 'string'],
-        ]);
+            ];
+        }
+        $validated = $request->validate($rules);
 
-        $updates = [
-            'status' => $validated['status'],
-            'priority' => $validated['priority'],
-            'closed_at' => in_array($validated['status'], ['resolved', 'closed'], true) ? now() : null,
-        ];
+        $updates = [];
+        if ($ticketUpdateRequested) {
+            $updates = [
+                'status' => $validated['status'],
+                'priority' => $validated['priority'],
+                'closed_at' => in_array(
+                    $validated['status'],
+                    ['resolved', 'closed'],
+                    true,
+                ) ? now() : null,
+            ];
+        }
 
         if ($assignmentRequested) {
             $updates['assigned_to'] = $validated['assigned_to'] ?? null;
         }
 
-        $ticket->update($updates);
+        if ($updates !== []) {
+            $ticket->update($updates);
+        }
 
         if (! empty($validated['message'])) {
             $ticket->messages()->create([
