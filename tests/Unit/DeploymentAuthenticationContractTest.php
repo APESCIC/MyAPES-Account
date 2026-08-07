@@ -75,7 +75,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringNotContainsString('myapes:access-compatibility-sync', $script);
     }
 
-    public function test_pre_switch_activation_failure_restores_the_current_authorization_matrix(): void
+    public function test_pre_switch_activation_failure_restores_the_current_authorization_matrix_before_reopening(): void
     {
         $result = $this->runActivationRecoveryHarness('pre-switch-failure');
 
@@ -85,13 +85,23 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/usr/bin/php8.4 /release/current/artisan myapes:authorization-sync --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan myapes:authorization-check --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan up --no-interaction --no-ansi',
         ], $result['commands']);
     }
 
-    public function test_activation_recovery_skips_unmutated_first_same_release_and_post_switch_failures(): void
+    public function test_pre_mutation_activation_failure_reopens_the_quiesced_current_release_without_resynchronizing(): void
+    {
+        $result = $this->runActivationRecoveryHarness('before-mutation');
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertSame([
+            '/usr/bin/php8.4 /release/current/artisan up --no-interaction --no-ansi',
+        ], $result['commands']);
+    }
+
+    public function test_activation_recovery_skips_first_same_release_and_post_switch_failures(): void
     {
         foreach ([
-            'before-mutation',
             'first-release',
             'same-release',
             'post-switch',
@@ -112,10 +122,25 @@ class DeploymentAuthenticationContractTest extends TestCase
 
         $this->assertFalse($result['process']->isSuccessful());
         $this->assertStringContainsString(
-            'Current authorization could not be restored after activation failure.',
+            'Current authorization could not be restored; maintenance mode remains active.',
             $result['process']->getOutput().$result['process']->getErrorOutput(),
         );
         $this->assertCount(2, $result['commands']);
+    }
+
+    public function test_activation_recovery_leaves_maintenance_active_when_the_current_release_cannot_reopen(): void
+    {
+        $result = $this->runActivationRecoveryHarness(
+            'pre-switch-failure',
+            ' up --no-interaction',
+        );
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertStringContainsString(
+            'Current release could not leave maintenance mode after activation failure.',
+            $result['process']->getOutput().$result['process']->getErrorOutput(),
+        );
+        $this->assertCount(5, $result['commands']);
     }
 
     public function test_activation_arms_recovery_before_database_mutation_and_commits_only_after_the_atomic_switch(): void
@@ -124,6 +149,10 @@ class DeploymentAuthenticationContractTest extends TestCase
         $trap = $this->position(
             $script,
             'trap restore_current_authorization_after_failure EXIT',
+        );
+        $maintenance = $this->position(
+            $script,
+            'run_current_artisan down --retry=60 --no-interaction --no-ansi',
         );
         $mutation = $this->position(
             $script,
@@ -135,11 +164,17 @@ class DeploymentAuthenticationContractTest extends TestCase
             'mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"',
         );
         $committed = $this->position($script, 'ACTIVATION_SWITCHED=true');
+        $reopened = $this->position(
+            $script,
+            'run_artisan up --no-interaction --no-ansi',
+        );
 
-        $this->assertLessThan($mutation, $trap);
+        $this->assertLessThan($maintenance, $trap);
+        $this->assertLessThan($mutation, $maintenance);
         $this->assertLessThan($migration, $mutation);
         $this->assertLessThan($switch, $migration);
         $this->assertLessThan($committed, $switch);
+        $this->assertLessThan($reopened, $committed);
     }
 
     public function test_activation_installs_public_storage_link_as_root_before_artisan(): void
@@ -1254,6 +1289,7 @@ CURRENT_TARGET_BEFORE="/release/current"
 RELEASE_DIR="/release/new"
 PHP_BIN="/usr/bin/php8.4"
 PRE_SWITCH_DATABASE_MUTATED=true
+PRE_SWITCH_MAINTENANCE_ACTIVE=true
 ACTIVATION_SWITCHED=false
 
 sudo() {
@@ -1273,8 +1309,8 @@ __FUNCTIONS__
 
 case "$MODE" in
   before-mutation) PRE_SWITCH_DATABASE_MUTATED=false ;;
-  first-release) CURRENT_TARGET_BEFORE="" ;;
-  same-release) CURRENT_TARGET_BEFORE="$RELEASE_DIR" ;;
+  first-release) CURRENT_TARGET_BEFORE=""; PRE_SWITCH_MAINTENANCE_ACTIVE=false ;;
+  same-release) CURRENT_TARGET_BEFORE="$RELEASE_DIR"; PRE_SWITCH_MAINTENANCE_ACTIVE=false ;;
   post-switch) ACTIVATION_SWITCHED=true ;;
   pre-switch-failure) ;;
   *) echo "Unknown harness mode."; exit 2 ;;

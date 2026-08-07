@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-07T11:18:07+01:00`
+- Last verified README health review: `2026-08-07T13:33:29+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -313,14 +313,17 @@ instance locks, and checks whether current database state is representable by
 the target release contract.
 
 Module locks use MySQL/MariaDB connection-scoped advisory locks in production
-and operating-system file locks on SQLite. `MODULE_LOCK_WAIT_SECONDS` bounds
-acquisition (five seconds by default), but an acquired lock does not expire
-while its operation is still running. Navigation and dashboard projections
-default to 30 seconds through `MODULE_PROJECTION_CACHE_SECONDS`; the version key
-is advanced atomically after a lifecycle transaction commits or synchronization
-creates a missing installation. A cache outage is recorded with a stable reason
-without converting an already-committed transition into a failed response; the
-short projection TTL remains the bounded recovery path.
+and operating-system file locks on SQLite. Each database advisory-lock name is
+derived from both the active database namespace and module-instance key, so
+applications in separate databases on the same server do not block each other.
+`MODULE_LOCK_WAIT_SECONDS` bounds acquisition (five seconds by default), but an
+acquired lock does not expire while its operation is still running. Navigation
+and dashboard projections default to 30 seconds through
+`MODULE_PROJECTION_CACHE_SECONDS`; the version key is advanced atomically after
+a lifecycle transaction commits or synchronization creates a missing
+installation. A cache outage is recorded with a stable reason without
+converting an already-committed transition into a failed response; the short
+projection TTL remains the bounded recovery path.
 
 `myapes:authorization-preflight` runs before migration and validates the
 supported Phase A or retry-safe Phase B database state, OIDC discovery/PKCE,
@@ -460,11 +463,17 @@ backends fail closed.
    11. `myapes:modules:check --no-interaction --no-ansi`;
    12. `myapes:authorization-check --no-interaction --no-ansi`; and
    13. the atomic `/app/data/current` switch.
-   Once migration can mutate shared authorization metadata, an activation exit
-   handler remains armed until the atomic switch. Any pre-switch failure
-   resynchronizes and verifies the still-active release's authorization matrix
-   before returning the original failure; first-release, same-release,
-   pre-mutation, and post-switch exits do not invoke restoration.
+   For an upgrade, the active release enters maintenance after both preflights
+   and before the first shared-database mutation. The activation exit handler
+   remains armed until the atomic switch. A pre-mutation failure reopens the
+   active release directly; a post-mutation pre-switch failure first
+   resynchronizes and verifies that release's authorization matrix and then
+   reopens it. Failed restoration or reopening leaves maintenance active while
+   preserving the original activation failure. First deployment and
+   same-release activation skip this quiescence. Immediately after the atomic
+   switch is marked committed, the new release explicitly leaves maintenance;
+   a failure at that boundary remains fail-closed and does not run stale-release
+   recovery.
 7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
 8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
 9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.

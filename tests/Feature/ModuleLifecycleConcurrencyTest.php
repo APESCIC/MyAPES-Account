@@ -110,6 +110,56 @@ class ModuleLifecycleConcurrencyTest extends TestCase
         );
     }
 
+    public function test_the_same_instance_in_separate_databases_uses_independent_advisory_locks(): void
+    {
+        $this->requireMysqlFamily();
+        config(['modules.lock_wait_seconds' => 1]);
+        $siblingDatabase = 'myapes_lock_'.bin2hex(random_bytes(8));
+        DB::connection()->statement(
+            "CREATE DATABASE `{$siblingDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+        );
+        $holder = null;
+
+        try {
+            $state = $this->newStateDirectory();
+            $holder = $this->startWorker('lock-hold', 0, 0, '-', $state);
+            $this->waitForSignal($state, 'lock-held', $holder);
+            $probe = $this->startWorker(
+                'lock-probe',
+                0,
+                0,
+                '-',
+                $state,
+                $siblingDatabase,
+            );
+            $this->waitForSignal($state, 'lock-probe-ready', $probe);
+            touch($state.DIRECTORY_SEPARATOR.'start-lock-probe');
+            $this->waitSuccessfully($probe);
+
+            $this->assertTrue(
+                $holder->isRunning(),
+                'A lock in another database interfered with the primary database.',
+            );
+            $this->assertSame(
+                'success',
+                $this->readSignal($state, 'lock-probe-result')['status'],
+            );
+        } finally {
+            try {
+                if ($holder instanceof Process) {
+                    touch($state.DIRECTORY_SEPARATOR.'release-lock');
+                    if ($holder->isRunning()) {
+                        $holder->wait();
+                    }
+                }
+            } finally {
+                DB::connection()->statement(
+                    "DROP DATABASE IF EXISTS `{$siblingDatabase}`",
+                );
+            }
+        }
+    }
+
     public function test_synchronization_fails_closed_before_writing_when_a_dependency_lock_is_busy(): void
     {
         config(['modules.lock_wait_seconds' => 0]);
@@ -364,6 +414,7 @@ class ModuleLifecycleConcurrencyTest extends TestCase
         int $ownerId,
         string $version,
         string $state,
+        ?string $database = null,
     ): Process {
         $connection = config('database.connections.'.config('database.default'));
         $process = new Process(
@@ -384,7 +435,8 @@ class ModuleLifecycleConcurrencyTest extends TestCase
                 'DB_CONNECTION' => (string) config('database.default'),
                 'DB_HOST' => (string) ($connection['host'] ?? ''),
                 'DB_PORT' => (string) ($connection['port'] ?? ''),
-                'DB_DATABASE' => (string) ($connection['database'] ?? ''),
+                'DB_DATABASE' => $database
+                    ?? (string) ($connection['database'] ?? ''),
                 'DB_USERNAME' => (string) ($connection['username'] ?? ''),
                 'DB_PASSWORD' => (string) ($connection['password'] ?? ''),
                 'DB_URL' => '',

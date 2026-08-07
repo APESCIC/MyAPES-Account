@@ -70,8 +70,14 @@ class ModuleInstanceLock
         callable $operation,
     ): mixed {
         $connection = DB::connection();
+        $databaseNamespace = trim((string) $connection->getDatabaseName());
+
+        if ($databaseNamespace === '') {
+            throw new ModuleLifecycleException('instance_lock_unavailable');
+        }
+
         $lockName = 'myapes:module:'.substr(
-            hash('sha256', $instanceKey),
+            hash('sha256', $databaseNamespace."\0".$instanceKey),
             0,
             48,
         );
