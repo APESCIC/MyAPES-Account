@@ -79,18 +79,18 @@
                         <i data-lucide="user-round" aria-hidden="true"></i>
                         <span>Profile</span>
                     </a>
-                    <a href="{{ route('apes-cic.tickets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('apes-cic.*')]) @if(request()->routeIs('apes-cic.*')) aria-current="page" @endif>
-                        <i data-lucide="shield-check" aria-hidden="true"></i>
-                        <span>APES CIC</span>
-                    </a>
-                    <a href="{{ route('shelter.pets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('shelter.*')]) @if(request()->routeIs('shelter.*')) aria-current="page" @endif>
-                        <i data-lucide="house" aria-hidden="true"></i>
-                        <span>APES Shelter</span>
-                    </a>
-                    <a href="{{ route('petcare.pets.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('petcare.*')]) @if(request()->routeIs('petcare.*')) aria-current="page" @endif>
-                        <i data-lucide="heart" aria-hidden="true"></i>
-                        <span>APES Pet Care</span>
-                    </a>
+                    @foreach($moduleNavigation as $subCoreNavigation)
+                        @php
+                            $routePrefix = str($subCoreNavigation->subCore->routeName)
+                                ->before('.')
+                                ->toString();
+                            $active = request()->routeIs($routePrefix.'.*');
+                        @endphp
+                        <a href="{{ route($subCoreNavigation->subCore->routeName) }}" @class(['primary-nav__link', 'is-active' => $active]) @if($active) aria-current="page" @endif>
+                            <i data-lucide="{{ $subCoreNavigation->subCore->icon }}" aria-hidden="true"></i>
+                            <span>{{ $subCoreNavigation->subCore->name }}</span>
+                        </a>
+                    @endforeach
                     @can('admin.access')
                         <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('admin.*')]) @if(request()->routeIs('admin.*')) aria-current="page" @endif>
                             <i data-lucide="settings" aria-hidden="true"></i>

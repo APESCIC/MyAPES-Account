@@ -135,6 +135,7 @@ CONTROL_ROOT="${4:-}"
 SHARED_DIR="${DATA_DIR}/shared"
 CURRENT_LINK="${DATA_DIR}/current"
 PREVIOUS_LINK="${DATA_DIR}/previous"
+PHP_BIN="/usr/bin/php8.4"
 
 if [[ ! -L "$PREVIOUS_LINK" ]]; then
   echo "No previous release is available for code rollback."
@@ -252,6 +253,53 @@ if [[ -e "$CURRENT_LINK" && ! -L "$CURRENT_LINK" ]]; then
   exit 1
 fi
 
+MAINTENANCE_ACTIVE=false
+ROLLBACK_SWITCHED=false
+
+restore_current_release() {
+  local exit_code=$?
+  local authorization_restored=false
+
+  trap - EXIT
+
+  if [[ "$exit_code" -eq 0 \
+    || "$MAINTENANCE_ACTIVE" != true \
+    || "$ROLLBACK_SWITCHED" == true ]]; then
+    exit "$exit_code"
+  fi
+
+  set +e
+  if sudo -E -u www-data env APP_ENV=production \
+      "$PHP_BIN" "${CURRENT_TARGET}/artisan" permission:cache-reset --no-interaction --no-ansi \
+    && sudo -E -u www-data env APP_ENV=production \
+      "$PHP_BIN" "${CURRENT_TARGET}/artisan" myapes:authorization-sync --no-interaction --no-ansi \
+    && sudo -E -u www-data env APP_ENV=production \
+      "$PHP_BIN" "${CURRENT_TARGET}/artisan" permission:cache-reset --no-interaction --no-ansi \
+    && sudo -E -u www-data env APP_ENV=production \
+      "$PHP_BIN" "${CURRENT_TARGET}/artisan" myapes:authorization-check --no-interaction --no-ansi; then
+    authorization_restored=true
+  fi
+
+  if [[ "$authorization_restored" == true ]]; then
+    sudo -E -u www-data env APP_ENV=production \
+      "$PHP_BIN" "${CURRENT_TARGET}/artisan" up --no-interaction --no-ansi
+  else
+    echo "Current authorization could not be restored; maintenance mode remains active."
+  fi
+
+  exit "$exit_code"
+}
+
+trap restore_current_release EXIT
+
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${CURRENT_TARGET}/artisan" down --retry=60 --no-interaction --no-ansi
+MAINTENANCE_ACTIVE=true
+
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${CURRENT_TARGET}/artisan" myapes:modules:rollback-check \
+  --target-release="$ROLLBACK_TARGET" --no-interaction --no-ansi
+
 for runtime_link in storage .env; do
   target_path="${ROLLBACK_TARGET}/${runtime_link}"
   shared_path="${SHARED_DIR}/${runtime_link}"
@@ -289,9 +337,19 @@ chmod 0555 "$DATA_DIR" "$RELEASES_DIR" "$ROLLBACK_TARGET" "${ROLLBACK_TARGET}/pu
 install -m 0444 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf.rollback"
 install -m 0555 "${CONTROL_ROOT}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh.rollback"
 
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" permission:cache-reset --no-interaction --no-ansi
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" myapes:authorization-sync --no-interaction --no-ansi
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" permission:cache-reset --no-interaction --no-ansi
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" myapes:authorization-check --no-interaction --no-ansi
+
 rm -f -- "${CURRENT_LINK}.rollback"
 ln -s "$ROLLBACK_TARGET" "${CURRENT_LINK}.rollback"
 mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"
+ROLLBACK_SWITCHED=true
 mv -Tf "${DATA_DIR}/apache/app.conf.rollback" "${DATA_DIR}/apache/app.conf"
 mv -Tf "${DATA_DIR}/run.sh.rollback" "${DATA_DIR}/run.sh"
 rm -f -- "$PREVIOUS_LINK"
@@ -318,5 +376,10 @@ for protected_path in \
     exit 1
   fi
 done
+
+sudo -E -u www-data env APP_ENV=production \
+  "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" up --no-interaction --no-ansi
+MAINTENANCE_ACTIVE=false
+trap - EXIT
 
 echo "Rolled back code to ${ROLLBACK_SHA}. Database migrations were retained and were not reversed."

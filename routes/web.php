@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminGroupController;
+use App\Http\Controllers\Admin\AdminModuleController;
 use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRoleController;
 use App\Http\Controllers\Admin\AdminUserController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\PetCare\PetProfileController as PetCarePetProfileContro
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
+use App\Http\Controllers\SubCoreController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'auth.landing')->name('home');
@@ -53,27 +55,51 @@ Route::middleware([
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::prefix('apes-cic')->name('apes-cic.')->group(function (): void {
-        Route::resource('tickets', TicketController::class)
-            ->only(['index', 'store', 'show', 'update', 'destroy'])
-            ->parameters(['tickets' => 'ticket']);
+        Route::get('/', [SubCoreController::class, 'show'])
+            ->defaults('subCoreKey', 'apes-cic')
+            ->name('index');
+        Route::middleware('module.available:apes-cic,tickets')
+            ->group(function (): void {
+                Route::resource('tickets', TicketController::class)
+                    ->only(['index', 'store', 'show', 'update', 'destroy'])
+                    ->parameters(['tickets' => 'ticket']);
+            });
     });
 
     Route::prefix('shelter')->name('shelter.')->group(function (): void {
-        Route::resource('pets', ShelterPetProfileController::class)
-            ->only(['index', 'store', 'show', 'update'])
-            ->parameters(['pets' => 'pet']);
-        Route::resource('cases', CaseController::class)
-            ->only(['index', 'store', 'show', 'update'])
-            ->parameters(['cases' => 'case']);
+        Route::get('/', [SubCoreController::class, 'show'])
+            ->defaults('subCoreKey', 'shelter-rescue')
+            ->name('index');
+        Route::middleware('module.available:shelter-rescue,pet-profiles')
+            ->group(function (): void {
+                Route::resource('pets', ShelterPetProfileController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->parameters(['pets' => 'pet']);
+            });
+        Route::middleware('module.available:shelter-rescue,cases')
+            ->group(function (): void {
+                Route::resource('cases', CaseController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->parameters(['cases' => 'case']);
+            });
     });
 
     Route::prefix('petcare')->name('petcare.')->group(function (): void {
-        Route::resource('pets', PetCarePetProfileController::class)
-            ->only(['index', 'store', 'show', 'update'])
-            ->parameters(['pets' => 'pet']);
-        Route::resource('consultations', ConsultationController::class)
-            ->only(['index', 'store', 'show', 'update'])
-            ->parameters(['consultations' => 'consultation']);
+        Route::get('/', [SubCoreController::class, 'show'])
+            ->defaults('subCoreKey', 'pet-care-clinic')
+            ->name('index');
+        Route::middleware('module.available:pet-care-clinic,pet-profiles')
+            ->group(function (): void {
+                Route::resource('pets', PetCarePetProfileController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->parameters(['pets' => 'pet']);
+            });
+        Route::middleware('module.available:pet-care-clinic,consultations')
+            ->group(function (): void {
+                Route::resource('consultations', ConsultationController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->parameters(['consultations' => 'consultation']);
+            });
     });
 
     Route::prefix('admin')
@@ -132,5 +158,12 @@ Route::middleware([
             Route::get('/permissions', [AdminPermissionController::class, 'index'])
                 ->middleware('can:admin.permissions.view')
                 ->name('permissions.index');
+
+            Route::get('/modules', [AdminModuleController::class, 'index'])
+                ->middleware('can:admin.modules.view')
+                ->name('modules.index');
+            Route::post('/modules/{subCoreKey}/{moduleKey}/transition', [AdminModuleController::class, 'transition'])
+                ->middleware('can:admin.modules.manage')
+                ->name('modules.transition');
         });
 });

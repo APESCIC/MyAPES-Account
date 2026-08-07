@@ -90,41 +90,20 @@
     </div>
 
     <section class="service-summary" id="service-summary" aria-label="Service totals">
-        <a href="{{ route('apes-cic.tickets.index') }}" class="service-summary__item service-summary__item--ticket">
-            <i data-lucide="ticket" aria-hidden="true"></i>
-            <span class="service-summary__number">{{ $ticketCount }}</span>
-            <span class="service-summary__copy">
-                <strong>{{ Str::plural('Ticket', $ticketCount) }}</strong>
-                <small>{{ $openTicketCount }} open · {{ $highPriorityTicketCount }} high priority</small>
-            </span>
-            <span class="service-summary__link">View tickets <i data-lucide="arrow-right" aria-hidden="true"></i></span>
-        </a>
-        <a href="{{ route('shelter.cases.index') }}" class="service-summary__item service-summary__item--shelter">
-            <i data-lucide="house" aria-hidden="true"></i>
-            <span class="service-summary__number">{{ $shelterCaseCount }}</span>
-            <span class="service-summary__copy">
-                <strong>Shelter {{ Str::plural('case', $shelterCaseCount) }}</strong>
-                <small>{{ $openShelterCaseCount }} open</small>
-            </span>
-            <span class="service-summary__link">View cases <i data-lucide="arrow-right" aria-hidden="true"></i></span>
-        </a>
-        <a href="{{ route('petcare.consultations.index') }}" class="service-summary__item service-summary__item--consultation">
-            <i data-lucide="messages-square" aria-hidden="true"></i>
-            <span class="service-summary__number">{{ $consultationCount }}</span>
-            <span class="service-summary__copy">
-                <strong>{{ Str::plural('Consultation', $consultationCount) }}</strong>
-                <small>{{ $openConsultationCount }} open</small>
-            </span>
-            <span class="service-summary__link">View consultations <i data-lucide="arrow-right" aria-hidden="true"></i></span>
-        </a>
-        <a href="{{ route('petcare.pets.index') }}" class="service-summary__item service-summary__item--pet">
-            <i data-lucide="heart" aria-hidden="true"></i>
-            <span class="service-summary__number">{{ $petProfileCount }}</span>
-            <span class="service-summary__copy">
-                <strong>Pet {{ Str::plural('profile', $petProfileCount) }}</strong>
-                <small>Across Shelter and Pet Care</small>
-            </span>
-            <span class="service-summary__link">View pets <i data-lucide="arrow-right" aria-hidden="true"></i></span>
-        </a>
+        @foreach($moduleSummaries as $summary)
+            <a
+                href="{{ route($summary->routeName) }}"
+                class="service-summary__item service-summary__item--{{ $summary->style }}"
+                data-module-instance="{{ $summary->instanceKey }}"
+            >
+                <i data-lucide="{{ $summary->icon }}" aria-hidden="true"></i>
+                <span class="service-summary__number">{{ $summary->total }}</span>
+                <span class="service-summary__copy">
+                    <strong>{{ $summary->label }}</strong>
+                    <small>{{ $summary->detail }}</small>
+                </span>
+                <span class="service-summary__link">Open module <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+            </a>
+        @endforeach
     </section>
 @endsection

@@ -26,7 +26,7 @@ class SecurityRemediationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_updates_preserve_assignments_when_the_field_is_omitted(): void
+    public function test_owner_comment_only_updates_preserve_assignments_and_ticket_state(): void
     {
         Notification::fake();
         $owner = $this->user(User::ROLE_SERVICE_USER);
@@ -38,7 +38,7 @@ class SecurityRemediationTest extends TestCase
 
         $this->actingAs($owner)->put(
             route('apes-cic.tickets.update', $ticket),
-            ['status' => 'open', 'priority' => 'high', 'message' => null],
+            ['message' => 'Customer follow-up'],
         )->assertRedirect();
         $this->actingAs($owner)->put(
             route('shelter.cases.update', $case),
@@ -49,12 +49,190 @@ class SecurityRemediationTest extends TestCase
             ['status' => 'in_progress', 'notes' => 'Owner update'],
         )->assertRedirect();
 
-        $this->assertSame($staff->id, $ticket->fresh()->assigned_to);
+        $ticket->refresh();
+        $this->assertSame($staff->id, $ticket->assigned_to);
+        $this->assertSame('open', $ticket->status);
+        $this->assertSame('medium', $ticket->priority);
+        $this->assertNull($ticket->closed_at);
+        $this->assertDatabaseHas('support_ticket_messages', [
+            'support_ticket_id' => $ticket->id,
+            'user_id' => $owner->id,
+            'message' => 'Customer follow-up',
+            'is_staff_note' => false,
+        ]);
         $this->assertSame($staff->id, $case->fresh()->assigned_to);
         $this->assertSame(
             $staff->id,
             $consultation->fresh()->assigned_to,
         );
+    }
+
+    public function test_owner_cannot_submit_ticket_status_or_priority_fields(): void
+    {
+        Notification::fake();
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [$ticket] = $this->records($owner, $staff);
+
+        foreach ([
+            ['status' => 'closed'],
+            ['priority' => 'urgent'],
+            ['status' => 'resolved', 'priority' => 'high'],
+        ] as $forbiddenFields) {
+            $response = $this->actingAs($owner)->put(
+                route('apes-cic.tickets.update', $ticket),
+                [...$forbiddenFields, 'message' => 'Forbidden mixed update'],
+            );
+            $this->assertSame(403, $response->getStatusCode());
+        }
+
+        $ticket->refresh();
+        $this->assertSame('open', $ticket->status);
+        $this->assertSame('medium', $ticket->priority);
+        $this->assertSame($staff->id, $ticket->assigned_to);
+        $this->assertNull($ticket->closed_at);
+        $this->assertDatabaseMissing('support_ticket_messages', [
+            'support_ticket_id' => $ticket->id,
+            'message' => 'Forbidden mixed update',
+        ]);
+    }
+
+    public function test_ticket_form_exposes_only_actions_the_actor_can_perform(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [$ticket] = $this->records($owner, $staff);
+
+        $ownerResponse = $this->actingAs($owner)->get(
+            route('apes-cic.tickets.show', $ticket),
+        );
+        $ownerResponse->assertOk();
+        $ownerResponse->assertSee('name="message"', false);
+        $ownerResponse->assertDontSee('name="status"', false);
+        $ownerResponse->assertDontSee('name="priority"', false);
+        $ownerResponse->assertDontSee('name="assigned_to"', false);
+
+        $staffResponse = $this->actingAs($staff)->get(
+            route('apes-cic.tickets.show', $ticket),
+        );
+        $staffResponse->assertOk();
+        $staffResponse->assertSee('name="message"', false);
+        $staffResponse->assertSee('name="status"', false);
+        $staffResponse->assertSee('name="priority"', false);
+        $staffResponse->assertSee('name="assigned_to"', false);
+    }
+
+    public function test_ticket_update_requires_the_namespaced_update_permission(): void
+    {
+        Notification::fake();
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [$ticket] = $this->records($owner, $staff);
+        $this->removeStaffPermission('apes-cic.tickets.update-all');
+
+        $response = $this->actingAs($staff)->put(
+            route('apes-cic.tickets.update', $ticket),
+            ['status' => 'in_progress', 'priority' => 'high'],
+        );
+        $this->assertSame(403, $response->getStatusCode());
+
+        $ticket->refresh();
+        $this->assertSame('open', $ticket->status);
+        $this->assertSame('medium', $ticket->priority);
+    }
+
+    public function test_ticket_comment_requires_the_namespaced_comment_permission(): void
+    {
+        Notification::fake();
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [$ticket] = $this->records($owner, $staff);
+        $this->removeRolePermission(
+            AuthorizationProfile::ROLE_SERVICE_USER,
+            'apes-cic.tickets.comment-own',
+        );
+
+        $response = $this->actingAs($owner)->put(
+            route('apes-cic.tickets.update', $ticket),
+            ['message' => 'Unauthorized owner comment'],
+        );
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertDatabaseMissing('support_ticket_messages', [
+            'support_ticket_id' => $ticket->id,
+            'message' => 'Unauthorized owner comment',
+        ]);
+    }
+
+    public function test_ticket_mixed_update_requires_every_requested_permission(): void
+    {
+        Notification::fake();
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [$ticket] = $this->records($owner, $staff);
+        $this->removeStaffPermission('apes-cic.tickets.comment-own');
+
+        $response = $this->actingAs($staff)->put(
+            route('apes-cic.tickets.update', $ticket),
+            [
+                'status' => 'in_progress',
+                'priority' => 'high',
+                'message' => 'Unauthorized mixed comment',
+            ],
+        );
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('open', $ticket->fresh()->status);
+        $this->assertDatabaseMissing('support_ticket_messages', [
+            'support_ticket_id' => $ticket->id,
+            'message' => 'Unauthorized mixed comment',
+        ]);
+    }
+
+    public function test_ticket_close_requires_the_namespaced_close_permission(): void
+    {
+        Notification::fake();
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [$ticket] = $this->records($owner, $staff);
+        $this->removeStaffPermission('apes-cic.tickets.close');
+
+        $response = $this->actingAs($staff)->put(
+            route('apes-cic.tickets.update', $ticket),
+            ['status' => 'closed', 'priority' => 'medium'],
+        );
+        $this->assertSame(403, $response->getStatusCode());
+
+        $ticket->refresh();
+        $this->assertSame('open', $ticket->status);
+        $this->assertNull($ticket->closed_at);
+
+        $ticket->forceFill([
+            'status' => 'resolved',
+            'closed_at' => now(),
+        ])->save();
+        $response = $this->actingAs($staff)->put(
+            route('apes-cic.tickets.update', $ticket),
+            ['status' => 'closed', 'priority' => 'medium'],
+        );
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('resolved', $ticket->fresh()->status);
+    }
+
+    public function test_ticket_assignment_requires_the_namespaced_assign_permission(): void
+    {
+        Notification::fake();
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        $otherStaff = $this->user(User::ROLE_STAFF);
+        [$ticket] = $this->records($owner, $staff);
+        $this->removeStaffPermission('apes-cic.tickets.assign');
+
+        $response = $this->actingAs($staff)->put(
+            route('apes-cic.tickets.update', $ticket),
+            ['assigned_to' => $otherStaff->id],
+        );
+        $this->assertSame(403, $response->getStatusCode());
+
+        $this->assertSame($staff->id, $ticket->fresh()->assigned_to);
     }
 
     public function test_owner_explicit_assignment_probes_have_one_forbidden_response_and_sanitized_audit(): void
@@ -562,6 +740,30 @@ class SecurityRemediationTest extends TestCase
         );
 
         return $user->refresh();
+    }
+
+    private function removeStaffPermission(string $permissionName): void
+    {
+        $this->removeRolePermission(
+            AuthorizationProfile::ROLE_STAFF,
+            $permissionName,
+        );
+    }
+
+    private function removeRolePermission(
+        string $roleName,
+        string $permissionName,
+    ): void {
+        $role = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', $roleName)
+            ->firstOrFail();
+        $permission = Permission::query()
+            ->where('guard_name', 'web')
+            ->where('name', $permissionName)
+            ->firstOrFail();
+
+        $role->permissions()->detach($permission->id);
     }
 
     /**

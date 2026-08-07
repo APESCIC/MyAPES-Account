@@ -47,7 +47,14 @@ class DashboardAttentionTest extends TestCase
         $response = $this->actingAs($serviceUser)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertViewHas('ticketCount', 8);
+        $response->assertViewHas(
+            'moduleSummaries',
+            static fn (array $summaries): bool => collect($summaries)
+                ->contains(
+                    static fn ($summary): bool => $summary->instanceKey === 'apes-cic:tickets'
+                        && $summary->total === 8,
+                ),
+        );
         $response->assertViewHas('attentionItems', function (array $items) use ($expectedTitles): bool {
             return count($items) === 6
                 && array_column($items, 'title') === array_slice($expectedTitles, 0, 6);

@@ -98,6 +98,130 @@ CONTROL_MODES
   fi
 }
 
+classify_activation_targets() {
+  local release_sha="${1:-}"
+  local prior_release_sha="${2:-}"
+  local previous_available="${3:-}"
+  local same_release="${4:-}"
+  local current_target="${5:-}"
+  local previous_target="${6:-}"
+  local releases_dir="${7:-}"
+  local target=""
+
+  if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ \
+    || ! "$previous_available" =~ ^(true|false)$ \
+    || ! "$same_release" =~ ^(true|false)$ \
+    || -z "$releases_dir" ]]; then
+    echo "Activation classification inputs are invalid." >&2
+    return 1
+  fi
+  if [[ "$previous_available" == true ]]; then
+    if [[ ! "$prior_release_sha" =~ ^[0-9a-f]{40}$ ]]; then
+      echo "Captured prior release identity is invalid." >&2
+      return 1
+    fi
+  elif [[ -n "$prior_release_sha" ]]; then
+    echo "Unavailable prior release identity must be empty." >&2
+    return 1
+  fi
+  if [[ "$same_release" == true \
+    && ("$previous_available" != true || "$prior_release_sha" != "$release_sha") ]]; then
+    echo "Same-release classification does not match the captured identity." >&2
+    return 1
+  fi
+
+  for target in "$current_target" "$previous_target"; do
+    [[ -n "$target" ]] || continue
+    if [[ ! "$target" =~ ^${releases_dir}/[0-9a-f]{40}$ ]]; then
+      echo "Activation classification found an unsafe release target." >&2
+      return 1
+    fi
+  done
+
+  if [[ "$same_release" == true ]]; then
+    if [[ "$current_target" != "${releases_dir}/${release_sha}" ]]; then
+      echo "Same-release activation no longer points at the captured release." >&2
+      return 1
+    fi
+    echo "same-release"
+    return 0
+  fi
+
+  if [[ -z "$current_target" ]]; then
+    if [[ "$previous_available" == false && -z "$previous_target" ]]; then
+      echo "first-deployment"
+      return 0
+    fi
+    echo "Activation left an ambiguous empty current release." >&2
+    return 1
+  fi
+
+  if [[ "$current_target" == "${releases_dir}/${release_sha}" ]]; then
+    if [[ "$previous_available" == false ]]; then
+      if [[ -n "$previous_target" ]]; then
+        echo "Activation switched without an authenticated prior release." >&2
+        return 1
+      fi
+      echo "unavailable-rollback"
+      return 0
+    fi
+    if [[ "$previous_target" != "${releases_dir}/${prior_release_sha}" ]]; then
+      echo "Post-switch previous release does not match the captured identity." >&2
+      return 1
+    fi
+    echo "post-switch"
+    return 0
+  fi
+
+  if [[ "$previous_available" == true \
+    && "$current_target" == "${releases_dir}/${prior_release_sha}" ]]; then
+    echo "pre-switch"
+    return 0
+  fi
+
+  echo "Activation links do not match a safe recovery state." >&2
+  return 1
+}
+
+classify_activation_state() {
+  local release_sha="${1:-}"
+  local prior_release_sha="${2:-}"
+  local previous_available="${3:-}"
+  local same_release="${4:-}"
+  local data_dir="${5:-/app/data}"
+  local releases_dir="${data_dir}/releases"
+  local current_link="${data_dir}/current"
+  local previous_link="${data_dir}/previous"
+  local current_target=""
+  local previous_target=""
+
+  for release_link in "$current_link" "$previous_link"; do
+    if [[ -e "$release_link" && ! -L "$release_link" ]]; then
+      echo "Activation classification requires authoritative release symlinks." >&2
+      return 1
+    fi
+  done
+  if [[ -L "$current_link" ]]; then
+    current_target="$(readlink -f "$current_link" 2>/dev/null || true)"
+    if [[ -z "$current_target" || ! -d "$current_target" ]]; then
+      echo "Current release link is dangling during activation classification." >&2
+      return 1
+    fi
+  fi
+  if [[ -L "$previous_link" ]]; then
+    previous_target="$(readlink -f "$previous_link" 2>/dev/null || true)"
+    if [[ -z "$previous_target" || ! -d "$previous_target" ]]; then
+      echo "Previous release link is dangling during activation classification." >&2
+      return 1
+    fi
+  fi
+
+  classify_activation_targets \
+    "$release_sha" "$prior_release_sha" \
+    "$previous_available" "$same_release" \
+    "$current_target" "$previous_target" "$releases_dir"
+}
+
 install_authenticated_controls() {
   local source_root="${1:-}"
   local destination_root="${2:-}"
@@ -149,6 +273,12 @@ install_authenticated_controls() {
   assert_hardened_control_directory "$temporary_root"
   mv "$temporary_root" "$destination_root"
 }
+
+if [[ "${1:-}" == "--classify-activation-state" ]]; then
+  classify_activation_state \
+    "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-/app/data}"
+  exit 0
+fi
 
 if [[ "${1:-}" == "--verify-controls" ]]; then
   verify_deployment_controls "${2:-}" "${3:-}"
@@ -459,13 +589,21 @@ required_paths=(
   vendor/autoload.php
   public/build/manifest.json
   resources/data/releases.json
+  resources/data/module-runtime-contract.json
+  config/modules.php
   config/permission.php
   database/migrations/2026_07_28_000000_create_permission_tables.php
   database/migrations/2026_07_28_000100_cut_over_authorization_domain.php
+  database/migrations/2026_08_06_000000_create_module_installations_table.php
   app/Console/Commands/AuthorizationPreflight.php
   app/Console/Commands/DirectorySync.php
   app/Console/Commands/AuthorizationSync.php
   app/Console/Commands/AuthorizationCheck.php
+  app/Console/Commands/ModulesPreflight.php
+  app/Console/Commands/ModulesSync.php
+  app/Console/Commands/ModulesCheck.php
+  app/Console/Commands/ModulesRollbackCheck.php
+  app/Services/ModuleRollbackCompatibilityChecker.php
   scripts/deploy/activate-release.sh
   scripts/deploy/rollback-release.sh
   scripts/deploy/cloudron-app.conf
@@ -555,9 +693,65 @@ run_artisan() {
     "$PHP_BIN" "${RELEASE_DIR}/artisan" "$@"
 }
 
+run_current_artisan() {
+  sudo -E -u www-data env APP_ENV=production \
+    "$PHP_BIN" "${CURRENT_TARGET_BEFORE}/artisan" "$@"
+}
+
+PRE_SWITCH_MAINTENANCE_ACTIVE=false
+PRE_SWITCH_DATABASE_MUTATED=false
+ACTIVATION_SWITCHED=false
+
+restore_current_authorization_after_failure() {
+  local exit_code=$?
+  local authorization_restored=false
+  local current_reopened=false
+
+  trap - EXIT
+
+  if [[ "$exit_code" -eq 0 \
+    || "$ACTIVATION_SWITCHED" == true \
+    || "$PRE_SWITCH_MAINTENANCE_ACTIVE" != true \
+    || -z "$CURRENT_TARGET_BEFORE" \
+    || "$CURRENT_TARGET_BEFORE" == "$RELEASE_DIR" ]]; then
+    exit "$exit_code"
+  fi
+
+  set +e
+  if [[ "$PRE_SWITCH_DATABASE_MUTATED" != true ]]; then
+    if run_current_artisan up --no-interaction --no-ansi; then
+      current_reopened=true
+    fi
+  elif run_current_artisan permission:cache-reset --no-interaction --no-ansi \
+    && run_current_artisan myapes:authorization-sync --no-interaction --no-ansi \
+    && run_current_artisan permission:cache-reset --no-interaction --no-ansi \
+    && run_current_artisan myapes:authorization-check --no-interaction --no-ansi; then
+    authorization_restored=true
+    if run_current_artisan up --no-interaction --no-ansi; then
+      current_reopened=true
+    fi
+  fi
+
+  if [[ "$PRE_SWITCH_DATABASE_MUTATED" == true && "$authorization_restored" != true ]]; then
+    echo "Current authorization could not be restored; maintenance mode remains active."
+  elif [[ "$current_reopened" != true ]]; then
+    echo "Current release could not leave maintenance mode after activation failure."
+  fi
+
+  exit "$exit_code"
+}
+
 run_artisan optimize:clear
 run_artisan myapes:authorization-preflight --no-interaction --no-ansi
+run_artisan myapes:modules:preflight --no-interaction --no-ansi
+trap restore_current_authorization_after_failure EXIT
+if [[ -n "$CURRENT_TARGET_BEFORE" && "$CURRENT_TARGET_BEFORE" != "$RELEASE_DIR" ]]; then
+  run_current_artisan down --retry=60 --no-interaction --no-ansi
+  PRE_SWITCH_MAINTENANCE_ACTIVE=true
+fi
+PRE_SWITCH_DATABASE_MUTATED=true
 run_artisan migrate --force
+run_artisan myapes:modules:sync --no-interaction --no-ansi
 run_artisan config:cache
 run_artisan route:cache
 run_artisan view:cache
@@ -565,6 +759,7 @@ run_artisan permission:cache-reset --no-interaction --no-ansi
 run_artisan myapes:directory-sync --source=manual --no-interaction --no-ansi
 run_artisan myapes:authorization-sync --no-interaction --no-ansi
 run_artisan permission:cache-reset --no-interaction --no-ansi
+run_artisan myapes:modules:check --no-interaction --no-ansi
 run_artisan myapes:authorization-check --no-interaction --no-ansi
 
 if ! run_artisan env --no-ansi | grep -Eq 'production'; then
@@ -606,6 +801,10 @@ fi
 
 # This is the commit point: all fallible preparation happens before the atomic switch.
 mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"
+ACTIVATION_SWITCHED=true
+if [[ "$PRE_SWITCH_MAINTENANCE_ACTIVE" == true ]]; then
+  run_artisan up --no-interaction --no-ansi
+fi
 
 CURRENT_TARGET="$(readlink -f "$CURRENT_LINK")"
 PREVIOUS_TARGET="$(readlink -f "$PREVIOUS_LINK" 2>/dev/null || true)"

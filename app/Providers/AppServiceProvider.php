@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\OidcIdentityProvider;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
@@ -56,6 +57,12 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layouts.app', function (IlluminateView $view): void {
             $view->with('appVersion', app(ReleaseHistoryRepository::class)->version());
+            $view->with(
+                'moduleNavigation',
+                auth()->check()
+                    ? app(ModuleNavigationProvider::class)->forUser(auth()->user())
+                    : [],
+            );
         });
 
         RateLimiter::for('public-login', function (Request $request): Limit {

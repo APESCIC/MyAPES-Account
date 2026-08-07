@@ -10,11 +10,17 @@ class DeploymentAuthenticationContractTest extends TestCase
     public function test_phase_b_activation_runs_once_in_the_fail_closed_order_as_www_data(): void
     {
         $script = $this->read('scripts/deploy/activate-release.sh');
+        $activation = substr(
+            $script,
+            $this->position($script, 'run_artisan optimize:clear'),
+        );
 
         $orderedCommands = [
             'optimize:clear',
             'myapes:authorization-preflight --no-interaction --no-ansi',
+            'myapes:modules:preflight --no-interaction --no-ansi',
             'migrate --force',
+            'myapes:modules:sync --no-interaction --no-ansi',
             'config:cache',
             'route:cache',
             'view:cache',
@@ -22,13 +28,14 @@ class DeploymentAuthenticationContractTest extends TestCase
             'myapes:directory-sync --source=manual --no-interaction --no-ansi',
             'myapes:authorization-sync --no-interaction --no-ansi',
             'permission:cache-reset --no-interaction',
+            'myapes:modules:check --no-interaction --no-ansi',
             'myapes:authorization-check --no-interaction --no-ansi',
             'mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"',
         ];
         $offset = 0;
 
         foreach ($orderedCommands as $command) {
-            $position = strpos($script, $command, $offset);
+            $position = strpos($activation, $command, $offset);
             $this->assertNotFalse(
                 $position,
                 "Expected activation to contain [{$command}] after offset {$offset}.",
@@ -37,7 +44,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         }
 
         foreach (array_slice($orderedCommands, 0, -1) as $command) {
-            $line = $this->lineContaining($script, $command);
+            $line = $this->lineContaining($activation, $command);
             $this->assertStringContainsString(
                 'run_artisan ',
                 $line,
@@ -53,13 +60,121 @@ class DeploymentAuthenticationContractTest extends TestCase
             "if ! run_artisan env --no-ansi | grep -Eq 'production'; then",
             $script,
         );
-        $this->assertSame(2, substr_count($script, 'permission:cache-reset'));
-        $this->assertSame(1, substr_count($script, 'myapes:authorization-preflight'));
-        $this->assertSame(1, substr_count($script, 'myapes:directory-sync'));
-        $this->assertSame(1, substr_count($script, 'myapes:authorization-sync'));
-        $this->assertSame(1, substr_count($script, 'myapes:authorization-check'));
+        $this->assertSame(2, substr_count(
+            $script,
+            'run_artisan permission:cache-reset',
+        ));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-preflight'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:preflight'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:sync'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:check'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:directory-sync'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-sync'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-check'));
         $this->assertStringNotContainsString('myapes:auth-check', $script);
         $this->assertStringNotContainsString('myapes:access-compatibility-sync', $script);
+    }
+
+    public function test_pre_switch_activation_failure_restores_the_current_authorization_matrix_before_reopening(): void
+    {
+        $result = $this->runActivationRecoveryHarness('pre-switch-failure');
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertSame([
+            '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan myapes:authorization-sync --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan myapes:authorization-check --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan up --no-interaction --no-ansi',
+        ], $result['commands']);
+    }
+
+    public function test_pre_mutation_activation_failure_reopens_the_quiesced_current_release_without_resynchronizing(): void
+    {
+        $result = $this->runActivationRecoveryHarness('before-mutation');
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertSame([
+            '/usr/bin/php8.4 /release/current/artisan up --no-interaction --no-ansi',
+        ], $result['commands']);
+    }
+
+    public function test_activation_recovery_skips_first_same_release_and_post_switch_failures(): void
+    {
+        foreach ([
+            'first-release',
+            'same-release',
+            'post-switch',
+        ] as $mode) {
+            $result = $this->runActivationRecoveryHarness($mode);
+
+            $this->assertFalse($result['process']->isSuccessful(), $mode);
+            $this->assertSame([], $result['commands'], $mode);
+        }
+    }
+
+    public function test_activation_recovery_fails_closed_when_current_authorization_cannot_be_restored(): void
+    {
+        $result = $this->runActivationRecoveryHarness(
+            'pre-switch-failure',
+            'myapes:authorization-sync',
+        );
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertStringContainsString(
+            'Current authorization could not be restored; maintenance mode remains active.',
+            $result['process']->getOutput().$result['process']->getErrorOutput(),
+        );
+        $this->assertCount(2, $result['commands']);
+    }
+
+    public function test_activation_recovery_leaves_maintenance_active_when_the_current_release_cannot_reopen(): void
+    {
+        $result = $this->runActivationRecoveryHarness(
+            'pre-switch-failure',
+            ' up --no-interaction',
+        );
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertStringContainsString(
+            'Current release could not leave maintenance mode after activation failure.',
+            $result['process']->getOutput().$result['process']->getErrorOutput(),
+        );
+        $this->assertCount(5, $result['commands']);
+    }
+
+    public function test_activation_arms_recovery_before_database_mutation_and_commits_only_after_the_atomic_switch(): void
+    {
+        $script = $this->read('scripts/deploy/activate-release.sh');
+        $trap = $this->position(
+            $script,
+            'trap restore_current_authorization_after_failure EXIT',
+        );
+        $maintenance = $this->position(
+            $script,
+            'run_current_artisan down --retry=60 --no-interaction --no-ansi',
+        );
+        $mutation = $this->position(
+            $script,
+            'PRE_SWITCH_DATABASE_MUTATED=true',
+        );
+        $migration = $this->position($script, 'run_artisan migrate --force');
+        $switch = $this->position(
+            $script,
+            'mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"',
+        );
+        $committed = $this->position($script, 'ACTIVATION_SWITCHED=true');
+        $reopened = $this->position(
+            $script,
+            'run_artisan up --no-interaction --no-ansi',
+        );
+
+        $this->assertLessThan($maintenance, $trap);
+        $this->assertLessThan($mutation, $maintenance);
+        $this->assertLessThan($migration, $mutation);
+        $this->assertLessThan($switch, $migration);
+        $this->assertLessThan($committed, $switch);
+        $this->assertLessThan($reopened, $committed);
     }
 
     public function test_activation_installs_public_storage_link_as_root_before_artisan(): void
@@ -106,13 +221,21 @@ class DeploymentAuthenticationContractTest extends TestCase
             'vendor/autoload.php',
             'public/build/manifest.json',
             'resources/data/releases.json',
+            'resources/data/module-runtime-contract.json',
+            'config/modules.php',
             'config/permission.php',
             'database/migrations/2026_07_28_000000_create_permission_tables.php',
             'database/migrations/2026_07_28_000100_cut_over_authorization_domain.php',
+            'database/migrations/2026_08_06_000000_create_module_installations_table.php',
             'app/Console/Commands/AuthorizationPreflight.php',
             'app/Console/Commands/DirectorySync.php',
             'app/Console/Commands/AuthorizationSync.php',
             'app/Console/Commands/AuthorizationCheck.php',
+            'app/Console/Commands/ModulesPreflight.php',
+            'app/Console/Commands/ModulesSync.php',
+            'app/Console/Commands/ModulesCheck.php',
+            'app/Console/Commands/ModulesRollbackCheck.php',
+            'app/Services/ModuleRollbackCompatibilityChecker.php',
             'scripts/deploy/activate-release.sh',
             'scripts/deploy/rollback-release.sh',
             'scripts/deploy/cloudron-app.conf',
@@ -138,7 +261,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertLessThan($verify, $runtimeControls);
         $this->assertLessThan($rollback, $verify);
         $this->assertMatchesRegularExpression(
-            '/name:\s*Restart activated release\R\s+id:\s*restart\R\s+continue-on-error:\s*true/s',
+            '/name:\s*Restart activated release\R\s+id:\s*restart\R\s+if:\s*steps\.activate\.outcome\s*==\s*[\'"]success[\'"]\R\s+continue-on-error:\s*true/s',
             $workflow,
         );
         $this->assertMatchesRegularExpression(
@@ -149,9 +272,9 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/\bif:\s*(?:\$\{\{\s*)?steps\.restart\.outcome\s*==\s*[\'"]success[\'"]\s*&&\s*steps\.runtime_controls\.outcome\s*==\s*[\'"]success[\'"](?:\s*\}\})?/',
             $workflow,
         );
-        $this->assertStringContainsString("steps.runtime_controls.outcome == 'failure'", $workflow);
+        $this->assertStringContainsString('steps.runtime_controls.outcome', $workflow);
         $this->assertStringContainsString(
-            "steps.previous.outputs.same_release == 'true'",
+            "steps.recovery.outputs.rollback_required == 'true'",
             $workflow,
         );
         $this->assertStringContainsString(
@@ -250,6 +373,11 @@ class DeploymentAuthenticationContractTest extends TestCase
             'Auth/DirectoryRevalidationTest.php',
             'DirectoryGroupMappingServiceTest.php',
             'DirectoryRoleSynchronizerTest.php',
+            'ModuleRegistryTest.php',
+            'ModuleInstallationSynchronizationTest.php',
+            'ModuleLifecycleTest.php',
+            'ModuleLifecycleConcurrencyTest.php',
+            'ModuleRollbackCompatibilityTest.php',
         ] as $testFile) {
             $this->assertStringContainsString(
                 "tests/Feature/{$testFile}",
@@ -293,13 +421,21 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString("grep -qx './VERSION' build/archive-list.txt", $workflow);
         foreach ([
             'resources/data/releases.json',
+            'resources/data/module-runtime-contract.json',
+            'config/modules.php',
             'config/permission.php',
             'database/migrations/2026_07_28_000000_create_permission_tables.php',
             'database/migrations/2026_07_28_000100_cut_over_authorization_domain.php',
+            'database/migrations/2026_08_06_000000_create_module_installations_table.php',
             'app/Console/Commands/AuthorizationPreflight.php',
             'app/Console/Commands/DirectorySync.php',
             'app/Console/Commands/AuthorizationSync.php',
             'app/Console/Commands/AuthorizationCheck.php',
+            'app/Console/Commands/ModulesPreflight.php',
+            'app/Console/Commands/ModulesSync.php',
+            'app/Console/Commands/ModulesCheck.php',
+            'app/Console/Commands/ModulesRollbackCheck.php',
+            'app/Services/ModuleRollbackCompatibilityChecker.php',
             'scripts/deploy/activate-release.sh',
             'scripts/deploy/rollback-release.sh',
             'scripts/deploy/cloudron-app.conf',
@@ -851,7 +987,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('PREVIOUS_TARGET_BEFORE=""', $script);
     }
 
-    public function test_code_rollback_validates_the_previous_release_and_never_reverses_migrations(): void
+    public function test_code_rollback_quiesces_mutations_reconciles_authorization_and_never_reverses_migrations(): void
     {
         $script = $this->read('scripts/deploy/rollback-release.sh');
 
@@ -901,6 +1037,26 @@ class DeploymentAuthenticationContractTest extends TestCase
             $script,
             'install -m 0444 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf"',
         );
+        $moduleCompatibility = $this->position(
+            $script,
+            'myapes:modules:rollback-check',
+        );
+        $maintenanceStart = $this->position(
+            $script,
+            '"${CURRENT_TARGET}/artisan" down --retry=60 --no-interaction --no-ansi',
+        );
+        $rollbackAuthorizationSync = $this->position(
+            $script,
+            '"${ROLLBACK_TARGET}/artisan" myapes:authorization-sync --no-interaction --no-ansi',
+        );
+        $rollbackAuthorizationCheck = $this->position(
+            $script,
+            '"${ROLLBACK_TARGET}/artisan" myapes:authorization-check --no-interaction --no-ansi',
+        );
+        $firstRollbackMutation = $this->position(
+            $script,
+            'rm -f -- "$target_path"',
+        );
         $applicationSwitch = $this->position(
             $script,
             'mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"',
@@ -911,15 +1067,258 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $this->assertLessThan($applicationSwitch, $runtimeStaging);
         $this->assertLessThan($runtimePublish, $applicationSwitch);
+        $this->assertLessThan($moduleCompatibility, $maintenanceStart);
+        $this->assertLessThan(
+            $rollbackAuthorizationSync,
+            $moduleCompatibility,
+        );
+        $this->assertLessThan(
+            $rollbackAuthorizationCheck,
+            $rollbackAuthorizationSync,
+        );
+        $this->assertLessThan(
+            $applicationSwitch,
+            $rollbackAuthorizationCheck,
+        );
+        $this->assertLessThan($firstRollbackMutation, $moduleCompatibility);
+        $this->assertStringContainsString(
+            '"${CURRENT_TARGET}/artisan" myapes:modules:rollback-check',
+            $script,
+        );
+        $this->assertStringContainsString(
+            '--target-release="$ROLLBACK_TARGET" --no-interaction --no-ansi',
+            $script,
+        );
         $this->assertStringContainsString('ln -s "$ROLLBACK_TARGET" "${CURRENT_LINK}.rollback"', $script);
         $this->assertStringContainsString('mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"', $script);
         $this->assertStringContainsString('scripts/deploy/cloudron-app.conf', $script);
         $this->assertStringContainsString('scripts/deploy/cloudron-run.sh', $script);
+        $this->assertStringContainsString(
+            '"${ROLLBACK_TARGET}/artisan" up --no-interaction --no-ansi',
+            $script,
+        );
+        $this->assertStringContainsString(
+            '"${CURRENT_TARGET}/artisan" myapes:authorization-sync --no-interaction --no-ansi',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'trap restore_current_release EXIT',
+            $script,
+        );
         $this->assertStringContainsString('Database migrations were retained', $script);
         $this->assertStringNotContainsString('migrate:rollback', $script);
         $this->assertStringNotContainsString('migrate:reset', $script);
         $this->assertStringNotContainsString('migrate:fresh', $script);
-        $this->assertDoesNotMatchRegularExpression('/\bdown\b/', $script);
+    }
+
+    public function test_activation_target_classifier_covers_safe_recovery_states_and_rejects_ambiguous_links(): void
+    {
+        $newRelease = str_repeat('a', 40);
+        $priorRelease = str_repeat('b', 40);
+        $olderRelease = str_repeat('c', 40);
+        $releaseRoot = '/app/data/releases';
+
+        foreach ([
+            'pre-switch' => [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                "{$releaseRoot}/{$priorRelease}",
+                "{$releaseRoot}/{$olderRelease}",
+                $releaseRoot,
+            ],
+            'post-switch' => [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                "{$releaseRoot}/{$newRelease}",
+                "{$releaseRoot}/{$priorRelease}",
+                $releaseRoot,
+            ],
+            'same-release' => [
+                $newRelease,
+                $newRelease,
+                'true',
+                'true',
+                "{$releaseRoot}/{$newRelease}",
+                "{$releaseRoot}/{$olderRelease}",
+                $releaseRoot,
+            ],
+            'first-deployment' => [
+                $newRelease,
+                '',
+                'false',
+                'false',
+                '',
+                '',
+                $releaseRoot,
+            ],
+            'unavailable-rollback' => [
+                $newRelease,
+                '',
+                'false',
+                'false',
+                "{$releaseRoot}/{$newRelease}",
+                '',
+                $releaseRoot,
+            ],
+        ] as $expectedState => $arguments) {
+            $process = $this->runActivationTargetClassifierHarness($arguments);
+
+            $this->assertTrue(
+                $process->isSuccessful(),
+                $expectedState.': '.$process->getErrorOutput(),
+            );
+            $this->assertSame($expectedState, trim($process->getOutput()));
+        }
+
+        foreach ([
+            [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                '/tmp/untrusted-release',
+                "{$releaseRoot}/{$priorRelease}",
+                $releaseRoot,
+            ],
+            [
+                $newRelease,
+                $priorRelease,
+                'true',
+                'false',
+                "{$releaseRoot}/{$newRelease}",
+                '',
+                $releaseRoot,
+            ],
+        ] as $arguments) {
+            $process = $this->runActivationTargetClassifierHarness($arguments);
+
+            $this->assertFalse($process->isSuccessful());
+        }
+    }
+
+    public function test_workflow_classifies_activation_failure_before_restart_and_uses_one_recovery_decision(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $activation = $this->position(
+            $workflow,
+            '- name: Extract and activate uploaded release',
+        );
+        $classification = $this->position(
+            $workflow,
+            '- name: Classify activation failure',
+        );
+        $restart = $this->position(
+            $workflow,
+            '- name: Restart activated release',
+        );
+        $recovery = $this->position(
+            $workflow,
+            '- name: Determine deployment recovery',
+        );
+        $rollback = $this->position(
+            $workflow,
+            '- name: Roll back code after failed release restart or verification',
+        );
+
+        $this->assertLessThan($classification, $activation);
+        $this->assertLessThan($restart, $classification);
+        $this->assertLessThan($rollback, $recovery);
+
+        $activationBlock = substr($workflow, $activation, $classification - $activation);
+        $classificationBlock = substr($workflow, $classification, $restart - $classification);
+        $restartBlock = substr($workflow, $restart, $recovery - $restart);
+        $recoveryBlock = substr($workflow, $recovery, $rollback - $recovery);
+
+        $this->assertStringContainsString('id: activate', $activationBlock);
+        $this->assertStringContainsString('continue-on-error: true', $activationBlock);
+        $this->assertStringContainsString('id: activation_state', $classificationBlock);
+        $this->assertStringContainsString(
+            "if: always() && steps.activate.outcome == 'failure'",
+            $classificationBlock,
+        );
+        $this->assertStringContainsString(
+            '--classify-activation-state',
+            $classificationBlock,
+        );
+        $this->assertStringContainsString(
+            "if: steps.activate.outcome == 'success'",
+            $restartBlock,
+        );
+        $this->assertStringContainsString('id: recovery', $recoveryBlock);
+        $this->assertStringContainsString('failure_detected=', $recoveryBlock);
+        $this->assertStringContainsString('rollback_required=', $recoveryBlock);
+        $this->assertStringContainsString('failure_scope=', $recoveryBlock);
+
+        $this->assertSame(3, substr_count(
+            $workflow,
+            "if: always() && steps.recovery.outputs.rollback_required == 'true'",
+        ));
+        $this->assertStringContainsString(
+            "if: always() && steps.recovery.outputs.failure_detected == 'true'",
+            $workflow,
+        );
+        $this->assertStringNotContainsString(
+            "steps.previous.outputs.same_release != 'true' && (steps.restart.outcome == 'failure'",
+            $workflow,
+        );
+    }
+
+    public function test_deployment_staging_is_removed_only_after_rollback_verification_succeeds(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $environmentGate = $this->position(
+            $workflow,
+            '- name: Verify restored release effective Laravel environment',
+        );
+        $healthGate = $this->position(
+            $workflow,
+            '- name: Verify restored release health and OIDC redirect',
+        );
+        $cleanup = $this->position(
+            $workflow,
+            '- name: Remove deployment staging after accepted outcome',
+        );
+        $failure = $this->position(
+            $workflow,
+            '- name: Fail deployment after unsuccessful outcome',
+        );
+
+        $environmentBlock = substr(
+            $workflow,
+            $environmentGate,
+            $healthGate - $environmentGate,
+        );
+        $healthBlock = substr(
+            $workflow,
+            $healthGate,
+            $cleanup - $healthGate,
+        );
+        $cleanupBlock = substr($workflow, $cleanup, $failure - $cleanup);
+
+        $this->assertStringContainsString(
+            'id: restored_environment',
+            $environmentBlock,
+        );
+        $this->assertStringContainsString(
+            'id: restored_verification',
+            $healthBlock,
+        );
+        $this->assertStringContainsString(
+            "steps.rollback.outcome == 'success'",
+            $cleanupBlock,
+        );
+        $this->assertStringContainsString(
+            "steps.restored_environment.outcome == 'success'",
+            $cleanupBlock,
+        );
+        $this->assertStringContainsString(
+            "steps.restored_verification.outcome == 'success'",
+            $cleanupBlock,
+        );
     }
 
     public function test_restored_release_verification_supports_the_v071_health_contract(): void
@@ -935,7 +1334,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $nextStep = $this->position(
             $workflow,
-            '- name: Fail an idempotent deployment after restart or verification failure',
+            '- name: Fail deployment after unsuccessful outcome',
         );
 
         $this->assertLessThan($healthGate, $environmentGate);
@@ -1069,6 +1468,139 @@ class DeploymentAuthenticationContractTest extends TestCase
         ]);
     }
 
+    /**
+     * @return array{process: Process, commands: list<string>}
+     */
+    private function runActivationRecoveryHarness(
+        string $mode,
+        string $failCommand = '',
+    ): array {
+        $temporaryRoot = sys_get_temp_dir()
+            .DIRECTORY_SEPARATOR
+            .'myapes-activation-recovery-'.bin2hex(random_bytes(8));
+        $this->assertTrue(mkdir($temporaryRoot, 0700, true));
+        $script = $this->read('scripts/deploy/activate-release.sh');
+        $harnessPath = $temporaryRoot.DIRECTORY_SEPARATOR.'harness.sh';
+        $logPath = $temporaryRoot.DIRECTORY_SEPARATOR.'commands.log';
+        $functions = $this->bashFunction($script, 'run_current_artisan')
+            ."\n"
+            .$this->bashFunction(
+                $script,
+                'restore_current_authorization_after_failure',
+            );
+        $harness = <<<'BASH'
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE="$1"
+LOG_PATH="$2"
+FAIL_COMMAND="${3:-}"
+CURRENT_TARGET_BEFORE="/release/current"
+RELEASE_DIR="/release/new"
+PHP_BIN="/usr/bin/php8.4"
+PRE_SWITCH_DATABASE_MUTATED=true
+PRE_SWITCH_MAINTENANCE_ACTIVE=true
+ACTIVATION_SWITCHED=false
+
+sudo() {
+  [[ "${1:-}" == "-E" ]] && shift
+  if [[ "${1:-}" == "-u" ]]; then
+    shift 2
+  fi
+  [[ "${1:-}" == "env" ]] && shift
+  [[ "${1:-}" == "APP_ENV=production" ]] && shift
+  printf '%s\n' "$*" >>"$LOG_PATH"
+  if [[ -n "$FAIL_COMMAND" && "$*" == *"$FAIL_COMMAND"* ]]; then
+    return 1
+  fi
+}
+
+__FUNCTIONS__
+
+case "$MODE" in
+  before-mutation) PRE_SWITCH_DATABASE_MUTATED=false ;;
+  first-release) CURRENT_TARGET_BEFORE=""; PRE_SWITCH_MAINTENANCE_ACTIVE=false ;;
+  same-release) CURRENT_TARGET_BEFORE="$RELEASE_DIR"; PRE_SWITCH_MAINTENANCE_ACTIVE=false ;;
+  post-switch) ACTIVATION_SWITCHED=true ;;
+  pre-switch-failure) ;;
+  *) echo "Unknown harness mode."; exit 2 ;;
+esac
+
+trap restore_current_authorization_after_failure EXIT
+false
+BASH;
+        $this->assertNotFalse(file_put_contents(
+            $harnessPath,
+            str_replace('__FUNCTIONS__', $functions, $harness),
+        ));
+        $process = new Process([
+            $this->bashExecutable(),
+            $this->bashPath($harnessPath),
+            $mode,
+            $this->bashPath($logPath),
+            $failCommand,
+        ]);
+
+        try {
+            $process->run();
+            $commands = is_file($logPath)
+                ? array_values(array_filter(preg_split(
+                    '/\R/',
+                    trim((string) file_get_contents($logPath)),
+                ) ?: []))
+                : [];
+        } finally {
+            $this->removeTemporaryDirectory($temporaryRoot);
+        }
+
+        return compact('process', 'commands');
+    }
+
+    /**
+     * @param  list<string>  $arguments
+     */
+    private function runActivationTargetClassifierHarness(array $arguments): Process
+    {
+        $temporaryRoot = sys_get_temp_dir()
+            .DIRECTORY_SEPARATOR
+            .'myapes-activation-classifier-'.bin2hex(random_bytes(8));
+        $this->assertTrue(mkdir($temporaryRoot, 0700, true));
+        $harnessPath = $temporaryRoot.DIRECTORY_SEPARATOR.'harness.sh';
+        $function = $this->bashFunction(
+            $this->read('scripts/deploy/activate-release.sh'),
+            'classify_activation_targets',
+        );
+        $this->assertNotFalse(file_put_contents(
+            $harnessPath,
+            "#!/usr/bin/env bash\nset -euo pipefail\n\n{$function}\nclassify_activation_targets \"\$@\"\n",
+        ));
+        $process = new Process([
+            $this->bashExecutable(),
+            $this->bashPath($harnessPath),
+            ...$arguments,
+        ]);
+
+        try {
+            $process->run();
+        } finally {
+            $this->removeTemporaryDirectory($temporaryRoot);
+        }
+
+        return $process;
+    }
+
+    private function bashFunction(string $script, string $name): string
+    {
+        $matched = preg_match(
+            '/^'.preg_quote($name, '/').'\(\) \{\R.*?^\}\R/ms',
+            $script,
+            $matches,
+        );
+        $this->assertSame(1, $matched, "Expected Bash function [{$name}].");
+
+        return $matches[0];
+    }
+
     private function assertControlVerifierFails(
         string $root,
         string $script,
@@ -1116,10 +1648,13 @@ class DeploymentAuthenticationContractTest extends TestCase
     private function removeTemporaryDirectory(string $path): void
     {
         if (! is_dir($path)
-            || ! str_starts_with(
+            || (! str_starts_with(
                 basename($path),
                 'myapes-control-verifier-',
-            )) {
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-activation-recovery-',
+            ))) {
             return;
         }
 

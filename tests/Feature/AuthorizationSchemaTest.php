@@ -9,6 +9,7 @@ use App\Models\PermissionSource;
 use App\Models\Role;
 use App\Models\RoleSource;
 use App\Models\User;
+use App\Services\AuthorizationProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -142,23 +143,14 @@ class AuthorizationSchemaTest extends TestCase
             ->map(static fn (object $role): array => (array) $role)
             ->all());
 
-        $this->assertSame([
-            'admin.access',
-            'admin.analytics.view',
-            'admin.group-mappings.manage',
-            'admin.groups.view',
-            'admin.maintenance.manage',
-            'admin.modules.manage',
-            'admin.modules.view',
-            'admin.permissions.view',
-            'admin.roles.manage',
-            'admin.roles.view',
-            'admin.users.manage',
-            'admin.users.view',
-            'staff.access',
-        ], DB::table('permissions')->orderBy('name')->pluck('name')->all());
+        $expectedPermissions = app(AuthorizationProfile::class)->permissions();
+        sort($expectedPermissions);
         $this->assertSame(
-            13,
+            $expectedPermissions,
+            DB::table('permissions')->orderBy('name')->pluck('name')->all(),
+        );
+        $this->assertSame(
+            count($expectedPermissions),
             DB::table('permissions')
                 ->where('guard_name', 'web')
                 ->where('is_code_owned', true)
@@ -220,38 +212,13 @@ class AuthorizationSchemaTest extends TestCase
             )
             ->all();
 
-        $this->assertSame([
-            'administrator' => [
-                'admin.access',
-                'admin.analytics.view',
-                'admin.groups.view',
-                'admin.maintenance.manage',
-                'admin.modules.manage',
-                'admin.modules.view',
-                'admin.permissions.view',
-                'admin.roles.view',
-                'admin.users.manage',
-                'admin.users.view',
-                'staff.access',
-            ],
-            'staff' => [
-                'staff.access',
-            ],
-            'super-admin' => [
-                'admin.access',
-                'admin.analytics.view',
-                'admin.group-mappings.manage',
-                'admin.groups.view',
-                'admin.maintenance.manage',
-                'admin.modules.manage',
-                'admin.modules.view',
-                'admin.permissions.view',
-                'admin.roles.manage',
-                'admin.roles.view',
-                'admin.users.manage',
-                'admin.users.view',
-                'staff.access',
-            ],
-        ], $actual);
+        $expected = app(AuthorizationProfile::class)->permissionMatrix();
+        ksort($expected);
+        foreach ($expected as &$permissions) {
+            sort($permissions);
+        }
+        unset($permissions);
+
+        $this->assertSame($expected, $actual);
     }
 }
