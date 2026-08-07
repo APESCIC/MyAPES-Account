@@ -563,9 +563,48 @@ run_artisan() {
     "$PHP_BIN" "${RELEASE_DIR}/artisan" "$@"
 }
 
+run_current_artisan() {
+  sudo -E -u www-data env APP_ENV=production \
+    "$PHP_BIN" "${CURRENT_TARGET_BEFORE}/artisan" "$@"
+}
+
+PRE_SWITCH_DATABASE_MUTATED=false
+ACTIVATION_SWITCHED=false
+
+restore_current_authorization_after_failure() {
+  local exit_code=$?
+  local authorization_restored=false
+
+  trap - EXIT
+
+  if [[ "$exit_code" -eq 0 \
+    || "$PRE_SWITCH_DATABASE_MUTATED" != true \
+    || "$ACTIVATION_SWITCHED" == true \
+    || -z "$CURRENT_TARGET_BEFORE" \
+    || "$CURRENT_TARGET_BEFORE" == "$RELEASE_DIR" ]]; then
+    exit "$exit_code"
+  fi
+
+  set +e
+  if run_current_artisan permission:cache-reset --no-interaction --no-ansi \
+    && run_current_artisan myapes:authorization-sync --no-interaction --no-ansi \
+    && run_current_artisan permission:cache-reset --no-interaction --no-ansi \
+    && run_current_artisan myapes:authorization-check --no-interaction --no-ansi; then
+    authorization_restored=true
+  fi
+
+  if [[ "$authorization_restored" != true ]]; then
+    echo "Current authorization could not be restored after activation failure."
+  fi
+
+  exit "$exit_code"
+}
+
 run_artisan optimize:clear
 run_artisan myapes:authorization-preflight --no-interaction --no-ansi
 run_artisan myapes:modules:preflight --no-interaction --no-ansi
+trap restore_current_authorization_after_failure EXIT
+PRE_SWITCH_DATABASE_MUTATED=true
 run_artisan migrate --force
 run_artisan myapes:modules:sync --no-interaction --no-ansi
 run_artisan config:cache
@@ -617,6 +656,7 @@ fi
 
 # This is the commit point: all fallible preparation happens before the atomic switch.
 mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"
+ACTIVATION_SWITCHED=true
 
 CURRENT_TARGET="$(readlink -f "$CURRENT_LINK")"
 PREVIOUS_TARGET="$(readlink -f "$PREVIOUS_LINK" 2>/dev/null || true)"

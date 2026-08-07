@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\ModuleLifecycleException;
 use App\Models\ModuleInstallation;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\AuthorizationProfile;
+use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
@@ -106,6 +108,97 @@ class ModuleLifecycleConcurrencyTest extends TestCase
             'success',
             $this->readSignal($state, 'lock-probe-result')['status'],
         );
+    }
+
+    public function test_synchronization_fails_closed_before_writing_when_a_dependency_lock_is_busy(): void
+    {
+        config(['modules.lock_wait_seconds' => 0]);
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'cases')
+            ->delete();
+        $state = $this->newStateDirectory();
+        $holder = $this->startWorker(
+            'dependency-lock-hold',
+            0,
+            0,
+            '-',
+            $state,
+        );
+        $this->waitForSignal($state, 'dependency-lock-held', $holder);
+
+        try {
+            app(ModuleInstallationSynchronizer::class)->synchronize();
+            $this->fail('Synchronization wrote while a lifecycle lock was busy.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('instance_busy', $exception->reason);
+        } finally {
+            touch($state.DIRECTORY_SEPARATOR.'release-dependency-lock');
+            $this->waitSuccessfully($holder);
+        }
+
+        $this->assertDatabaseMissing('module_installations', [
+            'sub_core_key' => 'shelter-rescue',
+            'module_key' => 'cases',
+        ]);
+    }
+
+    public function test_synchronization_waits_for_a_dependency_transition_and_uses_its_final_state(): void
+    {
+        $this->requireMysqlFamily();
+        config(['modules.lock_wait_seconds' => 5]);
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'cases')
+            ->delete();
+        $state = $this->newStateDirectory();
+        $writer = $this->startWorker(
+            'dependency-disable-hold',
+            0,
+            0,
+            '-',
+            $state,
+        );
+        $this->waitForSignal($state, 'dependency-write-locked', $writer);
+        $synchronizer = $this->startWorker(
+            'synchronize',
+            0,
+            0,
+            '-',
+            $state,
+        );
+        $this->waitForSignal($state, 'synchronize-ready', $synchronizer);
+        touch($state.DIRECTORY_SEPARATOR.'start-synchronize');
+        usleep(500_000);
+
+        $this->assertTrue(
+            $synchronizer->isRunning(),
+            'Synchronization did not wait for the dependency lifecycle lock.',
+        );
+
+        touch($state.DIRECTORY_SEPARATOR.'release-dependency-write');
+        $this->waitSuccessfully($writer);
+        $this->waitSuccessfully($synchronizer);
+
+        $this->assertSame(
+            ['status' => 'success'],
+            $this->readSignal($state, 'dependency-write-result'),
+        );
+        $this->assertSame([
+            'status' => 'success',
+            'created' => 1,
+            'existing' => 4,
+        ], $this->readSignal($state, 'synchronize-result'));
+        $this->assertFalse(ModuleInstallation::query()
+            ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'pet-profiles')
+            ->firstOrFail()
+            ->enabled);
+        $this->assertFalse(ModuleInstallation::query()
+            ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'cases')
+            ->firstOrFail()
+            ->enabled);
     }
 
     public function test_a_concurrent_module_write_completes_before_disablement_rechecks_active_records(): void

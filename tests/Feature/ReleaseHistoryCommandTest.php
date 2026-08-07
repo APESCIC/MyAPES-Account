@@ -23,7 +23,7 @@ class ReleaseHistoryCommandTest extends TestCase
             ['0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
             array_column($releases, 'version'),
         );
-        $this->assertSame('2026-08-06', $releases[0]['date']);
+        $this->assertSame('2026-08-07', $releases[0]['date']);
         $this->assertSame('2026-08-06', $releases[1]['date']);
         $this->assertSame('2026-08-05', $releases[2]['date']);
         $this->assertSame('2026-08-05', $releases[3]['date']);

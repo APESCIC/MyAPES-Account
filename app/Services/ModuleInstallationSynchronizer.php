@@ -13,6 +13,7 @@ class ModuleInstallationSynchronizer
 {
     public function __construct(
         private readonly ModuleRegistry $registry,
+        private readonly ModuleInstanceLock $locks,
         private readonly AuthorizationMetadataSynchronizer $authorization,
         private readonly AuthorizationProfile $profile,
         private readonly ModuleProjectionCache $cache,
@@ -22,62 +23,71 @@ class ModuleInstallationSynchronizer
     public function synchronize(): array
     {
         $this->profile->flushRuntimeCache();
-        $result = DB::transaction(function (): array {
-            $this->authorization->synchronize();
-            $created = 0;
-            $existing = 0;
-            $now = now();
-            $states = DB::table('module_installations')
-                ->get(['sub_core_key', 'module_key', 'enabled'])
-                ->mapWithKeys(
-                    static fn ($installation): array => [
-                        "{$installation->sub_core_key}:{$installation->module_key}" => (bool) $installation->enabled,
-                    ],
-                )
-                ->all();
-
-            foreach ($this->orderedShippedInstances() as $instance) {
-                if (array_key_exists($instance->key(), $states)) {
-                    $existing++;
-
-                    continue;
-                }
-
-                $enabled = collect($instance->dependencyKeys())
-                    ->every(
-                        static fn (string $dependency): bool => ($states[$dependency] ?? false) === true,
-                    );
-                $inserted = DB::table('module_installations')->insertOrIgnore([
-                    'sub_core_key' => $instance->subCore->key,
-                    'module_key' => $instance->module->key,
-                    'enabled' => $enabled,
-                    'lock_version' => 1,
-                    'installed_at' => $now,
-                    'installed_by' => null,
-                    'enabled_at' => $enabled ? $now : null,
-                    'enabled_by' => null,
-                    'disabled_at' => null,
-                    'disabled_by' => null,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-
-                if ($inserted === 1) {
-                    $created++;
-                    $states[$instance->key()] = $enabled;
-                } else {
-                    $existing++;
-                    $states[$instance->key()] = (bool) DB::table(
-                        'module_installations',
+        $result = $this->locks->runMany(
+            array_map(
+                static fn (ModuleInstanceDefinition $instance): string => $instance->key(),
+                $this->registry->matrix(),
+            ),
+            fn (): array => DB::transaction(function (): array {
+                $this->authorization->synchronize();
+                $created = 0;
+                $existing = 0;
+                $now = now();
+                $states = DB::table('module_installations')
+                    ->orderBy('sub_core_key')
+                    ->orderBy('module_key')
+                    ->lockForUpdate()
+                    ->get(['sub_core_key', 'module_key', 'enabled'])
+                    ->mapWithKeys(
+                        static fn ($installation): array => [
+                            "{$installation->sub_core_key}:{$installation->module_key}" => (bool) $installation->enabled,
+                        ],
                     )
-                        ->where('sub_core_key', $instance->subCore->key)
-                        ->where('module_key', $instance->module->key)
-                        ->value('enabled');
-                }
-            }
+                    ->all();
 
-            return compact('created', 'existing');
-        });
+                foreach ($this->orderedShippedInstances() as $instance) {
+                    if (array_key_exists($instance->key(), $states)) {
+                        $existing++;
+
+                        continue;
+                    }
+
+                    $enabled = collect($instance->dependencyKeys())
+                        ->every(
+                            static fn (string $dependency): bool => ($states[$dependency] ?? false) === true,
+                        );
+                    $inserted = DB::table('module_installations')->insertOrIgnore([
+                        'sub_core_key' => $instance->subCore->key,
+                        'module_key' => $instance->module->key,
+                        'enabled' => $enabled,
+                        'lock_version' => 1,
+                        'installed_at' => $now,
+                        'installed_by' => null,
+                        'enabled_at' => $enabled ? $now : null,
+                        'enabled_by' => null,
+                        'disabled_at' => null,
+                        'disabled_by' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+
+                    if ($inserted === 1) {
+                        $created++;
+                        $states[$instance->key()] = $enabled;
+                    } else {
+                        $existing++;
+                        $states[$instance->key()] = (bool) DB::table(
+                            'module_installations',
+                        )
+                            ->where('sub_core_key', $instance->subCore->key)
+                            ->where('module_key', $instance->module->key)
+                            ->value('enabled');
+                    }
+                }
+
+                return compact('created', 'existing');
+            }),
+        );
 
         if ($result['created'] > 0) {
             try {

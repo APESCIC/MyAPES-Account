@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-06T22:07:41+01:00`
+- Last verified README health review: `2026-08-07T11:18:07+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -303,7 +303,10 @@ php artisan myapes:modules:rollback-check --target-release=/absolute/release/pat
 `myapes:modules:preflight` validates the supported database driver and complete
 3×4 code registry before migration. `myapes:modules:sync` creates missing
 shipped defaults without changing existing installation state or actor history;
-a repaired dependent remains disabled while any prerequisite is disabled.
+a repaired dependent remains disabled while any prerequisite is disabled. The
+synchronizer acquires all 12 code-owned lifecycle locks before its transaction
+and reads installation state under database row locks, so a concurrent
+transition completes before dependency state is materialized.
 `myapes:modules:check` verifies shipped installation, dependency, and permission
 postconditions. The rollback command is read-only, drains all code-owned module
 instance locks, and checks whether current database state is representable by
@@ -457,6 +460,11 @@ backends fail closed.
    11. `myapes:modules:check --no-interaction --no-ansi`;
    12. `myapes:authorization-check --no-interaction --no-ansi`; and
    13. the atomic `/app/data/current` switch.
+   Once migration can mutate shared authorization metadata, an activation exit
+   handler remains armed until the atomic switch. Any pre-switch failure
+   resynchronizes and verifies the still-active release's authorization matrix
+   before returning the original failure; first-release, same-release,
+   pre-mutation, and post-switch exits do not invoke restoration.
 7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
 8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
 9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.

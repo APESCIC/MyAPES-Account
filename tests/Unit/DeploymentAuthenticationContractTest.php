@@ -10,6 +10,10 @@ class DeploymentAuthenticationContractTest extends TestCase
     public function test_phase_b_activation_runs_once_in_the_fail_closed_order_as_www_data(): void
     {
         $script = $this->read('scripts/deploy/activate-release.sh');
+        $activation = substr(
+            $script,
+            $this->position($script, 'run_artisan optimize:clear'),
+        );
 
         $orderedCommands = [
             'optimize:clear',
@@ -31,7 +35,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $offset = 0;
 
         foreach ($orderedCommands as $command) {
-            $position = strpos($script, $command, $offset);
+            $position = strpos($activation, $command, $offset);
             $this->assertNotFalse(
                 $position,
                 "Expected activation to contain [{$command}] after offset {$offset}.",
@@ -40,7 +44,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         }
 
         foreach (array_slice($orderedCommands, 0, -1) as $command) {
-            $line = $this->lineContaining($script, $command);
+            $line = $this->lineContaining($activation, $command);
             $this->assertStringContainsString(
                 'run_artisan ',
                 $line,
@@ -56,16 +60,86 @@ class DeploymentAuthenticationContractTest extends TestCase
             "if ! run_artisan env --no-ansi | grep -Eq 'production'; then",
             $script,
         );
-        $this->assertSame(2, substr_count($script, 'permission:cache-reset'));
-        $this->assertSame(1, substr_count($script, 'myapes:authorization-preflight'));
-        $this->assertSame(1, substr_count($script, 'myapes:modules:preflight'));
-        $this->assertSame(1, substr_count($script, 'myapes:modules:sync'));
-        $this->assertSame(1, substr_count($script, 'myapes:modules:check'));
-        $this->assertSame(1, substr_count($script, 'myapes:directory-sync'));
-        $this->assertSame(1, substr_count($script, 'myapes:authorization-sync'));
-        $this->assertSame(1, substr_count($script, 'myapes:authorization-check'));
+        $this->assertSame(2, substr_count(
+            $script,
+            'run_artisan permission:cache-reset',
+        ));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-preflight'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:preflight'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:sync'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:check'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:directory-sync'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-sync'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-check'));
         $this->assertStringNotContainsString('myapes:auth-check', $script);
         $this->assertStringNotContainsString('myapes:access-compatibility-sync', $script);
+    }
+
+    public function test_pre_switch_activation_failure_restores_the_current_authorization_matrix(): void
+    {
+        $result = $this->runActivationRecoveryHarness('pre-switch-failure');
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertSame([
+            '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan myapes:authorization-sync --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
+            '/usr/bin/php8.4 /release/current/artisan myapes:authorization-check --no-interaction --no-ansi',
+        ], $result['commands']);
+    }
+
+    public function test_activation_recovery_skips_unmutated_first_same_release_and_post_switch_failures(): void
+    {
+        foreach ([
+            'before-mutation',
+            'first-release',
+            'same-release',
+            'post-switch',
+        ] as $mode) {
+            $result = $this->runActivationRecoveryHarness($mode);
+
+            $this->assertFalse($result['process']->isSuccessful(), $mode);
+            $this->assertSame([], $result['commands'], $mode);
+        }
+    }
+
+    public function test_activation_recovery_fails_closed_when_current_authorization_cannot_be_restored(): void
+    {
+        $result = $this->runActivationRecoveryHarness(
+            'pre-switch-failure',
+            'myapes:authorization-sync',
+        );
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertStringContainsString(
+            'Current authorization could not be restored after activation failure.',
+            $result['process']->getOutput().$result['process']->getErrorOutput(),
+        );
+        $this->assertCount(2, $result['commands']);
+    }
+
+    public function test_activation_arms_recovery_before_database_mutation_and_commits_only_after_the_atomic_switch(): void
+    {
+        $script = $this->read('scripts/deploy/activate-release.sh');
+        $trap = $this->position(
+            $script,
+            'trap restore_current_authorization_after_failure EXIT',
+        );
+        $mutation = $this->position(
+            $script,
+            'PRE_SWITCH_DATABASE_MUTATED=true',
+        );
+        $migration = $this->position($script, 'run_artisan migrate --force');
+        $switch = $this->position(
+            $script,
+            'mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"',
+        );
+        $committed = $this->position($script, 'ACTIVATION_SWITCHED=true');
+
+        $this->assertLessThan($mutation, $trap);
+        $this->assertLessThan($migration, $mutation);
+        $this->assertLessThan($switch, $migration);
+        $this->assertLessThan($committed, $switch);
     }
 
     public function test_activation_installs_public_storage_link_as_root_before_artisan(): void
@@ -1149,6 +1223,105 @@ class DeploymentAuthenticationContractTest extends TestCase
         ]);
     }
 
+    /**
+     * @return array{process: Process, commands: list<string>}
+     */
+    private function runActivationRecoveryHarness(
+        string $mode,
+        string $failCommand = '',
+    ): array {
+        $temporaryRoot = sys_get_temp_dir()
+            .DIRECTORY_SEPARATOR
+            .'myapes-activation-recovery-'.bin2hex(random_bytes(8));
+        $this->assertTrue(mkdir($temporaryRoot, 0700, true));
+        $script = $this->read('scripts/deploy/activate-release.sh');
+        $harnessPath = $temporaryRoot.DIRECTORY_SEPARATOR.'harness.sh';
+        $logPath = $temporaryRoot.DIRECTORY_SEPARATOR.'commands.log';
+        $functions = $this->bashFunction($script, 'run_current_artisan')
+            ."\n"
+            .$this->bashFunction(
+                $script,
+                'restore_current_authorization_after_failure',
+            );
+        $harness = <<<'BASH'
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE="$1"
+LOG_PATH="$2"
+FAIL_COMMAND="${3:-}"
+CURRENT_TARGET_BEFORE="/release/current"
+RELEASE_DIR="/release/new"
+PHP_BIN="/usr/bin/php8.4"
+PRE_SWITCH_DATABASE_MUTATED=true
+ACTIVATION_SWITCHED=false
+
+sudo() {
+  [[ "${1:-}" == "-E" ]] && shift
+  if [[ "${1:-}" == "-u" ]]; then
+    shift 2
+  fi
+  [[ "${1:-}" == "env" ]] && shift
+  [[ "${1:-}" == "APP_ENV=production" ]] && shift
+  printf '%s\n' "$*" >>"$LOG_PATH"
+  if [[ -n "$FAIL_COMMAND" && "$*" == *"$FAIL_COMMAND"* ]]; then
+    return 1
+  fi
+}
+
+__FUNCTIONS__
+
+case "$MODE" in
+  before-mutation) PRE_SWITCH_DATABASE_MUTATED=false ;;
+  first-release) CURRENT_TARGET_BEFORE="" ;;
+  same-release) CURRENT_TARGET_BEFORE="$RELEASE_DIR" ;;
+  post-switch) ACTIVATION_SWITCHED=true ;;
+  pre-switch-failure) ;;
+  *) echo "Unknown harness mode."; exit 2 ;;
+esac
+
+trap restore_current_authorization_after_failure EXIT
+false
+BASH;
+        $this->assertNotFalse(file_put_contents(
+            $harnessPath,
+            str_replace('__FUNCTIONS__', $functions, $harness),
+        ));
+        $process = new Process([
+            $this->bashExecutable(),
+            $this->bashPath($harnessPath),
+            $mode,
+            $this->bashPath($logPath),
+            $failCommand,
+        ]);
+
+        try {
+            $process->run();
+            $commands = is_file($logPath)
+                ? array_values(array_filter(preg_split(
+                    '/\R/',
+                    trim((string) file_get_contents($logPath)),
+                ) ?: []))
+                : [];
+        } finally {
+            $this->removeTemporaryDirectory($temporaryRoot);
+        }
+
+        return compact('process', 'commands');
+    }
+
+    private function bashFunction(string $script, string $name): string
+    {
+        $matched = preg_match(
+            '/^'.preg_quote($name, '/').'\(\) \{\R.*?^\}\R/ms',
+            $script,
+            $matches,
+        );
+        $this->assertSame(1, $matched, "Expected Bash function [{$name}].");
+
+        return $matches[0];
+    }
+
     private function assertControlVerifierFails(
         string $root,
         string $script,
@@ -1196,10 +1369,13 @@ class DeploymentAuthenticationContractTest extends TestCase
     private function removeTemporaryDirectory(string $path): void
     {
         if (! is_dir($path)
-            || ! str_starts_with(
+            || (! str_starts_with(
                 basename($path),
                 'myapes-control-verifier-',
-            )) {
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-activation-recovery-',
+            ))) {
             return;
         }
 

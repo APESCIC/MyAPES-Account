@@ -2,8 +2,10 @@
 
 use App\Contracts\ModuleLifecycleManager;
 use App\Exceptions\ModuleLifecycleException;
+use App\Models\ModuleInstallation;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleInstanceLock;
 use App\Services\ModuleRollbackCompatibilityChecker;
 use App\Services\PrivilegedMutationAuthorizer;
@@ -30,6 +32,9 @@ if (! is_string($mode)
             'rollback-check',
             'lock-hold',
             'lock-probe',
+            'dependency-lock-hold',
+            'dependency-disable-hold',
+            'synchronize',
         ],
         true,
     )
@@ -78,6 +83,45 @@ try {
                 $waitFor('release-lock');
             },
         );
+    } elseif ($mode === 'dependency-lock-hold') {
+        $application->make(ModuleInstanceLock::class)->run(
+            'shelter-rescue',
+            'pet-profiles',
+            static function () use ($signal, $waitFor): void {
+                $signal('dependency-lock-held');
+                $waitFor('release-dependency-lock');
+            },
+        );
+    } elseif ($mode === 'dependency-disable-hold') {
+        $application->make(ModuleInstanceLock::class)->run(
+            'shelter-rescue',
+            'pet-profiles',
+            static function () use ($signal, $waitFor): void {
+                $signal('dependency-write-locked');
+                $waitFor('release-dependency-write');
+                $dependency = ModuleInstallation::query()
+                    ->where('sub_core_key', 'shelter-rescue')
+                    ->where('module_key', 'pet-profiles')
+                    ->firstOrFail();
+                $dependency->forceFill([
+                    'enabled' => false,
+                    'disabled_at' => now(),
+                    'disabled_by' => null,
+                    'lock_version' => $dependency->lock_version + 1,
+                ])->save();
+                $signal('dependency-write-result', ['status' => 'success']);
+            },
+        );
+    } elseif ($mode === 'synchronize') {
+        $signal('synchronize-ready');
+        $waitFor('start-synchronize');
+        $result = $application->make(ModuleInstallationSynchronizer::class)
+            ->synchronize();
+        $signal('synchronize-result', [
+            'status' => 'success',
+            'created' => $result['created'],
+            'existing' => $result['existing'],
+        ]);
     } elseif ($mode === 'lock-probe') {
         $signal('lock-probe-ready');
         $waitFor('start-lock-probe');
