@@ -1134,6 +1134,7 @@ jobs:
             restart --app "$CLOUDRON_APP_ID"
 
       - name: Verify restored release effective Laravel environment
+        id: restored_environment
         if: always() && steps.recovery.outputs.rollback_required == 'true'
         shell: bash
         run: |
@@ -1153,6 +1154,7 @@ jobs:
           fi
 
       - name: Verify restored release health and OIDC redirect
+        id: restored_verification
         if: always() && steps.recovery.outputs.rollback_required == 'true'
         shell: bash
         env:
@@ -1256,7 +1258,7 @@ jobs:
           PY
 
       - name: Remove deployment staging after accepted outcome
-        if: always() && (steps.verify.outcome == 'success' || (steps.recovery.outputs.rollback_required == 'true' && steps.rollback.outcome == 'success'))
+        if: always() && (steps.verify.outcome == 'success' || (steps.recovery.outputs.rollback_required == 'true' && steps.rollback.outcome == 'success' && steps.restored_environment.outcome == 'success' && steps.restored_verification.outcome == 'success'))
         continue-on-error: true
         shell: bash
         run: |
@@ -1284,6 +1286,8 @@ jobs:
           FAILURE_SCOPE: ${{ steps.recovery.outputs.failure_scope }}
           ROLLBACK_REQUIRED: ${{ steps.recovery.outputs.rollback_required }}
           ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
+          RESTORED_ENVIRONMENT_OUTCOME: ${{ steps.restored_environment.outcome }}
+          RESTORED_VERIFICATION_OUTCOME: ${{ steps.restored_verification.outcome }}
         run: |
           set -euo pipefail
 
@@ -1292,10 +1296,13 @@ jobs:
               echo "Activation failed before the atomic switch; the recovered previous release remains authoritative."
               ;;
             post-switch-activation|post-switch-runtime)
-              if [[ "$ROLLBACK_REQUIRED" == true && "$ROLLBACK_OUTCOME" == success ]]; then
+              if [[ "$ROLLBACK_REQUIRED" == true \
+                && "$ROLLBACK_OUTCOME" == success \
+                && "$RESTORED_ENVIRONMENT_OUTCOME" == success \
+                && "$RESTORED_VERIFICATION_OUTCOME" == success ]]; then
                 echo "Deployment failed after the atomic switch; the authenticated exact previous release was restored."
               else
-                echo "Deployment failed after the atomic switch and exact-release rollback was not verified."
+                echo "Deployment failed after the atomic switch and exact-release rollback or restored-state verification was not completed."
               fi
               ;;
             same-release)

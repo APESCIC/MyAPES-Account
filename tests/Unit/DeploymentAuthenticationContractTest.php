@@ -1267,6 +1267,60 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
     }
 
+    public function test_deployment_staging_is_removed_only_after_rollback_verification_succeeds(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $environmentGate = $this->position(
+            $workflow,
+            '- name: Verify restored release effective Laravel environment',
+        );
+        $healthGate = $this->position(
+            $workflow,
+            '- name: Verify restored release health and OIDC redirect',
+        );
+        $cleanup = $this->position(
+            $workflow,
+            '- name: Remove deployment staging after accepted outcome',
+        );
+        $failure = $this->position(
+            $workflow,
+            '- name: Fail deployment after unsuccessful outcome',
+        );
+
+        $environmentBlock = substr(
+            $workflow,
+            $environmentGate,
+            $healthGate - $environmentGate,
+        );
+        $healthBlock = substr(
+            $workflow,
+            $healthGate,
+            $cleanup - $healthGate,
+        );
+        $cleanupBlock = substr($workflow, $cleanup, $failure - $cleanup);
+
+        $this->assertStringContainsString(
+            'id: restored_environment',
+            $environmentBlock,
+        );
+        $this->assertStringContainsString(
+            'id: restored_verification',
+            $healthBlock,
+        );
+        $this->assertStringContainsString(
+            "steps.rollback.outcome == 'success'",
+            $cleanupBlock,
+        );
+        $this->assertStringContainsString(
+            "steps.restored_environment.outcome == 'success'",
+            $cleanupBlock,
+        );
+        $this->assertStringContainsString(
+            "steps.restored_verification.outcome == 'success'",
+            $cleanupBlock,
+        );
+    }
+
     public function test_restored_release_verification_supports_the_v071_health_contract(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
