@@ -163,6 +163,18 @@ class PublicAccountLifecycleTest extends TestCase
         $this->assertSame('preferences', $events[0]->source);
     }
 
+    public function test_profile_links_to_the_configured_privacy_notice(): void
+    {
+        config(['myapes.consent.privacy_notice_url' => 'https://apes.example/privacy']);
+        $user = User::factory()->create(['onboarding_completed_at' => now()]);
+
+        $this->actingAs($user)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertSee('href="https://apes.example/privacy"', false)
+            ->assertSeeText('Read the privacy notice');
+    }
+
     public function test_service_selection_filters_navigation_and_public_permissions(): void
     {
         $user = User::factory()->create(['onboarding_completed_at' => now()]);

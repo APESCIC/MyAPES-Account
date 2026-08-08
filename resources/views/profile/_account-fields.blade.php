@@ -14,8 +14,8 @@
 </div>
 <label for="telegram_username">Telegram username</label>
 <input id="telegram_username" name="telegram_username" value="{{ old('telegram_username', $profile?->telegram_username) }}">
-@if (config('myapes.contact_consent.privacy_notice_url'))
-    <p><a href="{{ config('myapes.contact_consent.privacy_notice_url') }}" target="_blank" rel="noopener noreferrer">Read the privacy notice</a></p>
+@if (config('myapes.consent.privacy_notice_url'))
+    <p><a href="{{ config('myapes.consent.privacy_notice_url') }}" target="_blank" rel="noopener noreferrer">Read the privacy notice</a></p>
 @endif
 <fieldset>
     <legend>Your MyAPES services</legend>
