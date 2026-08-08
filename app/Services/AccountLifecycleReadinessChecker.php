@@ -75,12 +75,12 @@ class AccountLifecycleReadinessChecker
 
     private function assertLegalConfiguration(): void
     {
-        $policyVersion = config('myapes.contact_consent.policy_version');
+        $policyVersion = config('myapes.consent.policy_version');
         if (! is_string($policyVersion) || trim($policyVersion) === '') {
             throw new RuntimeException('contact_consent_policy_version');
         }
 
-        $privacyUrl = config('myapes.contact_consent.privacy_notice_url');
+        $privacyUrl = config('myapes.consent.privacy_notice_url');
         if (! is_string($privacyUrl)
             || filter_var($privacyUrl, FILTER_VALIDATE_URL) === false) {
             throw new RuntimeException('privacy_notice_url');
