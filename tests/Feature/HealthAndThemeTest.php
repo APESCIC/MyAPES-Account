@@ -16,7 +16,7 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.10.0',
+                'version' => '0.11.0',
                 'release' => 'development',
                 'checks' => [
                     'database' => 'ok',
@@ -49,7 +49,7 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.10.0',
+                'version' => '0.11.0',
                 'release' => 'development',
                 'checks' => [
                     'database' => 'failed',

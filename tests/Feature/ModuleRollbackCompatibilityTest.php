@@ -56,7 +56,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
         $this->assertSame('manifest', $result['contract']);
         $this->assertSame(5, $result['installations']);
-        $this->assertSame('0.10.0', $result['target_version']);
+        $this->assertSame('0.11.0', $result['target_version']);
     }
 
     public function test_a_legacy_target_without_a_manifest_requires_exactly_five_enabled_baselines(): void
@@ -119,7 +119,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             $target.'/resources/data/module-runtime-contract.json',
             json_encode([
                 'schema_version' => 1,
-                'application_version' => '0.10.0',
+                'application_version' => '0.11.0',
                 'shipped_instances' => ['../unsafe'],
             ], JSON_THROW_ON_ERROR),
         );
@@ -139,7 +139,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             $target.'/resources/data/module-runtime-contract.json',
             json_encode([
                 'schema_version' => 1,
-                'application_version' => '0.10.0',
+                'application_version' => '0.11.0',
                 'sub_cores' => [
                     'apes-cic',
                     'pet-care-clinic',

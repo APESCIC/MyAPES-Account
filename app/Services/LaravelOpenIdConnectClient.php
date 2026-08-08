@@ -8,6 +8,13 @@ class LaravelOpenIdConnectClient extends OpenIDConnectClient
 {
     private ?string $capturedRedirect = null;
 
+    private string $sessionNamespace = 'staff-login';
+
+    public function useSessionNamespace(string $namespace): void
+    {
+        $this->sessionNamespace = $namespace;
+    }
+
     public function redirect(string $url): void
     {
         $this->capturedRedirect = $url;
@@ -45,6 +52,8 @@ class LaravelOpenIdConnectClient extends OpenIDConnectClient
 
     private function sessionKey(string $key): string
     {
-        return "myapes.oidc.{$key}";
+        return $this->sessionNamespace === 'staff-login'
+            ? "myapes.oidc.{$key}"
+            : "myapes.oidc.{$this->sessionNamespace}.{$key}";
     }
 }

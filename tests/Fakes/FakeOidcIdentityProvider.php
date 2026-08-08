@@ -2,6 +2,7 @@
 
 namespace Tests\Fakes;
 
+use App\Auth\OidcFlow;
 use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
 use App\Exceptions\OidcProviderException;
@@ -22,12 +23,19 @@ final class FakeOidcIdentityProvider implements OidcIdentityProvider
 
     public ?bool $forceReauthentication = null;
 
+    public ?OidcFlow $authorizationFlow = null;
+
+    public ?OidcFlow $callbackFlow = null;
+
     public string $authorizationUrl = 'https://my.cloudron.apes.org.uk/openid/auth?client_id=test-client';
 
-    public function authorizationRedirect(bool $forceReauthentication = false): RedirectResponse
-    {
+    public function authorizationRedirect(
+        OidcFlow $flow = OidcFlow::StaffLogin,
+        bool $forceReauthentication = false,
+    ): RedirectResponse {
         $this->authorizationCalls++;
         $this->forceReauthentication = $forceReauthentication;
+        $this->authorizationFlow = $flow;
 
         if ($this->authorizationFailure !== null) {
             throw $this->authorizationFailure;
@@ -36,9 +44,10 @@ final class FakeOidcIdentityProvider implements OidcIdentityProvider
         return redirect()->away($this->authorizationUrl);
     }
 
-    public function callbackIdentity(): OidcIdentity
+    public function callbackIdentity(OidcFlow $flow = OidcFlow::StaffLogin): OidcIdentity
     {
         $this->callbackCalls++;
+        $this->callbackFlow = $flow;
 
         if ($this->callbackFailure !== null) {
             throw $this->callbackFailure;
