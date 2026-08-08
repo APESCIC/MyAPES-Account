@@ -19,6 +19,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             'optimize:clear',
             'myapes:authorization-preflight --no-interaction --no-ansi',
             'myapes:modules:preflight --no-interaction --no-ansi',
+            'myapes:accounts:preflight --no-interaction --no-ansi',
             'migrate --force',
             'myapes:modules:sync --no-interaction --no-ansi',
             'config:cache',
@@ -29,6 +30,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             'myapes:authorization-sync --no-interaction --no-ansi',
             'permission:cache-reset --no-interaction',
             'myapes:modules:check --no-interaction --no-ansi',
+            'myapes:accounts:check --no-interaction --no-ansi',
             'myapes:authorization-check --no-interaction --no-ansi',
             'mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"',
         ];
@@ -66,8 +68,10 @@ class DeploymentAuthenticationContractTest extends TestCase
         ));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-preflight'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:preflight'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:accounts:preflight'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:sync'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:check'));
+        $this->assertSame(1, substr_count($script, 'run_artisan myapes:accounts:check'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:directory-sync'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-sync'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-check'));

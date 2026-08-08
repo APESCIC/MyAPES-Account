@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Services\AuthorizationProfile;
 use App\Services\LegacyAccessCompatibilityAdapter;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Cast;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,14 +23,16 @@ use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable([
     'oidc_sub',
+    'username',
     'identity_type',
     'name',
     'email',
     'password',
+    'onboarding_completed_at',
     'ldap_groups',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     public const IDENTITY_LOCAL = 'local';
 
@@ -45,7 +49,25 @@ class User extends Authenticatable
     public const ROLE_SUPERADMIN = 'superadmin';
 
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, MustVerifyEmailTrait, Notifiable;
+
+    protected function email(): Attribute
+    {
+        return Attribute::make(
+            set: static fn (mixed $value): mixed => is_string($value)
+                ? strtolower(trim($value))
+                : $value,
+        );
+    }
+
+    protected function username(): Attribute
+    {
+        return Attribute::make(
+            set: static fn (mixed $value): mixed => is_string($value)
+                ? strtolower(trim($value))
+                : $value,
+        );
+    }
 
     public static function bootHasRoles(): void
     {
@@ -67,6 +89,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'onboarding_completed_at' => 'datetime',
             'password' => 'hashed',
             'ldap_groups' => 'array',
             'authorization_epoch' => 'integer',
@@ -77,6 +100,26 @@ class User extends Authenticatable
     public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class);
+    }
+
+    public function serviceSelections(): HasMany
+    {
+        return $this->hasMany(UserServiceSelection::class);
+    }
+
+    public function contactPreference(): HasOne
+    {
+        return $this->hasOne(UserContactPreference::class);
+    }
+
+    public function contactConsentEvents(): HasMany
+    {
+        return $this->hasMany(ContactConsentEvent::class);
+    }
+
+    public function oidcLinkIntents(): HasMany
+    {
+        return $this->hasMany(OidcLinkIntent::class);
     }
 
     public function supportTickets(): HasMany

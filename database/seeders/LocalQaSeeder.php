@@ -290,11 +290,13 @@ class LocalQaSeeder extends Seeder
         $user = User::query()->firstOrNew(['email' => $email]);
         $user->forceFill([
             'name' => $name,
+            'username' => str_replace('@myapes.local', '', $email),
             'password' => self::DEFAULT_PASSWORD,
             'oidc_sub' => null,
             'identity_type' => User::IDENTITY_LOCAL,
             'ldap_groups' => [],
             'email_verified_at' => $seededAt,
+            'onboarding_completed_at' => $seededAt,
             'suspended_at' => null,
             'suspended_by' => null,
             'suspension_reason' => null,
@@ -312,6 +314,14 @@ class LocalQaSeeder extends Seeder
             $protectedRole,
             RoleSource::SOURCE_SYSTEM,
         );
+
+        $user->contactPreference()->firstOrCreate([], [
+            'confirmed_at' => $seededAt,
+            'policy_version' => (string) config('myapes.consent.policy_version'),
+        ]);
+        foreach (['apes-cic', 'shelter-rescue', 'pet-care-clinic'] as $service) {
+            $user->serviceSelections()->firstOrCreate(['sub_core_key' => $service]);
+        }
 
         return $user;
     }
@@ -359,6 +369,11 @@ class LocalQaSeeder extends Seeder
                 'organization' => $organization,
                 'support_needs' => 'QA seed profile for local testing.',
                 'avatar_path' => null,
+                'address_line_1' => '1 QA Test Street',
+                'town_city' => 'London',
+                'postcode' => 'SW1A 1AA',
+                'country' => 'GB',
+                'mobile_number' => '+447400123456',
             ]
         );
     }
