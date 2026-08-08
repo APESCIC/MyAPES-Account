@@ -744,6 +744,7 @@ restore_current_authorization_after_failure() {
 run_artisan optimize:clear
 run_artisan myapes:authorization-preflight --no-interaction --no-ansi
 run_artisan myapes:modules:preflight --no-interaction --no-ansi
+run_artisan myapes:accounts:preflight --no-interaction --no-ansi
 trap restore_current_authorization_after_failure EXIT
 if [[ -n "$CURRENT_TARGET_BEFORE" && "$CURRENT_TARGET_BEFORE" != "$RELEASE_DIR" ]]; then
   run_current_artisan down --retry=60 --no-interaction --no-ansi
@@ -760,6 +761,7 @@ run_artisan myapes:directory-sync --source=manual --no-interaction --no-ansi
 run_artisan myapes:authorization-sync --no-interaction --no-ansi
 run_artisan permission:cache-reset --no-interaction --no-ansi
 run_artisan myapes:modules:check --no-interaction --no-ansi
+run_artisan myapes:accounts:check --no-interaction --no-ansi
 run_artisan myapes:authorization-check --no-interaction --no-ansi
 
 if ! run_artisan env --no-ansi | grep -Eq 'production'; then

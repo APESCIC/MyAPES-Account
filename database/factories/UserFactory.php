@@ -44,6 +44,14 @@ class UserFactory extends Factory
 
                 app(AuthorizationAccountSynchronizer::class)
                     ->grantPublicBaseline($user);
+
+                if (in_array($user->identity_type, [User::IDENTITY_LOCAL, User::IDENTITY_HYBRID], true)
+                    && $schema->hasTable('user_service_selections')) {
+                    $user->contactPreference()->firstOrCreate([]);
+                    foreach (['apes-cic', 'shelter-rescue', 'pet-care-clinic'] as $service) {
+                        $user->serviceSelections()->firstOrCreate(['sub_core_key' => $service]);
+                    }
+                }
             });
     }
 
@@ -58,6 +66,7 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
+            'onboarding_completed_at' => now(),
             'identity_type' => User::IDENTITY_LOCAL,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
