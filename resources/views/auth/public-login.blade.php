@@ -8,8 +8,8 @@
         <p class="muted">Sign in to access your services, profile, and pet records.</p>
         <form method="post" action="{{ route('public.login.submit') }}">
             @csrf
-            <label for="email">Email</label>
-            <input id="email" type="email" name="email" value="{{ old('email') }}" required>
+            <label for="login">Username or email</label>
+            <input id="login" type="text" name="login" value="{{ old('login') }}" required>
 
             <label for="password">Password</label>
             <input id="password" type="password" name="password" required>

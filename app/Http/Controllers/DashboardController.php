@@ -7,6 +7,7 @@ use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Services\ModuleDashboardSummaryService;
 use App\Services\ModuleState;
+use App\Services\ServiceEntitlement;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 
@@ -15,11 +16,13 @@ class DashboardController extends Controller
     public function __invoke(
         ModuleDashboardSummaryService $summaries,
         ModuleState $modules,
+        ServiceEntitlement $entitlement,
     ): View {
         $user = request()->user();
         $attentionItems = collect();
 
-        if ($modules->enabled('apes-cic', 'tickets')) {
+        if ($entitlement->allows($user, 'apes-cic', request())
+            && $modules->enabled('apes-cic', 'tickets')) {
             $openTickets = SupportTicket::query()
                 ->visibleTo($user)
                 ->whereNull('closed_at')
@@ -46,7 +49,8 @@ class DashboardController extends Controller
             );
         }
 
-        if ($modules->enabled('shelter-rescue', 'cases')) {
+        if ($entitlement->allows($user, 'shelter-rescue', request())
+            && $modules->enabled('shelter-rescue', 'cases')) {
             $openCases = ShelterCase::query()
                 ->visibleTo($user)
                 ->whereNull('closed_at')
@@ -76,7 +80,8 @@ class DashboardController extends Controller
             );
         }
 
-        if ($modules->enabled('pet-care-clinic', 'consultations')) {
+        if ($entitlement->allows($user, 'pet-care-clinic', request())
+            && $modules->enabled('pet-care-clinic', 'consultations')) {
             $openConsultations = PetCareConsultation::query()
                 ->visibleTo($user)
                 ->whereNull('closed_at')

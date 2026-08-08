@@ -66,7 +66,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('public-login', function (Request $request): Limit {
-            $email = Str::lower((string) $request->input('email'));
+            $email = Str::lower((string) $request->input('login'));
 
             return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
         });

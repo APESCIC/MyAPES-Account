@@ -86,6 +86,24 @@ class ModuleStateMiddlewareTest extends TestCase
         $this->assertSame($get->getStatusCode(), $post->getStatusCode());
     }
 
+    public function test_disabled_module_remains_not_found_when_the_service_is_unselected(): void
+    {
+        $user = User::factory()->create();
+        $user->serviceSelections()->where('sub_core_key', 'apes-cic')->delete();
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'apes-cic')
+            ->where('module_key', 'tickets')
+            ->update([
+                'enabled' => false,
+                'disabled_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->actingAs($user)
+            ->get('/apes-cic/tickets')
+            ->assertNotFound();
+    }
+
     public function test_a_busy_module_write_returns_the_same_non_disclosing_not_found_response(): void
     {
         $this->mock(ModuleInstanceLock::class, function ($mock): void {

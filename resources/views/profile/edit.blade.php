@@ -25,6 +25,7 @@
             </div>
             <label for="support_needs">Support needs or access notes</label>
             <textarea id="support_needs" name="support_needs">{{ old('support_needs', $profile?->support_needs) }}</textarea>
+            @include('profile._account-fields')
             <label for="avatar">Avatar photo</label>
             <input id="avatar" type="file" name="avatar" accept="image/*">
             <div class="actions">

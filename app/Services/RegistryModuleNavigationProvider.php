@@ -7,12 +7,15 @@ use App\Contracts\ModuleRegistry;
 use App\Models\User;
 use App\Modules\ModuleNavigationItem;
 use App\Modules\SubCoreNavigation;
+use Illuminate\Http\Request;
 
 class RegistryModuleNavigationProvider implements ModuleNavigationProvider
 {
     public function __construct(
         private readonly ModuleRegistry $registry,
         private readonly ModuleCatalogueProjection $projection,
+        private readonly ServiceEntitlement $entitlement,
+        private readonly Request $request,
     ) {}
 
     public function forUser(User $user): array
@@ -20,6 +23,10 @@ class RegistryModuleNavigationProvider implements ModuleNavigationProvider
         $navigation = [];
 
         foreach ($this->registry->subCores() as $subCore) {
+            if (! $this->entitlement->allows($user, $subCore->key, $this->request)) {
+                continue;
+            }
+
             $modules = $this->forSubCore($user, $subCore->key);
 
             if ($modules !== []) {

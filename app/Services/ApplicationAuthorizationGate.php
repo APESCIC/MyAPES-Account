@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\ModuleRegistry;
 use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -14,6 +15,8 @@ class ApplicationAuthorizationGate
         private readonly AuthorizationDirectPermissionPolicy $permissionPolicy,
         private readonly SessionAuthorizationContext $context,
         private readonly Request $request,
+        private readonly ModuleRegistry $modules,
+        private readonly ServiceEntitlement $entitlement,
     ) {}
 
     public function authorize(User $user, string $ability): ?bool
@@ -24,6 +27,17 @@ class ApplicationAuthorizationGate
 
         if (! $this->profile->isApplicationPermission($ability)) {
             return null;
+        }
+
+        $modulePermission = $this->modules->permission($ability);
+        if ($modulePermission !== null
+            && ! $modulePermission->requiresDirectoryContext
+            && ! $this->entitlement->allows(
+                $user,
+                $modulePermission->subCoreKey,
+                $this->request,
+            )) {
+            return false;
         }
 
         $directoryRestricted = $this->profile
