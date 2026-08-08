@@ -16,16 +16,19 @@ class AuthorizationAuthenticationTest extends TestCase
     {
         $response = $this->post(route('public.register.submit'), [
             'name' => 'Public Registrant',
+            'username' => 'public.registrant',
             'email' => 'registrant@example.com',
             'password' => 'A-secure-public-password-2026!',
             'password_confirmation' => 'A-secure-public-password-2026!',
+            'services' => ['apes-cic'],
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('verification.notice'));
         $response->assertSessionHas('myapes.authentication_method', 'password');
         $response->assertSessionHas('myapes.authorization_epoch', 1);
 
         $user = User::query()->sole();
+        $this->assertFalse($user->hasVerifiedEmail());
         $this->assertSame(['service-user'], $user->roles()->pluck('name')->all());
         $this->assertDatabaseHas('role_sources', [
             'user_id' => $user->id,

@@ -71,6 +71,11 @@ class PublicAuthController extends Controller
 
     public function login(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
+        $credentialField = $request->filled('login') ? 'login' : 'email';
+        if ($credentialField === 'email') {
+            $request->merge(['login' => $request->input('email')]);
+        }
+
         $validated = $request->validate([
             'login' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
@@ -88,8 +93,8 @@ class PublicAuthController extends Controller
             ]);
 
             return back()
-                ->withErrors(['login' => 'The provided credentials do not match our records.'])
-                ->onlyInput('login');
+                ->withErrors([$credentialField => 'The provided credentials do not match our records.'])
+                ->onlyInput($credentialField);
         }
 
         Auth::login($user, $request->boolean('remember'));
@@ -111,7 +116,7 @@ class PublicAuthController extends Controller
 
             return redirect()
                 ->route('public.login')
-                ->withErrors(['login' => 'This account is suspended.']);
+                ->withErrors([$credentialField => 'This account is suspended.']);
         }
 
         if ($user->identity_type !== User::IDENTITY_HYBRID
@@ -123,7 +128,7 @@ class PublicAuthController extends Controller
 
             return redirect()
                 ->route('staff.login')
-                ->withErrors(['login' => 'Staff accounts must sign in using Staff Login.']);
+                ->withErrors([$credentialField => 'Staff accounts must sign in using Staff Login.']);
         }
 
         $this->authorizationContext->recordPassword($request, $user);
