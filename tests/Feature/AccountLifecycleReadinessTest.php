@@ -16,8 +16,8 @@ class AccountLifecycleReadinessTest extends TestCase
         parent::setUp();
 
         config([
-            'myapes.contact_consent.policy_version' => '2026-08',
-            'myapes.contact_consent.privacy_notice_url' => 'https://apes.example/privacy',
+            'myapes.consent.policy_version' => '2026-08',
+            'myapes.consent.privacy_notice_url' => 'https://apes.example/privacy',
         ]);
     }
 
@@ -46,7 +46,7 @@ class AccountLifecycleReadinessTest extends TestCase
             ->assertFailed();
 
         DB::table('users')->where('id', $second->id)->delete();
-        config(['myapes.contact_consent.privacy_notice_url' => null]);
+        config(['myapes.consent.privacy_notice_url' => null]);
 
         $this->artisan('myapes:accounts:preflight')
             ->expectsOutputToContain('privacy_notice_url')
