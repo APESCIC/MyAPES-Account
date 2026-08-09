@@ -11,12 +11,15 @@ use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PetCare\ConsultationController;
 use App\Http\Controllers\PetCare\PetProfileController as PetCarePetProfileController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
 use App\Http\Controllers\SubCoreController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'auth.landing')->name('home');
@@ -49,16 +52,44 @@ Route::middleware([
     'authorization.context',
     'directory.current',
 ])->group(function (): void {
+    Route::get('/email/verify', function (Request $request) {
+        return $request->user()->hasVerifiedEmail()
+            ? redirect()->route('onboarding.edit')
+            : view('auth.verify-email');
+    })->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+        $request->fulfill();
+
+        return redirect()->route('onboarding.edit');
+    })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::post('/email/verification-notification', function (Request $request) {
+        if (! $request->user()->hasVerifiedEmail()) {
+            $request->user()->sendEmailVerificationNotification();
+        }
+
+        return back()->with('status', 'Verification link sent.');
+    })->middleware('throttle:6,1')->name('verification.send');
+
+    Route::get('/onboarding', [OnboardingController::class, 'edit'])->name('onboarding.edit');
+    Route::put('/onboarding', [OnboardingController::class, 'update'])->name('onboarding.update');
+});
+
+Route::middleware([
+    'auth',
+    'authorization.context',
+    'directory.current',
+    'account.ready',
+])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-
     Route::prefix('apes-cic')->name('apes-cic.')->group(function (): void {
         Route::get('/', [SubCoreController::class, 'show'])
             ->defaults('subCoreKey', 'apes-cic')
+            ->middleware('service.selected:apes-cic')
             ->name('index');
-        Route::middleware('module.available:apes-cic,tickets')
+        Route::middleware(['module.available:apes-cic,tickets', 'service.selected:apes-cic'])
             ->group(function (): void {
                 Route::resource('tickets', TicketController::class)
                     ->only(['index', 'store', 'show', 'update', 'destroy'])
@@ -69,14 +100,15 @@ Route::middleware([
     Route::prefix('shelter')->name('shelter.')->group(function (): void {
         Route::get('/', [SubCoreController::class, 'show'])
             ->defaults('subCoreKey', 'shelter-rescue')
+            ->middleware('service.selected:shelter-rescue')
             ->name('index');
-        Route::middleware('module.available:shelter-rescue,pet-profiles')
+        Route::middleware(['module.available:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
             ->group(function (): void {
                 Route::resource('pets', ShelterPetProfileController::class)
                     ->only(['index', 'store', 'show', 'update'])
                     ->parameters(['pets' => 'pet']);
             });
-        Route::middleware('module.available:shelter-rescue,cases')
+        Route::middleware(['module.available:shelter-rescue,cases', 'service.selected:shelter-rescue'])
             ->group(function (): void {
                 Route::resource('cases', CaseController::class)
                     ->only(['index', 'store', 'show', 'update'])
@@ -87,14 +119,15 @@ Route::middleware([
     Route::prefix('petcare')->name('petcare.')->group(function (): void {
         Route::get('/', [SubCoreController::class, 'show'])
             ->defaults('subCoreKey', 'pet-care-clinic')
+            ->middleware('service.selected:pet-care-clinic')
             ->name('index');
-        Route::middleware('module.available:pet-care-clinic,pet-profiles')
+        Route::middleware(['module.available:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
                 Route::resource('pets', PetCarePetProfileController::class)
                     ->only(['index', 'store', 'show', 'update'])
                     ->parameters(['pets' => 'pet']);
             });
-        Route::middleware('module.available:pet-care-clinic,consultations')
+        Route::middleware(['module.available:pet-care-clinic,consultations', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
                 Route::resource('consultations', ConsultationController::class)
                     ->only(['index', 'store', 'show', 'update'])

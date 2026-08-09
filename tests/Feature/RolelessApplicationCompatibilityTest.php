@@ -25,15 +25,21 @@ class RolelessApplicationCompatibilityTest extends TestCase
 
         $response = $this->post(route('public.register.submit'), [
             'name' => 'Public User',
+            'username' => 'public.user',
             'email' => 'public@example.com',
             'password' => 'MyAPES-Test-Password-2026!',
             'password_confirmation' => 'MyAPES-Test-Password-2026!',
+            'services' => ['apes-cic'],
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('verification.notice'));
         $user = User::query()->sole();
         $this->assertSame(User::IDENTITY_LOCAL, $user->identity_type);
         $this->assertSame(User::ROLE_SERVICE_USER, $user->accessLevel());
+        $user->forceFill([
+            'email_verified_at' => now(),
+            'onboarding_completed_at' => now(),
+        ])->save();
 
         $admin = User::factory()->make(['email' => 'admin@example.com']);
         $admin->setAccessLevel(User::ROLE_ADMIN)->save();

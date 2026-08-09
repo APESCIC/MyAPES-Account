@@ -13,6 +13,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use RuntimeException;
@@ -68,20 +71,33 @@ class PublicAuthController extends Controller
 
     public function login(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $credentialField = $request->filled('login') ? 'login' : 'email';
+        if ($credentialField === 'email') {
+            $request->merge(['login' => $request->input('email')]);
+        }
+
+        $validated = $request->validate([
+            'login' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        $login = Str::lower(trim($validated['login']));
+        $user = User::query()
+            ->whereRaw('LOWER(email) = ?', [$login])
+            ->orWhere('username', $login)
+            ->first();
+
+        if ($user === null || ! is_string($user->password) || ! Hash::check($validated['password'], $user->password)) {
             $auditLogger->record('auth.public_login_failed', null, null, [
-                'email' => $credentials['email'],
+                'reason' => 'invalid_credentials',
             ]);
 
             return back()
-                ->withErrors(['email' => 'The provided credentials do not match our records.'])
-                ->onlyInput('email');
+                ->withErrors([$credentialField => 'The provided credentials do not match our records.'])
+                ->onlyInput($credentialField);
         }
+
+        Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();
 
@@ -100,7 +116,7 @@ class PublicAuthController extends Controller
 
             return redirect()
                 ->route('public.login')
-                ->withErrors(['email' => 'This account is suspended.']);
+                ->withErrors([$credentialField => 'This account is suspended.']);
         }
 
         if ($user->identity_type !== User::IDENTITY_HYBRID
@@ -112,7 +128,7 @@ class PublicAuthController extends Controller
 
             return redirect()
                 ->route('staff.login')
-                ->withErrors(['email' => 'Staff accounts must sign in using Staff Login.']);
+                ->withErrors([$credentialField => 'Staff accounts must sign in using Staff Login.']);
         }
 
         $this->authorizationContext->recordPassword($request, $user);
@@ -128,28 +144,53 @@ class PublicAuthController extends Controller
 
     public function register(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
+        $request->merge([
+            'username' => Str::lower(trim((string) $request->input('username'))),
+            'email' => Str::lower(trim((string) $request->input('email'))),
+        ]);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => [
+                'required', 'string', 'min:3', 'max:30',
+                'regex:/^[a-z0-9](?:[a-z0-9._-]{1,28}[a-z0-9])$/',
+                'unique:users,username',
+            ],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            'services' => ['required', 'array', 'min:1'],
+            'services.*' => [
+                'string',
+                Rule::in(['apes-cic', 'shelter-rescue', 'pet-care-clinic']),
+            ],
         ]);
 
-        $user = new User([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'identity_type' => User::IDENTITY_LOCAL,
-            'email_verified_at' => now(),
-        ]);
-        $user->save();
-        $this->accounts->grantPublicBaseline($user);
+        $user = DB::transaction(function () use ($validated): User {
+            $user = new User([
+                'name' => $validated['name'],
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'identity_type' => User::IDENTITY_LOCAL,
+                'email_verified_at' => null,
+            ]);
+            $user->save();
+            $this->accounts->grantPublicBaseline($user);
+            $user->contactPreference()->create([]);
+
+            foreach ($validated['services'] as $service) {
+                $user->serviceSelections()->create(['sub_core_key' => $service]);
+            }
+
+            return $user;
+        });
 
         Auth::login($user);
         $request->session()->regenerate();
         $this->authorizationContext->recordPassword($request, $user);
         $auditLogger->record('auth.public_registration_success', $user, $user);
+        $user->sendEmailVerificationNotification();
 
-        return redirect()->route('dashboard');
+        return redirect()->route('verification.notice');
     }
 
     public function localStaffLogin(Request $request, AuditLogger $auditLogger): RedirectResponse
