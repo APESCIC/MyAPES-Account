@@ -84,6 +84,9 @@ Route::middleware([
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/link-cloudron', [OidcAuthController::class, 'startLink'])
+        ->name('profile.oidc-link.start');
+
     Route::prefix('apes-cic')->name('apes-cic.')->group(function (): void {
         Route::get('/', [SubCoreController::class, 'show'])
             ->defaults('subCoreKey', 'apes-cic')

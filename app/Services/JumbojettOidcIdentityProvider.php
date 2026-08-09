@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Auth\OidcFlow;
 use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
 use App\Exceptions\OidcProviderException;
@@ -14,10 +15,12 @@ class JumbojettOidcIdentityProvider implements OidcIdentityProvider
         private readonly OidcDiscoveryValidator $discovery,
     ) {}
 
-    public function authorizationRedirect(bool $forceReauthentication = false): RedirectResponse
-    {
+    public function authorizationRedirect(
+        OidcFlow $flow = OidcFlow::StaffLogin,
+        bool $forceReauthentication = false,
+    ): RedirectResponse {
         try {
-            $client = $this->client($forceReauthentication);
+            $client = $this->client($flow, $forceReauthentication);
             $authenticated = $client->authenticate();
             $redirect = $client->capturedRedirect();
 
@@ -33,10 +36,10 @@ class JumbojettOidcIdentityProvider implements OidcIdentityProvider
         }
     }
 
-    public function callbackIdentity(): OidcIdentity
+    public function callbackIdentity(OidcFlow $flow = OidcFlow::StaffLogin): OidcIdentity
     {
         try {
-            $client = $this->client();
+            $client = $this->client($flow);
 
             if (! $client->authenticate()) {
                 throw new OidcProviderException('OIDC callback did not authenticate an identity.');
@@ -67,8 +70,10 @@ class JumbojettOidcIdentityProvider implements OidcIdentityProvider
         }
     }
 
-    private function client(bool $forceReauthentication = false): LaravelOpenIdConnectClient
-    {
+    private function client(
+        OidcFlow $flow,
+        bool $forceReauthentication = false,
+    ): LaravelOpenIdConnectClient {
         $issuer = $this->requiredString('issuer');
         $clientId = $this->requiredString('client_id');
         $clientSecret = $this->requiredString('client_secret');
@@ -80,6 +85,7 @@ class JumbojettOidcIdentityProvider implements OidcIdentityProvider
         }
 
         $client = new LaravelOpenIdConnectClient($issuer, $clientId, $clientSecret);
+        $client->useSessionNamespace($flow->value);
         $client->providerConfigParam($this->discovery->validate($issuer));
         $client->setRedirectURL($redirectUri);
         $client->setCodeChallengeMethod('S256');
