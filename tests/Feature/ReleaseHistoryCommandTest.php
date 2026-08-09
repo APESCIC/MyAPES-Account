@@ -20,19 +20,29 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('0.11.0', $repository->version());
         $this->assertSame('0.11.0', $repository->current()['version']);
         $this->assertSame(
-            ['0.11.0', '0.10.0', '0.9.1', '0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
+            ['0.11.0', '0.10.0', '0.9.2', '0.9.1', '0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
             array_column($releases, 'version'),
         );
-        $this->assertSame('2026-08-08', $releases[0]['date']);
-        $this->assertSame('2026-08-08', $releases[1]['date']);
-        $this->assertSame('2026-08-08', $releases[2]['date']);
-        $this->assertSame('2026-08-07', $releases[3]['date']);
+        $this->assertSame('2026-08-09', $releases[0]['date']);
+        $this->assertSame('2026-08-09', $releases[1]['date']);
+        $this->assertSame('2026-08-09', $releases[2]['date']);
+        $this->assertSame('2026-08-08', $releases[3]['date']);
+        $this->assertSame('2026-08-07', $releases[4]['date']);
+        $this->assertSame('2026-08-06', $releases[5]['date']);
+        $this->assertSame('2026-08-05', $releases[6]['date']);
+        $this->assertSame('2026-08-05', $releases[7]['date']);
+        $this->assertSame('2026-08-05', $releases[8]['date']);
+        $this->assertSame('2026-07-28', $releases[9]['date']);
+        $this->assertSame('2026-07-27', $releases[10]['date']);
+        $this->assertSame('2026-07-27', $releases[11]['date']);
+        $this->assertSame('2026-07-27', $releases[12]['date']);
+        $this->assertSame('2026-07-27', $releases[13]['date']);
 
-        foreach (array_slice($releases, 13) as $release) {
+        foreach (array_slice($releases, 14) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 12) as $release) {
+        foreach (array_slice($releases, 13) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
 
@@ -51,7 +61,7 @@ class ReleaseHistoryCommandTest extends TestCase
             strtolower(implode(' ', $current['known_limitations'])),
         );
 
-        $phaseB = $releases[7];
+        $phaseB = $releases[8];
         $this->assertStringContainsString(
             'issue #11',
             strtolower(implode(' ', $phaseB['known_limitations'])),
