@@ -491,6 +491,33 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
     }
 
+    public function test_workflow_isolates_the_destructive_foundation_migration_contract(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $databaseCompatibilityJob = substr(
+            $workflow,
+            $this->position($workflow, '  database-compatibility:'),
+            $this->position($workflow, '  deploy:')
+                - $this->position($workflow, '  database-compatibility:'),
+        );
+        $foundationMigrationTest = 'tests/Feature/ApesCicFoundationMigrationTest.php';
+        $mainSuite = substr(
+            $databaseCompatibilityJob,
+            $this->position($databaseCompatibilityJob, "php artisan test \\\n"),
+            $this->position(
+                $databaseCompatibilityJob,
+                'php artisan migrate:fresh --seed --force --no-interaction',
+            ) - $this->position($databaseCompatibilityJob, "php artisan test \\\n"),
+        );
+
+        $this->assertSame(1, substr_count($databaseCompatibilityJob, $foundationMigrationTest));
+        $this->assertMatchesRegularExpression(
+            '/^\s*php artisan test\s+tests\/Feature\/ApesCicFoundationMigrationTest\.php\s*$/m',
+            $databaseCompatibilityJob,
+        );
+        $this->assertStringNotContainsString($foundationMigrationTest, $mainSuite);
+    }
+
     public function test_workflow_packages_and_verifies_semantic_and_commit_identities(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');

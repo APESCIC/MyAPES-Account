@@ -356,6 +356,8 @@ jobs:
           DB_PASSWORD: ''
           DB_URL: ''
         run: |
+          php artisan test tests/Feature/ApesCicFoundationMigrationTest.php
+
           php artisan test \
             tests/Feature/AuthorizationSchemaTest.php \
             tests/Feature/AuthorizationRoleMaterializerTest.php \
@@ -375,7 +377,6 @@ jobs:
             tests/Feature/DirectoryRoleSynchronizerTest.php \
             tests/Feature/ModuleRegistryTest.php \
             tests/Feature/ModulePermissionMigrationTest.php \
-            tests/Feature/ApesCicFoundationMigrationTest.php \
             tests/Feature/ModuleInstallationSynchronizationTest.php \
             tests/Feature/ModuleLifecycleTest.php \
             tests/Feature/ModuleLifecycleConcurrencyTest.php \
