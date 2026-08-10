@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Contracts\ModuleAnalyticsProvider;
 use App\Contracts\ModuleAggregateSummaryProvider;
+use App\Contracts\ModuleAnalyticsProvider;
 use App\Contracts\ModuleRecentActivityProvider;
 use App\Contracts\ModuleRegistry;
 use App\Models\CaseUpdate;

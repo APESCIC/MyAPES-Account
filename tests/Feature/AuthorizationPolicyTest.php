@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
-use App\Models\Permission;
 use App\Models\Role;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;

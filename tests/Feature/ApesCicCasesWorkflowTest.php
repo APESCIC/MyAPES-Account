@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\ModuleRegistry;
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Models\AuditLog;
 use App\Models\CaseUpdate;
@@ -307,6 +308,57 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->assertNull($case->fresh()->resolved_at);
         $this->assertNull($case->fresh()->closed_at);
+    }
+
+    public function test_closed_case_resolve_transition_preserves_first_terminal_time_in_analytics(): void
+    {
+        $owner = User::factory()->create();
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $openedAt = Carbon::parse('2026-08-01 09:00:00', 'UTC');
+        $closedAt = Carbon::parse('2026-08-02 10:00:00', 'UTC');
+        $case = $this->caseFor($owner, [
+            'status' => 'closed',
+            'opened_at' => $openedAt,
+            'resolved_at' => null,
+            'closed_at' => $closedAt,
+        ]);
+        $registry = app(ModuleRegistry::class);
+        $instance = $registry->instance('apes-cic', 'cases');
+
+        Carbon::setTestNow(Carbon::parse('2026-08-10 12:00:00', 'UTC'));
+        try {
+            $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
+                'category' => 'general',
+                'priority' => 'medium',
+                'status' => 'resolved',
+            ])->assertRedirect(route('apes-cic.cases.show', $case));
+
+            $case->refresh();
+            $snapshot = app($instance->module->analyticsProvider)->snapshot(
+                $instance,
+                Carbon::parse('2026-08-01 00:00:00', 'UTC'),
+                Carbon::parse('2026-08-11 00:00:00', 'UTC'),
+                'UTC',
+            );
+
+            $this->assertSame([
+                'status' => 'resolved',
+                'resolved_at' => '2026-08-02 10:00:00',
+                'closed_at' => null,
+                'closed_per_day' => ['2026-08-02' => 1],
+                'median_closure_minutes' => 1500.0,
+            ], [
+                'status' => $case->status,
+                'resolved_at' => $case->resolved_at?->toDateTimeString(),
+                'closed_at' => $case->closed_at?->toDateTimeString(),
+                'closed_per_day' => $snapshot->closedPerDay,
+                'median_closure_minutes' => $snapshot->medianClosureMinutes,
+            ]);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_terminal_case_metadata_edits_preserve_timestamps_without_close_permission(): void

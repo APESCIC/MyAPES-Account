@@ -189,7 +189,7 @@ class CaseController extends Controller
             ];
             if ($statusChanged) {
                 $updates['resolved_at'] = match ($requestedStatus) {
-                    'resolved' => now(),
+                    'resolved' => $case->resolved_at ?? $case->closed_at ?? now(),
                     'closed' => $case->status === 'resolved'
                         ? $case->resolved_at
                         : null,
