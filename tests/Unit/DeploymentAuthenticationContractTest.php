@@ -501,13 +501,22 @@ class DeploymentAuthenticationContractTest extends TestCase
                 - $this->position($workflow, '  database-compatibility:'),
         );
         $foundationMigrationTest = 'tests/Feature/ApesCicFoundationMigrationTest.php';
+        $standaloneFoundationCommand = "php artisan test {$foundationMigrationTest}";
+        $standaloneFoundationPosition = $this->position(
+            $databaseCompatibilityJob,
+            $standaloneFoundationCommand,
+        );
+        $mainSuitePosition = $this->position(
+            $databaseCompatibilityJob,
+            "php artisan test \\\n",
+        );
         $mainSuite = substr(
             $databaseCompatibilityJob,
-            $this->position($databaseCompatibilityJob, "php artisan test \\\n"),
+            $mainSuitePosition,
             $this->position(
                 $databaseCompatibilityJob,
                 'php artisan migrate:fresh --seed --force --no-interaction',
-            ) - $this->position($databaseCompatibilityJob, "php artisan test \\\n"),
+            ) - $mainSuitePosition,
         );
 
         $this->assertSame(1, substr_count($databaseCompatibilityJob, $foundationMigrationTest));
@@ -515,6 +524,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/^\s*php artisan test\s+tests\/Feature\/ApesCicFoundationMigrationTest\.php\s*$/m',
             $databaseCompatibilityJob,
         );
+        $this->assertLessThan($mainSuitePosition, $standaloneFoundationPosition);
         $this->assertStringNotContainsString($foundationMigrationTest, $mainSuite);
     }
 
