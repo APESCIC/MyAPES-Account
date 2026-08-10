@@ -502,9 +502,14 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $foundationMigrationTest = 'tests/Feature/ApesCicFoundationMigrationTest.php';
         $standaloneFoundationCommand = "php artisan test {$foundationMigrationTest}";
+        $destructiveTestResetCommand = 'php artisan migrate:fresh --force --no-interaction';
         $standaloneFoundationPosition = $this->position(
             $databaseCompatibilityJob,
             $standaloneFoundationCommand,
+        );
+        $destructiveTestResetPosition = $this->position(
+            $databaseCompatibilityJob,
+            $destructiveTestResetCommand,
         );
         $mainSuitePosition = $this->position(
             $databaseCompatibilityJob,
@@ -524,7 +529,12 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/^\s*php artisan test\s+tests\/Feature\/ApesCicFoundationMigrationTest\.php\s*$/m',
             $databaseCompatibilityJob,
         );
-        $this->assertLessThan($mainSuitePosition, $standaloneFoundationPosition);
+        $this->assertSame(1, substr_count(
+            $databaseCompatibilityJob,
+            $destructiveTestResetCommand,
+        ));
+        $this->assertLessThan($destructiveTestResetPosition, $standaloneFoundationPosition);
+        $this->assertLessThan($mainSuitePosition, $destructiveTestResetPosition);
         $this->assertStringNotContainsString($foundationMigrationTest, $mainSuite);
     }
 
