@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\MaintenanceModeGateway;
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\OidcIdentityProvider;
 use App\Models\PetCareConsultation;
@@ -15,6 +16,7 @@ use App\Policies\ShelterCasePolicy;
 use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
 use App\Services\JumbojettOidcIdentityProvider;
+use App\Services\LaravelMaintenanceModeGateway;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(OidcIdentityProvider::class, JumbojettOidcIdentityProvider::class);
+        $this->app->bind(MaintenanceModeGateway::class, LaravelMaintenanceModeGateway::class);
         $this->app->singleton(ReleaseHistoryRepository::class);
     }
 

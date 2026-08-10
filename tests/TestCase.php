@@ -42,15 +42,20 @@ abstract class TestCase extends BaseTestCase
     {
         $maintenanceMode = new class($active) implements MaintenanceMode
         {
+            /** @var array<string, mixed> */
+            private array $payload = [];
+
             public function __construct(private bool $active) {}
 
             public function activate(array $payload): void
             {
+                $this->payload = $payload;
                 $this->active = true;
             }
 
             public function deactivate(): void
             {
+                $this->payload = [];
                 $this->active = false;
             }
 
@@ -61,7 +66,7 @@ abstract class TestCase extends BaseTestCase
 
             public function data(): array
             {
-                return [];
+                return $this->payload;
             }
         };
 

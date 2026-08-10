@@ -77,6 +77,47 @@ class StaffOidcAuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_administrator_callback_redirects_to_recovery_while_maintenance_is_active(): void
+    {
+        $this->fakeMaintenanceMode(true);
+        $this->identityProvider->identity = new OidcIdentity(
+            'maintenance-admin-subject',
+            'maintenance-admin@example.com',
+            'Maintenance Administrator',
+        );
+        $this->directory->groups = ['myapes.admin'];
+
+        $this->get(route('staff.auth.callback'))
+            ->assertRedirect(route('admin.maintenance.index'));
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'auth.login_success',
+        ]);
+    }
+
+    public function test_ordinary_staff_callback_authenticates_but_returns_maintenance_response(): void
+    {
+        $this->fakeMaintenanceMode(true);
+        $this->identityProvider->identity = new OidcIdentity(
+            'maintenance-staff-subject',
+            'maintenance-staff@example.com',
+            'Maintenance Staff',
+        );
+        $this->directory->groups = ['myapes.staff'];
+
+        $this->get(route('staff.auth.callback'))
+            ->assertServiceUnavailable()
+            ->assertSeeText('MyAPES Account')
+            ->assertSeeText('Temporarily unavailable');
+
+        $this->assertAuthenticated();
+        $this->assertSame(
+            User::ROLE_STAFF,
+            User::query()->where('email', 'maintenance-staff@example.com')->sole()->accessLevel(),
+        );
+    }
+
     public function test_callback_uses_the_exact_persisted_mapping_and_disables_remember_me(): void
     {
         $this->identityProvider->identity = new OidcIdentity(

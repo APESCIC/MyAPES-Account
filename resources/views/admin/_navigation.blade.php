@@ -15,4 +15,7 @@
     @can('admin.modules.view')
         <a href="{{ route('admin.modules.index') }}" @if(request()->routeIs('admin.modules.*')) aria-current="page" @endif>Modules</a>
     @endcan
+    @can('admin.maintenance.manage')
+        <a href="{{ route('admin.maintenance.index') }}" @if(request()->routeIs('admin.maintenance.*')) aria-current="page" @endif>Maintenance</a>
+    @endcan
 </nav>

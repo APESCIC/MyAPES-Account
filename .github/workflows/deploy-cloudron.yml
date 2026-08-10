@@ -857,9 +857,11 @@ jobs:
             reported_database="$(jq -r '.checks.database // empty' <<<"$response" 2>/dev/null || true)"
             reported_cache="$(jq -r '.checks.cache // empty' <<<"$response" 2>/dev/null || true)"
             reported_environment="$(jq -r '.checks.environment // empty' <<<"$response" 2>/dev/null || true)"
+            reported_maintenance="$(jq -r 'if (.maintenance | type) == "boolean" then (.maintenance | tostring) else "invalid" end' <<<"$response" 2>/dev/null || true)"
 
             [[ "$reported_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || continue
             [[ "$reported_release" =~ ^[0-9a-f]{40}$ ]] || continue
+            [[ "$reported_maintenance" =~ ^(true|false)$ ]] || continue
 
             if [[ "$reported_status" == "ok" \
               && "$reported_version" == "$APP_VERSION" \
@@ -1177,9 +1179,11 @@ jobs:
             reported_status="$(jq -r '.status // empty' <<<"$response" 2>/dev/null || true)"
             reported_database="$(jq -r '.checks.database // empty' <<<"$response" 2>/dev/null || true)"
             reported_cache="$(jq -r '.checks.cache // empty' <<<"$response" 2>/dev/null || true)"
+            reported_maintenance="$(jq -r 'if has("maintenance") then (if (.maintenance | type) == "boolean" then (.maintenance | tostring) else "invalid" end) else "legacy" end' <<<"$response" 2>/dev/null || true)"
 
             [[ "$reported_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || continue
             [[ "$reported_release" =~ ^[0-9a-f]{40}$ ]] || continue
+            [[ "$reported_maintenance" =~ ^(true|false|legacy)$ ]] || continue
 
             if [[ "$reported_status" == "ok" \
               && "$reported_version" == "$PREVIOUS_VERSION" \
