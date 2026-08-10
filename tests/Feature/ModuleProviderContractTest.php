@@ -111,9 +111,37 @@ class ModuleProviderContractTest extends TestCase
         ]);
         $this->caseFor($owner, [
             'status' => 'closed',
-            'opened_at' => Carbon::parse('2026-08-02 00:30:00', 'UTC'),
+            'opened_at' => Carbon::parse('2026-08-02 00:00:00', 'UTC'),
             'closed_at' => Carbon::parse('2026-08-03 00:30:00', 'UTC'),
         ]);
+        $this->caseFor($owner, [
+            'status' => 'resolved',
+            'opened_at' => Carbon::parse('2026-08-02 09:00:00', 'UTC'),
+            'resolved_at' => Carbon::parse('2026-08-02 12:00:00', 'UTC'),
+        ]);
+
+        /** @var ModuleAnalyticsProvider $provider */
+        $provider = app($instance->module->analyticsProvider);
+        $snapshot = $provider->snapshot(
+            $instance,
+            Carbon::parse('2026-08-02 00:00:00', 'Europe/London'),
+            Carbon::parse('2026-08-04 00:00:00', 'Europe/London'),
+            'Europe/London',
+        );
+
+        $this->assertSame([
+            '2026-08-02' => 2,
+            '2026-08-03' => 1,
+        ], $snapshot->closedPerDay);
+        $this->assertSame(1440.0, $snapshot->medianClosureMinutes);
+        $this->assertSame(3, $snapshot->closureSampleSize);
+    }
+
+    public function test_apes_cic_case_analytics_exclude_terminal_timestamp_at_exclusive_to_boundary(): void
+    {
+        $owner = User::factory()->create();
+        $registry = app(ModuleRegistry::class);
+        $instance = $registry->instance('apes-cic', 'cases');
         $this->caseFor($owner, [
             'status' => 'resolved',
             'opened_at' => Carbon::parse('2026-08-03 00:00:00', 'UTC'),
@@ -129,12 +157,9 @@ class ModuleProviderContractTest extends TestCase
             'Europe/London',
         );
 
-        $this->assertSame([
-            '2026-08-02' => 1,
-            '2026-08-03' => 1,
-        ], $snapshot->closedPerDay);
-        $this->assertSame(1440.0, $snapshot->medianClosureMinutes);
-        $this->assertSame(2, $snapshot->closureSampleSize);
+        $this->assertSame([], $snapshot->closedPerDay);
+        $this->assertNull($snapshot->medianClosureMinutes);
+        $this->assertSame(0, $snapshot->closureSampleSize);
     }
 
     public function test_apes_cic_case_summaries_treat_resolved_and_closed_cases_as_terminal(): void
