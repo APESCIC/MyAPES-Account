@@ -295,7 +295,9 @@ jobs:
   database-compatibility:
     name: Authorization and module database contract (${{ matrix.engine }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Forward-only migration/rollback and concurrency contracts can exceed
+    # twenty minutes on hosted MySQL 8.4 runners.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

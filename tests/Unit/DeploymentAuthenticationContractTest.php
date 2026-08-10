@@ -389,6 +389,33 @@ class DeploymentAuthenticationContractTest extends TestCase
         }
     }
 
+    public function test_database_compatibility_job_allows_forward_only_contract_to_finish(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $databaseCompatibilityStart = $this->position(
+            $workflow,
+            '  database-compatibility:',
+        );
+        $deployStart = $this->position($workflow, '  deploy:');
+        $databaseCompatibilityJob = substr(
+            $workflow,
+            $databaseCompatibilityStart,
+            $deployStart - $databaseCompatibilityStart,
+        );
+
+        preg_match_all(
+            '/^\s*timeout-minutes:\s*\d+\s*$/m',
+            $databaseCompatibilityJob,
+            $timeoutSettings,
+        );
+
+        $this->assertCount(1, $timeoutSettings[0]);
+        $this->assertMatchesRegularExpression(
+            '/^\s*timeout-minutes:\s*30\s*$/m',
+            $databaseCompatibilityJob,
+        );
+    }
+
     public function test_workflow_runs_the_phase_b_contract_on_mysql_and_mariadb(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
