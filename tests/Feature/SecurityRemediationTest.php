@@ -425,8 +425,8 @@ class SecurityRemediationTest extends TestCase
 
         $this->actingAs($actor)->put(
             route('apes-cic.tickets.update', $ticket),
-            ['status' => 'open', 'priority' => 'medium', 'message' => null],
-        )->assertRedirect();
+            ['status' => 'open', 'priority' => 'high', 'message' => null],
+        )->assertRedirect()->assertSessionHasNoErrors();
         $this->actingAs($actor)->put(
             route('shelter.cases.update', $case),
             ['status' => 'in_review', 'details' => 'Staff update'],
@@ -594,7 +594,7 @@ class SecurityRemediationTest extends TestCase
                 'update' => route('apes-cic.tickets.update', $ticket),
                 'payload' => [
                     'status' => 'open',
-                    'priority' => 'medium',
+                    'priority' => 'high',
                     'message' => null,
                 ],
                 'record' => $ticket,

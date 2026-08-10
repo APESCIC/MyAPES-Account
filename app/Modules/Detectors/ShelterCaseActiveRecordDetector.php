@@ -10,10 +10,16 @@ class ShelterCaseActiveRecordDetector implements ModuleActiveRecordDetector
 {
     public function count(ModuleInstanceDefinition $instance): int
     {
-        return ShelterCase::query()
+        $query = ShelterCase::query()
             ->forSubCore($instance->subCore->key)
-            ->whereNull('closed_at')
-            ->where('status', '<>', 'closed')
-            ->count();
+            ->whereNull('closed_at');
+
+        if ($instance->subCore->key === ShelterCase::SUB_CORE_APES_CIC) {
+            $query->whereNotIn('status', ['resolved', 'closed']);
+        } else {
+            $query->where('status', '<>', 'closed');
+        }
+
+        return $query->count();
     }
 }

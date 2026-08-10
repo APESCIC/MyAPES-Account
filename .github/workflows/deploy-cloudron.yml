@@ -357,6 +357,7 @@ jobs:
           php artisan test \
             tests/Feature/AuthorizationSchemaTest.php \
             tests/Feature/AuthorizationRoleMaterializerTest.php \
+            tests/Feature/ForwardOnlyDatabaseMigrationsTest.php \
             tests/Feature/AuthorizationCutoverGuardTest.php \
             tests/Feature/AuthorizationCutoverConcurrencyTest.php \
             tests/Feature/PermissionSchemaMigrationTest.php \

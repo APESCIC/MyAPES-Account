@@ -175,9 +175,10 @@ class CaseController extends Controller
         $updates = [];
         if ($metadataRequested) {
             $requestedStatus = $validated['status'];
+            $statusChanged = $requestedStatus !== $case->status;
             $wasTerminal = in_array($case->status, ['resolved', 'closed'], true);
             $willBeTerminal = in_array($requestedStatus, ['resolved', 'closed'], true);
-            if ($requestedStatus !== $case->status && ($wasTerminal || $willBeTerminal)) {
+            if ($statusChanged && ($wasTerminal || $willBeTerminal)) {
                 Gate::authorize($prefix.'close');
             }
 
@@ -185,15 +186,17 @@ class CaseController extends Controller
                 'category' => $validated['category'],
                 'priority' => $validated['priority'],
                 'status' => $requestedStatus,
-                'resolved_at' => match ($requestedStatus) {
+            ];
+            if ($statusChanged) {
+                $updates['resolved_at'] = match ($requestedStatus) {
                     'resolved' => now(),
                     'closed' => $case->status === 'resolved'
                         ? $case->resolved_at
                         : null,
                     default => null,
-                },
-                'closed_at' => $requestedStatus === 'closed' ? now() : null,
-            ];
+                };
+                $updates['closed_at'] = $requestedStatus === 'closed' ? now() : null;
+            }
         }
         if ($assignmentRequested) {
             $updates['assigned_to'] = $validated['assigned_to'] ?? null;

@@ -279,6 +279,61 @@ class ApesCicCasesWorkflowTest extends TestCase
         $this->assertNull($case->fresh()->closed_at);
     }
 
+    public function test_terminal_case_metadata_edits_preserve_timestamps_without_close_permission(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->create();
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $resolvedAt = Carbon::parse('2026-08-01 09:00:00');
+        $closedAt = Carbon::parse('2026-08-02 10:00:00');
+        $resolvedCase = $this->caseFor($owner, [
+            'status' => 'resolved',
+            'resolved_at' => $resolvedAt,
+        ]);
+        $closedCase = $this->caseFor($owner, [
+            'status' => 'closed',
+            'resolved_at' => $resolvedAt,
+            'closed_at' => $closedAt,
+        ]);
+        $this->removeRolePermission(
+            AuthorizationProfile::ROLE_STAFF,
+            'apes-cic.cases.close',
+        );
+
+        Carbon::setTestNow('2026-08-10 12:00:00');
+        try {
+            $this->actingAs($staff)->patch(
+                route('apes-cic.cases.update', $resolvedCase),
+                [
+                    'category' => 'membership',
+                    'priority' => 'high',
+                    'status' => 'resolved',
+                ],
+            )->assertRedirect(route('apes-cic.cases.show', $resolvedCase));
+            $this->patch(route('apes-cic.cases.update', $closedCase), [
+                'category' => 'complaint',
+                'priority' => 'urgent',
+                'status' => 'closed',
+            ])->assertRedirect(route('apes-cic.cases.show', $closedCase));
+        } finally {
+            Carbon::setTestNow();
+        }
+
+        $resolvedCase->refresh();
+        $this->assertSame('membership', $resolvedCase->category);
+        $this->assertSame('high', $resolvedCase->priority);
+        $this->assertTrue($resolvedCase->resolved_at->equalTo($resolvedAt));
+        $this->assertNull($resolvedCase->closed_at);
+
+        $closedCase->refresh();
+        $this->assertSame('complaint', $closedCase->category);
+        $this->assertSame('urgent', $closedCase->priority);
+        $this->assertTrue($closedCase->resolved_at->equalTo($resolvedAt));
+        $this->assertTrue($closedCase->closed_at->equalTo($closedAt));
+    }
+
     public function test_ticket_staff_can_choose_public_or_internal_reply_visibility(): void
     {
         $owner = User::factory()->create();
@@ -342,6 +397,9 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         Carbon::setTestNow('2026-08-10 11:00:00');
         $this->actingAs($staff)->put(route('apes-cic.tickets.update', $ticket), [
+            'status' => 'open',
+            'priority' => 'medium',
+            'assigned_to' => null,
             'message' => 'Internal ticket activity',
             'visibility' => 'internal',
         ])->assertRedirect();
@@ -356,6 +414,145 @@ class ApesCicCasesWorkflowTest extends TestCase
         $this->assertTrue($case->fresh()->updated_at->equalTo(
             Carbon::parse('2026-08-10 10:00:00'),
         ));
+    }
+
+    public function test_internal_ticket_notes_with_record_changes_notify_the_owner_without_disclosing_the_note(): void
+    {
+        Notification::fake();
+        $actor = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $candidate = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_ADMINISTRATOR)
+            ->create();
+        $changes = [
+            'status' => ['status' => 'in_progress', 'priority' => 'medium', 'assigned_to' => null],
+            'priority' => ['status' => 'open', 'priority' => 'high', 'assigned_to' => null],
+            'assignment' => ['status' => 'open', 'priority' => 'medium', 'assigned_to' => $candidate->id],
+        ];
+
+        foreach ($changes as $label => $metadata) {
+            $owner = User::factory()->create();
+            $ticket = SupportTicket::create([
+                'user_id' => $owner->id,
+                'assigned_to' => null,
+                'service_area' => 'operations',
+                'subject' => "Internal note with {$label} change",
+                'priority' => 'medium',
+                'status' => 'open',
+                'description' => 'The owner must receive safe record-change metadata.',
+            ]);
+            $note = "Private {$label} implementation note";
+
+            $this->actingAs($actor)->put(
+                route('apes-cic.tickets.update', $ticket),
+                [
+                    ...$metadata,
+                    'message' => $note,
+                    'visibility' => 'internal',
+                ],
+            )->assertRedirect(route('apes-cic.tickets.show', $ticket));
+
+            $this->assertDatabaseHas('support_ticket_messages', [
+                'support_ticket_id' => $ticket->id,
+                'message' => $note,
+                'is_staff_note' => true,
+            ]);
+            Notification::assertSentToTimes(
+                $owner,
+                TicketUpdatedNotification::class,
+                1,
+            );
+            Notification::assertSentTo(
+                $owner,
+                TicketUpdatedNotification::class,
+                function (TicketUpdatedNotification $notification) use ($note, $owner): bool {
+                    return ! str_contains(
+                        json_encode($notification->toArray($owner), JSON_THROW_ON_ERROR),
+                        $note,
+                    );
+                },
+            );
+        }
+    }
+
+    public function test_same_terminal_ticket_status_preserves_closed_timestamp(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->create();
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $closedAt = Carbon::parse('2026-08-01 09:00:00');
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'service_area' => 'operations',
+            'subject' => 'Preserve terminal ticket timestamp',
+            'priority' => 'medium',
+            'status' => 'resolved',
+            'description' => 'A priority edit must not rewrite closure time.',
+            'closed_at' => $closedAt,
+        ]);
+        $this->removeRolePermission(
+            AuthorizationProfile::ROLE_STAFF,
+            'apes-cic.tickets.close',
+        );
+
+        Carbon::setTestNow('2026-08-10 12:00:00');
+        try {
+            $this->actingAs($staff)->put(
+                route('apes-cic.tickets.update', $ticket),
+                [
+                    'status' => 'resolved',
+                    'priority' => 'high',
+                ],
+            )->assertRedirect(route('apes-cic.tickets.show', $ticket));
+        } finally {
+            Carbon::setTestNow();
+        }
+
+        $ticket->refresh();
+        $this->assertSame('high', $ticket->priority);
+        $this->assertTrue($ticket->closed_at->equalTo($closedAt));
+    }
+
+    public function test_unchanged_empty_ticket_form_has_no_side_effects(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->create();
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $ticket = SupportTicket::create([
+            'user_id' => $owner->id,
+            'assigned_to' => null,
+            'service_area' => 'operations',
+            'subject' => 'Reject unchanged ticket form',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'No-op forms must not create activity.',
+        ]);
+        $originalUpdatedAt = $ticket->updated_at;
+
+        $this->actingAs($staff)->putJson(
+            route('apes-cic.tickets.update', $ticket),
+            [
+                'status' => 'open',
+                'priority' => 'medium',
+                'assigned_to' => null,
+                'message' => '',
+                'visibility' => 'internal',
+            ],
+        )->assertUnprocessable()
+            ->assertJsonValidationErrors('ticket');
+
+        $this->assertTrue($ticket->fresh()->updated_at->equalTo($originalUpdatedAt));
+        Notification::assertNothingSent();
+        $this->assertSame(0, AuditLog::query()
+            ->where('event', 'apes_cic.ticket.updated')
+            ->where('auditable_type', SupportTicket::class)
+            ->where('auditable_id', $ticket->id)
+            ->count());
     }
 
     public function test_public_and_internal_notifications_use_eligible_recipients_without_body_disclosure(): void

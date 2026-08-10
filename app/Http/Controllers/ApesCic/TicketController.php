@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class TicketController extends Controller
 {
@@ -198,38 +199,57 @@ class TicketController extends Controller
 
         $updates = [];
         if ($ticketUpdateRequested) {
-            $updates = [
-                'status' => $validated['status'],
-                'priority' => $validated['priority'],
-                'closed_at' => in_array(
+            if ($validated['status'] !== $ticket->status) {
+                $updates['status'] = $validated['status'];
+                $updates['closed_at'] = in_array(
                     $validated['status'],
                     ['resolved', 'closed'],
                     true,
-                ) ? now() : null,
-            ];
+                ) ? now() : null;
+            }
+            if ($validated['priority'] !== $ticket->priority) {
+                $updates['priority'] = $validated['priority'];
+            }
         }
 
         if ($assignmentRequested) {
-            $updates['assigned_to'] = $validated['assigned_to'] ?? null;
+            $assignedTo = isset($validated['assigned_to'])
+                ? (int) $validated['assigned_to']
+                : null;
+            $currentAssignee = $ticket->assigned_to === null
+                ? null
+                : (int) $ticket->assigned_to;
+            if ($assignedTo !== $currentAssignee) {
+                $updates['assigned_to'] = $assignedTo;
+            }
         }
 
-        if ($updates !== []) {
+        $message = $validated['message'] ?? null;
+        $hasMessage = is_string($message) && $message !== '';
+        $ticketChanged = $updates !== [];
+        if (! $hasMessage && ! $ticketChanged) {
+            throw ValidationException::withMessages([
+                'ticket' => 'Select a ticket change or add a message before submitting.',
+            ]);
+        }
+
+        if ($ticketChanged) {
             $ticket->update($updates);
         }
 
-        if (! empty($validated['message'])) {
+        if ($hasMessage) {
             $ticket->messages()->create([
                 'user_id' => $request->user()->id,
-                'message' => $validated['message'],
+                'message' => $message,
                 'is_staff_note' => $canChooseVisibility
                     && ($validated['visibility'] ?? 'public') === 'internal',
             ]);
         }
 
-        $internalMessage = ! empty($validated['message'])
+        $internalMessage = $hasMessage
             && $canChooseVisibility
             && ($validated['visibility'] ?? 'public') === 'internal';
-        if (! empty($validated['message']) && ! $internalMessage) {
+        if ($hasMessage && ! $internalMessage && ! $ticketChanged) {
             $ticket->touch();
         }
         $this->notifyTicketStakeholders(
@@ -237,7 +257,7 @@ class TicketController extends Controller
             $request->user(),
             'updated',
             $instance,
-            $internalMessage,
+            $internalMessage && ! $ticketChanged,
         );
         $auditLogger->record('apes_cic.ticket.updated', $request->user(), $ticket, [
             'status' => $ticket->status,
