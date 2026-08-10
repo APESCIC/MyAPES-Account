@@ -201,7 +201,13 @@ class CaseController extends Controller
         if ($assignmentRequested) {
             $updates['assigned_to'] = $validated['assigned_to'] ?? null;
         }
-        $case->update($updates);
+        $case->fill($updates);
+        if (! $case->isDirty()) {
+            throw ValidationException::withMessages([
+                'case' => 'Select a case change before submitting.',
+            ]);
+        }
+        $case->save();
 
         $this->notifyStakeholders($case, $request->user(), 'updated', $instance);
         $auditLogger->record('apes_cic.case.updated', $request->user(), $case, [

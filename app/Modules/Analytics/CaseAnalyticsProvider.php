@@ -26,12 +26,22 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
             ->where('created_at', '>=', $fromBoundary)
             ->where('created_at', '<', $toBoundary)
             ->get();
-        $closed = ShelterCase::query()
-            ->forSubCore($instance->subCore->key)
-            ->whereNotNull('closed_at')
-            ->where('closed_at', '>=', $fromBoundary)
-            ->where('closed_at', '<', $toBoundary)
-            ->get();
+        $terminalField = 'closed_at';
+        $closedQuery = ShelterCase::query()
+            ->forSubCore($instance->subCore->key);
+        if ($instance->subCore->key === ShelterCase::SUB_CORE_APES_CIC) {
+            $terminalField = 'terminal_at';
+            $closedQuery
+                ->selectRaw('shelter_cases.*, COALESCE(resolved_at, closed_at) as terminal_at')
+                ->whereRaw('COALESCE(resolved_at, closed_at) >= ?', [$fromBoundary])
+                ->whereRaw('COALESCE(resolved_at, closed_at) < ?', [$toBoundary]);
+        } else {
+            $closedQuery
+                ->whereNotNull('closed_at')
+                ->where('closed_at', '>=', $fromBoundary)
+                ->where('closed_at', '<', $toBoundary);
+        }
+        $closed = $closedQuery->get();
         $open = $created->whereNotIn('status', ['resolved', 'closed']);
 
         return new ModuleAnalyticsSnapshot(
@@ -41,8 +51,8 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
             $open->whereIn('priority', ['high', 'urgent'])->count(),
             $open->whereNull('assigned_to')->count(),
             $this->perDay($created->all(), 'created_at', $timezone),
-            $this->perDay($closed->all(), 'closed_at', $timezone),
-            $this->medianMinutes($closed->all()),
+            $this->perDay($closed->all(), $terminalField, $timezone),
+            $this->medianMinutes($closed->all(), $terminalField),
             $closed->count(),
         );
     }
@@ -59,11 +69,11 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
         return $counts;
     }
 
-    private function medianMinutes(array $records): ?float
+    private function medianMinutes(array $records, string $terminalField): ?float
     {
         $durations = array_map(
             static fn (ShelterCase $case): float => ($case->opened_at ?? $case->created_at)
-                ->diffInMinutes($case->closed_at),
+                ->diffInMinutes(Carbon::parse($case->{$terminalField})),
             $records,
         );
         if ($durations === []) {

@@ -38,7 +38,6 @@ class ShelterCasePolicy
 
         return $this->view($user, $case)
             && ($user->can($prefix.'update-own')
-                || $user->can($prefix.'comment-own')
                 || $user->can($prefix.'update-all')
                 || $user->can($prefix.'assign')
                 || $user->can($prefix.'close'));

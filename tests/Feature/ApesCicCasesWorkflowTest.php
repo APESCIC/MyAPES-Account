@@ -141,6 +141,36 @@ class ApesCicCasesWorkflowTest extends TestCase
             ->count());
     }
 
+    public function test_unchanged_full_case_form_has_no_side_effects(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->create();
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $case = $this->caseFor($owner);
+        $originalUpdatedAt = $case->updated_at;
+
+        $this->actingAs($staff)->patchJson(
+            route('apes-cic.cases.update', $case),
+            [
+                'category' => 'general',
+                'priority' => 'medium',
+                'status' => 'open',
+                'assigned_to' => null,
+            ],
+        )->assertUnprocessable()
+            ->assertJsonValidationErrors('case');
+
+        $this->assertTrue($case->fresh()->updated_at->equalTo($originalUpdatedAt));
+        Notification::assertNothingSent();
+        $this->assertSame(0, AuditLog::query()
+            ->where('event', 'apes_cic.case.updated')
+            ->where('auditable_type', ShelterCase::class)
+            ->where('auditable_id', $case->id)
+            ->count());
+    }
+
     public function test_ticket_assignment_rejects_eligible_staff_without_instance_view_permission(): void
     {
         $owner = User::factory()->create();

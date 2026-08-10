@@ -17,12 +17,15 @@ class ShelterCaseSummaryProvider implements ModuleAggregateSummaryProvider
         $query = ShelterCase::query()
             ->forSubCore($instance->subCore->key)
             ->visibleTo($user, $instance->subCore->key);
-        $open = (clone $query)
-            ->whereNull('closed_at')
-            ->where('status', '<>', 'closed')
-            ->count();
-
         $isApesCic = $instance->subCore->key === ShelterCase::SUB_CORE_APES_CIC;
+        $open = $isApesCic
+            ? (clone $query)
+                ->whereNotIn('status', ['resolved', 'closed'])
+                ->count()
+            : (clone $query)
+                ->whereNull('closed_at')
+                ->where('status', '<>', 'closed')
+                ->count();
 
         return new ModuleSummary(
             $instance->key(),
