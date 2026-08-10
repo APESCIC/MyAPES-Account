@@ -344,6 +344,33 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
     }
 
+    public function test_workflow_pins_supported_node_24_first_party_actions(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+
+        foreach ([
+            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' => 2,
+            'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0' => 1,
+            'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1' => 1,
+            'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1' => 1,
+        ] as $reference => $expectedOccurrences) {
+            $this->assertSame(
+                $expectedOccurrences,
+                substr_count($workflow, $reference),
+                "Unexpected occurrence count for {$reference}.",
+            );
+        }
+
+        foreach ([
+            'actions/checkout@v4',
+            'actions/setup-node@v4',
+            'actions/upload-artifact@v4',
+            'actions/download-artifact@v4',
+        ] as $deprecatedReference) {
+            $this->assertStringNotContainsString($deprecatedReference, $workflow);
+        }
+    }
+
     public function test_workflow_runs_the_phase_b_contract_on_mysql_and_mariadb(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');

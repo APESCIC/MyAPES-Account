@@ -91,7 +91,7 @@ jobs:
       artifact_name: ${{ steps.release.outputs.artifact_name }}
     steps:
       - name: Checkout exact main revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
           fetch-depth: 0
@@ -133,7 +133,7 @@ jobs:
           tools: composer:v2
 
       - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: npm
@@ -285,7 +285,7 @@ jobs:
           fi
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ steps.release.outputs.artifact_name }}
           path: build/myapes-${{ steps.release.outputs.sha }}.tar.gz
@@ -325,7 +325,7 @@ jobs:
           --health-retries=20
     steps:
       - name: Checkout exact revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
           fetch-depth: 1
@@ -410,7 +410,7 @@ jobs:
       DEPLOYMENT_CONTROLS_SHA256: ${{ needs.deployment-control-authentication.outputs.deployment_controls_sha256 }}
     steps:
       - name: Download tested release
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ needs.quality.outputs.artifact_name }}
           path: build

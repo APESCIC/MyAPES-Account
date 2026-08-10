@@ -503,6 +503,10 @@ backends fail closed.
 
 ### Deployment flow (every deployment request)
 
+GitHub-authored Actions are pinned to reviewed full commit SHAs. The current
+checkout, Node setup, and artifact transfer pins use their supported Node 24
+runtimes; version comments beside each pin make deliberate upgrades auditable.
+
 1. A dependency-independent job fetches the exact Git revision with the built-in runner tools, reads the four deployment-control blobs directly from Git, and exports their fixed-path manifest digest before any action or package dependency can influence it.
 2. The SQLite/package job checks out that revision, validates the append-only release history, runs the complete PHP and frontend suites, validates shell and PowerShell syntax, builds Vite assets, and creates an immutable production archive with exact `VERSION`, full-SHA `REVISION`, and deployment controls that must match the Git-derived digest.
 3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded authorization cutover plus module migration, synchronization, dependency, rollback, concurrent lifecycle/write-lock, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.

@@ -17,52 +17,53 @@ class ReleaseHistoryCommandTest extends TestCase
         $repository = app(ReleaseHistoryRepository::class);
         $releases = $repository->all();
 
-        $this->assertSame('0.12.0', $repository->version());
-        $this->assertSame('0.12.0', $repository->current()['version']);
+        $this->assertSame('0.12.1', $repository->version());
+        $this->assertSame('0.12.1', $repository->current()['version']);
         $this->assertSame(
-            ['0.12.0', '0.11.0', '0.10.0', '0.9.2', '0.9.1', '0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
+            ['0.12.1', '0.12.0', '0.11.0', '0.10.0', '0.9.2', '0.9.1', '0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
             array_column($releases, 'version'),
         );
         $this->assertSame('2026-08-10', $releases[0]['date']);
-        $this->assertSame('2026-08-09', $releases[1]['date']);
+        $this->assertSame('2026-08-10', $releases[1]['date']);
         $this->assertSame('2026-08-09', $releases[2]['date']);
         $this->assertSame('2026-08-09', $releases[3]['date']);
-        $this->assertSame('2026-08-08', $releases[4]['date']);
-        $this->assertSame('2026-08-07', $releases[5]['date']);
-        $this->assertSame('2026-08-06', $releases[6]['date']);
-        $this->assertSame('2026-08-05', $releases[7]['date']);
+        $this->assertSame('2026-08-09', $releases[4]['date']);
+        $this->assertSame('2026-08-08', $releases[5]['date']);
+        $this->assertSame('2026-08-07', $releases[6]['date']);
+        $this->assertSame('2026-08-06', $releases[7]['date']);
         $this->assertSame('2026-08-05', $releases[8]['date']);
         $this->assertSame('2026-08-05', $releases[9]['date']);
-        $this->assertSame('2026-07-28', $releases[10]['date']);
-        $this->assertSame('2026-07-27', $releases[11]['date']);
+        $this->assertSame('2026-08-05', $releases[10]['date']);
+        $this->assertSame('2026-07-28', $releases[11]['date']);
         $this->assertSame('2026-07-27', $releases[12]['date']);
         $this->assertSame('2026-07-27', $releases[13]['date']);
         $this->assertSame('2026-07-27', $releases[14]['date']);
+        $this->assertSame('2026-07-27', $releases[15]['date']);
 
-        foreach (array_slice($releases, 15) as $release) {
+        foreach (array_slice($releases, 16) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 14) as $release) {
+        foreach (array_slice($releases, 15) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
 
         $current = $repository->current();
         $this->assertSame('stable', $current['channel']);
-        $this->assertSame('minor', $current['type']);
+        $this->assertSame('patch', $current['type']);
         $this->assertSame(
             [[
-                'label' => 'Issue #16',
-                'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/16',
+                'label' => 'Issue #31',
+                'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/31',
             ]],
             $current['references'],
         );
         $this->assertStringContainsString(
-            'planned end times',
+            'immutable action pins',
             strtolower(implode(' ', $current['known_limitations'])),
         );
 
-        $phaseB = $releases[9];
+        $phaseB = $releases[10];
         $this->assertStringContainsString(
             'issue #11',
             strtolower(implode(' ', $phaseB['known_limitations'])),
@@ -80,7 +81,7 @@ class ReleaseHistoryCommandTest extends TestCase
     public function test_validation_command_accepts_the_bootstrap_history(): void
     {
         $this->artisan('myapes:changelog-validate')
-            ->expectsOutputToContain('Release history is valid at v0.12.0')
+            ->expectsOutputToContain('Release history is valid at v0.12.1')
             ->assertSuccessful();
     }
 
