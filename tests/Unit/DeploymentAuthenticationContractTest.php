@@ -360,6 +360,9 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('MARIADB_DATABASE: myapes_test', $workflow);
         $this->assertStringContainsString('mysqladmin ping', $workflow);
         $this->assertStringContainsString('healthcheck.sh --connect --innodb_initialized', $workflow);
+        $this->assertStringContainsString('APP_MAINTENANCE_DRIVER: file', $workflow);
+        $this->assertStringContainsString('APP_MAINTENANCE_STORE: file', $workflow);
+        $this->assertStringContainsString('CACHE_STORE: database', $workflow);
 
         foreach ([
             'AuthorizationSchemaTest.php',
