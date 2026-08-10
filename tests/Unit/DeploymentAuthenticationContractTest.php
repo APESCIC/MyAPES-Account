@@ -85,6 +85,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
         $this->assertFalse($result['process']->isSuccessful());
         $this->assertSame([
+            '/usr/bin/php8.4 /release/new/artisan myapes:modules:rollback-check --target-release=/release/current --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan myapes:authorization-sync --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
@@ -129,7 +130,24 @@ class DeploymentAuthenticationContractTest extends TestCase
             'Current authorization could not be restored; maintenance mode remains active.',
             $result['process']->getOutput().$result['process']->getErrorOutput(),
         );
-        $this->assertCount(2, $result['commands']);
+        $this->assertCount(3, $result['commands']);
+    }
+
+    public function test_activation_recovery_keeps_current_release_down_when_its_module_contract_is_unrepresentable(): void
+    {
+        $result = $this->runActivationRecoveryHarness(
+            'pre-switch-failure',
+            'myapes:modules:rollback-check',
+        );
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertStringContainsString(
+            'Current release cannot represent the migrated module state; maintenance mode remains active.',
+            $result['process']->getOutput().$result['process']->getErrorOutput(),
+        );
+        $this->assertSame([
+            '/usr/bin/php8.4 /release/new/artisan myapes:modules:rollback-check --target-release=/release/current --no-interaction --no-ansi',
+        ], $result['commands']);
     }
 
     public function test_activation_recovery_leaves_maintenance_active_when_the_current_release_cannot_reopen(): void
@@ -144,7 +162,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             'Current release could not leave maintenance mode after activation failure.',
             $result['process']->getOutput().$result['process']->getErrorOutput(),
         );
-        $this->assertCount(5, $result['commands']);
+        $this->assertCount(6, $result['commands']);
     }
 
     public function test_activation_arms_recovery_before_database_mutation_and_commits_only_after_the_atomic_switch(): void
@@ -1606,6 +1624,8 @@ class DeploymentAuthenticationContractTest extends TestCase
         $harnessPath = $temporaryRoot.DIRECTORY_SEPARATOR.'harness.sh';
         $logPath = $temporaryRoot.DIRECTORY_SEPARATOR.'commands.log';
         $functions = $this->bashFunction($script, 'run_current_artisan')
+            ."\n"
+            .$this->bashFunction($script, 'run_artisan')
             ."\n"
             .$this->bashFunction(
                 $script,

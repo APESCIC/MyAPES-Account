@@ -11,6 +11,7 @@ class ShelterCaseActiveRecordDetector implements ModuleActiveRecordDetector
     public function count(ModuleInstanceDefinition $instance): int
     {
         return ShelterCase::query()
+            ->forSubCore($instance->subCore->key)
             ->whereNull('closed_at')
             ->where('status', '<>', 'closed')
             ->count();

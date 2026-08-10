@@ -5,11 +5,12 @@ namespace App\Http\Controllers\ApesCic;
 use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Modules\ModuleInstanceDefinition;
 use App\Notifications\TicketUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
-use App\Services\AuthorizationProfile;
+use App\Services\ModuleRouteContext;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,20 +21,22 @@ class TicketController extends Controller
 {
     private const SERVICE_AREAS = ['legal', 'human_resources', 'it', 'web_dev', 'operations', 'other'];
 
-    private const PERMISSION_ASSIGN = 'apes-cic.tickets.assign';
+    public function __construct(
+        private readonly ModuleRouteContext $moduleContext,
+    ) {}
 
-    private const PERMISSION_CLOSE = 'apes-cic.tickets.close';
-
-    private const PERMISSION_COMMENT_OWN = 'apes-cic.tickets.comment-own';
-
-    private const PERMISSION_UPDATE_ALL = 'apes-cic.tickets.update-all';
-
-    public function index(): View
+    public function index(Request $request): View
     {
-        $user = request()->user();
-        Gate::authorize('viewAny', SupportTicket::class);
+        $instance = $this->instance($request);
+        $prefix = $this->moduleContext->permissionPrefix($instance);
+        $user = $request->user();
+        abort_unless(
+            $user->can($prefix.'view-own') || $user->can($prefix.'view-all'),
+            403,
+        );
         $query = SupportTicket::query()
-            ->visibleTo($user)
+            ->forSubCore($instance->subCore->key)
+            ->visibleTo($user, $instance->subCore->key)
             ->with(['user', 'assignedTo'])
             ->latest();
 
@@ -45,6 +48,9 @@ class TicketController extends Controller
 
     public function store(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
+        $instance = $this->instance($request);
+        $prefix = $this->moduleContext->permissionPrefix($instance);
+        Gate::authorize($prefix.'create');
         $validated = $request->validate([
             'service_area' => ['required', Rule::in(self::SERVICE_AREAS)],
             'subject' => ['required', 'string', 'max:255'],
@@ -54,6 +60,7 @@ class TicketController extends Controller
 
         $ticket = SupportTicket::create([
             ...$validated,
+            'sub_core_key' => $instance->subCore->key,
             'user_id' => $request->user()->id,
         ]);
 
@@ -63,29 +70,35 @@ class TicketController extends Controller
             'is_staff_note' => false,
         ]);
 
-        $this->notifyTicketStakeholders($ticket, $request->user(), 'created');
+        $this->notifyTicketStakeholders($ticket, $request->user(), 'created', $instance);
         $auditLogger->record('apes_cic.ticket.created', $request->user(), $ticket, [
             'service_area' => $ticket->service_area,
             'priority' => $ticket->priority,
+            'sub_core_key' => $ticket->sub_core_key,
+            'module_key' => $instance->module->key,
         ]);
 
-        return redirect()->route('apes-cic.tickets.show', $ticket);
+        return redirect()->route($this->moduleContext->showRouteName($instance), $ticket);
     }
 
     public function show(
+        Request $request,
         SupportTicket $ticket,
         AssignmentAuthorization $assignments,
     ): View {
+        $instance = $this->instance($request);
+        $prefix = $this->moduleContext->permissionPrefix($instance);
+        $this->requireTicketForInstance($ticket, $instance);
         Gate::authorize('view', $ticket);
-        $user = request()->user();
+        $user = $request->user();
         $canChangeAssignment = $assignments->allows($user)
-            && $user->can(self::PERMISSION_ASSIGN);
-        $canUpdateTicket = $user->can(self::PERMISSION_UPDATE_ALL);
-        $canCloseTicket = $user->can(self::PERMISSION_CLOSE);
-        $canCommentTicket = $user->can(self::PERMISSION_COMMENT_OWN);
+            && $user->can($prefix.'assign');
+        $canUpdateTicket = $user->can($prefix.'update-all');
+        $canCloseTicket = $user->can($prefix.'close');
+        $canCommentTicket = $user->can($prefix.'comment-own');
 
         $messagesQuery = $ticket->messages()->with('user')->latest('created_at');
-        if (! $user->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS)) {
+        if (! $user->can($prefix.'view-all')) {
             $messagesQuery->where('is_staff_note', false);
         }
 
@@ -99,6 +112,7 @@ class TicketController extends Controller
             'staffUsers' => $canChangeAssignment
                 ? User::query()
                     ->eligibleStaff()
+                    ->withAuthorizationPermission($prefix.'view-all')
                     ->orderBy('name')
                     ->get()
                 : collect(),
@@ -111,6 +125,9 @@ class TicketController extends Controller
         AuditLogger $auditLogger,
         AssignmentAuthorization $assignments,
     ): RedirectResponse {
+        $instance = $this->instance($request);
+        $prefix = $this->moduleContext->permissionPrefix($instance);
+        $this->requireTicketForInstance($ticket, $instance);
         Gate::authorize('update', $ticket);
         $input = $request->all();
         $assignmentRequested = array_key_exists(
@@ -120,8 +137,8 @@ class TicketController extends Controller
         $ticketUpdateRequested = array_key_exists('status', $input)
             || array_key_exists('priority', $input);
         $messageRequested = array_key_exists('message', $input);
-        $isStaff = $request->user()->can(
-            AuthorizationProfile::PERMISSION_STAFF_ACCESS,
+        $canChooseVisibility = $request->user()->can(
+            $prefix.'view-all',
         );
 
         if ($assignmentRequested) {
@@ -130,22 +147,22 @@ class TicketController extends Controller
                 $request->user(),
                 $ticket,
             );
-            Gate::authorize(self::PERMISSION_ASSIGN);
+            Gate::authorize($prefix.'assign');
         }
 
         if ($ticketUpdateRequested) {
-            Gate::authorize(self::PERMISSION_UPDATE_ALL);
+            Gate::authorize($prefix.'update-all');
 
             $requestedStatus = $request->input('status');
             if (is_string($requestedStatus)
                 && in_array($requestedStatus, ['resolved', 'closed'], true)
                 && $requestedStatus !== $ticket->status) {
-                Gate::authorize(self::PERMISSION_CLOSE);
+                Gate::authorize($prefix.'close');
             }
         }
 
         if ($messageRequested) {
-            Gate::authorize(self::PERMISSION_COMMENT_OWN);
+            Gate::authorize($prefix.'comment-own');
         }
 
         $rules = [
@@ -156,6 +173,9 @@ class TicketController extends Controller
                 'string',
             ],
         ];
+        if ($messageRequested) {
+            $rules['visibility'] = ['nullable', 'in:public,internal'];
+        }
         if ($ticketUpdateRequested) {
             $rules['status'] = [
                 'required',
@@ -171,7 +191,7 @@ class TicketController extends Controller
                 'sometimes',
                 'nullable',
                 'integer',
-                new EligibleStaffAssignee,
+                new EligibleStaffAssignee($prefix.'view-all'),
             ];
         }
         $validated = $request->validate($rules);
@@ -201,46 +221,100 @@ class TicketController extends Controller
             $ticket->messages()->create([
                 'user_id' => $request->user()->id,
                 'message' => $validated['message'],
-                'is_staff_note' => $isStaff,
+                'is_staff_note' => $canChooseVisibility
+                    && ($validated['visibility'] ?? 'public') === 'internal',
             ]);
         }
 
-        $this->notifyTicketStakeholders($ticket, $request->user(), 'updated');
+        $internalMessage = ! empty($validated['message'])
+            && $canChooseVisibility
+            && ($validated['visibility'] ?? 'public') === 'internal';
+        if (! empty($validated['message']) && ! $internalMessage) {
+            $ticket->touch();
+        }
+        $this->notifyTicketStakeholders(
+            $ticket,
+            $request->user(),
+            'updated',
+            $instance,
+            $internalMessage,
+        );
         $auditLogger->record('apes_cic.ticket.updated', $request->user(), $ticket, [
             'status' => $ticket->status,
             'priority' => $ticket->priority,
             'assigned_to' => $ticket->assigned_to,
+            'sub_core_key' => $ticket->sub_core_key,
+            'module_key' => $instance->module->key,
         ]);
 
-        return redirect()->route('apes-cic.tickets.show', $ticket)->with('status', 'Ticket updated.');
+        return redirect()->route($this->moduleContext->showRouteName($instance), $ticket)
+            ->with('status', 'Ticket updated.');
     }
 
-    public function destroy(SupportTicket $ticket, AuditLogger $auditLogger): RedirectResponse
-    {
-        $actor = request()->user();
+    public function destroy(
+        Request $request,
+        SupportTicket $ticket,
+        AuditLogger $auditLogger,
+    ): RedirectResponse {
+        $instance = $this->instance($request);
+        $this->requireTicketForInstance($ticket, $instance);
+        $actor = $request->user();
         Gate::authorize('delete', $ticket);
 
         $auditLogger->record('apes_cic.ticket.deleted', $actor, $ticket, [
-            'subject' => $ticket->subject,
+            'sub_core_key' => $ticket->sub_core_key,
+            'module_key' => $instance->module->key,
         ]);
         $ticket->delete();
 
-        return redirect()->route('apes-cic.tickets.index')->with('status', 'Ticket deleted.');
+        return redirect()->route($this->moduleContext->indexRouteName($instance))
+            ->with('status', 'Ticket deleted.');
     }
 
-    private function notifyTicketStakeholders(SupportTicket $ticket, User $actor, string $eventLabel): void
-    {
+    private function notifyTicketStakeholders(
+        SupportTicket $ticket,
+        User $actor,
+        string $eventLabel,
+        ModuleInstanceDefinition $instance,
+        bool $staffOnly = false,
+    ): void {
+        $prefix = $this->moduleContext->permissionPrefix($instance);
         $staffRecipients = User::query()
             ->eligibleStaff()
+            ->withAuthorizationPermission($prefix.'view-all')
             ->get();
 
+        if (! $staffOnly && $ticket->user?->can('view', $ticket)) {
+            $staffRecipients->push($ticket->user);
+        }
+
         $ticketRecipients = $staffRecipients
-            ->push($ticket->user)
             ->unique('id')
             ->reject(fn (User $recipient): bool => $recipient->id === $actor->id);
 
         foreach ($ticketRecipients as $recipient) {
-            $recipient->notify(new TicketUpdatedNotification($ticket, $actor, $eventLabel));
+            $recipient->notify(new TicketUpdatedNotification(
+                $ticket,
+                $actor,
+                $eventLabel,
+                $instance->subCore->key,
+                $this->moduleContext->showRouteName($instance),
+            ));
         }
+    }
+
+    private function requireTicketForInstance(
+        SupportTicket $ticket,
+        ModuleInstanceDefinition $instance,
+    ): void {
+        abort_unless(
+            $ticket->sub_core_key === $instance->subCore->key,
+            404,
+        );
+    }
+
+    private function instance(Request $request): ModuleInstanceDefinition
+    {
+        return $this->moduleContext->resolve($request, 'tickets');
     }
 }

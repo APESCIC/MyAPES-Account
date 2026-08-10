@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-07T16:22:04+01:00`
+- Last verified README health review: `2026-08-10T16:26:54+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -28,7 +28,7 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 - **Protected authorization**:
   - The exact protected roles are `service-user`, `staff`, `administrator`, and `super-admin`.
   - The core code-owned permission catalogue contains `staff.access`, `admin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
-  - The first-party registry contributes 32 namespaced permissions for shipped instances. All 45 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
+  - The first-party registry contributes 43 namespaced permissions for shipped instances. All 56 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
   - Administrators retain `admin.modules.view`; `admin.modules.manage` is super-admin-only.
   - Direct user permissions remain an internal central-materializer capability with mandatory provenance and no arbitrary Admin assignment UI. Authorized Admin user details show the same deduplicated role-plus-direct effective set used by the Gate and list each direct source with only a system label or granting account ID.
   - Spatie provides role/permission storage only. Its automatic Gate hook remains disabled while the teams schema and wildcard matching are enabled for the application-owned authorization path. Direct user permissions are allowed only through the central provenance materializer; direct pivot mutation remains disabled.
@@ -46,14 +46,14 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Admin Roles lets authorized administrators inspect custom roles while only super-admins can create, update permissions for, or delete unassigned custom roles.
   - Admin Permissions is a read-only view of the core and shipped-module code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
 - **First-party module registry**:
-  - Immutable Laravel contracts define the permanent `apes-cic`, `shelter-rescue`, and `pet-care-clinic` sub-cores plus the `tickets`, `cases`, `pet-profiles`, and `consultations` module types. Executable providers, detectors, routes, and summaries are registered from reviewed source code only; database or writable-storage discovery is unsupported.
-  - The five shipped instances are APES CIC Tickets; Shelter and Rescue Pet Profiles and Cases; and Pet Care Clinic Pet Profiles and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state.
-  - Shelter Tickets, Pet Care Clinic Tickets, and APES CIC Cases are compatible but display as **Code not shipped** and have no install action. All other matrix cells are explicitly incompatible.
+  - Immutable Laravel contracts define the permanent `apes-cic`, `shelter-rescue`, and `pet-care-clinic` sub-cores plus the `tickets`, `cases`, `pet-profiles`, and `consultations` module types. Executable providers, instance-scoped active-record detectors, routes, summaries, bounded recent activity, and typed analytics snapshots are registered from reviewed source code only; database or writable-storage discovery is unsupported.
+  - The six shipped instances are APES CIC Tickets and Cases; Shelter and Rescue Pet Profiles and Cases; and Pet Care Clinic Pet Profiles and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state.
+  - Shelter Tickets and Pet Care Clinic Tickets remain compatible but display as **Code not shipped** and have no install action. All other matrix cells are explicitly incompatible.
   - Lifecycle operations are transactional, super-admin-only, and serialized with module write requests through the same durable per-instance advisory/file lock. Lock acquisition has a bounded wait, while ownership lasts for the complete operation. Dependencies and active records are rechecked under the transition transaction; disablement never deletes records, and no uninstall operation exists.
   - Each installation carries a monotonic transition version, so even multiple enable/disable operations within one second invalidate stale Admin forms. Direct route checks read authoritative installation state. Generated navigation and aggregate dashboard summaries use a short versioned projection cache, invalidated after committed lifecycle transitions and synchronization repairs.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
-  - **APES CIC** (`/apes-cic`) - organisational support tickets. Owners can add non-empty messages to their own tickets through `apes-cic.tickets.comment-own`; status/priority changes, terminal transitions, and assignment changes independently require `apes-cic.tickets.update-all`, `apes-cic.tickets.close`, and `apes-cic.tickets.assign`.
+  - **APES CIC** (`/apes-cic`) - organisational support Tickets and Cases. Owners can create and view their own records and add public updates. Staff Ticket replies and Case updates can be explicitly public or internal; owner views, notifications, hub activity, and audits never disclose internal bodies. Ticket and Case records, lifecycle checks, navigation, dashboard totals, recent activity, and analytics are all scoped to the `apes-cic` module instance.
   - **APES Shelter and Rescue** (`/shelter`) - pet profiles and case management
   - **APES Pet Care** (`/petcare`) - pet profiles and consultation management
 - **Cloudron service integrations**: MySQL, Redis (cache/session/queue), and sendmail-compatible SMTP delivery.
@@ -65,6 +65,14 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 - `/staff/login` - dedicated staff login page that starts Cloudron OIDC
 - `/change-log` - public, searchable MyAPES Account release history for guests, public users, and staff
 - local/testing only: QA role switcher (Public/Staff/Admin) available in the app layout for one-click identity switching
+
+### APES CIC route and permission contract
+
+The APES CIC hub exposes 12 authenticated application routes: the stable hub route, five unchanged Ticket routes, five Case resource routes, and one Case-update route. The Cases permission namespace is:
+
+`apes-cic.cases.{view-own,create,update-own,comment-own,view-all,update-all,assign,close,delete}`
+
+`update-own` remains code-owned for shared Shelter compatibility, but the APES CIC public controller intentionally exposes only owner comments; ownership, category, priority, status, assignment, visibility, and lifecycle timestamps remain staff-controlled.
 
 ## Brand assets
 
@@ -158,7 +166,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 
 | Role | Login email | Login route | Primary QA coverage |
 | --- | --- | --- | --- |
-| Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC tickets, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
+| Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC tickets/cases, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
 | Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff visibility across all user records, assignment updates, staff notes, status workflows, and the local custom-role fixture |
 | Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus authorized Admin Users/Groups/Roles/Permissions views and allowed account mutations |
 | Super Admin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Custom-role, exact directory-mapping, and guarded module-lifecycle management boundaries |
@@ -167,13 +175,14 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 
 | Role | Key flows to validate quickly |
 | --- | --- |
-| Public | Create/view own APES CIC tickets, update own shelter/pet care records, edit profile/settings, verify owner-only visibility |
+| Public | Create/view/comment on own APES CIC tickets and cases, update own shelter/pet care records, edit profile/settings, verify owner-only and public-update visibility |
 | Staff | See all users' tickets/cases/consultations, assign records to staff/admin, update statuses and staff notes |
 | Admin | Run full staff workflows plus inspect Admin Users, Groups, Roles, Permissions, and Modules and exercise allowed user-management boundaries |
 
 ### Seeded data included for quick E2E checks
 
 - APES CIC tickets: two open/in-progress examples plus a resolved example with message history and staff/admin assignment
+- APES CIC cases: owner-scoped categories, priorities, public updates, internal staff notes, assignment, and close/reopen transitions
 - Shelter: seeded pet profile with two open/in-review cases plus a closed example
 - Pet Care: seeded pet profile with two open/in-progress consultations plus a closed example
 - User profiles: seeded profile data for each QA account
@@ -485,6 +494,15 @@ Disabled legacy-visible modules therefore deliberately block rollback to
 v0.8.3; operators must re-enable them through the guarded lifecycle or retain
 the current release and assess database recovery.
 
+v0.13.0 deliberately installs `apes-cic:cases` as the sixth persisted module
+instance while retaining the original five entries as the legacy-visible
+baseline. v0.12.1 cannot represent that sixth installation, even when it is
+disabled, so the unchanged compatibility checker fails closed with
+`target_contract_unrepresentable`. Take and verify the normal pre-deployment
+backup before migration. After the sixth installation exists, returning to
+v0.12.1 requires restoration of the corresponding pre-deployment database
+backup; code rollback alone is not a supported recovery path.
+
 Code rollback enters Laravel maintenance mode before compatibility validation,
 then acquires every code-owned module-instance lock so in-flight writes finish
 before the representability snapshot. While requests remain quiesced, the
@@ -584,7 +602,8 @@ Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provide
 - `maintenance_windows`: auditable activation/deactivation history, nullable actors, bounded failure state, and a unique nullable guard enforcing one current transition across SQLite and MySQL
 - `module_installations`: durable per-sub-core shipped-module state with a monotonic transition version, transition timestamps, and sanitized actor account IDs; state is unique by `(sub_core_key, module_key)` and never stores executable class names
 - `user_profiles`: shared profile/settings data
-- `support_tickets` + `support_ticket_messages`: APES CIC support workflows
+- `support_tickets` + `support_ticket_messages`: sub-core-discriminated Tickets with preserved identities, owner/staff conversations, and explicit public/internal staff replies
 - `pet_profiles`: shared pet record model (`shelter` or `petcare` domain)
-- `shelter_cases`: adoption/surrender/rescue/fostering tracking
+- `shelter_cases`: compatibility persistence identity for both pet-linked Shelter cases and pet-optional APES CIC cases, with sub-core, category, shared priority, widened status, and lifecycle timestamps
+- `case_updates`: public or internal Case updates linked to the stable `shelter_cases` identity; update text is excluded from audit metadata
 - `pet_care_consultations`: consultation lifecycle tracking

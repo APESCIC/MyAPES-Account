@@ -372,6 +372,7 @@ jobs:
             tests/Feature/DirectoryRoleSynchronizerTest.php \
             tests/Feature/ModuleRegistryTest.php \
             tests/Feature/ModulePermissionMigrationTest.php \
+            tests/Feature/ApesCicFoundationMigrationTest.php \
             tests/Feature/ModuleInstallationSynchronizationTest.php \
             tests/Feature/ModuleLifecycleTest.php \
             tests/Feature/ModuleLifecycleConcurrencyTest.php \

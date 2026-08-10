@@ -3,6 +3,10 @@
 namespace App\Modules;
 
 use App\Contracts\ModuleRegistry;
+use App\Modules\Activity\CaseRecentActivityProvider;
+use App\Modules\Activity\SupportTicketRecentActivityProvider;
+use App\Modules\Analytics\CaseAnalyticsProvider;
+use App\Modules\Analytics\SupportTicketAnalyticsProvider;
 use App\Modules\Detectors\PetCareConsultationActiveRecordDetector;
 use App\Modules\Detectors\PetProfileActiveRecordDetector;
 use App\Modules\Detectors\ShelterCaseActiveRecordDetector;
@@ -192,6 +196,8 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 ],
                 SupportTicketActiveRecordDetector::class,
                 SupportTicketSummaryProvider::class,
+                SupportTicketRecentActivityProvider::class,
+                SupportTicketAnalyticsProvider::class,
             ),
             new ModuleDefinition(
                 'cases',
@@ -199,17 +205,25 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 'Rescue and welfare case records.',
                 '1.0.0',
                 ['apes-cic', 'shelter-rescue'],
-                ['shelter-rescue'],
+                ['apes-cic', 'shelter-rescue'],
                 [
                     $public('view-own', 'View own cases'),
                     $public('create', 'Create cases'),
                     $public('update-own', 'Update own cases'),
+                    $public('comment-own', 'Comment on own cases'),
                     $staff('view-all', 'View all cases'),
                     $staff('update-all', 'Update all cases'),
                     $staff('assign', 'Assign cases'),
                     $staff('close', 'Close cases'),
+                    $staff('delete', 'Delete cases'),
                 ],
                 [
+                    'apes-cic' => new ModuleNavigationDefinition(
+                        'Cases',
+                        'apes-cic.cases.index',
+                        'briefcase-business',
+                        20,
+                    ),
                     'shelter-rescue' => new ModuleNavigationDefinition(
                         'Cases',
                         'shelter.cases.index',
@@ -219,6 +233,8 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 ],
                 ShelterCaseActiveRecordDetector::class,
                 ShelterCaseSummaryProvider::class,
+                CaseRecentActivityProvider::class,
+                CaseAnalyticsProvider::class,
             ),
             new ModuleDefinition(
                 'pet-profiles',

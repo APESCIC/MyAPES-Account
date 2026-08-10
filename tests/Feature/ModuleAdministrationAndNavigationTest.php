@@ -6,6 +6,7 @@ use App\Models\ModuleInstallation;
 use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
+use App\Services\ModuleProjectionCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -56,11 +57,24 @@ class ModuleAdministrationAndNavigationTest extends TestCase
 
         $dashboard->assertOk();
         $dashboard->assertDontSee('data-module-instance="apes-cic:tickets"', false);
-        $dashboard->assertDontSee(route('apes-cic.index'));
+        $dashboard->assertSee(route('apes-cic.index'));
+        $dashboard->assertSee('data-module-instance="apes-cic:cases"', false);
         $dashboard->assertSee(
             'data-module-instance="shelter-rescue:cases"',
             false,
         );
+        $this->actingAs($user)
+            ->get('/apes-cic')
+            ->assertOk()
+            ->assertSee('Cases')
+            ->assertDontSee(route('apes-cic.tickets.index'));
+
+        $cases = $this->installation('apes-cic', 'cases');
+        $cases->forceFill([
+            'enabled' => false,
+            'disabled_at' => now(),
+        ])->save();
+        app(ModuleProjectionCache::class)->invalidate();
         $this->actingAs($user)
             ->get('/apes-cic')
             ->assertOk()
@@ -81,7 +95,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             substr_count($response->getContent(), 'data-module-cell='),
         );
         $this->assertSame(
-            3,
+            2,
             substr_count(
                 $response->getContent(),
                 'data-code-status="code_not_shipped"',

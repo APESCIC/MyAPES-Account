@@ -125,7 +125,7 @@ class ModuleLifecycleTest extends TestCase
             }
         }
 
-        $this->assertDatabaseCount('module_installations', 5);
+        $this->assertDatabaseCount('module_installations', 6);
     }
 
     public function test_install_recreates_an_available_shipped_instance_with_actor_provenance(): void
@@ -270,6 +270,17 @@ class ModuleLifecycleTest extends TestCase
             'case_type' => 'rescue',
             'status' => 'open',
             'title' => 'Open case',
+        ]);
+        ShelterCase::query()->create([
+            'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+            'pet_profile_id' => null,
+            'user_id' => $owner->id,
+            'case_type' => null,
+            'category' => 'general',
+            'priority' => 'medium',
+            'status' => 'open',
+            'title' => 'Open APES CIC case',
+            'opened_at' => now(),
         ]);
         PetCareConsultation::query()->create([
             'pet_profile_id' => $petCarePet->id,

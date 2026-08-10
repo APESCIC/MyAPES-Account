@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\AuthorizationProfile;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
+    'sub_core_key',
     'user_id',
     'assigned_to',
     'service_area',
@@ -21,9 +21,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class SupportTicket extends Model
 {
-    public function scopeVisibleTo(Builder $query, User $user): Builder
+    public const SUB_CORE_APES_CIC = 'apes-cic';
+
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'sub_core_key' => self::SUB_CORE_APES_CIC,
+    ];
+
+    public function scopeForSubCore(Builder $query, string $subCoreKey): Builder
     {
-        return $user->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS)
+        return $query->where('sub_core_key', $subCoreKey);
+    }
+
+    public function scopeVisibleTo(
+        Builder $query,
+        User $user,
+        string $subCoreKey = self::SUB_CORE_APES_CIC,
+    ): Builder {
+        return $user->can("{$subCoreKey}.tickets.view-all")
             ? $query
             : $query->where('user_id', $user->id);
     }

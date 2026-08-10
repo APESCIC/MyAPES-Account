@@ -11,6 +11,8 @@ final readonly class ModuleDefinition
      * @param  array<string, ModuleNavigationDefinition>  $navigation
      * @param  class-string  $activeRecordDetector
      * @param  class-string|null  $summaryProvider
+     * @param  class-string|null  $recentActivityProvider
+     * @param  class-string|null  $analyticsProvider
      */
     public function __construct(
         public string $key,
@@ -23,5 +25,7 @@ final readonly class ModuleDefinition
         public array $navigation,
         public string $activeRecordDetector,
         public ?string $summaryProvider = null,
+        public ?string $recentActivityProvider = null,
+        public ?string $analyticsProvider = null,
     ) {}
 }

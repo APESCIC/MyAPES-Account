@@ -48,6 +48,13 @@
                 @if($canCommentTicket)
                     <label for="message">Add message</label>
                     <textarea id="message" name="message"></textarea>
+                    @if(auth()->user()->can('apes-cic.tickets.view-all'))
+                        <label for="visibility">Visibility</label>
+                        <select id="visibility" name="visibility">
+                            <option value="public">Public</option>
+                            <option value="internal">Internal staff only</option>
+                        </select>
+                    @endif
                 @endif
                 <div class="actions">
                     <button type="submit">{{ $canUpdateTicket || $canChangeAssignment ? 'Save ticket' : 'Add message' }}</button>

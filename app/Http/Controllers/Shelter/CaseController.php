@@ -22,6 +22,7 @@ class CaseController extends Controller
         $user = request()->user();
         Gate::authorize('viewAny', ShelterCase::class);
         $query = ShelterCase::query()
+            ->forSubCore(ShelterCase::SUB_CORE_SHELTER_RESCUE)
             ->visibleTo($user)
             ->with(['petProfile', 'assignedTo'])
             ->latest();
@@ -50,6 +51,7 @@ class CaseController extends Controller
 
         $case = ShelterCase::create([
             ...$validated,
+            'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
             'user_id' => $pet->user_id,
         ]);
 
@@ -66,6 +68,7 @@ class CaseController extends Controller
         ShelterCase $case,
         AssignmentAuthorization $assignments,
     ): View {
+        $this->requireShelterCase($case);
         Gate::authorize('view', $case);
         $canChangeAssignment = $assignments->allows(
             request()->user(),
@@ -89,6 +92,7 @@ class CaseController extends Controller
         AuditLogger $auditLogger,
         AssignmentAuthorization $assignments,
     ): RedirectResponse {
+        $this->requireShelterCase($case);
         Gate::authorize('update', $case);
         $assignmentRequested = array_key_exists(
             'assigned_to',
@@ -132,6 +136,14 @@ class CaseController extends Controller
         ]);
 
         return redirect()->route('shelter.cases.show', $case)->with('status', 'Case updated.');
+    }
+
+    private function requireShelterCase(ShelterCase $case): void
+    {
+        abort_unless(
+            $case->sub_core_key === ShelterCase::SUB_CORE_SHELTER_RESCUE,
+            404,
+        );
     }
 
     private function notifyCaseStakeholders(ShelterCase $case, User $actor, string $eventLabel): void

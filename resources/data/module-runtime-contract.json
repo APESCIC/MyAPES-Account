@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-  "application_version": "0.12.1",
+  "application_version": "0.13.0",
     "sub_cores": [
         "apes-cic",
         "pet-care-clinic",
@@ -13,6 +13,7 @@
         "tickets"
     ],
     "shipped_instances": [
+        "apes-cic:cases",
         "apes-cic:tickets",
         "pet-care-clinic:consultations",
         "pet-care-clinic:pet-profiles",

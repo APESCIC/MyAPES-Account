@@ -14,7 +14,9 @@ class SupportTicketSummaryProvider implements ModuleAggregateSummaryProvider
         ModuleInstanceDefinition $instance,
         User $user,
     ): ModuleSummary {
-        $query = SupportTicket::query()->visibleTo($user);
+        $query = SupportTicket::query()
+            ->forSubCore($instance->subCore->key)
+            ->visibleTo($user, $instance->subCore->key);
         $open = (clone $query)
             ->whereNull('closed_at')
             ->whereNotIn('status', ['resolved', 'closed'])
