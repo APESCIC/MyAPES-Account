@@ -56,7 +56,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
         $this->assertSame('manifest', $result['contract']);
         $this->assertSame(5, $result['installations']);
-        $this->assertSame('0.11.0', $result['target_version']);
+        $this->assertSame('0.12.0', $result['target_version']);
     }
 
     public function test_a_legacy_target_without_a_manifest_requires_exactly_five_enabled_baselines(): void

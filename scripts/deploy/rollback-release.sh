@@ -253,7 +253,36 @@ if [[ -e "$CURRENT_LINK" && ! -L "$CURRENT_LINK" ]]; then
   exit 1
 fi
 
+maintenance_state_for_release() {
+  local release_root="$1"
+  local state=""
+
+  if ! state="$(sudo -E -u www-data env APP_ENV=production \
+      "$PHP_BIN" -r '
+$root = $argv[1] ?? "";
+require $root."/vendor/autoload.php";
+$app = require $root."/bootstrap/app.php";
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+fwrite(STDOUT, $app->maintenanceMode()->active() ? "active" : "inactive");
+' "$release_root")"; then
+    echo "Unable to determine Laravel maintenance state." >&2
+    return 1
+  fi
+
+  case "$state" in
+    active|inactive)
+      printf '%s\n' "$state"
+      ;;
+    *)
+      echo "Laravel maintenance state returned an invalid result." >&2
+      return 1
+      ;;
+  esac
+}
+
 MAINTENANCE_ACTIVE=false
+PREEXISTING_MAINTENANCE=false
+ROLLBACK_MAINTENANCE_ACTIVE=false
 ROLLBACK_SWITCHED=false
 
 restore_current_release() {
@@ -280,10 +309,10 @@ restore_current_release() {
     authorization_restored=true
   fi
 
-  if [[ "$authorization_restored" == true ]]; then
+  if [[ "$authorization_restored" == true && "$ROLLBACK_MAINTENANCE_ACTIVE" == true ]]; then
     sudo -E -u www-data env APP_ENV=production \
       "$PHP_BIN" "${CURRENT_TARGET}/artisan" up --no-interaction --no-ansi
-  else
+  elif [[ "$authorization_restored" != true ]]; then
     echo "Current authorization could not be restored; maintenance mode remains active."
   fi
 
@@ -292,8 +321,14 @@ restore_current_release() {
 
 trap restore_current_release EXIT
 
-sudo -E -u www-data env APP_ENV=production \
-  "$PHP_BIN" "${CURRENT_TARGET}/artisan" down --retry=60 --no-interaction --no-ansi
+CURRENT_MAINTENANCE_STATE="$(maintenance_state_for_release "$CURRENT_TARGET")"
+if [[ "$CURRENT_MAINTENANCE_STATE" == active ]]; then
+  PREEXISTING_MAINTENANCE=true
+else
+  sudo -E -u www-data env APP_ENV=production \
+    "$PHP_BIN" "${CURRENT_TARGET}/artisan" down --retry=60 --no-interaction --no-ansi
+  ROLLBACK_MAINTENANCE_ACTIVE=true
+fi
 MAINTENANCE_ACTIVE=true
 
 sudo -E -u www-data env APP_ENV=production \
@@ -377,8 +412,10 @@ for protected_path in \
   fi
 done
 
-sudo -E -u www-data env APP_ENV=production \
-  "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" up --no-interaction --no-ansi
+if [[ "$ROLLBACK_MAINTENANCE_ACTIVE" == true ]]; then
+  sudo -E -u www-data env APP_ENV=production \
+    "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" up --no-interaction --no-ansi
+fi
 MAINTENANCE_ACTIVE=false
 trap - EXIT
 

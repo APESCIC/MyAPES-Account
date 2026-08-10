@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminGroupController;
+use App\Http\Controllers\Admin\AdminMaintenanceController;
 use App\Http\Controllers\Admin\AdminModuleController;
 use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRoleController;
@@ -52,6 +53,22 @@ Route::middleware([
     'authorization.context',
     'directory.current',
 ])->group(function (): void {
+    Route::prefix('admin/maintenance')
+        ->name('admin.maintenance.')
+        ->middleware([
+            'maintenance.recovery',
+            'admin.denial-audit',
+            'can:admin.maintenance.manage',
+        ])
+        ->group(function (): void {
+            Route::get('/', [AdminMaintenanceController::class, 'index'])
+                ->name('index');
+            Route::post('/activate', [AdminMaintenanceController::class, 'activate'])
+                ->name('activate');
+            Route::post('/deactivate', [AdminMaintenanceController::class, 'deactivate'])
+                ->name('deactivate');
+        });
+
     Route::get('/email/verify', function (Request $request) {
         return $request->user()->hasVerifiedEmail()
             ? redirect()->route('onboarding.edit')

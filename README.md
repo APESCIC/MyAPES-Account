@@ -358,6 +358,61 @@ Cloudron credential prompt on the next Staff Login; it does not end other
 Cloudron sessions because the provider does not publish a global logout
 endpoint.
 
+## Maintenance operations and recovery
+
+Production uses Laravel's shared Redis-backed maintenance state:
+
+```dotenv
+APP_MAINTENANCE_DRIVER=cache
+APP_MAINTENANCE_STORE=redis
+```
+
+An authenticated administrator or super-admin with
+`admin.maintenance.manage` can use `/admin/maintenance` to activate or
+deactivate maintenance. Activation requires a message and explicit
+confirmation; an optional planned end is informational and never restores the
+application automatically. Public requests and ordinary Staff requests are
+blocked with the branded HTTP 503 response. The only recovery exceptions are
+`/healthz`, `/staff/login`, `/staff/auth/login`, `/staff/auth/callback`, and the
+three `/admin/maintenance` console and transition routes. Those exceptions do
+not bypass authentication or permission checks: guests remain unauthenticated,
+and ordinary Staff receive the same branded 503 response after signing in.
+
+The Laravel maintenance store is authoritative. The `maintenance_windows`
+table is its auditable history and recovery projection. Every console status
+request reconciles interrupted transitions: native active state completes a
+pending activation, native inactive state completes a pending deactivation,
+and native maintenance without a current history row creates a bounded
+system-reconciled record. Duplicate current history fails closed and requires
+operator review. Failures retain only bounded codes and summaries; exception
+details, credentials, and provider payloads are never persisted.
+
+The production queue worker deliberately runs without `--force`. It pauses
+while Laravel maintenance is active, queued Redis jobs remain durable, and
+processing resumes after maintenance is deactivated. No queued job is discarded
+by the maintenance console.
+
+Deployment activation and rollback first probe the authoritative maintenance
+state as `www-data`. Pre-existing operator maintenance is never overwritten and
+is never lifted by deployment success or recovery. A deployment that entered
+maintenance may lift only its own state. Redis-backed maintenance survives the
+release symlink switch and application restart. A compatible rollback to code
+without this Admin console still retains Laravel CLI recovery.
+
+If the console cannot recover the application, run this exact argument-separated
+Cloudron command from an authenticated operator shell:
+
+```bash
+cloudron --server "$CLOUDRON_FQDN" --token "$CLOUDRON_TOKEN" \
+  exec --app "$CLOUDRON_APP_ID" -- \
+  sudo -E -u www-data /usr/bin/php8.4 \
+    /app/data/current/artisan up --no-interaction --no-ansi
+```
+
+After emergency CLI recovery, revisit `/admin/maintenance`; the console will
+reconcile an active or deactivation-pending history row to `ended` without
+putting the application back into maintenance.
+
 ### Forward-only rollback contract
 
 Phase B removes `users.role` only after verifying the complete canonical Phase
@@ -475,7 +530,9 @@ backends fail closed.
    reopens it. Failed restoration or reopening leaves maintenance active while
    preserving the original activation failure. First deployment and
    same-release activation skip this quiescence. Immediately after the atomic
-   switch is marked committed, the new release explicitly leaves maintenance.
+   switch is marked committed, the new release leaves maintenance only when
+   that deployment entered it. Pre-existing operator maintenance remains
+   authoritative and active throughout the deployment.
    If activation fails, the workflow reauthenticates the tested controls and
    classifies the authoritative `current` and `previous` symlinks against the
    new and captured prior SHAs. A verified pre-switch failure leaves the
@@ -485,7 +542,7 @@ backends fail closed.
    state remains fail-closed with backup and staging evidence retained.
 7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
 8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
-9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, and healthy dependencies, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge.
+9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, healthy dependencies, and a real boolean `maintenance` value that may be either `true` or `false`, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge. Rollback verification tolerates the maintenance field being absent only for a pre-v0.12 target.
 10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Activation, restart, runtime-control, or verification failure for a new release may roll back only after the normalized recovery decision proves that `current` is the exact failed SHA and `previous` is the captured pre-activation SHA; any mismatch or unavailable prior identity fails closed. Rollback reauthenticates its control copy under `/run`, enters maintenance, drains durable module locks, verifies module representability, and synchronizes/checks the target authorization matrix before switching. A pre-switch failure restores the current matrix before lifting maintenance and is never sent through a stale rollback. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted release health or a rollback whose environment, health, and OIDC verification all succeed.
 
 `version` in `/healthz` is the human-facing semantic application version. `release` is the immutable deployment commit SHA; neither replaces the other.
@@ -520,6 +577,7 @@ Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provide
 - `role_sources`: application-owned provenance ledger kept in parity with effective role pivots by the retained Phase B database guard
 - `authorization_states`: cutover/session markers, global authorization epoch, and the database-fenced directory synchronization lease
 - `directory_groups`, `directory_group_role_mappings`, and `directory_sync_runs`: aggregate catalogue, exact mappings, sanitized synchronization history, and non-secret queue-attempt/lease correlation
+- `maintenance_windows`: auditable activation/deactivation history, nullable actors, bounded failure state, and a unique nullable guard enforcing one current transition across SQLite and MySQL
 - `module_installations`: durable per-sub-core shipped-module state with a monotonic transition version, transition timestamps, and sanitized actor account IDs; state is unique by `(sub_core_key, module_key)` and never stores executable class names
 - `user_profiles`: shared profile/settings data
 - `support_tickets` + `support_ticket_messages`: APES CIC support workflows

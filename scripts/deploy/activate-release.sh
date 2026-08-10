@@ -698,7 +698,36 @@ run_current_artisan() {
     "$PHP_BIN" "${CURRENT_TARGET_BEFORE}/artisan" "$@"
 }
 
+maintenance_state_for_release() {
+  local release_root="$1"
+  local state=""
+
+  if ! state="$(sudo -E -u www-data env APP_ENV=production \
+      "$PHP_BIN" -r '
+$root = $argv[1] ?? "";
+require $root."/vendor/autoload.php";
+$app = require $root."/bootstrap/app.php";
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+fwrite(STDOUT, $app->maintenanceMode()->active() ? "active" : "inactive");
+' "$release_root")"; then
+    echo "Unable to determine Laravel maintenance state." >&2
+    return 1
+  fi
+
+  case "$state" in
+    active|inactive)
+      printf '%s\n' "$state"
+      ;;
+    *)
+      echo "Laravel maintenance state returned an invalid result." >&2
+      return 1
+      ;;
+  esac
+}
+
 PRE_SWITCH_MAINTENANCE_ACTIVE=false
+PREEXISTING_MAINTENANCE=false
+DEPLOYMENT_MAINTENANCE_ACTIVE=false
 PRE_SWITCH_DATABASE_MUTATED=false
 ACTIVATION_SWITCHED=false
 
@@ -719,7 +748,9 @@ restore_current_authorization_after_failure() {
 
   set +e
   if [[ "$PRE_SWITCH_DATABASE_MUTATED" != true ]]; then
-    if run_current_artisan up --no-interaction --no-ansi; then
+    if [[ "${DEPLOYMENT_MAINTENANCE_ACTIVE:-true}" != true ]]; then
+      current_reopened=true
+    elif run_current_artisan up --no-interaction --no-ansi; then
       current_reopened=true
     fi
   elif run_current_artisan permission:cache-reset --no-interaction --no-ansi \
@@ -727,7 +758,9 @@ restore_current_authorization_after_failure() {
     && run_current_artisan permission:cache-reset --no-interaction --no-ansi \
     && run_current_artisan myapes:authorization-check --no-interaction --no-ansi; then
     authorization_restored=true
-    if run_current_artisan up --no-interaction --no-ansi; then
+    if [[ "${DEPLOYMENT_MAINTENANCE_ACTIVE:-true}" != true ]]; then
+      current_reopened=true
+    elif run_current_artisan up --no-interaction --no-ansi; then
       current_reopened=true
     fi
   fi
@@ -747,7 +780,13 @@ run_artisan myapes:modules:preflight --no-interaction --no-ansi
 run_artisan myapes:accounts:preflight --no-interaction --no-ansi
 trap restore_current_authorization_after_failure EXIT
 if [[ -n "$CURRENT_TARGET_BEFORE" && "$CURRENT_TARGET_BEFORE" != "$RELEASE_DIR" ]]; then
-  run_current_artisan down --retry=60 --no-interaction --no-ansi
+  CURRENT_MAINTENANCE_STATE="$(maintenance_state_for_release "$CURRENT_TARGET_BEFORE")"
+  if [[ "$CURRENT_MAINTENANCE_STATE" == active ]]; then
+    PREEXISTING_MAINTENANCE=true
+  else
+    run_current_artisan down --retry=60 --no-interaction --no-ansi
+    DEPLOYMENT_MAINTENANCE_ACTIVE=true
+  fi
   PRE_SWITCH_MAINTENANCE_ACTIVE=true
 fi
 PRE_SWITCH_DATABASE_MUTATED=true
@@ -804,7 +843,7 @@ fi
 # This is the commit point: all fallible preparation happens before the atomic switch.
 mv -Tf "${CURRENT_LINK}.next" "$CURRENT_LINK"
 ACTIVATION_SWITCHED=true
-if [[ "$PRE_SWITCH_MAINTENANCE_ACTIVE" == true ]]; then
+if [[ "$DEPLOYMENT_MAINTENANCE_ACTIVE" == true ]]; then
   run_artisan up --no-interaction --no-ansi
 fi
 

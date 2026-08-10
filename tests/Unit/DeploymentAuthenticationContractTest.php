@@ -360,6 +360,9 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('MARIADB_DATABASE: myapes_test', $workflow);
         $this->assertStringContainsString('mysqladmin ping', $workflow);
         $this->assertStringContainsString('healthcheck.sh --connect --innodb_initialized', $workflow);
+        $this->assertStringContainsString('APP_MAINTENANCE_DRIVER: file', $workflow);
+        $this->assertStringContainsString('APP_MAINTENANCE_STORE: file', $workflow);
+        $this->assertStringContainsString('CACHE_STORE: database', $workflow);
 
         foreach ([
             'AuthorizationSchemaTest.php',
@@ -1375,6 +1378,95 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringNotContainsString(
             'reported_environment',
             $healthBlock,
+        );
+    }
+
+    public function test_deployment_controls_preserve_preexisting_operator_maintenance(): void
+    {
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+        $rollback = $this->read('scripts/deploy/rollback-release.sh');
+
+        foreach ([$activation, $rollback] as $script) {
+            $probe = $this->bashFunction($script, 'maintenance_state_for_release');
+            $this->assertStringContainsString('Illuminate\\Contracts\\Console\\Kernel', $probe);
+            $this->assertStringContainsString('maintenanceMode()->active()', $probe);
+            $this->assertStringContainsString('active', $probe);
+            $this->assertStringContainsString('inactive', $probe);
+            $this->assertStringContainsString('PREEXISTING_MAINTENANCE', $script);
+        }
+
+        $this->assertLessThan(
+            $this->position($activation, 'run_current_artisan down --retry=60'),
+            $this->position($activation, 'maintenance_state_for_release "$CURRENT_TARGET_BEFORE"'),
+        );
+        $this->assertStringContainsString(
+            'if [[ "$DEPLOYMENT_MAINTENANCE_ACTIVE" == true ]]; then',
+            $activation,
+        );
+        $this->assertStringContainsString(
+            'if [[ "$ROLLBACK_MAINTENANCE_ACTIVE" == true ]]; then',
+            $rollback,
+        );
+    }
+
+    public function test_new_release_health_requires_a_boolean_maintenance_field_without_requiring_false(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $verification = substr(
+            $workflow,
+            $this->position($workflow, '- name: Verify exact release health and OIDC redirect'),
+        );
+
+        $this->assertStringContainsString(
+            'reported_maintenance="$(jq -r',
+            $verification,
+        );
+        $this->assertStringContainsString(
+            '"$reported_maintenance" =~ ^(true|false)$',
+            $verification,
+        );
+        $this->assertStringNotContainsString(
+            '"$reported_maintenance" == "false"',
+            $verification,
+        );
+    }
+
+    public function test_rollback_health_accepts_boolean_or_legacy_absence_but_not_invalid_values(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $verification = substr(
+            $workflow,
+            $this->position($workflow, '- name: Verify restored release health and OIDC redirect'),
+            $this->position($workflow, '- name: Remove deployment staging after accepted outcome')
+                - $this->position($workflow, '- name: Verify restored release health and OIDC redirect'),
+        );
+
+        $this->assertStringContainsString('if has("maintenance")', $verification);
+        $this->assertStringContainsString('else "legacy" end', $verification);
+        $this->assertStringContainsString(
+            '"$reported_maintenance" =~ ^(true|false|legacy)$',
+            $verification,
+        );
+    }
+
+    public function test_maintenance_recovery_and_queue_contract_is_documented(): void
+    {
+        $readme = str_replace("\r\n", "\n", $this->read('README.md'));
+
+        $this->assertStringContainsString('## Maintenance operations and recovery', $readme);
+        $this->assertStringContainsString('APP_MAINTENANCE_DRIVER=cache', $readme);
+        $this->assertStringContainsString('APP_MAINTENANCE_STORE=redis', $readme);
+        $this->assertStringContainsString('without `--force`', $readme);
+        $this->assertStringContainsString('queued Redis jobs remain durable', $readme);
+        $this->assertStringContainsString('/admin/maintenance', $readme);
+        $this->assertStringContainsString('/staff/auth/callback', $readme);
+        $this->assertStringContainsString(
+            "sudo -E -u www-data /usr/bin/php8.4 \\\n    /app/data/current/artisan up --no-interaction --no-ansi",
+            $readme,
+        );
+        $this->assertStringContainsString(
+            'exec --app "$CLOUDRON_APP_ID" -- \\',
+            $readme,
         );
     }
 

@@ -14,9 +14,12 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DirectoryRoleSynchronizer;
 use App\Services\LdapGroupResolver;
+use App\Services\MaintenanceResponseFactory;
 use App\Services\SessionAuthorizationContext;
+use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -28,8 +31,16 @@ class OidcAuthController extends Controller
         OidcIdentityProvider $identityProvider,
         OidcReauthenticationCookie $reauthenticationCookie,
         AuditLogger $auditLogger,
-    ): RedirectResponse {
+        MaintenanceMode $maintenanceMode,
+        MaintenanceResponseFactory $maintenanceResponses,
+    ): RedirectResponse|Response {
         if (Auth::check()) {
+            if ($maintenanceMode->active()) {
+                return $request->user()?->can('admin.maintenance.manage')
+                    ? redirect()->route('admin.maintenance.index')
+                    : $maintenanceResponses->make($request);
+            }
+
             return redirect()->route('dashboard');
         }
 
@@ -109,7 +120,9 @@ class OidcAuthController extends Controller
         SessionAuthorizationContext $authorizationContext,
         AuditLogger $auditLogger,
         OidcReauthenticationCookie $reauthenticationCookie,
-    ): RedirectResponse {
+        MaintenanceMode $maintenanceMode,
+        MaintenanceResponseFactory $maintenanceResponses,
+    ): RedirectResponse|Response {
         $linking = $request->session()->has('myapes.oidc_link_intent');
         try {
             $identity = $identityProvider->callbackIdentity(
@@ -259,7 +272,13 @@ class OidcAuthController extends Controller
             'group_count' => count($groups),
         ]);
 
-        $response = redirect()->intended(route('dashboard'));
+        if ($maintenanceMode->active()) {
+            $response = $user->can('admin.maintenance.manage')
+                ? redirect()->route('admin.maintenance.index')
+                : $maintenanceResponses->make($request);
+        } else {
+            $response = redirect()->intended(route('dashboard'));
+        }
 
         return $reauthenticationCookie->isRequired($request)
             ? $response->withCookie($reauthenticationCookie->clear())
