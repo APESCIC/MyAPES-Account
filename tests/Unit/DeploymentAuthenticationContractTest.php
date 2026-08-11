@@ -502,14 +502,14 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $foundationMigrationTest = 'tests/Feature/ApesCicFoundationMigrationTest.php';
         $standaloneFoundationCommand = "php artisan test {$foundationMigrationTest}";
-        $destructiveTestResetCommand = 'php artisan migrate:fresh --force --no-interaction';
+        $destructiveTestWipeCommand = 'php artisan db:wipe --force --no-interaction';
         $standaloneFoundationPosition = $this->position(
             $databaseCompatibilityJob,
             $standaloneFoundationCommand,
         );
-        $destructiveTestResetPosition = $this->position(
+        $destructiveTestWipePosition = $this->position(
             $databaseCompatibilityJob,
-            $destructiveTestResetCommand,
+            $destructiveTestWipeCommand,
         );
         $mainSuitePosition = $this->position(
             $databaseCompatibilityJob,
@@ -531,14 +531,14 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $this->assertSame(1, substr_count(
             $databaseCompatibilityJob,
-            $destructiveTestResetCommand,
+            $destructiveTestWipeCommand,
         ));
         $this->assertSame(1, preg_match_all(
-            '/^[\t ]*' . preg_quote($destructiveTestResetCommand, '/') . '[\t ]*\r?$/m',
+            '/^[\t ]*' . preg_quote($destructiveTestWipeCommand, '/') . '[\t ]*\r?$/m',
             $databaseCompatibilityJob,
         ));
-        $this->assertLessThan($destructiveTestResetPosition, $standaloneFoundationPosition);
-        $this->assertLessThan($mainSuitePosition, $destructiveTestResetPosition);
+        $this->assertLessThan($destructiveTestWipePosition, $standaloneFoundationPosition);
+        $this->assertLessThan($mainSuitePosition, $destructiveTestWipePosition);
         $this->assertStringNotContainsString($foundationMigrationTest, $mainSuite);
     }
 

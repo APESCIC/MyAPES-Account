@@ -358,7 +358,7 @@ jobs:
         run: |
           php artisan test tests/Feature/ApesCicFoundationMigrationTest.php
 
-          php artisan migrate:fresh --force --no-interaction
+          php artisan db:wipe --force --no-interaction
 
           php artisan test \
             tests/Feature/AuthorizationSchemaTest.php \
