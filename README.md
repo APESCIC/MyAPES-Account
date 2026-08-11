@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-11T01:46:36+01:00`
+- Last verified README health review: `2026-08-11T11:16:16+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -14,6 +14,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 - [Report a bug](https://github.com/APESCIC/MyAPES-Account/issues/new?template=bug_report.yml)
 - [Request a feature](https://github.com/APESCIC/MyAPES-Account/issues/new?template=feature_request.yml)
 - [Browse existing issues](https://github.com/APESCIC/MyAPES-Account/issues)
+- [Browse discussions](https://github.com/APESCIC/MyAPES-Account/discussions)
 - Maintained by [APES CIC](https://github.com/APESCIC) with repository administration by [bmurphy-apescic](https://github.com/bmurphy-apescic).
 
 Do not disclose suspected security vulnerabilities in a public issue. This repository does not currently advertise a private vulnerability-reporting route; repository administrators must establish one before inviting external security reports.
