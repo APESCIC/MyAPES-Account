@@ -44,6 +44,7 @@ class TicketController extends Controller
         return view('apes-cic.tickets.index', [
             'tickets' => $query->paginate(20),
             'serviceAreas' => self::SERVICE_AREAS,
+            'canCreateTicket' => $user->can($prefix.'create'),
         ]);
     }
 
@@ -153,13 +154,6 @@ class TicketController extends Controller
 
         if ($ticketUpdateRequested) {
             Gate::authorize($prefix.'update-all');
-
-            $requestedStatus = $request->input('status');
-            if (is_string($requestedStatus)
-                && in_array($requestedStatus, ['resolved', 'closed'], true)
-                && $requestedStatus !== $ticket->status) {
-                Gate::authorize($prefix.'close');
-            }
         }
 
         if ($messageRequested) {
@@ -199,13 +193,20 @@ class TicketController extends Controller
 
         $updates = [];
         if ($ticketUpdateRequested) {
-            if ($validated['status'] !== $ticket->status) {
-                $updates['status'] = $validated['status'];
-                $updates['closed_at'] = in_array(
-                    $validated['status'],
-                    ['resolved', 'closed'],
-                    true,
-                ) ? now() : null;
+            $requestedStatus = $validated['status'];
+            $statusChanged = $requestedStatus !== $ticket->status;
+            $wasTerminal = in_array($ticket->status, ['resolved', 'closed'], true);
+            $willBeTerminal = in_array($requestedStatus, ['resolved', 'closed'], true);
+            if ($statusChanged && ($wasTerminal || $willBeTerminal)) {
+                Gate::authorize($prefix.'close');
+            }
+            if ($statusChanged) {
+                $updates['status'] = $requestedStatus;
+                $updates['closed_at'] = match (true) {
+                    ! $wasTerminal && $willBeTerminal => now(),
+                    $wasTerminal && $willBeTerminal => $ticket->closed_at,
+                    default => null,
+                };
             }
             if ($validated['priority'] !== $ticket->priority) {
                 $updates['priority'] = $validated['priority'];

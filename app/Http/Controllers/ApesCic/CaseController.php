@@ -49,6 +49,7 @@ class CaseController extends Controller
                 ->paginate(20),
             'categories' => self::CATEGORIES,
             'priorities' => self::PRIORITIES,
+            'canCreateCase' => $user->can($prefix.'create'),
         ]);
     }
 

@@ -8,9 +8,10 @@
         <h1>Cases</h1>
         <p class="muted">Track membership, operations, complaints and welfare casework.</p>
     </div>
-    <div class="panel">
-        <h2>Open a case</h2>
-        <form method="post" action="{{ route('apes-cic.cases.store') }}">
+    @if($canCreateCase)
+        <div class="panel">
+            <h2>Open a case</h2>
+            <form method="post" action="{{ route('apes-cic.cases.store') }}">
             @csrf
             <div class="row">
                 <div>
@@ -34,9 +35,10 @@
             <input id="title" name="title" value="{{ old('title') }}">
             <label for="details">Details</label>
             <textarea id="details" name="details">{{ old('details') }}</textarea>
-            <button type="submit">Open case</button>
-        </form>
-    </div>
+                <button type="submit">Open case</button>
+            </form>
+        </div>
+    @endif
     <div class="panel">
         <h2>Your available cases</h2>
         @if($cases->isEmpty())

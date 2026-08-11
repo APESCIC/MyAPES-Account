@@ -64,6 +64,105 @@ class ApesCicCasesWorkflowTest extends TestCase
         $this->get(route('apes-cic.cases.show', $otherCase))->assertForbidden();
     }
 
+    public function test_ticket_and_case_indexes_hide_creation_forms_without_create_permission(): void
+    {
+        $viewer = User::factory()->create();
+        $this->removeRolePermission(AuthorizationProfile::ROLE_SERVICE_USER, 'apes-cic.tickets.create');
+        $this->removeRolePermission(AuthorizationProfile::ROLE_SERVICE_USER, 'apes-cic.cases.create');
+
+        $this->actingAs($viewer->fresh())
+            ->get(route('apes-cic.tickets.index'))
+            ->assertOk()
+            ->assertDontSee('Create ticket')
+            ->assertDontSee('action="'.route('apes-cic.tickets.store').'"', false);
+        $this->get(route('apes-cic.cases.index'))
+            ->assertOk()
+            ->assertDontSee('Open a case')
+            ->assertDontSee('action="'.route('apes-cic.cases.store').'"', false);
+        $this->post(route('apes-cic.tickets.store'), [])->assertForbidden();
+        $this->post(route('apes-cic.cases.store'), [])->assertForbidden();
+
+        $role = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', AuthorizationProfile::ROLE_SERVICE_USER)
+            ->firstOrFail();
+        $role->permissions()->attach(Permission::query()
+            ->where('guard_name', 'web')
+            ->whereIn('name', ['apes-cic.tickets.create', 'apes-cic.cases.create'])
+            ->pluck('id'));
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $creator = User::factory()->create();
+        $this->actingAs($creator)
+            ->get(route('apes-cic.tickets.index'))
+            ->assertOk()
+            ->assertSee('Create ticket')
+            ->assertSee('action="'.route('apes-cic.tickets.store').'"', false);
+        $this->get(route('apes-cic.cases.index'))
+            ->assertOk()
+            ->assertSee('Open a case')
+            ->assertSee('action="'.route('apes-cic.cases.store').'"', false);
+    }
+
+    public function test_ticket_reopening_requires_close_permission(): void
+    {
+        $owner = User::factory()->create();
+        $staff = User::factory()->protectedRole(AuthorizationProfile::ROLE_STAFF)->create();
+        $closedAt = Carbon::parse('2026-08-01 09:00:00', 'UTC');
+        $ticket = SupportTicket::query()->create([
+            'user_id' => $owner->id,
+            'service_area' => 'operations',
+            'subject' => 'Terminal ticket',
+            'priority' => 'medium',
+            'status' => 'resolved',
+            'description' => 'Must not reopen without close permission.',
+            'closed_at' => $closedAt,
+        ]);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'apes-cic.tickets.close');
+
+        $this->actingAs($staff->fresh())
+            ->put(route('apes-cic.tickets.update', $ticket), [
+                'status' => 'open',
+                'priority' => 'medium',
+            ])
+            ->assertForbidden();
+
+        $ticket->refresh();
+        $this->assertSame('resolved', $ticket->status);
+        $this->assertTrue($ticket->closed_at->equalTo($closedAt));
+    }
+
+    public function test_ticket_terminal_relabel_preserves_its_first_terminal_timestamp(): void
+    {
+        $owner = User::factory()->create();
+        $staff = User::factory()->protectedRole(AuthorizationProfile::ROLE_STAFF)->create();
+        $closedAt = Carbon::parse('2026-08-01 09:00:00', 'UTC');
+        $ticket = SupportTicket::query()->create([
+            'user_id' => $owner->id,
+            'service_area' => 'operations',
+            'subject' => 'Terminal relabel ticket',
+            'priority' => 'medium',
+            'status' => 'resolved',
+            'description' => 'Relabeling must retain the original terminal time.',
+            'closed_at' => $closedAt,
+        ]);
+
+        Carbon::setTestNow('2026-08-10 12:00:00');
+        try {
+            $this->actingAs($staff)
+                ->put(route('apes-cic.tickets.update', $ticket), [
+                    'status' => 'closed',
+                    'priority' => 'medium',
+                ])
+                ->assertRedirect(route('apes-cic.tickets.show', $ticket));
+        } finally {
+            Carbon::setTestNow();
+        }
+
+        $this->assertSame('closed', $ticket->fresh()->status);
+        $this->assertTrue($ticket->fresh()->closed_at->equalTo($closedAt));
+    }
+
     public function test_cross_sub_core_case_binding_is_non_disclosing(): void
     {
         $owner = User::factory()->create();
