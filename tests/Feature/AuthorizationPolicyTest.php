@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AuthorizationProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -121,8 +122,46 @@ class AuthorizationPolicyTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_shelter_status_control_hides_closed_boundary_transitions_without_close_permission(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [, $pet, $activeCase] = $this->resourcesFor($owner);
+        $closedCase = ShelterCase::query()->create([
+            'pet_profile_id' => $pet->id,
+            'user_id' => $owner->id,
+            'case_type' => 'rescue',
+            'status' => 'closed',
+            'title' => 'Closed policy case',
+            'closed_at' => now(),
+        ]);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.close');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->get(route('shelter.cases.show', $activeCase))
+            ->assertOk()
+            ->assertSee('name="status"', false)
+            ->assertSee('<option value="open"', false)
+            ->assertSee('<option value="in_review"', false)
+            ->assertDontSee('<option value="closed"', false)
+            ->assertSee('name="details"', false);
+        $this->put(route('shelter.cases.update', $activeCase), [
+            'status' => 'in_review',
+        ])->assertRedirect(route('shelter.cases.show', $activeCase));
+        $this->assertSame('in_review', $activeCase->fresh()->status);
+
+        $this->get(route('shelter.cases.show', $closedCase))
+            ->assertOk()
+            ->assertSee('name="status"', false)
+            ->assertSee('<option value="closed"', false)
+            ->assertDontSee('<option value="open"', false)
+            ->assertDontSee('<option value="in_review"', false)
+            ->assertSee('name="details"', false);
+    }
+
     public function test_shelter_mixed_permitted_assignment_and_unauthorized_metadata_is_atomic(): void
     {
+        Notification::fake();
         $owner = $this->user(User::ROLE_SERVICE_USER);
         $staff = $this->user(User::ROLE_STAFF);
         $replacement = $this->user(User::ROLE_STAFF);
@@ -138,6 +177,7 @@ class AuthorizationPolicyTest extends TestCase
 
         $this->assertNull($case->fresh()->assigned_to);
         $this->assertNull($case->fresh()->details);
+        Notification::assertNothingSent();
         $this->assertDatabaseMissing('audit_logs', [
             'event' => 'shelter.case.updated',
             'auditable_type' => ShelterCase::class,

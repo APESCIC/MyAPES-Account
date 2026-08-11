@@ -17,8 +17,16 @@
                             <label>Status</label>
                             <select name="status">
                                 @foreach(['open', 'in_review', 'closed'] as $status)
-                                    @continue($status !== $case->status && ! $canUpdateCase && ! ($canCloseCase && ($status === 'closed' || $case->status === 'closed')))
-                                    <option value="{{ $status }}" @selected($case->status === $status)>{{ $status }}</option>
+                                    @php
+                                        $isCurrentStatus = $status === $case->status;
+                                        $crossesClosedBoundary = $status === 'closed'
+                                            || $case->status === 'closed';
+                                    @endphp
+                                    @if($isCurrentStatus
+                                        || ($crossesClosedBoundary && $canCloseCase)
+                                        || (! $crossesClosedBoundary && $canUpdateCase))
+                                        <option value="{{ $status }}" @selected($isCurrentStatus)>{{ $status }}</option>
+                                    @endif
                                 @endforeach
                             </select>
                         </div>
