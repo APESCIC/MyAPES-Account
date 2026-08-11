@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\CaseUpdate;
 use App\Models\Role;
 use App\Models\RoleSource;
+use App\Models\ShelterCase;
 use App\Models\User;
 use App\Services\AuthorizationAccountSynchronizer;
 use App\Services\AuthorizationProfile;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Database\Seeders\LocalQaSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -161,6 +164,106 @@ class FreshInstallAuthorizationSeederTest extends TestCase
         ] as $legacyAlias) {
             $this->assertStringNotContainsString($legacyAlias, $encodedGroups);
         }
+
+        $serviceUser = $users->firstWhere('email', LocalQaSeeder::SERVICE_USER_EMAIL);
+        $staffUser = $users->firstWhere('email', LocalQaSeeder::STAFF_EMAIL);
+        $adminUser = $users->firstWhere('email', LocalQaSeeder::ADMIN_EMAIL);
+        $cases = ShelterCase::query()
+            ->forSubCore(ShelterCase::SUB_CORE_APES_CIC)
+            ->where('user_id', $serviceUser?->id)
+            ->whereIn('title', [
+                'QA Seed: Reopened membership support review',
+                'QA Seed: Welfare response required',
+                'QA Seed: Closed operations complaint',
+            ])
+            ->get()
+            ->keyBy('title');
+
+        $this->assertCount(3, $cases);
+        $reopened = $cases->get('QA Seed: Reopened membership support review');
+        $waiting = $cases->get('QA Seed: Welfare response required');
+        $closed = $cases->get('QA Seed: Closed operations complaint');
+        $this->assertNotNull($reopened);
+        $this->assertNotNull($waiting);
+        $this->assertNotNull($closed);
+        $this->assertSame([
+            'membership',
+            'high',
+            'in_progress',
+            $staffUser?->id,
+            null,
+            null,
+        ], [
+            $reopened->category,
+            $reopened->priority,
+            $reopened->status,
+            $reopened->assigned_to,
+            $reopened->resolved_at,
+            $reopened->closed_at,
+        ]);
+        $this->assertSame([
+            'welfare',
+            'urgent',
+            'waiting_on_user',
+            $staffUser?->id,
+        ], [
+            $waiting->category,
+            $waiting->priority,
+            $waiting->status,
+            $waiting->assigned_to,
+        ]);
+        $this->assertSame([
+            'complaint',
+            'low',
+            'closed',
+            $adminUser?->id,
+        ], [
+            $closed->category,
+            $closed->priority,
+            $closed->status,
+            $closed->assigned_to,
+        ]);
+        foreach ($cases as $case) {
+            $this->assertNull($case->pet_profile_id);
+            $this->assertNull($case->case_type);
+        }
+        $seededAt = CarbonImmutable::parse(
+            '2026-07-24 09:00:00',
+            'Europe/London',
+        )->utc();
+        $this->assertTrue($reopened->opened_at->equalTo($seededAt->subDays(5)));
+        $this->assertTrue($waiting->opened_at->equalTo($seededAt->subDays(3)));
+        $this->assertTrue($closed->opened_at->equalTo($seededAt->subDays(8)));
+        $this->assertTrue($closed->resolved_at->equalTo($seededAt->subDays(3)));
+        $this->assertTrue($closed->closed_at->equalTo($seededAt->subDays(2)));
+        $this->assertSame([
+            [
+                'user_id' => $serviceUser?->id,
+                'body' => 'Additional information received; case reopened for review.',
+                'visibility' => CaseUpdate::VISIBILITY_PUBLIC,
+            ],
+            [
+                'user_id' => $staffUser?->id,
+                'body' => 'Internal triage note for local visibility testing.',
+                'visibility' => CaseUpdate::VISIBILITY_INTERNAL,
+            ],
+        ], $reopened->updates()
+            ->orderBy('id')
+            ->get(['user_id', 'body', 'visibility'])
+            ->map->only(['user_id', 'body', 'visibility'])
+            ->all());
+        $this->assertSame([
+            [
+                'user_id' => $adminUser?->id,
+                'body' => 'Outcome shared with the service user.',
+                'visibility' => CaseUpdate::VISIBILITY_PUBLIC,
+            ],
+        ], $closed->updates()
+            ->orderBy('id')
+            ->get(['user_id', 'body', 'visibility'])
+            ->map->only(['user_id', 'body', 'visibility'])
+            ->all());
+        $this->assertDatabaseCount('case_updates', 3);
     }
 
     public function test_local_qa_baselines_survive_activation_synchronization_and_pass_integrity_checks(): void

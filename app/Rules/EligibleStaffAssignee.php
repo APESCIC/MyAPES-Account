@@ -8,6 +8,10 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 class EligibleStaffAssignee implements ValidationRule
 {
+    public function __construct(
+        private readonly ?string $requiredPermission = null,
+    ) {}
+
     public function validate(
         string $attribute,
         mixed $value,
@@ -17,10 +21,12 @@ class EligibleStaffAssignee implements ValidationRule
             return;
         }
 
-        if (! User::query()
-            ->eligibleStaff()
-            ->whereKey($value)
-            ->exists()) {
+        $query = User::query()->eligibleStaff()->whereKey($value);
+        if ($this->requiredPermission !== null) {
+            $query->withAuthorizationPermission($this->requiredPermission);
+        }
+
+        if (! $query->exists()) {
             $fail('The selected assignee is unavailable.');
         }
     }

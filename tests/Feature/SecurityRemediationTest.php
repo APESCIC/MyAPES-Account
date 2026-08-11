@@ -240,6 +240,7 @@ class SecurityRemediationTest extends TestCase
         Notification::fake();
         $owner = $this->user(User::ROLE_SERVICE_USER);
         $staff = $this->user(User::ROLE_STAFF);
+        $replacement = $this->user(User::ROLE_STAFF);
         [$ticket, $case, $consultation] = $this->records($owner, $staff);
         $workflows = [
             [
@@ -275,7 +276,7 @@ class SecurityRemediationTest extends TestCase
         foreach ($workflows as $workflow) {
             $existing = $this->actingAs($owner)->put(
                 $workflow['route'],
-                [...$workflow['payload'], 'assigned_to' => $staff->id],
+                [...$workflow['payload'], 'assigned_to' => $replacement->id],
             );
             $missing = $this->actingAs($owner)->put(
                 $workflow['route'],
@@ -425,8 +426,8 @@ class SecurityRemediationTest extends TestCase
 
         $this->actingAs($actor)->put(
             route('apes-cic.tickets.update', $ticket),
-            ['status' => 'open', 'priority' => 'medium', 'message' => null],
-        )->assertRedirect();
+            ['status' => 'open', 'priority' => 'high', 'message' => null],
+        )->assertRedirect()->assertSessionHasNoErrors();
         $this->actingAs($actor)->put(
             route('shelter.cases.update', $case),
             ['status' => 'in_review', 'details' => 'Staff update'],
@@ -478,6 +479,7 @@ class SecurityRemediationTest extends TestCase
         $staff = $this->user(User::ROLE_STAFF, [
             'name' => 'Hidden eligible staff identity',
         ]);
+        $replacement = $this->user(User::ROLE_STAFF);
         [$ticket, $case, $consultation] = $this->records($owner, $staff);
 
         foreach ([
@@ -524,7 +526,7 @@ class SecurityRemediationTest extends TestCase
             $this->actingAs($owner)
                 ->put($workflow['update'], [
                     ...$workflow['payload'],
-                    'assigned_to' => $staff->id,
+                    'assigned_to' => $replacement->id,
                 ])
                 ->assertForbidden();
             $this->assertSame(
@@ -594,7 +596,7 @@ class SecurityRemediationTest extends TestCase
                 'update' => route('apes-cic.tickets.update', $ticket),
                 'payload' => [
                     'status' => 'open',
-                    'priority' => 'medium',
+                    'priority' => 'high',
                     'message' => null,
                 ],
                 'record' => $ticket,

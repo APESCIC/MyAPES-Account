@@ -13,17 +13,17 @@ use App\Support\AuthorizationCutoverSchema;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Tests\Support\ForwardOnlyDatabaseMigrations;
 use Tests\TestCase;
 
 class AuthorizationCutoverGuardTest extends TestCase
 {
-    use DatabaseMigrations;
+    use ForwardOnlyDatabaseMigrations;
 
     private MaintenanceMode $maintenanceMode;
 

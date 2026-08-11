@@ -8,14 +8,14 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\Support\ForwardOnlyDatabaseMigrations;
 use Tests\TestCase;
 
 class ModuleLifecycleConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use ForwardOnlyDatabaseMigrations;
 
     /** @var list<Process> */
     private array $workers = [];
@@ -236,7 +236,7 @@ class ModuleLifecycleConcurrencyTest extends TestCase
         );
         $this->assertSame([
             'status' => 'success',
-            'created' => 1,
+            'created' => 2,
             'existing' => 4,
         ], $this->readSignal($state, 'synchronize-result'));
         $this->assertFalse(ModuleInstallation::query()

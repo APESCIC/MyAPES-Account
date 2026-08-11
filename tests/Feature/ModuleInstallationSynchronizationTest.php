@@ -34,13 +34,14 @@ class ModuleInstallationSynchronizationTest extends TestCase
         ]));
     }
 
-    public function test_synchronization_creates_exactly_the_five_shipped_defaults(): void
+    public function test_synchronization_creates_exactly_the_six_shipped_defaults(): void
     {
         $result = app(ModuleInstallationSynchronizer::class)->synchronize();
 
-        $this->assertSame(['created' => 0, 'existing' => 5], $result);
-        $this->assertDatabaseCount('module_installations', 5);
+        $this->assertSame(['created' => 1, 'existing' => 5], $result);
+        $this->assertDatabaseCount('module_installations', 6);
         $this->assertSame([
+            'apes-cic:cases',
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
@@ -87,7 +88,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
         $result = $synchronizer->synchronize();
         $actual = $installation->fresh()->getRawOriginal();
 
-        $this->assertSame(['created' => 0, 'existing' => 5], $result);
+        $this->assertSame(['created' => 0, 'existing' => 6], $result);
         $this->assertSame($preserved, $actual);
         $this->assertFalse($installation->fresh()->enabled);
     }
@@ -102,10 +103,10 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ->delete();
 
         $this->assertSame(
-            ['created' => 1, 'existing' => 4],
+            ['created' => 1, 'existing' => 5],
             $synchronizer->synchronize(),
         );
-        $this->assertDatabaseCount('module_installations', 5);
+        $this->assertDatabaseCount('module_installations', 6);
         $this->assertDatabaseMissing('module_installations', [
             'sub_core_key' => 'shelter-rescue',
             'module_key' => 'tickets',
@@ -115,6 +116,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
     public function test_synchronization_does_not_enable_a_recreated_dependent_when_its_dependency_is_disabled(): void
     {
         $synchronizer = app(ModuleInstallationSynchronizer::class);
+        $synchronizer->synchronize();
         $dependency = ModuleInstallation::query()
             ->where('sub_core_key', 'shelter-rescue')
             ->where('module_key', 'pet-profiles')
@@ -130,7 +132,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ->delete();
 
         $this->assertSame(
-            ['created' => 1, 'existing' => 4],
+            ['created' => 1, 'existing' => 5],
             $synchronizer->synchronize(),
         );
         $case = ModuleInstallation::query()
@@ -148,7 +150,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
         $before = $cache->version();
 
         $synchronizer->synchronize();
-        $this->assertSame($before, $cache->version());
+        $this->assertSame($before + 1, $cache->version());
 
         ModuleInstallation::query()
             ->where('sub_core_key', 'apes-cic')
@@ -156,7 +158,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ->delete();
         $synchronizer->synchronize();
 
-        $this->assertSame($before + 1, $cache->version());
+        $this->assertSame($before + 2, $cache->version());
     }
 
     public function test_module_lifecycle_commands_validate_and_synchronize_the_registry(): void
@@ -166,15 +168,15 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ->assertSuccessful();
 
         $this->artisan('myapes:modules:sync')
-            ->expectsOutputToContain('Module synchronization: ok (0 created, 5 existing)')
+            ->expectsOutputToContain('Module synchronization: ok (1 created, 5 existing)')
             ->assertSuccessful();
 
         $this->artisan('myapes:modules:sync')
-            ->expectsOutputToContain('Module synchronization: ok (0 created, 5 existing)')
+            ->expectsOutputToContain('Module synchronization: ok (0 created, 6 existing)')
             ->assertSuccessful();
 
         $this->artisan('myapes:modules:check')
-            ->expectsOutputToContain('Module integrity: ok (5 installations)')
+            ->expectsOutputToContain('Module integrity: ok (6 installations)')
             ->assertSuccessful();
     }
 }

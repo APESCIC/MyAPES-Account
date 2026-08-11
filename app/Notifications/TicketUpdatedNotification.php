@@ -13,6 +13,8 @@ class TicketUpdatedNotification extends Notification
         private readonly SupportTicket $ticket,
         private readonly User $actor,
         private readonly string $eventLabel,
+        private readonly string $subCoreKey,
+        private readonly string $showRouteName,
     ) {}
 
     /**
@@ -35,7 +37,7 @@ class TicketUpdatedNotification extends Notification
             ->line("Ticket #{$this->ticket->id} ({$this->ticket->subject}) was {$this->eventLabel} by {$this->actor->name}.")
             ->line("Status: {$this->ticket->status}")
             ->line("Priority: {$this->ticket->priority}")
-            ->action('Open ticket', route('apes-cic.tickets.show', $this->ticket));
+            ->action('Open ticket', route($this->showRouteName, $this->ticket));
     }
 
     /**
@@ -47,13 +49,14 @@ class TicketUpdatedNotification extends Notification
     {
         return [
             'event' => $this->eventLabel,
-            'service' => 'apes-cic',
+            'service' => $this->subCoreKey,
+            'module' => 'tickets',
             'ticket_id' => $this->ticket->id,
             'subject' => $this->ticket->subject,
             'status' => $this->ticket->status,
             'priority' => $this->ticket->priority,
             'updated_by' => $this->actor->name,
-            'url' => route('apes-cic.tickets.show', $this->ticket),
+            'url' => route($this->showRouteName, $this->ticket),
         ];
     }
 }

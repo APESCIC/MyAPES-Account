@@ -125,7 +125,7 @@ class ModuleLifecycleTest extends TestCase
             }
         }
 
-        $this->assertDatabaseCount('module_installations', 5);
+        $this->assertDatabaseCount('module_installations', 6);
     }
 
     public function test_install_recreates_an_available_shipped_instance_with_actor_provenance(): void
@@ -271,6 +271,17 @@ class ModuleLifecycleTest extends TestCase
             'status' => 'open',
             'title' => 'Open case',
         ]);
+        ShelterCase::query()->create([
+            'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+            'pet_profile_id' => null,
+            'user_id' => $owner->id,
+            'case_type' => null,
+            'category' => 'general',
+            'priority' => 'medium',
+            'status' => 'open',
+            'title' => 'Open APES CIC case',
+            'opened_at' => now(),
+        ]);
         PetCareConsultation::query()->create([
             'pet_profile_id' => $petCarePet->id,
             'user_id' => $owner->id,
@@ -287,6 +298,73 @@ class ModuleLifecycleTest extends TestCase
 
             $this->assertSame(1, $detector->count($instance), $key);
         }
+    }
+
+    public function test_resolved_apes_case_is_inactive_while_shelter_in_review_case_remains_active(): void
+    {
+        $owner = User::factory()->create();
+        $pet = PetProfile::query()->create([
+            'user_id' => $owner->id,
+            'service_domain' => PetProfile::DOMAIN_SHELTER,
+            'name' => 'Lifecycle semantics pet',
+            'species' => 'bird',
+        ]);
+        $resolvedApesCase = ShelterCase::query()->create([
+            'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+            'pet_profile_id' => null,
+            'user_id' => $owner->id,
+            'case_type' => null,
+            'category' => 'general',
+            'priority' => 'medium',
+            'status' => 'resolved',
+            'title' => 'Resolved APES CIC lifecycle case',
+            'opened_at' => now()->subDay(),
+            'resolved_at' => now(),
+            'closed_at' => null,
+        ]);
+        ShelterCase::query()->create([
+            'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+            'pet_profile_id' => $pet->id,
+            'user_id' => $owner->id,
+            'case_type' => 'rescue',
+            'category' => null,
+            'priority' => 'medium',
+            'status' => 'in_review',
+            'title' => 'Shelter case still under review',
+            'closed_at' => null,
+        ]);
+        $registry = app(ModuleRegistry::class);
+        $apesInstance = $registry->instance('apes-cic', 'cases');
+        $shelterInstance = $registry->instance('shelter-rescue', 'cases');
+        /** @var ModuleActiveRecordDetector $detector */
+        $detector = app($apesInstance->module->activeRecordDetector);
+
+        $this->assertSame(0, $detector->count($apesInstance));
+        $this->assertSame(1, $detector->count($shelterInstance));
+
+        $apesInstallation = $this->installation('apes-cic', 'cases');
+        $disabled = $this->lifecycle->disable(
+            $this->superAdmin,
+            'apes-cic',
+            'cases',
+            (int) $apesInstallation->lock_version,
+        );
+        $this->assertFalse($disabled->enabled);
+        $this->assertDatabaseHas('shelter_cases', ['id' => $resolvedApesCase->id]);
+
+        $shelterInstallation = $this->installation('shelter-rescue', 'cases');
+        try {
+            $this->lifecycle->disable(
+                $this->superAdmin,
+                'shelter-rescue',
+                'cases',
+                (int) $shelterInstallation->lock_version,
+            );
+            $this->fail('A Shelter module with an in-review case was disabled.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('active_records', $exception->reason);
+        }
+        $this->assertTrue($shelterInstallation->fresh()->enabled);
     }
 
     public function test_stale_transitions_are_rejected_without_changing_state(): void

@@ -8,9 +8,10 @@
         <h1>Organisational support tickets</h1>
         <p class="muted">Service support for legal, human resources, IT, web development and related needs.</p>
     </div>
-    <div class="panel">
-        <h2>Create ticket</h2>
-        <form method="post" action="{{ route('apes-cic.tickets.store') }}">
+    @if($canCreateTicket)
+        <div class="panel">
+            <h2>Create ticket</h2>
+            <form method="post" action="{{ route('apes-cic.tickets.store') }}">
             @csrf
             <div class="row">
                 <div>
@@ -35,9 +36,10 @@
             <input id="subject" name="subject" value="{{ old('subject') }}">
             <label for="description">Description</label>
             <textarea id="description" name="description">{{ old('description') }}</textarea>
-            <button type="submit">Create ticket</button>
-        </form>
-    </div>
+                <button type="submit">Create ticket</button>
+            </form>
+        </div>
+    @endif
     <div class="panel">
         <h2>Tickets</h2>
         <table>

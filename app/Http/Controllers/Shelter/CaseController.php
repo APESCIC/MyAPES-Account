@@ -14,6 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class CaseController extends Controller
 {
@@ -22,6 +23,7 @@ class CaseController extends Controller
         $user = request()->user();
         Gate::authorize('viewAny', ShelterCase::class);
         $query = ShelterCase::query()
+            ->forSubCore(ShelterCase::SUB_CORE_SHELTER_RESCUE)
             ->visibleTo($user)
             ->with(['petProfile', 'assignedTo'])
             ->latest();
@@ -50,6 +52,7 @@ class CaseController extends Controller
 
         $case = ShelterCase::create([
             ...$validated,
+            'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
             'user_id' => $pet->user_id,
         ]);
 
@@ -66,14 +69,20 @@ class CaseController extends Controller
         ShelterCase $case,
         AssignmentAuthorization $assignments,
     ): View {
+        $this->requireShelterCase($case);
         Gate::authorize('view', $case);
-        $canChangeAssignment = $assignments->allows(
-            request()->user(),
-        );
+        $user = request()->user();
+        $prefix = ShelterCase::SUB_CORE_SHELTER_RESCUE.'.cases.';
+        $canChangeAssignment = $assignments->allows($user)
+            && $user->can($prefix.'assign');
 
         return view('shelter.cases.show', [
             'case' => $case->load(['petProfile', 'assignedTo']),
             'canChangeAssignment' => $canChangeAssignment,
+            'canUpdateCase' => $user->can($prefix.'update-all')
+                || ($case->user_id === $user->id
+                    && $user->can($prefix.'update-own')),
+            'canCloseCase' => $user->can($prefix.'close'),
             'staffUsers' => $canChangeAssignment
                 ? User::query()
                     ->eligibleStaff()
@@ -89,38 +98,88 @@ class CaseController extends Controller
         AuditLogger $auditLogger,
         AssignmentAuthorization $assignments,
     ): RedirectResponse {
-        Gate::authorize('update', $case);
-        $assignmentRequested = array_key_exists(
-            'assigned_to',
-            $request->all(),
-        );
-        if ($assignmentRequested) {
-            $assignments->authorizeChange(
-                $request,
-                $request->user(),
-                $case,
-            );
+        $this->requireShelterCase($case);
+        Gate::authorize('view', $case);
+        $input = $request->all();
+        $statusRequested = array_key_exists('status', $input);
+        $detailsRequested = array_key_exists('details', $input);
+        $assignmentRequested = array_key_exists('assigned_to', $input);
+        if (! $statusRequested && ! $detailsRequested && ! $assignmentRequested) {
+            throw ValidationException::withMessages([
+                'case' => 'Select a case change before submitting.',
+            ]);
         }
 
-        $validated = $request->validate([
-            'status' => ['required', 'in:open,in_review,closed'],
-            'assigned_to' => [
-                'sometimes',
-                'nullable',
-                'integer',
-                new EligibleStaffAssignee,
-            ],
-            'details' => ['nullable', 'string'],
-        ]);
+        $rules = [];
+        if ($statusRequested) {
+            $rules['status'] = ['required', 'in:open,in_review,closed'];
+        }
+        if ($detailsRequested) {
+            $rules['details'] = ['nullable', 'string'];
+        }
+        $validated = $request->validate($rules);
 
-        $updates = [
-            'status' => $validated['status'],
-            'details' => $validated['details'] ?? $case->details,
-            'closed_at' => $validated['status'] === 'closed' ? now() : null,
-        ];
-
+        $statusChanged = $statusRequested
+            && $validated['status'] !== $case->status;
+        $detailsChanged = $detailsRequested
+            && $validated['details'] !== $case->details;
+        $requestedAssignee = $case->assigned_to;
         if ($assignmentRequested) {
-            $updates['assigned_to'] = $validated['assigned_to'] ?? null;
+            $submittedAssignee = $input['assigned_to'];
+            $requestedAssignee = $submittedAssignee === null
+                || $submittedAssignee === ''
+                ? null
+                : (is_int($submittedAssignee)
+                    || (is_string($submittedAssignee)
+                        && ctype_digit($submittedAssignee))
+                    ? (int) $submittedAssignee
+                    : PHP_INT_MIN);
+        }
+        $assignmentChanged = $assignmentRequested
+            && $requestedAssignee !== $case->assigned_to;
+
+        if (! $statusChanged && ! $detailsChanged && ! $assignmentChanged) {
+            throw ValidationException::withMessages([
+                'case' => 'Select a case change before submitting.',
+            ]);
+        }
+
+        $prefix = ShelterCase::SUB_CORE_SHELTER_RESCUE.'.cases.';
+        if ($detailsChanged || ($statusChanged
+            && $case->status !== 'closed'
+            && $validated['status'] !== 'closed')) {
+            Gate::authorize('update', $case);
+        }
+        if ($statusChanged && ($case->status === 'closed'
+            || $validated['status'] === 'closed')) {
+            Gate::authorize($prefix.'close');
+        }
+        if ($assignmentChanged) {
+            $assignments->authorizeChange($request, $request->user(), $case);
+            Gate::authorize($prefix.'assign');
+            $assignmentValidated = $request->validate([
+                'assigned_to' => [
+                    'sometimes',
+                    'nullable',
+                    'integer',
+                    new EligibleStaffAssignee,
+                ],
+            ]);
+            $requestedAssignee = isset($assignmentValidated['assigned_to'])
+                ? (int) $assignmentValidated['assigned_to']
+                : null;
+        }
+
+        $updates = [];
+        if ($statusChanged) {
+            $updates['status'] = $validated['status'];
+            $updates['closed_at'] = $validated['status'] === 'closed' ? now() : null;
+        }
+        if ($detailsChanged) {
+            $updates['details'] = $validated['details'];
+        }
+        if ($assignmentChanged) {
+            $updates['assigned_to'] = $requestedAssignee;
         }
 
         $case->update($updates);
@@ -132,6 +191,14 @@ class CaseController extends Controller
         ]);
 
         return redirect()->route('shelter.cases.show', $case)->with('status', 'Case updated.');
+    }
+
+    private function requireShelterCase(ShelterCase $case): void
+    {
+        abort_unless(
+            $case->sub_core_key === ShelterCase::SUB_CORE_SHELTER_RESCUE,
+            404,
+        );
     }
 
     private function notifyCaseStakeholders(ShelterCase $case, User $actor, string $eventLabel): void

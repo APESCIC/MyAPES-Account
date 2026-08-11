@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Contracts\ModuleActiveRecordDetector;
 use App\Contracts\ModuleAggregateSummaryProvider;
+use App\Contracts\ModuleAnalyticsProvider;
+use App\Contracts\ModuleRecentActivityProvider;
 use App\Modules\ModuleCodeStatus;
 use App\Modules\ModuleDefinition;
 use App\Modules\ModuleInstanceDefinition;
@@ -63,6 +65,28 @@ final class ModuleRegistryValidator
                 )) {
                 throw new InvalidArgumentException(
                     'Module summary provider is invalid.',
+                );
+            }
+
+            if ($module->recentActivityProvider !== null
+                && ! is_a(
+                    $module->recentActivityProvider,
+                    ModuleRecentActivityProvider::class,
+                    true,
+                )) {
+                throw new InvalidArgumentException(
+                    'Module recent-activity provider is invalid.',
+                );
+            }
+
+            if ($module->analyticsProvider !== null
+                && ! is_a(
+                    $module->analyticsProvider,
+                    ModuleAnalyticsProvider::class,
+                    true,
+                )) {
+                throw new InvalidArgumentException(
+                    'Module analytics provider is invalid.',
                 );
             }
         }

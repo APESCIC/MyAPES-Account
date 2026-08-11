@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Exceptions\ModuleLifecycleException;
 use App\Models\ModuleInstallation;
 use App\Models\PetProfile;
+use App\Models\ShelterCase;
 use App\Models\User;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleInstanceLock;
@@ -26,6 +27,7 @@ class ModuleStateMiddlewareTest extends TestCase
     {
         $expected = [
             'apes-cic.tickets.' => 'module.available:apes-cic,tickets',
+            'apes-cic.cases.' => 'module.available:apes-cic,cases',
             'shelter.pets.' => 'module.available:shelter-rescue,pet-profiles',
             'shelter.cases.' => 'module.available:shelter-rescue,cases',
             'petcare.pets.' => 'module.available:pet-care-clinic,pet-profiles',
@@ -102,6 +104,49 @@ class ModuleStateMiddlewareTest extends TestCase
         $this->actingAs($user)
             ->get('/apes-cic/tickets')
             ->assertNotFound();
+    }
+
+    public function test_disabled_apes_cic_case_routes_all_fail_with_the_same_not_found_response(): void
+    {
+        $user = User::factory()->create();
+        $case = ShelterCase::create([
+            'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+            'user_id' => $user->id,
+            'category' => 'general',
+            'priority' => 'medium',
+            'status' => 'open',
+            'title' => 'Disabled module boundary',
+            'opened_at' => now(),
+        ]);
+        ModuleInstallation::query()
+            ->where('sub_core_key', ShelterCase::SUB_CORE_APES_CIC)
+            ->where('module_key', 'cases')
+            ->update([
+                'enabled' => false,
+                'disabled_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $responses = [
+            $this->actingAs($user)->get(route('apes-cic.cases.index')),
+            $this->post(route('apes-cic.cases.store'), []),
+            $this->get(route('apes-cic.cases.show', $case)),
+            $this->patch(route('apes-cic.cases.update', $case), []),
+            $this->delete(route('apes-cic.cases.destroy', $case)),
+            $this->post(route('apes-cic.cases.updates.store', $case), []),
+        ];
+
+        foreach ($responses as $response) {
+            $response->assertNotFound();
+        }
+        $this->assertCount(1, collect($responses)
+            ->map(fn ($response): int => $response->getStatusCode())
+            ->unique());
+
+        $user->serviceSelections()
+            ->where('sub_core_key', ShelterCase::SUB_CORE_APES_CIC)
+            ->delete();
+        $this->get(route('apes-cic.cases.index'))->assertNotFound();
     }
 
     public function test_a_busy_module_write_returns_the_same_non_disclosing_not_found_response(): void

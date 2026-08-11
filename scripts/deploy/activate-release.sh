@@ -753,6 +753,10 @@ restore_current_authorization_after_failure() {
     elif run_current_artisan up --no-interaction --no-ansi; then
       current_reopened=true
     fi
+  elif ! run_artisan myapes:modules:rollback-check \
+    --target-release="$CURRENT_TARGET_BEFORE" \
+    --no-interaction --no-ansi; then
+    echo "Current release cannot represent the migrated module state; maintenance mode remains active."
   elif run_current_artisan permission:cache-reset --no-interaction --no-ansi \
     && run_current_artisan myapes:authorization-sync --no-interaction --no-ansi \
     && run_current_artisan permission:cache-reset --no-interaction --no-ansi \

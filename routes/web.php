@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRoleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
+use App\Http\Controllers\ApesCic\CaseController as ApesCicCaseController;
+use App\Http\Controllers\ApesCic\CaseUpdateController as ApesCicCaseUpdateController;
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
@@ -111,9 +113,53 @@ Route::middleware([
             ->name('index');
         Route::middleware(['module.available:apes-cic,tickets', 'service.selected:apes-cic'])
             ->group(function (): void {
-                Route::resource('tickets', TicketController::class)
-                    ->only(['index', 'store', 'show', 'update', 'destroy'])
-                    ->parameters(['tickets' => 'ticket']);
+                Route::get('tickets', [TicketController::class, 'index'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.index');
+                Route::post('tickets', [TicketController::class, 'store'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.store');
+                Route::get('tickets/{ticket}', [TicketController::class, 'show'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.show');
+                Route::match(['put', 'patch'], 'tickets/{ticket}', [TicketController::class, 'update'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.update');
+                Route::delete('tickets/{ticket}', [TicketController::class, 'destroy'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.destroy');
+            });
+        Route::middleware(['module.available:apes-cic,cases', 'service.selected:apes-cic'])
+            ->group(function (): void {
+                Route::get('cases', [ApesCicCaseController::class, 'index'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'cases')
+                    ->name('cases.index');
+                Route::post('cases', [ApesCicCaseController::class, 'store'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'cases')
+                    ->name('cases.store');
+                Route::get('cases/{case}', [ApesCicCaseController::class, 'show'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'cases')
+                    ->name('cases.show');
+                Route::match(['put', 'patch'], 'cases/{case}', [ApesCicCaseController::class, 'update'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'cases')
+                    ->name('cases.update');
+                Route::delete('cases/{case}', [ApesCicCaseController::class, 'destroy'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'cases')
+                    ->name('cases.destroy');
+                Route::post('cases/{case}/updates', [ApesCicCaseUpdateController::class, 'store'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'cases')
+                    ->name('cases.updates.store');
             });
     });
 

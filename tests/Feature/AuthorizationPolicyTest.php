@@ -2,13 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
+use App\Models\Role;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\AuthorizationProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class AuthorizationPolicyTest extends TestCase
@@ -47,6 +52,137 @@ class AuthorizationPolicyTest extends TestCase
             $this->assertTrue(Gate::allows('update', $resource));
         }
         $this->assertTrue(Gate::allows('delete', $ticket));
+    }
+
+    public function test_shelter_case_comment_only_owner_cannot_update_case_metadata_or_status(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        [, , $case] = $this->resourcesFor($owner);
+        $serviceUserRole = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', AuthorizationProfile::ROLE_SERVICE_USER)
+            ->firstOrFail();
+        $updateOwn = Permission::query()
+            ->where('guard_name', 'web')
+            ->where('name', 'shelter-rescue.cases.update-own')
+            ->firstOrFail();
+        $serviceUserRole->permissions()->detach($updateOwn->id);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->actingAsWithQaContext($owner->fresh());
+        $this->assertTrue($owner->fresh()->can('shelter-rescue.cases.comment-own'));
+        $this->assertFalse($owner->fresh()->can('shelter-rescue.cases.update-own'));
+
+        $this->put(route('shelter.cases.update', $case), [
+            'status' => 'in_review',
+            'details' => 'An owner comment must not update the case record.',
+        ])->assertForbidden();
+
+        $this->assertSame('open', $case->fresh()->status);
+    }
+
+    public function test_shelter_assignment_capability_only_allows_a_pure_assignment(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        $replacement = $this->user(User::ROLE_STAFF);
+        [, , $case] = $this->resourcesFor($owner);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.update-all');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->assertFalse(Gate::allows('update', $case));
+        $this->put(route('shelter.cases.update', $case), ['assigned_to' => $replacement->id])
+            ->assertRedirect(route('shelter.cases.show', $case));
+        $this->assertSame($replacement->id, $case->fresh()->assigned_to);
+
+        $this->put(route('shelter.cases.update', $case), ['details' => 'Unauthorized detail change.'])
+            ->assertForbidden();
+        $this->put(route('shelter.cases.update', $case), ['status' => 'in_review'])
+            ->assertForbidden();
+        $this->assertSame('open', $case->fresh()->status);
+        $this->assertNull($case->fresh()->details);
+    }
+
+    public function test_shelter_close_capability_only_allows_pure_lifecycle_requests(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [, , $case] = $this->resourcesFor($owner);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.update-all');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->assertFalse(Gate::allows('update', $case));
+        $this->put(route('shelter.cases.update', $case), ['status' => 'closed'])
+            ->assertRedirect(route('shelter.cases.show', $case));
+        $this->put(route('shelter.cases.update', $case), ['status' => 'open'])
+            ->assertRedirect(route('shelter.cases.show', $case));
+        $this->put(route('shelter.cases.update', $case), ['details' => 'Unauthorized detail change.'])
+            ->assertForbidden();
+        $this->put(route('shelter.cases.update', $case), ['status' => 'in_review'])
+            ->assertForbidden();
+    }
+
+    public function test_shelter_status_control_hides_closed_boundary_transitions_without_close_permission(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [, $pet, $activeCase] = $this->resourcesFor($owner);
+        $closedCase = ShelterCase::query()->create([
+            'pet_profile_id' => $pet->id,
+            'user_id' => $owner->id,
+            'case_type' => 'rescue',
+            'status' => 'closed',
+            'title' => 'Closed policy case',
+            'closed_at' => now(),
+        ]);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.close');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->get(route('shelter.cases.show', $activeCase))
+            ->assertOk()
+            ->assertSee('name="status"', false)
+            ->assertSee('<option value="open"', false)
+            ->assertSee('<option value="in_review"', false)
+            ->assertDontSee('<option value="closed"', false)
+            ->assertSee('name="details"', false);
+        $this->put(route('shelter.cases.update', $activeCase), [
+            'status' => 'in_review',
+        ])->assertRedirect(route('shelter.cases.show', $activeCase));
+        $this->assertSame('in_review', $activeCase->fresh()->status);
+
+        $this->get(route('shelter.cases.show', $closedCase))
+            ->assertOk()
+            ->assertSee('name="status"', false)
+            ->assertSee('<option value="closed"', false)
+            ->assertDontSee('<option value="open"', false)
+            ->assertDontSee('<option value="in_review"', false)
+            ->assertSee('name="details"', false);
+    }
+
+    public function test_shelter_mixed_permitted_assignment_and_unauthorized_metadata_is_atomic(): void
+    {
+        Notification::fake();
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        $replacement = $this->user(User::ROLE_STAFF);
+        [, , $case] = $this->resourcesFor($owner);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.update-all');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->put(route('shelter.cases.update', $case), [
+            'assigned_to' => $replacement->id,
+            'status' => 'in_review',
+            'details' => 'This request must fail as a whole.',
+        ])->assertForbidden();
+
+        $this->assertNull($case->fresh()->assigned_to);
+        $this->assertNull($case->fresh()->details);
+        Notification::assertNothingSent();
+        $this->assertDatabaseMissing('audit_logs', [
+            'event' => 'shelter.case.updated',
+            'auditable_type' => ShelterCase::class,
+            'auditable_id' => $case->id,
+        ]);
     }
 
     /**
@@ -88,6 +224,21 @@ class AuthorizationPolicyTest extends TestCase
             ->accessLevel($accessLevel)
             ->create()
             ->refresh();
+    }
+
+    private function removeRolePermission(string $roleName, string $permissionName): void
+    {
+        $role = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', $roleName)
+            ->firstOrFail();
+        $permission = Permission::query()
+            ->where('guard_name', 'web')
+            ->where('name', $permissionName)
+            ->firstOrFail();
+
+        $role->permissions()->detach($permission->id);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function actingAsWithQaContext(User $user): void

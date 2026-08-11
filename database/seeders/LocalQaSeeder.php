@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\CaseUpdate;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\Role;
@@ -168,6 +169,92 @@ class LocalQaSeeder extends Seeder
             ],
         ]);
         $this->setTimestamps($closedTicket, $seededAt->subDays(3));
+
+        $reopenedApesCase = ShelterCase::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'title' => 'QA Seed: Reopened membership support review',
+            ],
+            [
+                'pet_profile_id' => null,
+                'assigned_to' => $staffUser->id,
+                'case_type' => null,
+                'category' => 'membership',
+                'priority' => 'high',
+                'status' => 'in_progress',
+                'details' => 'Additional information reopened this membership support review.',
+                'opened_at' => $seededAt->subDays(5),
+                'resolved_at' => null,
+                'closed_at' => null,
+            ],
+        );
+        $reopenedApesCase->updates()->delete();
+        $reopenedUpdates = $reopenedApesCase->updates()->createMany([
+            [
+                'user_id' => $serviceUser->id,
+                'body' => 'Additional information received; case reopened for review.',
+                'visibility' => CaseUpdate::VISIBILITY_PUBLIC,
+            ],
+            [
+                'user_id' => $staffUser->id,
+                'body' => 'Internal triage note for local visibility testing.',
+                'visibility' => CaseUpdate::VISIBILITY_INTERNAL,
+            ],
+        ]);
+        $this->setTimestamps($reopenedUpdates[0], $seededAt->subMinutes(30));
+        $this->setTimestamps($reopenedUpdates[1], $seededAt->subMinutes(20));
+        $this->setTimestamps($reopenedApesCase, $seededAt->subMinutes(10));
+
+        $waitingApesCase = ShelterCase::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'title' => 'QA Seed: Welfare response required',
+            ],
+            [
+                'pet_profile_id' => null,
+                'assigned_to' => $staffUser->id,
+                'case_type' => null,
+                'category' => 'welfare',
+                'priority' => 'urgent',
+                'status' => 'waiting_on_user',
+                'details' => 'Waiting for the service user to confirm the requested welfare information.',
+                'opened_at' => $seededAt->subDays(3),
+                'resolved_at' => null,
+                'closed_at' => null,
+            ],
+        );
+        $waitingApesCase->updates()->delete();
+        $this->setTimestamps($waitingApesCase, $seededAt->subMinutes(20));
+
+        $closedApesCase = ShelterCase::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'title' => 'QA Seed: Closed operations complaint',
+            ],
+            [
+                'pet_profile_id' => null,
+                'assigned_to' => $adminUser->id,
+                'case_type' => null,
+                'category' => 'complaint',
+                'priority' => 'low',
+                'status' => 'closed',
+                'details' => 'The operations complaint was reviewed and the outcome was shared.',
+                'opened_at' => $seededAt->subDays(8),
+                'resolved_at' => $seededAt->subDays(3),
+                'closed_at' => $seededAt->subDays(2),
+            ],
+        );
+        $closedApesCase->updates()->delete();
+        $closedUpdate = $closedApesCase->updates()->create([
+            'user_id' => $adminUser->id,
+            'body' => 'Outcome shared with the service user.',
+            'visibility' => CaseUpdate::VISIBILITY_PUBLIC,
+        ]);
+        $this->setTimestamps($closedUpdate, $seededAt->subDays(2));
+        $this->setTimestamps($closedApesCase, $seededAt->subDays(2));
 
         $shelterPet = PetProfile::query()->updateOrCreate(
             [

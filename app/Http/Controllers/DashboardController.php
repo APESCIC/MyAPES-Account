@@ -22,9 +22,12 @@ class DashboardController extends Controller
         $attentionItems = collect();
 
         if ($entitlement->allows($user, 'apes-cic', request())
-            && $modules->enabled('apes-cic', 'tickets')) {
+            && $modules->enabled('apes-cic', 'tickets')
+            && ($user->can('apes-cic.tickets.view-own')
+                || $user->can('apes-cic.tickets.view-all'))) {
             $openTickets = SupportTicket::query()
-                ->visibleTo($user)
+                ->forSubCore(SupportTicket::SUB_CORE_APES_CIC)
+                ->visibleTo($user, SupportTicket::SUB_CORE_APES_CIC)
                 ->whereNull('closed_at')
                 ->whereNotIn('status', ['resolved', 'closed']);
             $attentionItems = $attentionItems->concat(
@@ -49,9 +52,44 @@ class DashboardController extends Controller
             );
         }
 
+        if ($entitlement->allows($user, 'apes-cic', request())
+            && $modules->enabled('apes-cic', 'cases')
+            && ($user->can('apes-cic.cases.view-own')
+                || $user->can('apes-cic.cases.view-all'))) {
+            $openCases = ShelterCase::query()
+                ->forSubCore(ShelterCase::SUB_CORE_APES_CIC)
+                ->visibleTo($user, ShelterCase::SUB_CORE_APES_CIC)
+                ->whereNull('closed_at')
+                ->whereNotIn('status', ['resolved', 'closed']);
+            $attentionItems = $attentionItems->concat(
+                (clone $openCases)
+                    ->with('user')
+                    ->get()
+                    ->map(fn (ShelterCase $case): array => [
+                        'type' => 'ticket',
+                        'icon' => 'briefcase-business',
+                        'service' => 'APES CIC',
+                        'label' => 'Case',
+                        'title' => $case->title,
+                        'status' => $case->status,
+                        'priority' => $case->priority,
+                        'context' => str($case->category)
+                            ->replace('_', ' ')
+                            ->title()
+                            ->toString(),
+                        'owner' => $case->user
+                            ? "For: {$case->user->name}"
+                            : null,
+                        'updatedAt' => $case->updated_at,
+                        'url' => route('apes-cic.cases.show', $case),
+                    ]),
+            );
+        }
+
         if ($entitlement->allows($user, 'shelter-rescue', request())
             && $modules->enabled('shelter-rescue', 'cases')) {
             $openCases = ShelterCase::query()
+                ->forSubCore(ShelterCase::SUB_CORE_SHELTER_RESCUE)
                 ->visibleTo($user)
                 ->whereNull('closed_at')
                 ->where('status', '<>', 'closed');

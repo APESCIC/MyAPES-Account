@@ -7,7 +7,6 @@ use App\Models\ModuleInstallation;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleRollbackCompatibilityChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -55,12 +54,16 @@ class ModuleRollbackCompatibilityTest extends TestCase
             ->check(base_path());
 
         $this->assertSame('manifest', $result['contract']);
-        $this->assertSame(5, $result['installations']);
-        $this->assertSame('0.12.1', $result['target_version']);
+        $this->assertSame(6, $result['installations']);
+        $this->assertSame('0.13.0', $result['target_version']);
     }
 
     public function test_a_legacy_target_without_a_manifest_requires_exactly_five_enabled_baselines(): void
     {
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'apes-cic')
+            ->where('module_key', 'cases')
+            ->delete();
         $legacy = $this->temporaryRelease();
 
         $this->assertSame(
@@ -83,32 +86,23 @@ class ModuleRollbackCompatibilityTest extends TestCase
         app(ModuleRollbackCompatibilityChecker::class)->check($legacy);
     }
 
-    public function test_legacy_and_manifest_targets_reject_extra_installations(): void
+    public function test_v0121_target_rejects_the_sixth_installation_while_v013_accepts_it(): void
     {
-        DB::table('module_installations')->insert([
-            'sub_core_key' => 'apes-cic',
-            'module_key' => 'cases',
-            'enabled' => false,
-            'installed_at' => now(),
-            'installed_by' => null,
-            'enabled_at' => null,
-            'enabled_by' => null,
-            'disabled_at' => now(),
-            'disabled_by' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $this->assertSame(
+            6,
+            app(ModuleRollbackCompatibilityChecker::class)
+                ->check(base_path())['installations'],
+        );
 
-        foreach ([$this->temporaryRelease(), base_path()] as $target) {
-            try {
-                app(ModuleRollbackCompatibilityChecker::class)->check($target);
-                $this->fail('An unsupported installation was accepted.');
-            } catch (ModuleLifecycleException $exception) {
-                $this->assertContains($exception->reason, [
-                    'legacy_contract_unrepresentable',
-                    'target_contract_unrepresentable',
-                ]);
-            }
+        try {
+            app(ModuleRollbackCompatibilityChecker::class)
+                ->check($this->v0121Release());
+            $this->fail('The v0.12.1 target accepted the sixth installation.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame(
+                'target_contract_unrepresentable',
+                $exception->reason,
+            );
         }
     }
 
@@ -232,7 +226,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             '--target-release' => base_path(),
         ])
             ->expectsOutputToContain(
-                'Module rollback compatibility: ok (manifest, 5 installations)',
+                'Module rollback compatibility: ok (manifest, 6 installations)',
             )
             ->assertSuccessful();
 
@@ -248,6 +242,37 @@ class ModuleRollbackCompatibilityTest extends TestCase
             .'myapes-module-rollback-'.Str::uuid();
         mkdir($path.'/resources/data', 0700, true);
         $this->temporaryDirectories[] = $path;
+
+        return $path;
+    }
+
+    private function v0121Release(): string
+    {
+        $path = $this->temporaryRelease();
+        file_put_contents($path.'/VERSION', "0.12.1\n");
+        file_put_contents(
+            $path.'/resources/data/module-runtime-contract.json',
+            json_encode([
+                'schema_version' => 1,
+                'application_version' => '0.12.1',
+                'sub_cores' => ['apes-cic', 'pet-care-clinic', 'shelter-rescue'],
+                'module_types' => ['cases', 'consultations', 'pet-profiles', 'tickets'],
+                'shipped_instances' => [
+                    'apes-cic:tickets',
+                    'pet-care-clinic:consultations',
+                    'pet-care-clinic:pet-profiles',
+                    'shelter-rescue:cases',
+                    'shelter-rescue:pet-profiles',
+                ],
+                'legacy_visible_instances' => [
+                    'apes-cic:tickets',
+                    'pet-care-clinic:consultations',
+                    'pet-care-clinic:pet-profiles',
+                    'shelter-rescue:cases',
+                    'shelter-rescue:pet-profiles',
+                ],
+            ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR),
+        );
 
         return $path;
     }

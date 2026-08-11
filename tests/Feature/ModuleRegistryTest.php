@@ -45,7 +45,7 @@ class ModuleRegistryTest extends TestCase
 
         $this->assertCount(12, $matrix);
         $this->assertSame([
-            'apes-cic:cases' => ModuleCodeStatus::CodeNotShipped,
+            'apes-cic:cases' => ModuleCodeStatus::Shipped,
             'apes-cic:consultations' => ModuleCodeStatus::Incompatible,
             'apes-cic:pet-profiles' => ModuleCodeStatus::Incompatible,
             'apes-cic:tickets' => ModuleCodeStatus::Shipped,
@@ -65,6 +65,7 @@ class ModuleRegistryTest extends TestCase
         $registry = app(ModuleRegistry::class);
 
         $this->assertSame([
+            'apes-cic:cases',
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
@@ -126,8 +127,10 @@ class ModuleRegistryTest extends TestCase
             $permissions,
         );
 
-        $this->assertCount(32, $permissions);
-        $this->assertCount(32, array_unique($names));
+        $this->assertCount(43, $permissions);
+        $this->assertCount(43, array_unique($names));
+        $this->assertContains('apes-cic.cases.comment-own', $names);
+        $this->assertContains('apes-cic.cases.delete', $names);
         $this->assertContains('apes-cic.tickets.view-own', $names);
         $this->assertContains('apes-cic.tickets.comment-own', $names);
         $this->assertContains('apes-cic.tickets.delete', $names);

@@ -26,7 +26,11 @@
                     <i data-lucide="{{ $module->icon }}" aria-hidden="true"></i>
                     <span>
                         <strong>{{ $module->label }}</strong>
-                        <small>Open {{ $module->label }}</small>
+                        @if($moduleSummaries->has($module->instanceKey))
+                            <small>{{ $moduleSummaries->get($module->instanceKey)->detail }}</small>
+                        @else
+                            <small>Open {{ $module->label }}</small>
+                        @endif
                     </span>
                     <i data-lucide="arrow-right" aria-hidden="true"></i>
                 </a>
@@ -41,4 +45,22 @@
             @endforelse
         </div>
     </section>
+
+    @if($recentActivity->isNotEmpty())
+        <section class="module-hub" aria-labelledby="recent-activity-title">
+            <h2 id="recent-activity-title">Recent activity</h2>
+            <div class="attention-list">
+                @foreach($recentActivity as $item)
+                    <a href="{{ route($item->routeName, $item->recordId) }}" class="attention-item">
+                        <span class="attention-item__body">
+                            <span class="attention-item__kicker">{{ $item->label }}</span>
+                            <strong>{{ $item->title }}</strong>
+                            <span class="attention-item__detail">{{ str($item->status)->replace('_', ' ')->title() }}</span>
+                        </span>
+                        <time datetime="{{ $item->updatedAt->toAtomString() }}">{{ $item->updatedAt->diffForHumans() }}</time>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @endif
 @endsection

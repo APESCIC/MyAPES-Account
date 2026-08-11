@@ -6,15 +6,15 @@ use App\Models\Role;
 use App\Models\RoleSource;
 use App\Models\User;
 use App\Support\AuthorizationCompatibilityDatabaseGuard;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
+use Tests\Support\ForwardOnlyDatabaseMigrations;
 use Tests\TestCase;
 
 class AuthorizationCutoverConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use ForwardOnlyDatabaseMigrations;
 
     private const PROCESS_TIMEOUT_SECONDS = 180;
 

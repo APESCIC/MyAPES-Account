@@ -85,6 +85,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
         $this->assertFalse($result['process']->isSuccessful());
         $this->assertSame([
+            '/usr/bin/php8.4 /release/new/artisan myapes:modules:rollback-check --target-release=/release/current --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan myapes:authorization-sync --no-interaction --no-ansi',
             '/usr/bin/php8.4 /release/current/artisan permission:cache-reset --no-interaction --no-ansi',
@@ -129,7 +130,24 @@ class DeploymentAuthenticationContractTest extends TestCase
             'Current authorization could not be restored; maintenance mode remains active.',
             $result['process']->getOutput().$result['process']->getErrorOutput(),
         );
-        $this->assertCount(2, $result['commands']);
+        $this->assertCount(3, $result['commands']);
+    }
+
+    public function test_activation_recovery_keeps_current_release_down_when_its_module_contract_is_unrepresentable(): void
+    {
+        $result = $this->runActivationRecoveryHarness(
+            'pre-switch-failure',
+            'myapes:modules:rollback-check',
+        );
+
+        $this->assertFalse($result['process']->isSuccessful());
+        $this->assertStringContainsString(
+            'Current release cannot represent the migrated module state; maintenance mode remains active.',
+            $result['process']->getOutput().$result['process']->getErrorOutput(),
+        );
+        $this->assertSame([
+            '/usr/bin/php8.4 /release/new/artisan myapes:modules:rollback-check --target-release=/release/current --no-interaction --no-ansi',
+        ], $result['commands']);
     }
 
     public function test_activation_recovery_leaves_maintenance_active_when_the_current_release_cannot_reopen(): void
@@ -144,7 +162,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             'Current release could not leave maintenance mode after activation failure.',
             $result['process']->getOutput().$result['process']->getErrorOutput(),
         );
-        $this->assertCount(5, $result['commands']);
+        $this->assertCount(6, $result['commands']);
     }
 
     public function test_activation_arms_recovery_before_database_mutation_and_commits_only_after_the_atomic_switch(): void
@@ -371,6 +389,33 @@ class DeploymentAuthenticationContractTest extends TestCase
         }
     }
 
+    public function test_database_compatibility_job_allows_forward_only_contract_to_finish(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $databaseCompatibilityStart = $this->position(
+            $workflow,
+            '  database-compatibility:',
+        );
+        $deployStart = $this->position($workflow, '  deploy:');
+        $databaseCompatibilityJob = substr(
+            $workflow,
+            $databaseCompatibilityStart,
+            $deployStart - $databaseCompatibilityStart,
+        );
+
+        preg_match_all(
+            '/^\s*timeout-minutes:\s*\d+\s*$/m',
+            $databaseCompatibilityJob,
+            $timeoutSettings,
+        );
+
+        $this->assertCount(1, $timeoutSettings[0]);
+        $this->assertMatchesRegularExpression(
+            '/^\s*timeout-minutes:\s*30\s*$/m',
+            $databaseCompatibilityJob,
+        );
+    }
+
     public function test_workflow_runs_the_phase_b_contract_on_mysql_and_mariadb(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
@@ -444,6 +489,57 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/deploy:\s*\R(?:(?!\n\S).)*needs:\s*\[\s*deployment-control-authentication,\s*quality,\s*database-compatibility\s*\]/s',
             $deployJob,
         );
+    }
+
+    public function test_workflow_isolates_the_destructive_foundation_migration_contract(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $databaseCompatibilityJob = substr(
+            $workflow,
+            $this->position($workflow, '  database-compatibility:'),
+            $this->position($workflow, '  deploy:')
+                - $this->position($workflow, '  database-compatibility:'),
+        );
+        $foundationMigrationTest = 'tests/Feature/ApesCicFoundationMigrationTest.php';
+        $standaloneFoundationCommand = "php artisan test {$foundationMigrationTest}";
+        $destructiveTestWipeCommand = 'php artisan db:wipe --force --no-interaction';
+        $standaloneFoundationPosition = $this->position(
+            $databaseCompatibilityJob,
+            $standaloneFoundationCommand,
+        );
+        $destructiveTestWipePosition = $this->position(
+            $databaseCompatibilityJob,
+            $destructiveTestWipeCommand,
+        );
+        $mainSuitePosition = $this->position(
+            $databaseCompatibilityJob,
+            "php artisan test \\\n",
+        );
+        $mainSuite = substr(
+            $databaseCompatibilityJob,
+            $mainSuitePosition,
+            $this->position(
+                $databaseCompatibilityJob,
+                'php artisan migrate:fresh --seed --force --no-interaction',
+            ) - $mainSuitePosition,
+        );
+
+        $this->assertSame(1, substr_count($databaseCompatibilityJob, $foundationMigrationTest));
+        $this->assertMatchesRegularExpression(
+            '/^\s*php artisan test\s+tests\/Feature\/ApesCicFoundationMigrationTest\.php\s*$/m',
+            $databaseCompatibilityJob,
+        );
+        $this->assertSame(1, substr_count(
+            $databaseCompatibilityJob,
+            $destructiveTestWipeCommand,
+        ));
+        $this->assertSame(1, preg_match_all(
+            '/^[\t ]*' . preg_quote($destructiveTestWipeCommand, '/') . '[\t ]*\r?$/m',
+            $databaseCompatibilityJob,
+        ));
+        $this->assertLessThan($destructiveTestWipePosition, $standaloneFoundationPosition);
+        $this->assertLessThan($mainSuitePosition, $destructiveTestWipePosition);
+        $this->assertStringNotContainsString($foundationMigrationTest, $mainSuite);
     }
 
     public function test_workflow_packages_and_verifies_semantic_and_commit_identities(): void
@@ -1606,6 +1702,8 @@ class DeploymentAuthenticationContractTest extends TestCase
         $harnessPath = $temporaryRoot.DIRECTORY_SEPARATOR.'harness.sh';
         $logPath = $temporaryRoot.DIRECTORY_SEPARATOR.'commands.log';
         $functions = $this->bashFunction($script, 'run_current_artisan')
+            ."\n"
+            .$this->bashFunction($script, 'run_artisan')
             ."\n"
             .$this->bashFunction(
                 $script,
