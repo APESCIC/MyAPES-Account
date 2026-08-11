@@ -533,6 +533,10 @@ class DeploymentAuthenticationContractTest extends TestCase
             $databaseCompatibilityJob,
             $destructiveTestResetCommand,
         ));
+        $this->assertSame(1, preg_match_all(
+            '/^[\t ]*' . preg_quote($destructiveTestResetCommand, '/') . '[\t ]*\r?$/m',
+            $databaseCompatibilityJob,
+        ));
         $this->assertLessThan($destructiveTestResetPosition, $standaloneFoundationPosition);
         $this->assertLessThan($mainSuitePosition, $destructiveTestResetPosition);
         $this->assertStringNotContainsString($foundationMigrationTest, $mainSuite);
