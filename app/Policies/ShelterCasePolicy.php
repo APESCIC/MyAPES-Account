@@ -37,10 +37,9 @@ class ShelterCasePolicy
         $prefix = "{$case->sub_core_key}.cases.";
 
         return $this->view($user, $case)
-            && ($user->can($prefix.'update-own')
-                || $user->can($prefix.'update-all')
-                || $user->can($prefix.'assign')
-                || $user->can($prefix.'close'));
+            && ($user->can($prefix.'update-all')
+                || ($case->user_id === $user->id
+                    && $user->can($prefix.'update-own')));
     }
 
     public function delete(User $user, ShelterCase $case): bool

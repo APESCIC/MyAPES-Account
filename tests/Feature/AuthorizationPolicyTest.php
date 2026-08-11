@@ -80,6 +80,71 @@ class AuthorizationPolicyTest extends TestCase
         $this->assertSame('open', $case->fresh()->status);
     }
 
+    public function test_shelter_assignment_capability_only_allows_a_pure_assignment(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        $replacement = $this->user(User::ROLE_STAFF);
+        [, , $case] = $this->resourcesFor($owner);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.update-all');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->assertFalse(Gate::allows('update', $case));
+        $this->put(route('shelter.cases.update', $case), ['assigned_to' => $replacement->id])
+            ->assertRedirect(route('shelter.cases.show', $case));
+        $this->assertSame($replacement->id, $case->fresh()->assigned_to);
+
+        $this->put(route('shelter.cases.update', $case), ['details' => 'Unauthorized detail change.'])
+            ->assertForbidden();
+        $this->put(route('shelter.cases.update', $case), ['status' => 'in_review'])
+            ->assertForbidden();
+        $this->assertSame('open', $case->fresh()->status);
+        $this->assertNull($case->fresh()->details);
+    }
+
+    public function test_shelter_close_capability_only_allows_pure_lifecycle_requests(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        [, , $case] = $this->resourcesFor($owner);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.update-all');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->assertFalse(Gate::allows('update', $case));
+        $this->put(route('shelter.cases.update', $case), ['status' => 'closed'])
+            ->assertRedirect(route('shelter.cases.show', $case));
+        $this->put(route('shelter.cases.update', $case), ['status' => 'open'])
+            ->assertRedirect(route('shelter.cases.show', $case));
+        $this->put(route('shelter.cases.update', $case), ['details' => 'Unauthorized detail change.'])
+            ->assertForbidden();
+        $this->put(route('shelter.cases.update', $case), ['status' => 'in_review'])
+            ->assertForbidden();
+    }
+
+    public function test_shelter_mixed_permitted_assignment_and_unauthorized_metadata_is_atomic(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $staff = $this->user(User::ROLE_STAFF);
+        $replacement = $this->user(User::ROLE_STAFF);
+        [, , $case] = $this->resourcesFor($owner);
+        $this->removeRolePermission(AuthorizationProfile::ROLE_STAFF, 'shelter-rescue.cases.update-all');
+
+        $this->actingAsWithQaContext($staff->fresh());
+        $this->put(route('shelter.cases.update', $case), [
+            'assigned_to' => $replacement->id,
+            'status' => 'in_review',
+            'details' => 'This request must fail as a whole.',
+        ])->assertForbidden();
+
+        $this->assertNull($case->fresh()->assigned_to);
+        $this->assertNull($case->fresh()->details);
+        $this->assertDatabaseMissing('audit_logs', [
+            'event' => 'shelter.case.updated',
+            'auditable_type' => ShelterCase::class,
+            'auditable_id' => $case->id,
+        ]);
+    }
+
     /**
      * @return array{SupportTicket, PetProfile, ShelterCase, PetCareConsultation}
      */
@@ -119,6 +184,21 @@ class AuthorizationPolicyTest extends TestCase
             ->accessLevel($accessLevel)
             ->create()
             ->refresh();
+    }
+
+    private function removeRolePermission(string $roleName, string $permissionName): void
+    {
+        $role = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', $roleName)
+            ->firstOrFail();
+        $permission = Permission::query()
+            ->where('guard_name', 'web')
+            ->where('name', $permissionName)
+            ->firstOrFail();
+
+        $role->permissions()->detach($permission->id);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function actingAsWithQaContext(User $user): void
