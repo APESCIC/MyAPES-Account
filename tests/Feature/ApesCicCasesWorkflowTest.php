@@ -104,6 +104,70 @@ class ApesCicCasesWorkflowTest extends TestCase
             ->assertSee('action="'.route('apes-cic.cases.store').'"', false);
     }
 
+    public function test_apes_cic_ticket_presentation_and_internal_control_remain_unchanged(): void
+    {
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $ticket = SupportTicket::create([
+            'user_id' => $staff->id,
+            'service_area' => 'operations',
+            'subject' => 'APES presentation fixture',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'Existing APES Ticket copy must be retained.',
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('apes-cic.tickets.index'))
+            ->assertOk()
+            ->assertSee('service-label apes-cic', false)
+            ->assertSee('Organisational support tickets')
+            ->assertSee('Service support for legal, human resources, IT, web development and related needs.');
+        $this->get(route('apes-cic.tickets.show', $ticket))
+            ->assertSee('for="visibility"', false)
+            ->assertSee('Internal staff only')
+            ->assertSee('action="'.route('apes-cic.tickets.destroy', $ticket).'"', false);
+    }
+
+    public function test_apes_cic_ticket_creation_notification_serializes_the_explicit_open_status(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->create();
+        $recipient = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+
+        $this->actingAs($owner)
+            ->post(route('apes-cic.tickets.store'), [
+                'service_area' => 'operations',
+                'subject' => 'Explicit APES creation status',
+                'priority' => 'high',
+                'description' => 'The synchronous payload must report an open Ticket.',
+            ])
+            ->assertRedirect();
+
+        $ticket = SupportTicket::query()
+            ->where('sub_core_key', 'apes-cic')
+            ->where('subject', 'Explicit APES creation status')
+            ->firstOrFail();
+        $this->assertSame('open', $ticket->status);
+        Notification::assertSentTo(
+            $recipient,
+            TicketUpdatedNotification::class,
+            function (TicketUpdatedNotification $notification) use ($recipient, $ticket): bool {
+                $data = $notification->toArray($recipient);
+
+                $this->assertSame('created', $data['event']);
+                $this->assertSame('apes-cic', $data['service']);
+                $this->assertSame('open', $data['status']);
+                $this->assertSame(route('apes-cic.tickets.show', $ticket), $data['url']);
+
+                return true;
+            },
+        );
+    }
+
     public function test_ticket_reopening_requires_close_permission(): void
     {
         $owner = User::factory()->create();
@@ -325,7 +389,7 @@ class ApesCicCasesWorkflowTest extends TestCase
         $this->assertFalse(Gate::allows('view', $case));
     }
 
-    public function test_ticket_controller_rejects_an_unshipped_route_instance(): void
+    public function test_ticket_controller_accepts_the_shipped_shelter_route_instance(): void
     {
         Route::get('/_test/instance-tickets', [TicketController::class, 'index'])
             ->middleware('web')
@@ -334,7 +398,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->actingAs(User::factory()->create())
             ->get('/_test/instance-tickets')
-            ->assertNotFound();
+            ->assertOk();
     }
 
     public function test_owner_updates_are_public_and_internal_staff_updates_stay_private(): void
@@ -435,7 +499,7 @@ class ApesCicCasesWorkflowTest extends TestCase
             ])->assertRedirect(route('apes-cic.cases.show', $case));
 
             $case->refresh();
-            $snapshot = app($instance->module->analyticsProvider)->snapshot(
+            $snapshot = app($instance->analyticsProviderClass())->snapshot(
                 $instance,
                 Carbon::parse('2026-08-01 00:00:00', 'UTC'),
                 Carbon::parse('2026-08-11 00:00:00', 'UTC'),
@@ -847,6 +911,32 @@ class ApesCicCasesWorkflowTest extends TestCase
             $this->assertStringNotContainsString('Description', $context);
             $this->assertStringNotContainsString('Details', $context);
         }
+    }
+
+    public function test_internal_case_update_preserves_dual_role_owner_staff_notification(): void
+    {
+        Notification::fake();
+        $owner = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $actor = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $case = $this->caseFor($owner, [
+            'title' => 'APES dual-role notification case',
+        ]);
+
+        $this->actingAs($actor)
+            ->post(route('apes-cic.cases.updates.store', $case), [
+                'visibility' => 'internal',
+                'body' => 'APES internal staff update.',
+            ])->assertRedirect(route('apes-cic.cases.show', $case));
+
+        Notification::assertSentTo(
+            $owner,
+            ApesCicCaseUpdatedNotification::class,
+        );
+        Notification::assertNothingSentTo($actor);
     }
 
     public function test_case_workflow_accepts_every_supported_category_priority_and_status(): void

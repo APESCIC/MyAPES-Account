@@ -3,10 +3,12 @@
 namespace App\Modules\Analytics;
 
 use App\Contracts\ModuleAnalyticsProvider;
+use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Modules\ModuleAnalyticsSnapshot;
 use App\Modules\ModuleInstanceDefinition;
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 class CaseAnalyticsProvider implements ModuleAnalyticsProvider
@@ -21,14 +23,12 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
             ->setTimezone(config('app.timezone'));
         $toBoundary = Carbon::instance($to)
             ->setTimezone(config('app.timezone'));
-        $created = ShelterCase::query()
-            ->forSubCore($instance->subCore->key)
+        $created = $this->caseQuery($instance)
             ->where('created_at', '>=', $fromBoundary)
             ->where('created_at', '<', $toBoundary)
             ->get();
         $terminalField = 'closed_at';
-        $closedQuery = ShelterCase::query()
-            ->forSubCore($instance->subCore->key);
+        $closedQuery = $this->caseQuery($instance);
         if ($instance->subCore->key === ShelterCase::SUB_CORE_APES_CIC) {
             $terminalField = 'terminal_at';
             $closedQuery
@@ -55,6 +55,23 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
             $this->medianMinutes($closed->all(), $terminalField),
             $closed->count(),
         );
+    }
+
+    private function caseQuery(ModuleInstanceDefinition $instance): Builder
+    {
+        $query = ShelterCase::query()
+            ->forSubCore($instance->subCore->key);
+        if ($instance->subCore->key === ShelterCase::SUB_CORE_SHELTER_RESCUE) {
+            $query->whereHas(
+                'petProfile',
+                static fn ($pets) => $pets->where(
+                    'service_domain',
+                    PetProfile::DOMAIN_SHELTER,
+                ),
+            );
+        }
+
+        return $query;
     }
 
     private function perDay(array $records, string $field, string $timezone): array

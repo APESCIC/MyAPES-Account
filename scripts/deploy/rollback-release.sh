@@ -120,6 +120,249 @@ assert_release_root_ownership() {
   fi
 }
 
+SELECTIVE_MEDIA_MARKER_NAME=".myapes-selective-media"
+SELECTIVE_MEDIA_MARKER_CONTENT="myapes-selective-media:v1"
+
+assert_canonical_deployment_directory() {
+  local path="${1:-}"
+  local description="${2:-deployment directory}"
+  local required="${3:-false}"
+  local canonical_path=""
+
+  if [[ -z "$path" || -L "$path" ]]; then
+    echo "Unsafe canonical deployment path for ${description}: ${path}"
+    return 1
+  fi
+  if [[ -e "$path" ]]; then
+    if [[ ! -d "$path" ]]; then
+      echo "Unsafe canonical deployment path for ${description}: ${path}"
+      return 1
+    fi
+    canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+  else
+    if [[ "$required" == true ]]; then
+      echo "Required canonical deployment path is missing for ${description}: ${path}"
+      return 1
+    fi
+    canonical_path="$(readlink -m -- "$path" 2>/dev/null || true)"
+  fi
+  if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+    echo "Unsafe canonical deployment path for ${description}: ${path}"
+    return 1
+  fi
+}
+
+assert_canonical_deployment_file() {
+  local path="${1:-}"
+  local description="${2:-deployment file}"
+  local required="${3:-false}"
+  local canonical_path=""
+
+  if [[ -z "$path" || -L "$path" ]]; then
+    echo "Unsafe canonical deployment file for ${description}: ${path}"
+    return 1
+  fi
+  if [[ -e "$path" ]]; then
+    if [[ ! -f "$path" ]]; then
+      echo "Unsafe canonical deployment file for ${description}: ${path}"
+      return 1
+    fi
+    canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+  else
+    if [[ "$required" == true ]]; then
+      echo "Required canonical deployment file is missing for ${description}: ${path}"
+      return 1
+    fi
+    canonical_path="$(readlink -m -- "$path" 2>/dev/null || true)"
+  fi
+  if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+    echo "Unsafe canonical deployment file for ${description}: ${path}"
+    return 1
+  fi
+}
+
+assert_rollback_path_boundaries() {
+  assert_canonical_deployment_directory "$DATA_DIR" "application data root" true
+  assert_canonical_deployment_directory "${DATA_DIR}/apache" "Apache runtime parent" true
+  assert_canonical_deployment_file \
+    "${DATA_DIR}/apache/app.conf" "Apache runtime configuration" true
+  assert_canonical_deployment_file \
+    "${DATA_DIR}/apache/app.conf.rollback" "staged Apache runtime configuration"
+  assert_canonical_deployment_file "${DATA_DIR}/run.sh" "Cloudron runtime launcher" true
+  assert_canonical_deployment_file \
+    "${DATA_DIR}/run.sh.rollback" "staged Cloudron runtime launcher"
+  assert_canonical_deployment_directory "$RELEASES_DIR" "release parent" true
+  assert_canonical_deployment_directory "$SHARED_DIR" "shared parent" true
+  assert_canonical_deployment_file \
+    "${SHARED_DIR}/.env" "shared environment" true
+  assert_canonical_deployment_directory "${SHARED_DIR}/storage" "shared storage" true
+  assert_canonical_deployment_directory \
+    "${SHARED_DIR}/storage/app" "shared storage app" true
+  assert_canonical_deployment_directory \
+    "${SHARED_DIR}/storage/app/public" "shared public storage" true
+  assert_canonical_deployment_directory \
+    "${SHARED_DIR}/storage/app/public/avatars" "shared avatars storage" true
+}
+
+assert_release_runtime_path_boundaries() {
+  local release_root="${1:-}"
+  local cache_required="${2:-false}"
+  local path=""
+  local canonical_path=""
+  local -a required_directories=(
+    "$release_root"
+    "${release_root}/public"
+    "${release_root}/bootstrap"
+  )
+
+  for path in "${required_directories[@]}"; do
+    if [[ -z "$release_root" || ! -d "$path" || -L "$path" ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+    canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+    if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+  done
+
+  path="${release_root}/bootstrap/cache"
+  if [[ -L "$path" ]]; then
+    echo "Unsafe release runtime path: $path"
+    return 1
+  fi
+  if [[ -e "$path" ]]; then
+    if [[ ! -d "$path" ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+    canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+  else
+    if [[ "$cache_required" == true ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+    canonical_path="$(readlink -m -- "$path" 2>/dev/null || true)"
+  fi
+  if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+    echo "Unsafe release runtime path: $path"
+    return 1
+  fi
+}
+
+install_public_storage_boundary() {
+  local release_root="${1:-}"
+  local public_root="${release_root}/public"
+  local public_storage="${public_root}/storage"
+  local shared_public_storage="${SHARED_DIR}/storage/app/public"
+  local marker="${public_storage}/${SELECTIVE_MEDIA_MARKER_NAME}"
+  local avatars_link="${public_storage}/avatars"
+  local shared_avatars="${shared_public_storage}/avatars"
+  local unexpected_entry=""
+  local version=""
+  local major=""
+  local minor=""
+  local patch=""
+  local selective_required=false
+
+  if [[ -z "$release_root" \
+    || "$release_root" != "${RELEASES_DIR}/"* \
+    || ! -d "$release_root" \
+    || ! -d "$public_root" \
+    || -L "$public_root" ]]; then
+    echo "Public storage boundary requires a valid immutable release directory."
+    return 1
+  fi
+
+  version="$(tr -d '\r\n' <"${release_root}/VERSION" 2>/dev/null || true)"
+  if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+    echo "Public storage boundary requires a valid release VERSION."
+    return 1
+  fi
+  major="${BASH_REMATCH[1]}"
+  minor="${BASH_REMATCH[2]}"
+  patch="${BASH_REMATCH[3]}"
+  if [[ "$major" != 0 \
+    || ${#minor} -gt 2 \
+    || (${#minor} -eq 2 && "$minor" > 13) ]]; then
+    selective_required=true
+  fi
+  if [[ ! -d "$shared_public_storage" || -L "$shared_public_storage" ]]; then
+    echo "Shared public storage target is missing or unsafe."
+    return 1
+  fi
+  shared_public_storage="$(readlink -f "$shared_public_storage")"
+  shared_avatars="${shared_public_storage}/avatars"
+
+  if [[ -L "$public_storage" ]]; then
+    if [[ "$selective_required" == true ]]; then
+      echo "Selective-media release cannot use the legacy public storage link."
+      return 1
+    fi
+    if [[ "$(readlink -f "$public_storage" 2>/dev/null || true)" != "$shared_public_storage" ]]; then
+      echo "Legacy public storage link targets an unexpected path."
+      return 1
+    fi
+  elif [[ -d "$public_storage" ]]; then
+    if [[ "$selective_required" != true ]]; then
+      echo "Legacy release cannot use the selective public storage directory."
+      return 1
+    fi
+    if [[ ! -f "$marker" || -L "$marker" ]] \
+      || ! cmp -s "$marker" <(printf '%s\n' "$SELECTIVE_MEDIA_MARKER_CONTENT"); then
+      echo "Selective-media marker is missing, unsafe, or tampered."
+      return 1
+    fi
+    unexpected_entry="$(find "$public_storage" -mindepth 1 -maxdepth 1 \
+      ! -name "$SELECTIVE_MEDIA_MARKER_NAME" ! -name avatars -print -quit)"
+    if [[ -n "$unexpected_entry" ]]; then
+      echo "Unexpected public storage entry: $unexpected_entry"
+      return 1
+    fi
+    if [[ ! -d "$shared_avatars" || -L "$shared_avatars" ]]; then
+      echo "Shared avatars target is missing or unsafe."
+      return 1
+    fi
+    if [[ -L "$avatars_link" ]]; then
+      if [[ "$(readlink -f "$avatars_link" 2>/dev/null || true)" != "$shared_avatars" ]]; then
+        echo "Avatar storage link targets an unexpected path."
+        return 1
+      fi
+    elif [[ -e "$avatars_link" ]]; then
+      echo "Avatar storage path exists and is not the expected symlink."
+      return 1
+    else
+      ln -s "$shared_avatars" "$avatars_link"
+    fi
+  elif [[ -e "$public_storage" ]]; then
+    echo "Public storage boundary has an unsupported filesystem type."
+    return 1
+  elif [[ "$selective_required" == true ]]; then
+    echo "Selective-media release is missing its tracked public storage boundary."
+    return 1
+  else
+    ln -s "$shared_public_storage" "$public_storage"
+  fi
+
+  if [[ -d "$public_storage" && ! -L "$public_storage" ]] \
+    && [[ ! -L "$avatars_link" \
+      || "$(readlink -f "$avatars_link" 2>/dev/null || true)" != "$shared_avatars" ]]; then
+    echo "Selective avatar storage link verification failed."
+    return 1
+  fi
+
+  if sudo -u www-data test -w "$public_root" \
+    || { [[ ! -L "$public_storage" ]] && sudo -u www-data test -w "$public_storage"; }; then
+    echo "Application user can mutate the immutable public storage boundary."
+    return 1
+  fi
+  if [[ -e "$marker" ]] && sudo -u www-data test -w "$marker"; then
+    echo "Application user can mutate the immutable public storage boundary."
+    return 1
+  fi
+}
+
 if [[ "${1:-}" == "--verify-controls" ]]; then
   verify_deployment_controls "${2:-}" "${3:-}"
   exit 0
@@ -137,11 +380,6 @@ CURRENT_LINK="${DATA_DIR}/current"
 PREVIOUS_LINK="${DATA_DIR}/previous"
 PHP_BIN="/usr/bin/php8.4"
 
-if [[ ! -L "$PREVIOUS_LINK" ]]; then
-  echo "No previous release is available for code rollback."
-  exit 1
-fi
-
 if [[ ! "$EXPECTED_ROLLBACK_SHA" =~ ^[0-9a-f]{40}$ \
     || ! "$EXPECTED_CURRENT_SHA" =~ ^[0-9a-f]{40}$ \
     || ! "$EXPECTED_CONTROLS_SHA256" =~ ^[0-9a-f]{64}$ \
@@ -150,9 +388,19 @@ if [[ ! "$EXPECTED_ROLLBACK_SHA" =~ ^[0-9a-f]{40}$ \
   exit 1
 fi
 
+assert_rollback_path_boundaries
+
+if [[ ! -L "$PREVIOUS_LINK" ]]; then
+  echo "No previous release is available for code rollback."
+  exit 1
+fi
+
 ROLLBACK_TARGET="$(readlink -f "$PREVIOUS_LINK")"
+assert_canonical_deployment_directory \
+  "${RELEASES_DIR}/${EXPECTED_ROLLBACK_SHA}" "rollback release root" true
 ROLLBACK_SHA="$(basename "$ROLLBACK_TARGET")"
-if [[ "$ROLLBACK_TARGET" != "${RELEASES_DIR}/"* || ! "$ROLLBACK_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+if [[ "$ROLLBACK_TARGET" != "${RELEASES_DIR}/${EXPECTED_ROLLBACK_SHA}" \
+  || ! "$ROLLBACK_SHA" =~ ^[0-9a-f]{40}$ ]]; then
   echo "Previous release target is invalid: $ROLLBACK_TARGET"
   exit 1
 fi
@@ -161,6 +409,7 @@ if [[ "$ROLLBACK_SHA" != "$EXPECTED_ROLLBACK_SHA" ]]; then
   echo "Previous release does not match the captured rollback identity."
   exit 1
 fi
+assert_release_runtime_path_boundaries "$ROLLBACK_TARGET" false
 
 if [[ ! -L "$CURRENT_LINK" ]]; then
   echo "Current release symlink is unavailable; refusing code rollback."
@@ -168,12 +417,15 @@ if [[ ! -L "$CURRENT_LINK" ]]; then
 fi
 
 CURRENT_TARGET="$(readlink -f "$CURRENT_LINK")"
+assert_canonical_deployment_directory \
+  "${RELEASES_DIR}/${EXPECTED_CURRENT_SHA}" "current release root" true
 CURRENT_SHA="$(basename "$CURRENT_TARGET")"
-if [[ "$CURRENT_TARGET" != "${RELEASES_DIR}/"* \
+if [[ "$CURRENT_TARGET" != "${RELEASES_DIR}/${EXPECTED_CURRENT_SHA}" \
   || "$CURRENT_SHA" != "$EXPECTED_CURRENT_SHA" ]]; then
   echo "Current release does not match the failed activation identity."
   exit 1
 fi
+assert_release_runtime_path_boundaries "$CURRENT_TARGET" false
 
 if [[ "$(readlink -f "${BASH_SOURCE[0]}")" \
   != "${CONTROL_ROOT}/scripts/deploy/rollback-release.sh" ]]; then
@@ -348,29 +600,31 @@ for runtime_link in storage .env; do
   ln -s "$shared_path" "$target_path"
 done
 
-PUBLIC_STORAGE_LINK="${ROLLBACK_TARGET}/public/storage"
-SHARED_PUBLIC_STORAGE="${SHARED_DIR}/storage/app/public"
-if [[ -L "$PUBLIC_STORAGE_LINK" ]]; then
-  if [[ "$(readlink -f "$PUBLIC_STORAGE_LINK" 2>/dev/null || true)" != "$SHARED_PUBLIC_STORAGE" ]]; then
-    echo "Previous release public storage link targets an unexpected path."
-    exit 1
-  fi
-elif [[ -e "$PUBLIC_STORAGE_LINK" ]]; then
-  echo "Previous release public storage path is not a symlink."
-  exit 1
-else
-  ln -s "$SHARED_PUBLIC_STORAGE" "$PUBLIC_STORAGE_LINK"
-fi
+install_public_storage_boundary "$ROLLBACK_TARGET"
 
+assert_release_runtime_path_boundaries "$ROLLBACK_TARGET" false
 chown -hR root:root "$ROLLBACK_TARGET"
 chmod -R a-w -- "$ROLLBACK_TARGET"
 install -d -o www-data -g www-data -m 0770 "${ROLLBACK_TARGET}/bootstrap/cache"
+assert_release_runtime_path_boundaries "$ROLLBACK_TARGET" true
 chown -hR www-data:www-data "${ROLLBACK_TARGET}/bootstrap/cache"
 chmod -R u+rwX,g+rwX,o-rwx "${ROLLBACK_TARGET}/bootstrap/cache"
 chmod 0555 "$DATA_DIR" "$RELEASES_DIR" "$ROLLBACK_TARGET" "${ROLLBACK_TARGET}/public"
 
+assert_canonical_deployment_directory "${DATA_DIR}/apache" "Apache runtime parent" true
+assert_canonical_deployment_file \
+  "${DATA_DIR}/apache/app.conf" "Apache runtime configuration" true
+assert_canonical_deployment_file \
+  "${DATA_DIR}/apache/app.conf.rollback" "staged Apache runtime configuration"
+assert_canonical_deployment_file "${DATA_DIR}/run.sh" "Cloudron runtime launcher" true
+assert_canonical_deployment_file \
+  "${DATA_DIR}/run.sh.rollback" "staged Cloudron runtime launcher"
 install -m 0444 "${CONTROL_ROOT}/scripts/deploy/cloudron-app.conf" "${DATA_DIR}/apache/app.conf.rollback"
 install -m 0555 "${CONTROL_ROOT}/scripts/deploy/cloudron-run.sh" "${DATA_DIR}/run.sh.rollback"
+assert_canonical_deployment_file \
+  "${DATA_DIR}/apache/app.conf.rollback" "staged Apache runtime configuration" true
+assert_canonical_deployment_file \
+  "${DATA_DIR}/run.sh.rollback" "staged Cloudron runtime launcher" true
 
 sudo -E -u www-data env APP_ENV=production \
   "$PHP_BIN" "${ROLLBACK_TARGET}/artisan" permission:cache-reset --no-interaction --no-ansi
@@ -385,12 +639,22 @@ rm -f -- "${CURRENT_LINK}.rollback"
 ln -s "$ROLLBACK_TARGET" "${CURRENT_LINK}.rollback"
 mv -Tf "${CURRENT_LINK}.rollback" "$CURRENT_LINK"
 ROLLBACK_SWITCHED=true
+assert_canonical_deployment_directory "${DATA_DIR}/apache" "Apache runtime parent" true
+assert_canonical_deployment_file \
+  "${DATA_DIR}/apache/app.conf" "Apache runtime configuration" true
+assert_canonical_deployment_file \
+  "${DATA_DIR}/apache/app.conf.rollback" "staged Apache runtime configuration" true
+assert_canonical_deployment_file "${DATA_DIR}/run.sh" "Cloudron runtime launcher" true
+assert_canonical_deployment_file \
+  "${DATA_DIR}/run.sh.rollback" "staged Cloudron runtime launcher" true
 mv -Tf "${DATA_DIR}/apache/app.conf.rollback" "${DATA_DIR}/apache/app.conf"
 mv -Tf "${DATA_DIR}/run.sh.rollback" "${DATA_DIR}/run.sh"
 rm -f -- "$PREVIOUS_LINK"
 chown root:root "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR" "$SHARED_DIR" \
   "${DATA_DIR}/apache/app.conf" "${DATA_DIR}/run.sh"
 chown -h root:root "$CURRENT_LINK"
+assert_canonical_deployment_file \
+  "${SHARED_DIR}/.env" "shared environment" true
 chown root:www-data "${SHARED_DIR}/.env"
 chmod 0640 "${SHARED_DIR}/.env"
 chmod 0555 "$DATA_DIR" "${DATA_DIR}/apache" "$RELEASES_DIR" "$SHARED_DIR"

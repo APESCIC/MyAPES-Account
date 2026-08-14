@@ -93,7 +93,11 @@ class LocalQaSeeder extends Seeder
         $this->upsertProfile($superAdminUser, 'Superadmin User', '+44 7700 900104', 'APES CIC Superadmin');
 
         $openTicket = SupportTicket::query()->updateOrCreate(
-            ['user_id' => $serviceUser->id, 'subject' => 'QA Seed: IT account support request'],
+            [
+                'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: IT account support request',
+            ],
             [
                 'assigned_to' => $staffUser->id,
                 'service_area' => 'it',
@@ -103,23 +107,28 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => null,
             ]
         );
-        $openTicket->messages()->delete();
-        $openTicket->messages()->createMany([
-            [
-                'user_id' => $serviceUser->id,
-                'message' => 'Initial issue report for remote mailbox access.',
-                'is_staff_note' => false,
-            ],
-            [
-                'user_id' => $staffUser->id,
-                'message' => 'Investigating SMTP relay and mailbox permissions.',
-                'is_staff_note' => true,
-            ],
-        ]);
+        $this->upsertTicketMessage(
+            $openTicket,
+            $serviceUser,
+            'Initial issue report for remote mailbox access.',
+            false,
+            $seededAt->addMinutes(20),
+        );
+        $this->upsertTicketMessage(
+            $openTicket,
+            $staffUser,
+            'Investigating SMTP relay and mailbox permissions.',
+            true,
+            $seededAt->addMinutes(30),
+        );
         $this->setTimestamps($openTicket, $seededAt->addMinutes(40));
 
         $followUpTicket = SupportTicket::query()->updateOrCreate(
-            ['user_id' => $serviceUser->id, 'subject' => 'QA Seed: Documentation follow-up'],
+            [
+                'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: Documentation follow-up',
+            ],
             [
                 'assigned_to' => $staffUser->id,
                 'service_area' => 'legal',
@@ -129,23 +138,28 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => null,
             ]
         );
-        $followUpTicket->messages()->delete();
-        $followUpTicket->messages()->createMany([
-            [
-                'user_id' => $serviceUser->id,
-                'message' => 'The requested supporting documents have been uploaded.',
-                'is_staff_note' => false,
-            ],
-            [
-                'user_id' => $staffUser->id,
-                'message' => 'Ready for final document review.',
-                'is_staff_note' => true,
-            ],
-        ]);
+        $this->upsertTicketMessage(
+            $followUpTicket,
+            $serviceUser,
+            'The requested supporting documents have been uploaded.',
+            false,
+            $seededAt->addMinutes(5),
+        );
+        $this->upsertTicketMessage(
+            $followUpTicket,
+            $staffUser,
+            'Ready for final document review.',
+            true,
+            $seededAt->addMinutes(10),
+        );
         $this->setTimestamps($followUpTicket, $seededAt->addMinutes(20));
 
         $closedTicket = SupportTicket::query()->updateOrCreate(
-            ['user_id' => $serviceUser->id, 'subject' => 'QA Seed: HR policy clarification'],
+            [
+                'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: HR policy clarification',
+            ],
             [
                 'assigned_to' => $adminUser->id,
                 'service_area' => 'human_resources',
@@ -155,20 +169,114 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => $seededAt->subDay(),
             ]
         );
-        $closedTicket->messages()->delete();
-        $closedTicket->messages()->createMany([
-            [
-                'user_id' => $serviceUser->id,
-                'message' => 'Please confirm the rota policy for evenings.',
-                'is_staff_note' => false,
-            ],
-            [
-                'user_id' => $adminUser->id,
-                'message' => 'Policy shared and confirmed with service user.',
-                'is_staff_note' => true,
-            ],
-        ]);
+        $this->upsertTicketMessage(
+            $closedTicket,
+            $serviceUser,
+            'Please confirm the rota policy for evenings.',
+            false,
+            $seededAt->subDays(3)->subMinutes(20),
+        );
+        $this->upsertTicketMessage(
+            $closedTicket,
+            $adminUser,
+            'Policy shared and confirmed with service user.',
+            true,
+            $seededAt->subDays(3)->subMinutes(10),
+        );
         $this->setTimestamps($closedTicket, $seededAt->subDays(3));
+
+        $shelterOpenTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: Shelter adoption enquiry',
+            ],
+            [
+                'assigned_to' => null,
+                'service_area' => 'adoption',
+                'priority' => 'low',
+                'status' => 'open',
+                'description' => 'Service user is preparing for the adoption home-check process.',
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertTicketMessage(
+            $shelterOpenTicket,
+            $serviceUser,
+            'Could you explain the adoption home-check steps?',
+            false,
+            $seededAt->addMinutes(15),
+        );
+        $this->upsertTicketMessage(
+            $shelterOpenTicket,
+            $staffUser,
+            'Internal note: confirm adopter information before follow-up.',
+            true,
+            $seededAt->addMinutes(25),
+        );
+        $this->setTimestamps($shelterOpenTicket, $seededAt->addMinutes(35));
+
+        $shelterAssignedTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: Shelter rescue coordination',
+            ],
+            [
+                'assigned_to' => $staffUser->id,
+                'service_area' => 'rescue',
+                'priority' => 'high',
+                'status' => 'in_progress',
+                'description' => 'Coordinating transport and temporary foster space for a rescue intake.',
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertTicketMessage(
+            $shelterAssignedTicket,
+            $serviceUser,
+            'A transport volunteer is available for the rescue intake.',
+            false,
+            $seededAt->subMinutes(5),
+        );
+        $this->upsertTicketMessage(
+            $shelterAssignedTicket,
+            $staffUser,
+            'Internal note: coordinating transport and temporary foster space.',
+            true,
+            $seededAt->addMinutes(5),
+        );
+        $this->setTimestamps($shelterAssignedTicket, $seededAt->addMinutes(15));
+
+        $shelterClosedTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: Shelter welfare follow-up',
+            ],
+            [
+                'assigned_to' => $adminUser->id,
+                'service_area' => 'animal_welfare',
+                'priority' => 'medium',
+                'status' => 'closed',
+                'description' => 'The planned animal-welfare follow-up has been completed.',
+                'closed_at' => $seededAt->subDays(4),
+            ],
+        );
+        $this->upsertTicketMessage(
+            $shelterClosedTicket,
+            $serviceUser,
+            'Thank you for confirming the welfare follow-up.',
+            false,
+            $seededAt->subDays(4)->subMinutes(20),
+        );
+        $this->upsertTicketMessage(
+            $shelterClosedTicket,
+            $adminUser,
+            'Internal note: welfare follow-up is complete.',
+            true,
+            $seededAt->subDays(4)->subMinutes(10),
+        );
+        $this->setTimestamps($shelterClosedTicket, $seededAt->subDays(4));
 
         $reopenedApesCase = ShelterCase::query()->updateOrCreate(
             [
@@ -189,21 +297,20 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => null,
             ],
         );
-        $reopenedApesCase->updates()->delete();
-        $reopenedUpdates = $reopenedApesCase->updates()->createMany([
-            [
-                'user_id' => $serviceUser->id,
-                'body' => 'Additional information received; case reopened for review.',
-                'visibility' => CaseUpdate::VISIBILITY_PUBLIC,
-            ],
-            [
-                'user_id' => $staffUser->id,
-                'body' => 'Internal triage note for local visibility testing.',
-                'visibility' => CaseUpdate::VISIBILITY_INTERNAL,
-            ],
-        ]);
-        $this->setTimestamps($reopenedUpdates[0], $seededAt->subMinutes(30));
-        $this->setTimestamps($reopenedUpdates[1], $seededAt->subMinutes(20));
+        $this->upsertCaseUpdate(
+            $reopenedApesCase,
+            $serviceUser,
+            'Additional information received; case reopened for review.',
+            CaseUpdate::VISIBILITY_PUBLIC,
+            $seededAt->subMinutes(30),
+        );
+        $this->upsertCaseUpdate(
+            $reopenedApesCase,
+            $staffUser,
+            'Internal triage note for local visibility testing.',
+            CaseUpdate::VISIBILITY_INTERNAL,
+            $seededAt->subMinutes(20),
+        );
         $this->setTimestamps($reopenedApesCase, $seededAt->subMinutes(10));
 
         $waitingApesCase = ShelterCase::query()->updateOrCreate(
@@ -225,7 +332,6 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => null,
             ],
         );
-        $waitingApesCase->updates()->delete();
         $this->setTimestamps($waitingApesCase, $seededAt->subMinutes(20));
 
         $closedApesCase = ShelterCase::query()->updateOrCreate(
@@ -247,13 +353,13 @@ class LocalQaSeeder extends Seeder
                 'closed_at' => $seededAt->subDays(2),
             ],
         );
-        $closedApesCase->updates()->delete();
-        $closedUpdate = $closedApesCase->updates()->create([
-            'user_id' => $adminUser->id,
-            'body' => 'Outcome shared with the service user.',
-            'visibility' => CaseUpdate::VISIBILITY_PUBLIC,
-        ]);
-        $this->setTimestamps($closedUpdate, $seededAt->subDays(2));
+        $this->upsertCaseUpdate(
+            $closedApesCase,
+            $adminUser,
+            'Outcome shared with the service user.',
+            CaseUpdate::VISIBILITY_PUBLIC,
+            $seededAt->subDays(2),
+        );
         $this->setTimestamps($closedApesCase, $seededAt->subDays(2));
 
         $shelterPet = PetProfile::query()->updateOrCreate(
@@ -289,7 +395,11 @@ class LocalQaSeeder extends Seeder
         );
 
         $rescueCase = ShelterCase::query()->updateOrCreate(
-            ['pet_profile_id' => $shelterPet->id, 'title' => 'QA Seed: Mango rescue intake'],
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+                'pet_profile_id' => $shelterPet->id,
+                'title' => 'QA Seed: Mango rescue intake',
+            ],
             [
                 'user_id' => $serviceUser->id,
                 'assigned_to' => $staffUser->id,
@@ -300,9 +410,27 @@ class LocalQaSeeder extends Seeder
             ]
         );
         $this->setTimestamps($rescueCase, $seededAt->subMinutes(5));
+        $this->upsertCaseUpdate(
+            $rescueCase,
+            $serviceUser,
+            'Mango is settled and ready for the next rescue assessment.',
+            CaseUpdate::VISIBILITY_PUBLIC,
+            $seededAt->subMinutes(8),
+        );
+        $this->upsertCaseUpdate(
+            $rescueCase,
+            $staffUser,
+            'Internal note: confirm foster placement before closing intake.',
+            CaseUpdate::VISIBILITY_INTERNAL,
+            $seededAt->subMinutes(7),
+        );
 
         $fosterCase = ShelterCase::query()->updateOrCreate(
-            ['pet_profile_id' => $shelterPet->id, 'title' => 'QA Seed: Mango foster placement review'],
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+                'pet_profile_id' => $shelterPet->id,
+                'title' => 'QA Seed: Mango foster placement review',
+            ],
             [
                 'user_id' => $serviceUser->id,
                 'assigned_to' => $adminUser->id,
@@ -315,7 +443,11 @@ class LocalQaSeeder extends Seeder
         $this->setTimestamps($fosterCase, $seededAt->subDay()->addHours(3));
 
         $closedShelterCase = ShelterCase::query()->updateOrCreate(
-            ['pet_profile_id' => $shelterPet->id, 'title' => 'QA Seed: Mango adoption follow-up'],
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+                'pet_profile_id' => $shelterPet->id,
+                'title' => 'QA Seed: Mango adoption follow-up',
+            ],
             [
                 'user_id' => $serviceUser->id,
                 'assigned_to' => $adminUser->id,
@@ -463,6 +595,42 @@ class LocalQaSeeder extends Seeder
                 'mobile_number' => '+447400123456',
             ]
         );
+    }
+
+    private function upsertTicketMessage(
+        SupportTicket $ticket,
+        User $author,
+        string $message,
+        bool $isStaffNote,
+        CarbonImmutable $updatedAt,
+    ): void {
+        $fixture = $ticket->messages()->updateOrCreate(
+            [
+                'user_id' => $author->id,
+                'is_staff_note' => $isStaffNote,
+            ],
+            ['message' => $message],
+        );
+
+        $this->setTimestamps($fixture, $updatedAt);
+    }
+
+    private function upsertCaseUpdate(
+        ShelterCase $case,
+        User $author,
+        string $body,
+        string $visibility,
+        CarbonImmutable $updatedAt,
+    ): void {
+        $fixture = $case->updates()->updateOrCreate(
+            [
+                'user_id' => $author->id,
+                'visibility' => $visibility,
+            ],
+            ['body' => $body],
+        );
+
+        $this->setTimestamps($fixture, $updatedAt);
     }
 
     private function setTimestamps(Model $model, CarbonImmutable $updatedAt): void

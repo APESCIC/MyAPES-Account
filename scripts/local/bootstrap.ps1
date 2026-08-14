@@ -112,11 +112,8 @@ if ($Fresh) {
     Invoke-CheckedCommand php artisan migrate --force
 }
 
-if (Test-Path -LiteralPath (Join-Path $RootDir "public\storage")) {
-    Write-Host "Storage link already exists."
-} else {
-    Invoke-CheckedCommand php artisan storage:link
-}
+. (Join-Path $PSScriptRoot "selective-media-boundary.ps1")
+Assert-SelectiveMediaBoundary -RootDir $RootDir -CreateAvatarLink
 Invoke-CheckedCommand npm run build
 
 Write-Host "Local bootstrap complete. Run 'composer run dev' to start MyAPES Account."

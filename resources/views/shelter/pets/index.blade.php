@@ -7,9 +7,10 @@
         <span class="service-label apes-shelter">APES Shelter and Rescue</span>
         <h1>Pet profiles</h1>
     </div>
-    <div class="panel">
-        <h2>Add pet profile</h2>
-        <form method="post" action="{{ route('shelter.pets.store') }}" enctype="multipart/form-data">
+    @if($canCreatePet)
+        <div class="panel">
+            <h2>Add pet profile</h2>
+            <form method="post" action="{{ route('shelter.pets.store') }}" enctype="multipart/form-data">
             @csrf
             <div class="row">
                 <div><label for="pet_name">Name</label><input id="pet_name" name="name"></div>
@@ -24,8 +25,9 @@
             <label for="pet_health_issues">Health issues</label>
             <textarea id="pet_health_issues" name="health_issues"></textarea>
             <button type="submit">Save pet profile</button>
-        </form>
-    </div>
+            </form>
+        </div>
+    @endif
     <div class="panel">
         <h2>Profiles</h2>
         <table>

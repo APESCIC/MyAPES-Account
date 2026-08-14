@@ -7,9 +7,14 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
 use App\Modules\ModuleSummary;
+use App\Services\TicketServiceConfiguration;
 
 class SupportTicketSummaryProvider implements ModuleAggregateSummaryProvider
 {
+    public function __construct(
+        private readonly TicketServiceConfiguration $ticketServices,
+    ) {}
+
     public function summarize(
         ModuleInstanceDefinition $instance,
         User $user,
@@ -27,12 +32,14 @@ class SupportTicketSummaryProvider implements ModuleAggregateSummaryProvider
             ->whereIn('priority', ['high', 'urgent'])
             ->count();
 
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
+
         return new ModuleSummary(
             $instance->key(),
             'Tickets',
             (clone $query)->count(),
             $open,
-            'apes-cic.tickets.index',
+            $ticketService->routePrefix.'.index',
             'ticket',
             'ticket',
             "{$open} open · {$highPriority} high priority",

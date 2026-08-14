@@ -26,7 +26,7 @@ class SubCoreController extends Controller
 
         foreach ($modules as $module) {
             $instance = $registry->instance($subCoreKey, $module->moduleKey);
-            $providerClass = $instance->module->recentActivityProvider;
+            $providerClass = $instance->recentActivityProviderClass();
             if ($providerClass === null) {
                 continue;
             }

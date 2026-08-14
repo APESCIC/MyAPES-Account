@@ -4,10 +4,12 @@ namespace App\Http\Controllers\ApesCic;
 
 use App\Http\Controllers\Controller;
 use App\Models\CaseUpdate;
+use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
 use App\Notifications\ApesCicCaseUpdatedNotification;
+use App\Notifications\ShelterCaseUpdatedNotification;
 use App\Services\AuditLogger;
 use App\Services\ModuleRouteContext;
 use Illuminate\Http\RedirectResponse;
@@ -29,10 +31,25 @@ class CaseUpdateController extends Controller
     ): RedirectResponse {
         $instance = $this->instance($request);
         $prefix = $this->moduleContext->permissionPrefix($instance);
-        abort_unless(
-            $case->sub_core_key === $instance->subCore->key,
-            404,
-        );
+        if ($instance->subCore->key === ShelterCase::SUB_CORE_SHELTER_RESCUE) {
+            $case = ShelterCase::query()
+                ->forSubCore(ShelterCase::SUB_CORE_SHELTER_RESCUE)
+                ->visibleTo($request->user(), ShelterCase::SUB_CORE_SHELTER_RESCUE)
+                ->whereKey($case->getKey())
+                ->whereHas(
+                    'petProfile',
+                    static fn ($pets) => $pets->where(
+                        'service_domain',
+                        PetProfile::DOMAIN_SHELTER,
+                    ),
+                )
+                ->firstOrFail();
+        } else {
+            abort_unless(
+                $case->sub_core_key === $instance->subCore->key,
+                404,
+            );
+        }
         Gate::authorize('view', $case);
         Gate::authorize($prefix.'comment-own');
 
@@ -73,19 +90,34 @@ class CaseUpdateController extends Controller
             && $case->user?->can('view', $case)) {
             $recipients->push($case->user);
         }
+        if ($instance->subCore->key === ShelterCase::SUB_CORE_SHELTER_RESCUE
+            && $visibility === CaseUpdate::VISIBILITY_INTERNAL) {
+            $recipients = $recipients->reject(
+                fn (User $recipient): bool => $recipient->id === $case->user_id,
+            );
+        }
         $recipients->unique('id')
             ->reject(fn (User $recipient): bool => $recipient->id === $request->user()->id)
             ->each(fn (User $recipient) => $recipient->notify(
-                new ApesCicCaseUpdatedNotification(
-                    $case,
-                    $request->user(),
-                    'updated',
-                    $instance->subCore->key,
-                    $this->moduleContext->showRouteName($instance),
-                ),
+                $instance->subCore->key === ShelterCase::SUB_CORE_SHELTER_RESCUE
+                    ? new ShelterCaseUpdatedNotification(
+                        $case,
+                        $request->user(),
+                        'updated',
+                    )
+                    : new ApesCicCaseUpdatedNotification(
+                        $case,
+                        $request->user(),
+                        'updated',
+                        $instance->subCore->key,
+                        $this->moduleContext->showRouteName($instance),
+                    ),
             ));
 
-        $auditLogger->record('apes_cic.case.update_added', $request->user(), $case, [
+        $event = $instance->subCore->key === ShelterCase::SUB_CORE_SHELTER_RESCUE
+            ? 'shelter.case.update_added'
+            : 'apes_cic.case.update_added';
+        $auditLogger->record($event, $request->user(), $case, [
             'sub_core_key' => $case->sub_core_key,
             'module_key' => $instance->module->key,
             'visibility' => $visibility,

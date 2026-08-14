@@ -8,9 +8,10 @@
         <h1>Case management</h1>
         <p class="muted">Track adoption, surrender, rescue and fostering workflows.</p>
     </div>
-    <div class="panel">
-        <h2>Create case</h2>
-        <form method="post" action="{{ route('shelter.cases.store') }}">
+    @if($canCreateCase)
+        <div class="panel">
+            <h2>Create case</h2>
+            <form method="post" action="{{ route('shelter.cases.store') }}">
             @csrf
             <div class="row">
                 <div>
@@ -31,8 +32,9 @@
             <label>Details</label>
             <textarea name="details"></textarea>
             <button type="submit">Create case</button>
-        </form>
-    </div>
+            </form>
+        </div>
+    @endif
     <div class="panel">
         <h2>Cases</h2>
         <table>

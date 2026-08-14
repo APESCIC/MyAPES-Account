@@ -113,11 +113,8 @@ else
   php artisan migrate --force
 fi
 
-if [[ -e public/storage ]]; then
-  echo "Storage link already exists."
-else
-  php artisan storage:link
-fi
+source scripts/local/selective-media-boundary.sh
+ensure_selective_media_boundary "$(pwd)" true
 npm run build
 
 echo "Local bootstrap complete. Run 'composer run dev' to start MyAPES Account."

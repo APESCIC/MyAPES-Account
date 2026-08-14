@@ -5,25 +5,32 @@ namespace App\Http\Controllers\Shelter;
 use App\Http\Controllers\Controller;
 use App\Models\PetProfile;
 use App\Services\AuditLogger;
+use App\Services\PetProfilePhotoResponder;
 use App\Services\SecureUploadService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PetProfileController extends Controller
 {
     public function index(): View
     {
         $user = request()->user();
-        Gate::authorize('viewAny', PetProfile::class);
+        abort_unless(
+            $user->can('shelter-rescue.pet-profiles.view-own')
+                || $user->can('shelter-rescue.pet-profiles.view-all'),
+            403,
+        );
         $query = PetProfile::query()
             ->where('service_domain', PetProfile::DOMAIN_SHELTER)
-            ->visibleTo($user)
+            ->visibleTo($user, PetProfile::DOMAIN_SHELTER)
             ->latest();
 
         return view('shelter.pets.index', [
             'pets' => $query->paginate(20),
+            'canCreatePet' => $user->can('shelter-rescue.pet-profiles.create'),
         ]);
     }
 
@@ -32,6 +39,8 @@ class PetProfileController extends Controller
         SecureUploadService $secureUploadService,
         AuditLogger $auditLogger
     ): RedirectResponse {
+        Gate::authorize('shelter-rescue.pet-profiles.create');
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'species' => ['nullable', 'string', 'max:255'],
@@ -68,7 +77,17 @@ class PetProfileController extends Controller
     {
         $this->authorizeDomainPet($pet, PetProfile::DOMAIN_SHELTER, 'view');
 
-        return view('shelter.pets.show', ['pet' => $pet]);
+        return view('shelter.pets.show', [
+            'pet' => $pet,
+            'canUpdatePet' => Gate::allows('update', $pet),
+        ]);
+    }
+
+    public function photo(
+        PetProfile $pet,
+        PetProfilePhotoResponder $photos,
+    ): StreamedResponse {
+        return $photos->response($pet, PetProfile::DOMAIN_SHELTER);
     }
 
     public function update(
