@@ -29,7 +29,7 @@ class ModuleDashboardSummaryService
         foreach ($visible as $key) {
             [$subCoreKey, $moduleKey] = explode(':', $key, 2);
             $instance = $this->registry->instance($subCoreKey, $moduleKey);
-            $providerClass = $instance->module->summaryProvider;
+            $providerClass = $instance->summaryProviderClass();
 
             if ($providerClass === null) {
                 continue;

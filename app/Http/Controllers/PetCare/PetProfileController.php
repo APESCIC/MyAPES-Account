@@ -5,11 +5,13 @@ namespace App\Http\Controllers\PetCare;
 use App\Http\Controllers\Controller;
 use App\Models\PetProfile;
 use App\Services\AuditLogger;
+use App\Services\PetProfilePhotoResponder;
 use App\Services\SecureUploadService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PetProfileController extends Controller
 {
@@ -69,6 +71,13 @@ class PetProfileController extends Controller
         $this->authorizeDomainPet($pet, PetProfile::DOMAIN_PETCARE, 'view');
 
         return view('petcare.pets.show', ['pet' => $pet]);
+    }
+
+    public function photo(
+        PetProfile $pet,
+        PetProfilePhotoResponder $photos,
+    ): StreamedResponse {
+        return $photos->response($pet, PetProfile::DOMAIN_PETCARE);
     }
 
     public function update(

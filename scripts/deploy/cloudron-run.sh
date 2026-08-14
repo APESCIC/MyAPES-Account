@@ -11,6 +11,156 @@ run_artisan() {
     "$PHP_BIN" "${CURRENT_DIR}/artisan" "$@"
 }
 
+assert_release_runtime_path_boundaries() {
+  local release_root="${1:-}"
+  local cache_required="${2:-false}"
+  local path=""
+  local canonical_path=""
+  local -a required_directories=(
+    "$release_root"
+    "${release_root}/public"
+    "${release_root}/bootstrap"
+  )
+
+  for path in "${required_directories[@]}"; do
+    if [[ -z "$release_root" || ! -d "$path" || -L "$path" ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+    canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+    if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+  done
+
+  path="${release_root}/bootstrap/cache"
+  if [[ -L "$path" ]]; then
+    echo "Unsafe release runtime path: $path"
+    return 1
+  fi
+  if [[ -e "$path" ]]; then
+    if [[ ! -d "$path" ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+    canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+  else
+    if [[ "$cache_required" == true ]]; then
+      echo "Unsafe release runtime path: $path"
+      return 1
+    fi
+    canonical_path="$(readlink -m -- "$path" 2>/dev/null || true)"
+  fi
+  if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+    echo "Unsafe release runtime path: $path"
+    return 1
+  fi
+}
+
+assert_ordinary_canonical_runtime_directory() {
+  local path="${1:-}"
+  local description="${2:-runtime directory}"
+  local canonical_path=""
+
+  if [[ -z "$path" || ! -d "$path" || -L "$path" ]]; then
+    echo "Unsafe canonical runtime path for ${description}: ${path}"
+    return 1
+  fi
+  canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+  if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+    echo "Unsafe canonical runtime path for ${description}: ${path}"
+    return 1
+  fi
+}
+
+assert_ordinary_canonical_runtime_file() {
+  local path="${1:-}"
+  local description="${2:-runtime file}"
+  local canonical_path=""
+
+  if [[ -z "$path" || ! -f "$path" || -L "$path" ]]; then
+    echo "Unsafe canonical runtime path for ${description}: ${path}"
+    return 1
+  fi
+  canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+  if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+    echo "Unsafe canonical runtime path for ${description}: ${path}"
+    return 1
+  fi
+}
+
+assert_runtime_control_paths() {
+  local data_root="${1:-/app/data}"
+
+  assert_ordinary_canonical_runtime_directory \
+    "${data_root}/apache" "Apache runtime parent"
+  assert_ordinary_canonical_runtime_file \
+    "${data_root}/apache/app.conf" "Apache runtime configuration"
+  assert_ordinary_canonical_runtime_file \
+    "${data_root}/run.sh" "Cloudron runtime launcher"
+}
+
+assert_laravel_log_file() {
+  local log_path="${1:-}"
+  local canonical_path=""
+
+  if [[ -z "$log_path" || -L "$log_path" \
+    || ( -e "$log_path" && ! -f "$log_path" ) ]]; then
+    echo "Unsafe Laravel log path: $log_path" >&2
+    return 1
+  fi
+  if [[ ! -e "$log_path" ]]; then
+    : >>"$log_path"
+  fi
+  canonical_path="$(readlink -f -- "$log_path" 2>/dev/null || true)"
+  if [[ -z "$canonical_path" || "$canonical_path" != "$log_path" ]]; then
+    echo "Unsafe Laravel log path: $log_path" >&2
+    return 1
+  fi
+}
+
+prepare_laravel_logs() {
+  local log_dir="${1:-}"
+  local canonical_path=""
+  local log_name=""
+
+  if [[ -z "$log_dir" || -L "$log_dir" \
+    || ( -e "$log_dir" && ! -d "$log_dir" ) ]]; then
+    echo "Unsafe Laravel log path: $log_dir" >&2
+    return 1
+  fi
+  if [[ -e "$log_dir" ]]; then
+    canonical_path="$(readlink -f -- "$log_dir" 2>/dev/null || true)"
+  else
+    canonical_path="$(readlink -m -- "$log_dir" 2>/dev/null || true)"
+  fi
+  if [[ -z "$canonical_path" || "$canonical_path" != "$log_dir" ]]; then
+    echo "Unsafe Laravel log path: $log_dir" >&2
+    return 1
+  fi
+  if [[ ! -e "$log_dir" ]]; then
+    mkdir -- "$log_dir"
+  fi
+  chmod 0775 "$log_dir"
+
+  for log_name in queue-worker.log scheduler.log; do
+    assert_laravel_log_file "${log_dir}/${log_name}"
+  done
+}
+
+start_laravel_worker() {
+  local log_path="${1:-}"
+  shift
+
+  sudo -E -u www-data env APP_ENV=production \
+    bash -c "$(declare -f assert_laravel_log_file); \
+      log_path=\"\$1\"; shift; \
+      assert_laravel_log_file \"\$log_path\"; \
+      exec \"\$@\" >>\"\$log_path\" 2>&1" \
+    myapes-laravel-worker "$log_path" "$@" &
+}
+
 if [[ ! -f "${CURRENT_DIR}/artisan" ]]; then
   echo "MyAPES release is not active yet; skipping Laravel workers."
   exit 0
@@ -26,6 +176,9 @@ fi
 assert_runtime_ownership() {
   local protected_path=""
   local unexpected_owner=""
+
+  assert_runtime_control_paths
+  assert_release_runtime_path_boundaries "$CURRENT_TARGET" true
 
   unexpected_owner="$(find /app/data -xdev \
     -path /app/data/shared/storage -prune -o \
@@ -77,6 +230,9 @@ restore_runtime_ownership() {
   local previous_target=""
   local -a release_roots=("$CURRENT_TARGET")
 
+  assert_runtime_control_paths
+  assert_release_runtime_path_boundaries "$CURRENT_TARGET" true
+
   find /app/data -xdev \
     -path /app/data/shared/storage -prune -o \
     -path '/app/data/releases/*/bootstrap/cache' -prune -o \
@@ -97,8 +253,10 @@ restore_runtime_ownership() {
 
   for release_root in "${release_roots[@]}"; do
     [[ "$release_root" =~ ^/app/data/releases/[0-9a-f]{40}$ ]]
+    assert_release_runtime_path_boundaries "$release_root" false
     chmod -R a-w "$release_root"
     install -d -o www-data -g www-data -m 0770 "$release_root/bootstrap/cache"
+    assert_release_runtime_path_boundaries "$release_root" true
     chown -hR www-data:www-data "$release_root/bootstrap/cache"
     chmod -R u+rwX,g+rwX,o-rwx "$release_root/bootstrap/cache"
     chmod 0555 "$release_root" "$release_root/public"
@@ -108,9 +266,11 @@ restore_runtime_ownership() {
 }
 
 start_laravel_runtime() {
-  install -d -o www-data -g www-data -m 0775 "$LOG_DIR"
-  touch "${LOG_DIR}/queue-worker.log" "${LOG_DIR}/scheduler.log"
-  chown www-data:www-data "${LOG_DIR}/queue-worker.log" "${LOG_DIR}/scheduler.log"
+  sudo -E -u www-data env APP_ENV=production \
+    bash -c "$(declare -f assert_laravel_log_file); \
+      $(declare -f prepare_laravel_logs); \
+      prepare_laravel_logs \"\$1\"" \
+    myapes-log-preparation "$LOG_DIR"
 
   run_artisan config:clear
   run_artisan config:cache
@@ -123,16 +283,16 @@ start_laravel_runtime() {
   fi
 
   if ! pgrep -f "${CURRENT_DIR}/artisan queue:work" >/dev/null 2>&1; then
-    run_artisan queue:work \
+    start_laravel_worker "${LOG_DIR}/queue-worker.log" \
+      "$PHP_BIN" "${CURRENT_DIR}/artisan" queue:work \
       --sleep=3 \
       --tries=3 \
-      --timeout=60 \
-      >>"${LOG_DIR}/queue-worker.log" 2>&1 &
+      --timeout=60
   fi
 
   if ! pgrep -f "${CURRENT_DIR}/artisan schedule:work" >/dev/null 2>&1; then
-    run_artisan schedule:work \
-      >>"${LOG_DIR}/scheduler.log" 2>&1 &
+    start_laravel_worker "${LOG_DIR}/scheduler.log" \
+      "$PHP_BIN" "${CURRENT_DIR}/artisan" schedule:work
   fi
 }
 

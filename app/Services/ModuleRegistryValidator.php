@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\ModuleActiveRecordDetector;
 use App\Contracts\ModuleAggregateSummaryProvider;
 use App\Contracts\ModuleAnalyticsProvider;
+use App\Contracts\ModuleAttentionProvider;
 use App\Contracts\ModuleRecentActivityProvider;
 use App\Modules\ModuleCodeStatus;
 use App\Modules\ModuleDefinition;
@@ -89,6 +90,17 @@ final class ModuleRegistryValidator
                     'Module analytics provider is invalid.',
                 );
             }
+
+            if ($module->attentionProvider !== null
+                && ! is_a(
+                    $module->attentionProvider,
+                    ModuleAttentionProvider::class,
+                    true,
+                )) {
+                throw new InvalidArgumentException(
+                    'Module attention provider is invalid.',
+                );
+            }
         }
 
         foreach ($subCores as $subCore) {
@@ -125,11 +137,36 @@ final class ModuleRegistryValidator
 
         foreach ($matrix as $instance) {
             if (! $instance->isShipped()
-                && $instance->dependencies !== []) {
+                && ($instance->dependencies !== []
+                    || $instance->summaryProvider !== null
+                    || $instance->recentActivityProvider !== null
+                    || $instance->analyticsProvider !== null
+                    || $instance->attentionProvider !== null)) {
                 throw new InvalidArgumentException(
-                    'Unavailable module instances cannot declare dependencies.',
+                    'Unavailable module instances cannot declare overrides.',
                 );
             }
+
+            $this->assertProvider(
+                $instance->summaryProviderClass(),
+                ModuleAggregateSummaryProvider::class,
+                'Module summary provider is invalid.',
+            );
+            $this->assertProvider(
+                $instance->recentActivityProviderClass(),
+                ModuleRecentActivityProvider::class,
+                'Module recent-activity provider is invalid.',
+            );
+            $this->assertProvider(
+                $instance->analyticsProviderClass(),
+                ModuleAnalyticsProvider::class,
+                'Module analytics provider is invalid.',
+            );
+            $this->assertProvider(
+                $instance->attentionProviderClass(),
+                ModuleAttentionProvider::class,
+                'Module attention provider is invalid.',
+            );
 
             foreach ($instance->dependencies as $dependency) {
                 $target = $matrix[$dependency->key()] ?? null;
@@ -145,6 +182,17 @@ final class ModuleRegistryValidator
         }
 
         $this->assertAcyclicDependencies($matrix);
+    }
+
+    /** @param class-string|null $provider */
+    private function assertProvider(
+        ?string $provider,
+        string $contract,
+        string $message,
+    ): void {
+        if ($provider !== null && ! is_a($provider, $contract, true)) {
+            throw new InvalidArgumentException($message);
+        }
     }
 
     /** @param array<string, ModuleInstanceDefinition> $matrix */

@@ -4,7 +4,7 @@ MyAPES Account is the APES CIC service-user and staff portal built on Laravel fo
 
 ## Repository status
 
-- Last verified README health review: `2026-08-11T11:16:16+01:00`
+- Last verified README health review: `2026-08-14T16:05:40+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
 - Continuous integration and guarded deployment: [Test and deploy MyAPES Account](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Account Change Log](https://myaccount.myapes.me.uk/change-log)
@@ -29,7 +29,7 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 - **Protected authorization**:
   - The exact protected roles are `service-user`, `staff`, `administrator`, and `super-admin`.
   - The core code-owned permission catalogue contains `staff.access`, `admin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
-  - The first-party registry contributes 43 namespaced permissions for shipped instances. All 56 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
+  - The first-party registry contributes 51 namespaced permissions for shipped instances. All 64 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
   - Administrators retain `admin.modules.view`; `admin.modules.manage` is super-admin-only.
   - Direct user permissions remain an internal central-materializer capability with mandatory provenance and no arbitrary Admin assignment UI. Authorized Admin user details show the same deduplicated role-plus-direct effective set used by the Gate and list each direct source with only a system label or granting account ID.
   - Spatie provides role/permission storage only. Its automatic Gate hook remains disabled while the teams schema and wildcard matching are enabled for the application-owned authorization path. Direct user permissions are allowed only through the central provenance materializer; direct pivot mutation remains disabled.
@@ -48,14 +48,15 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Admin Permissions is a read-only view of the core and shipped-module code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
 - **First-party module registry**:
   - Immutable Laravel contracts define the permanent `apes-cic`, `shelter-rescue`, and `pet-care-clinic` sub-cores plus the `tickets`, `cases`, `pet-profiles`, and `consultations` module types. Executable providers, instance-scoped active-record detectors, routes, summaries, bounded recent activity, and typed analytics snapshots are registered from reviewed source code only; database or writable-storage discovery is unsupported.
-  - The six shipped instances are APES CIC Tickets and Cases; Shelter and Rescue Pet Profiles and Cases; and Pet Care Clinic Pet Profiles and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state.
-  - Shelter Tickets and Pet Care Clinic Tickets remain compatible but display as **Code not shipped** and have no install action. All other matrix cells are explicitly incompatible.
+  - The seven shipped instances are APES CIC Tickets and Cases; Shelter and Rescue Pet Profiles, Tickets, and Cases; and Pet Care Clinic Pet Profiles and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state.
+  - Pet Care Clinic Tickets remain compatible but display as **Code not shipped** and have no install action. All other matrix cells are explicitly incompatible.
   - Lifecycle operations are transactional, super-admin-only, and serialized with module write requests through the same durable per-instance advisory/file lock. Lock acquisition has a bounded wait, while ownership lasts for the complete operation. Dependencies and active records are rechecked under the transition transaction; disablement never deletes records, and no uninstall operation exists.
   - Each installation carries a monotonic transition version, so even multiple enable/disable operations within one second invalidate stale Admin forms. Direct route checks read authoritative installation state. Generated navigation and aggregate dashboard summaries use a short versioned projection cache, invalidated after committed lifecycle transitions and synchronization repairs.
+  - v0.14.0 adds no database migration. The Shelter modules reuse the existing sub-core-discriminated `support_tickets`/`support_ticket_messages`, `pet_profiles`, `shelter_cases`/`case_updates`, and media storage. Existing records are neither copied nor assigned new IDs, owners, pets, assignees, morph identities, or media paths.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support Tickets and Cases. Owners can create and view their own records and add public updates. Staff Ticket replies and Case updates can be explicitly public or internal; owner views, notifications, hub activity, and audits never disclose internal bodies. Ticket and Case records, lifecycle checks, navigation, dashboard totals, recent activity, and analytics are all scoped to the `apes-cic` module instance.
-  - **APES Shelter and Rescue** (`/shelter`) - pet profiles and case management
+  - **APES Shelter and Rescue** (`/shelter`) - Pet Profiles, Tickets, and pet-linked Cases. Every record, route, summary, activity item, analytics result, attention item, assignee, recipient, and photo request is constrained to the Shelter domain and `shelter-rescue` instance before authorization.
   - **APES Pet Care** (`/petcare`) - pet profiles and consultation management
 - **Cloudron service integrations**: MySQL, Redis (cache/session/queue), and sendmail-compatible SMTP delivery.
 
@@ -74,6 +75,55 @@ The APES CIC hub exposes 12 authenticated application routes: the stable hub rou
 `apes-cic.cases.{view-own,create,update-own,comment-own,view-all,update-all,assign,close,delete}`
 
 `update-own` remains code-owned for shared Shelter compatibility, but the APES CIC public controller intentionally exposes only owner comments; ownership, category, priority, status, assignment, visibility, and lifecycle timestamps remain staff-controlled.
+
+### APES Shelter and Rescue route, permission, and privacy contract
+
+The Shelter hub exposes the installed Pet Profiles, Tickets, and Cases modules.
+Pet Profiles use the exact
+`shelter-rescue.pet-profiles.{view-own,create,update-own,view-all,update-all}`
+namespace. Tickets use
+`shelter-rescue.tickets.{view-own,create,comment-own,view-all,update-all,assign,close,delete}`;
+Cases use
+`shelter-rescue.cases.{view-own,create,update-own,comment-own,view-all,update-all,assign,close,delete}`.
+Owners need exact `view-own` to see their own rows; removing it removes those
+rows. Owner changes also require the corresponding `create`, `update-own`, or
+`comment-own` ability. Staff-wide records, internal content, assignee choices,
+and notification recipients require an unsuspended eligible protected
+staff-class identity plus exact `view-all` in that same module namespace.
+Assignment additionally requires exact `assign`, Case close/reopen requires
+exact `close`, and cross-owner metadata changes require exact `update-all`.
+
+Shelter Tickets are available at `GET|POST /shelter/tickets`,
+`GET /shelter/tickets/{ticket}`, and
+`PUT|PATCH /shelter/tickets/{ticket}` through
+`shelter.tickets.index|store|show|update`. Their service areas are exactly
+`adoption`, `surrender`, `rescue`, `fostering`, `animal_welfare`, and `other`.
+Ticket owners can see public conversation messages; eligible exact-namespace
+staff can also see and create internal notes. Public replies may notify an
+authorized owner and eligible exact-namespace staff, while internal replies
+never disclose their body to the owner. Reply bodies are excluded from audit
+and notification metadata.
+
+Shelter Cases remain linked to a real Shelter-domain Pet Profile and retain the
+`adoption`, `surrender`, `rescue`, and `fostering` types plus
+`open`, `in_review`, and `closed` states. Public updates may notify an
+authorized owner and touch activity ordering; internal updates are visible
+only to eligible exact-namespace staff, do not notify the owner, and do not
+touch or reorder the parent Case. Update bodies are excluded from audit and
+notification metadata. APES CIC, Pet Care-domain, missing-pet, cross-owner,
+and cross-sub-core identifiers fail closed without disclosing a foreign row.
+
+The code-owned Shelter Ticket and Case `delete` abilities remain part of the
+wholesale module permission contract, but there is no Shelter DELETE route,
+controller action, form, or link. Existing APES CIC deletion behavior is
+unchanged.
+
+Pet photos keep their database paths and physical
+`storage/app/public/pet-profiles` location. Authorized requests stream them
+through `shelter.pets.photo` or `petcare.pets.photo` with private, no-store,
+MIME-safe responses. Wrong-domain, malformed-path, missing-file, and
+unauthorized requests return 404; `/storage/pet-profiles/*` is never a public
+delivery path, and only avatars retain a public runtime link.
 
 ## Brand assets
 
@@ -157,6 +207,14 @@ bash scripts/local/bootstrap.sh --seed
 powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1 -Seed
 ```
 
+Both local bootstrap scripts enforce the tracked selective-media boundary at
+`public/storage/.myapes-selective-media`. They refuse marker changes or
+unexpected entries and create only `public/storage/avatars`, targeting
+`storage/app/public/avatars`. Pet Profile photos remain in
+`storage/app/public/pet-profiles` but are delivered only through authenticated,
+authorization-checked Shelter or Pet Care routes; they are never exposed by a
+public-storage link.
+
 ### Seeded local QA accounts
 
 All seeded users use this password:
@@ -167,8 +225,8 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 
 | Role | Login email | Login route | Primary QA coverage |
 | --- | --- | --- | --- |
-| Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC tickets/cases, shelter pets/cases, pet care pets/consultations (owner-scoped views) |
-| Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff visibility across all user records, assignment updates, staff notes, status workflows, and the local custom-role fixture |
+| Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC Tickets/Cases, Shelter Pet Profiles/Tickets/Cases, and Pet Care Pet Profiles/Consultations (owner-scoped views) |
+| Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Exact-namespace staff visibility, assignment updates, internal Ticket messages and Case updates, status workflows, and the local custom-role fixture |
 | Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus authorized Admin Users/Groups/Roles/Permissions views and allowed account mutations |
 | Super Admin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Custom-role, exact directory-mapping, and guarded module-lifecycle management boundaries |
 
@@ -176,17 +234,18 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 
 | Role | Key flows to validate quickly |
 | --- | --- |
-| Public | Create/view/comment on own APES CIC tickets and cases, update own shelter/pet care records, edit profile/settings, verify owner-only and public-update visibility |
-| Staff | See all users' tickets/cases/consultations, assign records to staff/admin, update statuses and staff notes |
+| Public | Create/view/comment on own APES CIC and Shelter Tickets/Cases, update own Shelter/Pet Care Pet Profiles, edit profile/settings, and verify owner-only/public-update visibility |
+| Staff | Use exact instance permissions to see all users' Tickets/Cases/Consultations, assign eligible staff/admin accounts, update statuses, and verify internal-note privacy |
 | Admin | Run full staff workflows plus inspect Admin Users, Groups, Roles, Permissions, and Modules and exercise allowed user-management boundaries |
 
 ### Seeded data included for quick E2E checks
 
 - APES CIC tickets: two open/in-progress examples plus a resolved example with message history and staff/admin assignment
 - APES CIC cases: owner-scoped categories, priorities, public updates, internal staff notes, assignment, and close/reopen transitions
-- Shelter: seeded pet profile with two open/in-review cases plus a closed example
+- Shelter Tickets: an open unassigned adoption enquiry, an in-progress staff-assigned rescue request, and a closed admin-assigned animal-welfare follow-up, each with deterministic public and internal messages
+- Shelter Cases: the existing Mango Pet Profile with two open/in-review cases plus a closed example; the rescue Case has deterministic public and internal updates without changing its parent identity or timestamp
 - Pet Care: seeded pet profile with two open/in-progress consultations plus a closed example
-- User profiles: seeded profile data for each QA account
+- User profiles: seeded profile data for the same four QA account identities; repeated non-destructive seeding preserves Ticket/Case parent and child IDs, owners, pets, assignees, values, and timestamps without cross-sub-core overwrite
 
 Start Laravel, the queue listener, application logs, and Vite together with the cross-platform Composer script:
 
@@ -464,7 +523,11 @@ user. The launcher therefore refuses to run Laravel while any protected path is
 not root-controlled. Because the package sources the trusted launcher before
 its recursive normalization and starts Apache afterward, the launcher accepts
 only that exact normalization signature, restores and verifies ownership
-synchronously, starts Laravel workers, and then permits Apache to start. A
+synchronously, validates the launcher, Apache, and release bootstrap/cache
+chains as ordinary canonical paths, starts Laravel workers, and then permits
+Apache to start. Worker-log directories, files, and append handles are created
+or opened only after privilege has dropped to `www-data`; pre-existing links
+fail closed without a root process traversing application-writable storage. A
 changed or incomplete package contract fails closed. The deployment restores
 root ownership to `/app/data`, the release and shared-runtime parents, the
 launcher, Apache configuration, package-generated runtime files, and every path
@@ -483,6 +546,24 @@ successful release verification or completed code rollback. Marker-preserving
 altered content therefore fails before a control is executed or a code link
 changes. The pre-deployment Cloudron backup remains the recovery boundary if
 database recovery, rather than code rollback, is required.
+
+Selective-media releases carry the exact tracked marker under `public/storage`.
+Packaging verifies before and after archive creation that this marker is the
+only `public/storage` member. The complete source and archive may contain only
+ordinary directories and regular files: symbolic links and other filesystem
+entry types are rejected globally, including under `bootstrap/cache`. Archive
+validation also rejects absolute or backslash paths, control characters, raw or
+normalized collisions (including file/directory trailing-slash aliases), empty
+components, and dot or dot-dot aliases before extraction. Activation and
+rollback accept only canonical semantic versions with string-safe comparisons,
+verify the data, release, bootstrap/cache, runtime-control, shared-storage,
+public, and avatar ancestor chains before any mutation or Artisan command,
+accept only the marker plus an exact `avatars` link, refuse writable or
+unexpected paths without traversing shared media, and never link
+`pet-profiles`. A compatible
+pre-v0.14 rollback target has no marker and may retain or create only its
+historical full `public/storage` link after the module rollback check accepts
+that target; a selective directory is not a valid legacy layout.
 
 Before any rollback-path link or release/runtime-file mutation, the active
 release enters maintenance and runs the read-only module compatibility check
@@ -503,6 +584,15 @@ disabled, so the unchanged compatibility checker fails closed with
 backup before migration. After the sixth installation exists, returning to
 v0.12.1 requires restoration of the corresponding pre-deployment database
 backup; code rollback alone is not a supported recovery path.
+
+v0.14.0 synchronizes `shelter-rescue:tickets` as the seventh persisted module
+installation while retaining the same five legacy-visible entries. A v0.13.1
+target declares only six shipped instances and cannot represent that seventh
+installation, even when it is disabled, so compatibility validation fails
+closed with `target_contract_unrepresentable`. There is no supported
+disable-or-delete workaround: operators must take and verify the normal
+pre-deployment database backup, and restoration of that corresponding backup
+is required to return the installation state to v0.13.1.
 
 Code rollback enters Laravel maintenance mode before compatibility validation,
 then acquires every code-owned module-instance lock so in-flight writes finish
@@ -531,7 +621,7 @@ runtimes; version comments beside each pin make deliberate upgrades auditable.
 3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded authorization cutover plus module migration, synchronization, dependency, rollback, concurrent lifecycle/write-lock, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
 4. Only a successful `main` push proceeds. Cloudron creates the pre-deployment backup before any upload or activation.
 5. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>` only after local verification of the externally exported control-manifest digest and all four complete control files.
-6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete application payload under `/app/data/releases/<sha>`, restores the shared `.env` and storage links, and creates and verifies `public/storage` as root before any application command. It assigns protected runtime and release paths to root while restoring application ownership only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
+6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete application payload under `/app/data/releases/<sha>`, rejects noncanonical release/bootstrap/cache or launcher/Apache paths, restores the shared `.env` and storage links, and verifies the tracked selective-media boundary plus its single shared `avatars` link as root before any application command. It creates shared runtime children as `www-data`, revalidates them before root hardening, and assigns protected runtime and release paths to root while restoring application ownership only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
    1. `optimize:clear`;
    2. `myapes:authorization-preflight --no-interaction --no-ansi`;
    3. `myapes:modules:preflight --no-interaction --no-ansi`;
@@ -563,7 +653,7 @@ runtimes; version comments beside each pin make deliberate upgrades auditable.
    failure, including failure to leave maintenance, enters the authenticated
    exact-release rollback path. Missing prior identity or any ambiguous link
    state remains fail-closed with backup and staging evidence retained.
-7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership synchronously, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature or an attempted Apache start before restoration fails closed.
+7. Cloudron restart is a separate operation after a successful switch. The LAMP package sources `/app/data/run.sh` before its exact recursive ownership-normalization command and starts Apache afterward. The trusted launcher intercepts that command, restores and verifies root ownership plus ordinary canonical launcher, Apache, bootstrap, and cache paths synchronously, prepares and opens worker logs only as `www-data`, starts the queue worker and scheduler, and permits Apache to serve `/app/data/current/public` only after the boundary is restored. A changed normalization signature, linked control/cache/log path, or attempted Apache start before restoration fails closed.
 8. The deploy job restores root ownership for both immutable releases and the protected runtime parents before reading the retained archive. It then re-extracts the four fixed controls into root-only `/run`, verifies the external manifest digest and every file hash, and checks ownership plus the active/rollback release, launcher, Apache, cache, environment, and shared-storage write boundaries.
 9. CI requires `/healthz` to return a valid semantic version equal to `VERSION`, a full 40-character SHA equal to `REVISION`, healthy dependencies, and a real boolean `maintenance` value that may be either `true` or `false`, then verifies the exact Cloudron OIDC authorization endpoint, callback, scopes, state, nonce, and PKCE S256 challenge. Rollback verification tolerates the maintenance field being absent only for a pre-v0.12 target.
 10. A same-release retry prepares and verifies the immutable release idempotently without rewriting the previous-release pointer. Activation, restart, runtime-control, or verification failure for a new release may roll back only after the normalized recovery decision proves that `current` is the exact failed SHA and `previous` is the captured pre-activation SHA; any mismatch or unavailable prior identity fails closed. Rollback reauthenticates its control copy under `/run`, enters maintenance, drains durable module locks, verifies module representability, and synchronizes/checks the target authorization matrix before switching. A pre-switch failure restores the current matrix before lifting maintenance and is never sent through a stale rollback. A restored release is checked against the captured semantic version/full SHA, its version-compatible database/cache health payload, the production environment through a separate Cloudron Artisan check, and the OIDC PKCE contract. Deployment staging is removed only after accepted release health or a rollback whose environment, health, and OIDC verification all succeed.
@@ -592,6 +682,8 @@ Rotating MySQL, Redis, SMTP, and LDAP credentials are read from Cloudron-provide
 - **Upload safeguards**:
   - Avatar and pet photo uploads are restricted to JPEG/PNG/WebP
   - File replacement removes superseded media files to reduce stale exposure
+  - Pet photos stream inline only after authenticated domain and record authorization checks, with private no-store caching and MIME-sniffing disabled
+  - Apache and the application both return 404 for direct `/storage/pet-profiles/*` requests; only avatars retain a public runtime link
 
 ## Data model highlights
 

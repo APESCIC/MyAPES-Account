@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-  "application_version": "0.13.1",
+    "application_version": "0.14.0",
     "sub_cores": [
         "apes-cic",
         "pet-care-clinic",
@@ -18,7 +18,8 @@
         "pet-care-clinic:consultations",
         "pet-care-clinic:pet-profiles",
         "shelter-rescue:cases",
-        "shelter-rescue:pet-profiles"
+        "shelter-rescue:pet-profiles",
+        "shelter-rescue:tickets"
     ],
     "legacy_visible_instances": [
         "apes-cic:tickets",

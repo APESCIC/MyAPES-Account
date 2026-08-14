@@ -38,9 +38,17 @@ class SupportTicket extends Model
         User $user,
         string $subCoreKey = self::SUB_CORE_APES_CIC,
     ): Builder {
-        return $user->can("{$subCoreKey}.tickets.view-all")
-            ? $query
-            : $query->where('user_id', $user->id);
+        $prefix = "{$subCoreKey}.tickets.";
+
+        if ($user->can($prefix.'view-all')) {
+            return $query;
+        }
+
+        if ($user->can($prefix.'view-own')) {
+            return $query->where('user_id', $user->id);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     protected function casts(): array

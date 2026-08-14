@@ -31,7 +31,7 @@ class PetProfileSummaryProvider implements ModuleAggregateSummaryProvider
         };
         $total = PetProfile::query()
             ->where('service_domain', $domain)
-            ->visibleTo($user)
+            ->visibleTo($user, $domain)
             ->count();
 
         return new ModuleSummary(

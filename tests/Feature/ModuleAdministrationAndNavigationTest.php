@@ -95,7 +95,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             substr_count($response->getContent(), 'data-module-cell='),
         );
         $this->assertSame(
-            2,
+            1,
             substr_count(
                 $response->getContent(),
                 'data-code-status="code_not_shipped"',

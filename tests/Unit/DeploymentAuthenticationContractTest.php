@@ -199,35 +199,897 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertLessThan($reopened, $committed);
     }
 
-    public function test_activation_installs_public_storage_link_as_root_before_artisan(): void
+    public function test_selective_media_marker_and_laravel_link_contract_expose_only_avatars(): void
     {
-        $script = $this->read('scripts/deploy/activate-release.sh');
+        $this->assertSame(
+            "myapes-selective-media:v1\n",
+            file_get_contents($this->path('public/storage/.myapes-selective-media')),
+        );
+        $filesystems = $this->read('config/filesystems.php');
+        $this->assertStringContainsString(
+            "public_path('storage/avatars') => storage_path('app/public/avatars')",
+            $filesystems,
+        );
+        $this->assertStringNotContainsString(
+            "public_path('storage') => storage_path('app/public')",
+            $filesystems,
+        );
+    }
+
+    public function test_local_media_validators_require_the_exact_lf_marker_contract(): void
+    {
+        $this->assertStringContainsString(
+            '/public/storage/.myapes-selective-media text eol=lf',
+            $this->read('.gitattributes'),
+        );
+        $this->assertSame(
+            "myapes-selective-media:v1\n",
+            file_get_contents($this->path('public/storage/.myapes-selective-media')),
+        );
+
+        foreach (['powershell', 'bash'] as $validator) {
+            [$process, $root] = $this->runLocalMediaValidator(
+                $validator,
+                "myapes-selective-media:v1\r\n",
+            );
+
+            try {
+                $process->run();
+                $this->assertFalse($process->isSuccessful());
+                $this->assertStringContainsString(
+                    'marker',
+                    strtolower($process->getErrorOutput().$process->getOutput()),
+                );
+            } finally {
+                $this->removeTemporaryDirectory($root);
+            }
+        }
+    }
+
+    public function test_powershell_media_boundary_rejects_reparse_targets_wrong_links_and_unexpected_entries(): void
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $this->markTestSkipped('The PowerShell reparse-point harness requires Windows.');
+        }
+
+        [$root, $publicStorage, $avatarTarget] = $this->createLocalMediaFixture();
+        $avatarLink = $publicStorage.DIRECTORY_SEPARATOR.'avatars';
+        $this->createWindowsJunction($avatarLink, $avatarTarget);
+        try {
+            $this->runPowerShellMediaValidator($root)->mustRun();
+            $this->assertTrue(is_dir($avatarTarget));
+        } finally {
+            $this->removeWindowsJunction($avatarLink);
+            $this->removeTemporaryDirectory($root);
+        }
+
+        [$root, $publicStorage] = $this->createLocalMediaFixture();
+        $realPublicStorage = dirname($publicStorage).DIRECTORY_SEPARATOR.'real-storage';
+        $this->assertTrue(rename($publicStorage, $realPublicStorage));
+        $this->createWindowsJunction($publicStorage, $realPublicStorage);
+        try {
+            $process = $this->runPowerShellMediaValidator($root);
+            $process->run();
+            $this->assertFalse($process->isSuccessful());
+            $this->assertStringContainsString(
+                'reparse',
+                strtolower($process->getErrorOutput().$process->getOutput()),
+            );
+        } finally {
+            $this->removeWindowsJunction($publicStorage);
+            $this->removeTemporaryDirectory($root);
+        }
+
+        [$root, $publicStorage, $avatarTarget] = $this->createLocalMediaFixture();
+        $avatarParent = dirname($avatarTarget);
+        $this->assertTrue(rmdir($avatarTarget));
+        $this->createWindowsJunction($avatarTarget, $avatarParent);
+        try {
+            $process = $this->runPowerShellMediaValidator($root);
+            $process->run();
+            $this->assertFalse($process->isSuccessful());
+            $this->assertStringContainsString(
+                'reparse',
+                strtolower($process->getErrorOutput().$process->getOutput()),
+            );
+        } finally {
+            $this->removeWindowsJunction($avatarTarget);
+            $this->removeTemporaryDirectory($root);
+        }
+
+        [$root, $publicStorage, $avatarTarget] = $this->createLocalMediaFixture();
+        $avatarLink = $publicStorage.DIRECTORY_SEPARATOR.'avatars';
+        $wrongTarget = $root.DIRECTORY_SEPARATOR.'wrong-target';
+        $this->assertTrue(mkdir($wrongTarget));
+        $this->createWindowsJunction($avatarLink, $wrongTarget);
+        try {
+            $process = $this->runPowerShellMediaValidator($root);
+            $process->run();
+            $this->assertFalse($process->isSuccessful());
+            $this->assertStringContainsString(
+                'unexpected path',
+                strtolower($process->getErrorOutput().$process->getOutput()),
+            );
+        } finally {
+            $this->removeWindowsJunction($avatarLink);
+            $this->removeTemporaryDirectory($root);
+        }
+
+        [$root, $publicStorage, $avatarTarget] = $this->createLocalMediaFixture();
+        $avatarLink = $publicStorage.DIRECTORY_SEPARATOR.'avatars';
+        $unexpected = $publicStorage.DIRECTORY_SEPARATOR.'pet-profiles';
+        $this->assertTrue(mkdir($unexpected));
+        $this->createWindowsJunction($avatarLink, $avatarTarget);
+        try {
+            $process = $this->runPowerShellMediaValidator($root);
+            $process->run();
+            $this->assertFalse($process->isSuccessful());
+            $this->assertDirectoryExists($unexpected);
+        } finally {
+            $this->removeWindowsJunction($avatarLink);
+            $this->removeTemporaryDirectory($root);
+        }
+    }
+
+    public function test_powershell_media_boundary_rejects_a_reparse_marker_when_file_symlinks_are_supported(): void
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $this->markTestSkipped('The PowerShell reparse-point harness requires Windows.');
+        }
+
+        [$root, $publicStorage] = $this->createLocalMediaFixture();
+        $marker = $publicStorage.DIRECTORY_SEPARATOR.'.myapes-selective-media';
+        $markerTarget = $root.DIRECTORY_SEPARATOR.'marker-target';
+        $this->assertTrue(rename($marker, $markerTarget));
+        $linkProcess = new Process([
+            'powershell.exe',
+            '-NoProfile',
+            '-Command',
+            'New-Item -ItemType SymbolicLink -Path $env:MYAPES_TEST_LINK -Target $env:MYAPES_TEST_TARGET -ErrorAction Stop | Out-Null',
+        ], env: [
+            'MYAPES_TEST_LINK' => $marker,
+            'MYAPES_TEST_TARGET' => $markerTarget,
+        ]);
+        $linkProcess->run();
+        if (! $linkProcess->isSuccessful()) {
+            $this->removeTemporaryDirectory($root);
+            $this->markTestSkipped(
+                'File symlink fixture unavailable: '.trim($linkProcess->getErrorOutput()),
+            );
+        }
+
+        try {
+            $process = $this->runPowerShellMediaValidator($root);
+            $process->run();
+            $this->assertFalse($process->isSuccessful());
+            $this->assertStringContainsString(
+                'reparse',
+                strtolower($process->getErrorOutput().$process->getOutput()),
+            );
+        } finally {
+            unlink($marker);
+            $this->removeTemporaryDirectory($root);
+        }
+    }
+
+    public function test_local_media_validators_reject_linked_public_ancestors_without_mutation(): void
+    {
+        foreach (['bash', 'powershell'] as $validator) {
+            [$root, $publicStorage, $avatarTarget] = $this->createLocalMediaFixture();
+            $publicRoot = dirname($publicStorage);
+            $realPublicRoot = $root.DIRECTORY_SEPARATOR.'real-public';
+            $avatarLink = $publicStorage.DIRECTORY_SEPARATOR.'avatars';
+            $marker = $publicStorage.DIRECTORY_SEPARATOR.'.myapes-selective-media';
+
+            $this->createDirectoryLink($avatarLink, $avatarTarget, $validator);
+            $markerHash = hash_file('sha256', $marker);
+            $this->assertTrue(rename($publicRoot, $realPublicRoot));
+            $this->createDirectoryLink($publicRoot, $realPublicRoot, $validator);
+
+            try {
+                $process = $validator === 'powershell'
+                    ? $this->runPowerShellMediaValidator($root)
+                    : new Process([
+                        $this->bashExecutable(),
+                        $this->bashPath($this->path('scripts/local/selective-media-boundary.sh')),
+                        $this->bashPath($root),
+                    ], env: ['MSYS' => 'winsymlinks:sys']);
+                $process->run();
+
+                $this->assertFalse(
+                    $process->isSuccessful(),
+                    $process->getOutput().$process->getErrorOutput(),
+                );
+                $this->assertStringContainsString(
+                    $validator === 'powershell' ? 'reparse' : 'unsafe',
+                    strtolower($process->getErrorOutput().$process->getOutput()),
+                );
+                $this->assertSame(
+                    $markerHash,
+                    hash_file(
+                        'sha256',
+                        $realPublicRoot.DIRECTORY_SEPARATOR.'storage'
+                            .DIRECTORY_SEPARATOR.'.myapes-selective-media',
+                    ),
+                );
+                $this->assertDirectoryExists($avatarTarget);
+            } finally {
+                $this->removeDirectoryLink($publicRoot, $validator);
+                $this->removeDirectoryLink(
+                    $realPublicRoot.DIRECTORY_SEPARATOR.'storage'
+                        .DIRECTORY_SEPARATOR.'avatars',
+                    $validator,
+                );
+                $this->removeTemporaryDirectory($root);
+            }
+        }
+    }
+
+    public function test_local_media_validators_reject_linked_storage_targets_without_mutation(): void
+    {
+        foreach (['powershell', 'bash'] as $validator) {
+            foreach (['storage', 'storage-app', 'storage-public', 'storage-avatars'] as $target) {
+                [$process, $root, $externalTarget, $link] =
+                    $this->runLocalMediaTargetGuardHarness($validator, $target);
+                $externalSnapshot = $this->directoryTreeSnapshot($externalTarget);
+
+                try {
+                    $process->run();
+
+                    $this->assertFalse(
+                        $process->isSuccessful(),
+                        $process->getOutput().$process->getErrorOutput(),
+                    );
+                    $this->assertStringContainsString(
+                        $validator === 'powershell' ? 'reparse' : 'unsafe',
+                        strtolower($process->getErrorOutput().$process->getOutput()),
+                    );
+                    $this->assertSame(
+                        $externalSnapshot,
+                        $this->directoryTreeSnapshot($externalTarget),
+                        "{$validator} mutated the external {$target} target before rejection.",
+                    );
+                } finally {
+                    $this->removeDirectoryLink($link, $validator);
+                    $this->removeTemporaryDirectory($root);
+                }
+            }
+        }
+    }
+
+    public function test_release_archive_and_apache_keep_pet_profiles_outside_public_storage(): void
+    {
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $apache = $this->read('scripts/deploy/cloudron-app.conf');
+
+        $this->assertStringNotContainsString("--exclude '/public/storage'", $workflow);
+        $this->assertStringContainsString(
+            "grep -qx './public/storage/.myapes-selective-media' build/archive-list.txt",
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'validate-selective-media-archive.sh source build/release',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'validate-selective-media-archive.sh',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            '^public/storage/$|^public/storage/\\.myapes-selective-media$',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            "grep -Fxc './public/storage/' build/archive-list.txt",
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            "grep -Fxc 'public/storage/'",
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            '^public/storage($|/)',
+            $workflow,
+        );
+        $this->assertStringContainsString('RewriteEngine On', $apache);
+        $this->assertStringContainsString(
+            'RewriteRule ^/storage/pet-profiles(?:/|$) - [R=404,L,NC]',
+            $apache,
+        );
+    }
+
+    public function test_release_archive_media_validator_accepts_only_the_exact_marker(): void
+    {
+        [$process, $root] = $this->runArchiveMediaHarness();
+
+        try {
+            $process->mustRun();
+            $this->assertStringContainsString(
+                'archive-media-ok',
+                $process->getOutput(),
+            );
+        } finally {
+            $this->removeTemporaryDirectory($root);
+        }
+    }
+
+    public function test_local_bootstraps_verify_marker_and_create_only_the_avatar_link(): void
+    {
+        $powershell = $this->read('scripts/local/bootstrap.ps1');
+        $bash = $this->read('scripts/local/bootstrap.sh');
+        $powershellBoundary = $this->read('scripts/local/selective-media-boundary.ps1');
+        $bashBoundary = $this->read('scripts/local/selective-media-boundary.sh');
+
+        $this->assertStringContainsString('selective-media-boundary.ps1', $powershell);
+        $this->assertStringContainsString('selective-media-boundary.sh', $bash);
+        foreach ([$powershellBoundary, $bashBoundary] as $script) {
+            $this->assertStringContainsString('.myapes-selective-media', $script);
+            $this->assertStringContainsString('myapes-selective-media:v1', $script);
+            $this->assertStringContainsString('avatars', $script);
+            $this->assertStringContainsString('unexpected', strtolower($script));
+        }
+        $this->assertStringContainsString('php artisan storage:link', $bashBoundary);
+        $this->assertStringContainsString('php artisan storage:link', $powershellBoundary);
+        $this->assertStringNotContainsString(
+            'public_path(\'storage\')',
+            $bash.$powershell.$bashBoundary.$powershellBoundary,
+        );
+    }
+
+    public function test_activation_and_rollback_enforce_selective_or_legacy_media_boundaries(): void
+    {
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+        $rollback = $this->read('scripts/deploy/rollback-release.sh');
 
         $storageLink = $this->position(
-            $script,
-            'install_public_storage_link "$RELEASE_DIR"',
+            $activation,
+            'install_public_storage_boundary "$RELEASE_DIR"',
         );
-        $firstArtisan = $this->position($script, 'run_artisan optimize:clear');
+        $firstArtisan = $this->position($activation, 'run_artisan optimize:clear');
 
         $this->assertLessThan($firstArtisan, $storageLink);
+        foreach ([$activation, $rollback] as $script) {
+            $boundary = $this->bashFunction(
+                $script,
+                'install_public_storage_boundary',
+            );
+            $this->assertStringContainsString(
+                'SELECTIVE_MEDIA_MARKER_NAME=".myapes-selective-media"',
+                $script,
+            );
+            $this->assertStringContainsString(
+                'SELECTIVE_MEDIA_MARKER_CONTENT="myapes-selective-media:v1"',
+                $script,
+            );
+            $this->assertStringContainsString('unexpected public storage entry', strtolower($boundary));
+            $this->assertStringContainsString('shared_public_storage}/avatars', $boundary);
+            $this->assertStringContainsString('cmp -s', $boundary);
+            $this->assertStringContainsString('readlink -f', $boundary);
+            $this->assertStringNotContainsString('rm -rf', $boundary);
+        }
         $this->assertStringContainsString(
-            'PUBLIC_STORAGE_LINK="${release_root}/public/storage"',
-            $script,
+            'install_public_storage_boundary "$ROLLBACK_TARGET"',
+            $rollback,
+        );
+        $this->assertStringNotContainsString('storage:link --force', $activation);
+        $this->assertStringNotContainsString('run_artisan storage:link', $activation);
+    }
+
+    public function test_activation_and_rollback_media_helpers_preserve_selective_and_legacy_boundaries(): void
+    {
+        foreach ([
+            'scripts/deploy/activate-release.sh',
+            'scripts/deploy/rollback-release.sh',
+        ] as $script) {
+            foreach ([
+                ['version' => '0.13.1', 'layout' => 'legacy', 'allowed' => true],
+                ['version' => '0.13.1', 'layout' => 'legacy-create', 'allowed' => true],
+                ['version' => '0.13.99', 'layout' => 'legacy', 'allowed' => true],
+                ['version' => '0.13.1', 'layout' => 'selective', 'allowed' => false],
+                ['version' => '0.14.0', 'layout' => 'legacy', 'allowed' => false],
+                ['version' => '0.14.0', 'layout' => 'selective', 'allowed' => true],
+                ['version' => '1.0.0', 'layout' => 'legacy', 'allowed' => false],
+                ['version' => '1.0.0', 'layout' => 'selective', 'allowed' => true],
+                ['version' => '8.0.0', 'layout' => 'selective', 'allowed' => true],
+                ['version' => '9223372036854775808.0.0', 'layout' => 'selective', 'allowed' => true],
+                ['version' => '0.9223372036854775808.0', 'layout' => 'selective', 'allowed' => true],
+                ['version' => '00.14.0', 'layout' => 'selective', 'allowed' => false],
+                ['version' => '0.014.0', 'layout' => 'selective', 'allowed' => false],
+                ['version' => '0.14.00', 'layout' => 'selective', 'allowed' => false],
+                ['version' => '01.0.0', 'layout' => 'selective', 'allowed' => false],
+                ['version' => '08.0.0', 'layout' => 'selective', 'allowed' => false],
+            ] as $case) {
+                [$process, $root, $release, $sharedPublic] =
+                    $this->runMediaBoundaryHarness(
+                        $script,
+                        $case['version'],
+                        $case['layout'],
+                    );
+
+                try {
+                    $process->run();
+                    $this->assertSame(
+                        $case['allowed'],
+                        $process->isSuccessful(),
+                        $process->getOutput().$process->getErrorOutput(),
+                    );
+                    if ($case['layout'] === 'selective') {
+                        $entries = array_values(array_diff(
+                            scandir($release.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'storage') ?: [],
+                            ['.', '..'],
+                        ));
+                        sort($entries);
+                        $this->assertSame(
+                            $case['allowed']
+                                ? ['.myapes-selective-media', 'avatars']
+                                : ['.myapes-selective-media'],
+                            $entries,
+                        );
+                    } else {
+                        $this->assertBashSymlinkTarget(
+                            $release.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'storage',
+                            $sharedPublic,
+                        );
+                    }
+                    if ($case['allowed']) {
+                        $this->assertStringContainsString(
+                            "{$case['version']}-{$case['layout']}-ok",
+                            $process->getOutput(),
+                        );
+                    }
+                } finally {
+                    $this->removeTemporaryDirectory($root);
+                }
+            }
+
+            [$process, $root, $release] = $this->runMediaBoundaryHarness(
+                $script,
+                '0.14.0',
+                'unexpected',
+            );
+            try {
+                $process->run();
+                $this->assertFalse($process->isSuccessful());
+                $this->assertDirectoryExists(
+                    $release.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR
+                        .'storage'.DIRECTORY_SEPARATOR.'pet-profiles',
+                );
+                $this->assertFileDoesNotExist(
+                    $release.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR
+                        .'storage'.DIRECTORY_SEPARATOR.'avatars',
+                );
+            } finally {
+                $this->removeTemporaryDirectory($root);
+            }
+        }
+    }
+
+    public function test_activation_and_rollback_reject_linked_deployment_ancestors_before_mutation(): void
+    {
+        foreach ([
+            'scripts/deploy/activate-release.sh',
+            'scripts/deploy/rollback-release.sh',
+        ] as $script) {
+            $ancestors = [
+                'data',
+                'releases',
+                'shared',
+                'shared-storage',
+                'shared-storage-app',
+                'shared-storage-public',
+                'shared-storage-avatars',
+                'release-root',
+            ];
+            if ($script === 'scripts/deploy/activate-release.sh') {
+                $ancestors = [
+                    ...$ancestors,
+                    'shared-storage-framework',
+                    'shared-storage-framework-cache',
+                    'shared-storage-framework-cache-data',
+                    'shared-storage-framework-sessions',
+                    'shared-storage-framework-views',
+                    'shared-storage-logs',
+                ];
+            }
+
+            foreach ($ancestors as $ancestor) {
+                [$process, $root, $sentinel, $externalTarget, $links, $rootHelperSentinel] =
+                    $this->runDeploymentAncestorGuardHarness($script, $ancestor);
+                $sentinelHash = hash_file('sha256', $sentinel);
+                $externalSnapshot = $this->directoryTreeSnapshot($externalTarget);
+
+                try {
+                    $process->run();
+
+                    $this->assertFalse(
+                        $process->isSuccessful(),
+                        $process->getOutput().$process->getErrorOutput(),
+                    );
+                    $this->assertStringContainsString(
+                        'canonical deployment path',
+                        strtolower($process->getErrorOutput().$process->getOutput()),
+                    );
+                    $this->assertFileExists($sentinel);
+                    $this->assertSame($sentinelHash, hash_file('sha256', $sentinel));
+                    $this->assertSame(
+                        $externalSnapshot,
+                        $this->directoryTreeSnapshot($externalTarget),
+                        "{$script} mutated the external {$ancestor} target before rejection.",
+                    );
+                    if ($rootHelperSentinel !== null) {
+                        $this->assertFileDoesNotExist(
+                            $rootHelperSentinel,
+                            "{$script} invoked a root filesystem helper before rejecting {$ancestor}.",
+                        );
+                    }
+                } finally {
+                    usort(
+                        $links,
+                        static fn (string $left, string $right): int => strlen($right) <=> strlen($left),
+                    );
+                    foreach ($links as $link) {
+                        $this->removeDirectoryLink($link, 'bash');
+                    }
+                    $this->removeTemporaryDirectory($root);
+                }
+            }
+        }
+    }
+
+    public function test_activation_rejects_linked_shared_environment_before_mutation(): void
+    {
+        foreach (['existing', 'dangling'] as $layout) {
+            [$process, $root, $externalRoot, $environmentLink, $environmentTarget, $rootHelperSentinel] =
+                $this->runActivationEnvironmentGuardHarness($layout);
+            $externalSnapshot = $this->directoryTreeSnapshot($externalRoot);
+
+            try {
+                $process->run();
+
+                $this->assertFalse(
+                    $process->isSuccessful(),
+                    $process->getOutput().$process->getErrorOutput(),
+                );
+                $this->assertStringContainsString(
+                    'shared environment',
+                    strtolower($process->getErrorOutput().$process->getOutput()),
+                );
+                $this->assertSame(
+                    $externalSnapshot,
+                    $this->directoryTreeSnapshot($externalRoot),
+                    "Activation mutated the external {$layout} environment target.",
+                );
+                if ($layout === 'dangling') {
+                    $this->assertFileDoesNotExist($environmentTarget);
+                }
+                $this->assertFileDoesNotExist(
+                    $rootHelperSentinel,
+                    "Activation invoked a root filesystem helper before rejecting {$layout} .env.",
+                );
+            } finally {
+                $this->removeDirectoryLink($environmentLink, 'bash');
+                $this->removeTemporaryDirectory($root);
+            }
+        }
+    }
+
+    public function test_rollback_rejects_linked_shared_environment_before_mutation(): void
+    {
+        foreach (['existing', 'dangling'] as $layout) {
+            [$process, $root, $externalRoot, $environmentLink, $environmentTarget, $rootHelperSentinel] =
+                $this->runRollbackEnvironmentGuardHarness($layout);
+            $externalSnapshot = $this->directoryTreeSnapshot($externalRoot);
+
+            try {
+                $process->run();
+
+                $this->assertFalse(
+                    $process->isSuccessful(),
+                    $process->getOutput().$process->getErrorOutput(),
+                );
+                $this->assertStringContainsString(
+                    'shared environment',
+                    strtolower($process->getErrorOutput().$process->getOutput()),
+                );
+                $this->assertSame(
+                    $externalSnapshot,
+                    $this->directoryTreeSnapshot($externalRoot),
+                    "Rollback mutated the external {$layout} environment target.",
+                );
+                if ($layout === 'dangling') {
+                    $this->assertFileDoesNotExist($environmentTarget);
+                }
+                $this->assertFileDoesNotExist(
+                    $rootHelperSentinel,
+                    "Rollback invoked a root filesystem helper before rejecting {$layout} .env.",
+                );
+            } finally {
+                $this->removeDirectoryLink($environmentLink, 'bash');
+                $this->removeTemporaryDirectory($root);
+            }
+        }
+
+        $rollback = $this->read('scripts/deploy/rollback-release.sh');
+        $environmentGuard = '"${SHARED_DIR}/.env" "shared environment" true';
+        $this->assertGreaterThanOrEqual(2, substr_count($rollback, $environmentGuard));
+        $this->assertMatchesRegularExpression(
+            '/assert_canonical_deployment_file \\\\\R'
+                .'\s+"\$\{SHARED_DIR\}\/\.env" "shared environment" true\R'
+                .'chown root:www-data "\$\{SHARED_DIR\}\/\.env"/',
+            $rollback,
+        );
+    }
+
+    public function test_activation_hydrates_runtime_children_as_the_application_user(): void
+    {
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+        $hydration = $this->bashFunction(
+            $activation,
+            'hydrate_shared_runtime_directories',
+        );
+        $sharedHardening = $this->bashFunction(
+            $activation,
+            'harden_shared_runtime_boundaries',
+        );
+        $ownershipRestore = $this->bashFunction(
+            $activation,
+            'restore_data_root_ownership',
+        );
+
+        $this->assertStringContainsString(
+            'install -d -o root -g root -m 0755 "$SHARED_DIR"',
+            $hydration,
         );
         $this->assertStringContainsString(
-            'SHARED_PUBLIC_STORAGE="${SHARED_DIR}/storage/app/public"',
-            $script,
+            'install -d -o www-data -g www-data -m 0770 "$shared_storage"',
+            $hydration,
         );
         $this->assertStringContainsString(
-            'ln -s "$SHARED_PUBLIC_STORAGE" "$PUBLIC_STORAGE_LINK"',
-            $script,
+            'sudo -u www-data install -d -m 0770',
+            $hydration,
+        );
+        $this->assertSame(3, substr_count($hydration, 'install -d'));
+        foreach ([
+            '${shared_storage}/app/public/avatars',
+            '${shared_storage}/framework/cache/data',
+            '${shared_storage}/framework/sessions',
+            '${shared_storage}/framework/views',
+            '${shared_storage}/logs',
+        ] as $applicationOwnedPath) {
+            $this->assertStringContainsString($applicationOwnedPath, $hydration);
+        }
+        $this->assertStringContainsString(
+            'assert_shared_runtime_path_boundaries true',
+            $hydration,
         );
         $this->assertStringContainsString(
-            'sudo -u www-data test -w "${release_root}/public"',
-            $script,
+            'chown -hR www-data:www-data "${SHARED_DIR}/storage"',
+            $sharedHardening,
         );
-        $this->assertStringNotContainsString('storage:link --force', $script);
-        $this->assertStringNotContainsString('run_artisan storage:link', $script);
+        $this->assertStringContainsString(
+            'chown -hR www-data:www-data "${SHARED_DIR}/storage"',
+            $ownershipRestore,
+        );
+        $this->assertStringNotContainsString(
+            'chown -R www-data:www-data "${SHARED_DIR}/storage"',
+            $activation,
+        );
+    }
+
+    public function test_cloudron_launcher_rejects_linked_log_paths_without_external_mutation(): void
+    {
+        foreach (['logs', 'queue-worker.log', 'scheduler.log'] as $linkedPath) {
+            [$process, $root, $externalRoot, $link] =
+                $this->runLauncherLogGuardHarness($linkedPath);
+            $externalSnapshot = $this->directoryTreeSnapshot($externalRoot);
+
+            try {
+                $process->run();
+
+                $this->assertFalse(
+                    $process->isSuccessful(),
+                    $process->getOutput().$process->getErrorOutput(),
+                );
+                $this->assertStringContainsString(
+                    'unsafe laravel log path',
+                    strtolower($process->getErrorOutput().$process->getOutput()),
+                );
+                $this->assertSame(
+                    $externalSnapshot,
+                    $this->directoryTreeSnapshot($externalRoot),
+                    "Launcher mutated the external {$linkedPath} target.",
+                );
+            } finally {
+                $this->removeDirectoryLink($link, 'bash');
+                $this->removeTemporaryDirectory($root);
+            }
+        }
+    }
+
+    public function test_cloudron_launcher_rejects_linked_runtime_controls_without_external_mutation(): void
+    {
+        foreach (['apache', 'apache-app-conf', 'run-sh'] as $linkedPath) {
+            [$process, $root, $externalRoot, $link] =
+                $this->runLauncherRuntimeControlGuardHarness($linkedPath);
+            $externalSnapshot = $this->directoryTreeSnapshot($externalRoot);
+
+            try {
+                $process->run();
+
+                $this->assertFalse(
+                    $process->isSuccessful(),
+                    $process->getOutput().$process->getErrorOutput(),
+                );
+                $this->assertStringContainsString(
+                    'unsafe canonical runtime path',
+                    strtolower($process->getErrorOutput().$process->getOutput()),
+                );
+                $this->assertSame(
+                    $externalSnapshot,
+                    $this->directoryTreeSnapshot($externalRoot),
+                    "Launcher mutated external control target {$linkedPath}.",
+                );
+            } finally {
+                $this->removeDirectoryLink($link, 'bash');
+                $this->removeTemporaryDirectory($root);
+            }
+        }
+    }
+
+    public function test_deployment_scripts_reject_linked_runtime_control_paths_before_mutation(): void
+    {
+        $cases = [
+            'scripts/deploy/activate-release.sh' => [
+                'apache',
+                'apache-app-conf',
+                'run-sh',
+            ],
+            'scripts/deploy/rollback-release.sh' => [
+                'apache',
+                'apache-app-conf',
+                'run-sh',
+                'apache-app-conf-stage',
+                'run-sh-stage',
+            ],
+        ];
+
+        foreach ($cases as $script => $paths) {
+            foreach ($paths as $linkedPath) {
+                [$process, $root, $externalRoot, $link] =
+                    $this->runRuntimeControlPathGuardHarness($script, $linkedPath);
+                $externalSnapshot = $this->directoryTreeSnapshot($externalRoot);
+
+                try {
+                    $process->run();
+
+                    $this->assertFalse(
+                        $process->isSuccessful(),
+                        $process->getOutput().$process->getErrorOutput(),
+                    );
+                    $this->assertStringContainsString(
+                        'canonical deployment',
+                        strtolower($process->getErrorOutput().$process->getOutput()),
+                    );
+                    $this->assertSame(
+                        $externalSnapshot,
+                        $this->directoryTreeSnapshot($externalRoot),
+                        "{$script} mutated external control target {$linkedPath}.",
+                    );
+                } finally {
+                    $this->removeDirectoryLink($link, 'bash');
+                    $this->removeTemporaryDirectory($root);
+                }
+            }
+        }
+    }
+
+    public function test_release_runtime_guards_reject_linked_bootstrap_paths_without_mutation(): void
+    {
+        foreach ([
+            'scripts/deploy/activate-release.sh',
+            'scripts/deploy/rollback-release.sh',
+            'scripts/deploy/cloudron-run.sh',
+        ] as $script) {
+            foreach (['bootstrap', 'bootstrap-cache'] as $linkedPath) {
+                [$process, $root, $externalRoot, $link] =
+                    $this->runReleaseRuntimePathGuardHarness($script, $linkedPath);
+                $externalSnapshot = $this->directoryTreeSnapshot($externalRoot);
+
+                try {
+                    $process->run();
+
+                    $this->assertFalse(
+                        $process->isSuccessful(),
+                        $process->getOutput().$process->getErrorOutput(),
+                    );
+                    $this->assertStringContainsString(
+                        'unsafe release runtime path',
+                        strtolower($process->getErrorOutput().$process->getOutput()),
+                    );
+                    $this->assertSame(
+                        $externalSnapshot,
+                        $this->directoryTreeSnapshot($externalRoot),
+                        "{$script} mutated external {$linkedPath} target.",
+                    );
+                } finally {
+                    $this->removeDirectoryLink($link, 'bash');
+                    $this->removeTemporaryDirectory($root);
+                }
+            }
+        }
+    }
+
+    public function test_privileged_runtime_sinks_are_guarded_or_delegated_to_the_application_user(): void
+    {
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+        $rollback = $this->read('scripts/deploy/rollback-release.sh');
+        $launcher = $this->read('scripts/deploy/cloudron-run.sh');
+        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $archiveValidator = $this->read('scripts/deploy/validate-selective-media-archive.sh');
+        $runtimeStart = $this->bashFunction($launcher, 'start_laravel_runtime');
+        $workerStart = $this->bashFunction($launcher, 'start_laravel_worker');
+
+        $this->assertStringNotContainsString(
+            'install -d -o www-data -g www-data -m 0775 "$LOG_DIR"',
+            $launcher,
+        );
+        $this->assertStringNotContainsString(
+            'touch "${LOG_DIR}/queue-worker.log"',
+            $launcher,
+        );
+        $this->assertStringNotContainsString(
+            'chown www-data:www-data "${LOG_DIR}/queue-worker.log"',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            'sudo -E -u www-data env APP_ENV=production',
+            $runtimeStart,
+        );
+        $this->assertStringContainsString('prepare_laravel_logs', $runtimeStart);
+        $this->assertStringContainsString(
+            'sudo -E -u www-data env APP_ENV=production',
+            $workerStart,
+        );
+        $this->assertStringContainsString(
+            'exec \"\$@\" >>\"\$log_path\" 2>&1',
+            $workerStart,
+        );
+        $this->assertGreaterThanOrEqual(2, substr_count(
+            $launcher,
+            'assert_runtime_control_paths',
+        ));
+
+        foreach ([$activation, $rollback] as $script) {
+            $this->assertStringContainsString(
+                'assert_release_runtime_path_boundaries',
+                $script,
+            );
+            $this->assertStringContainsString(
+                'assert_canonical_deployment_file',
+                $script,
+            );
+        }
+        $this->assertStringContainsString(
+            'assert_release_runtime_path_boundaries "$TEMP_RELEASE_DIR" false',
+            $activation,
+        );
+        $this->assertStringContainsString(
+            'assert_release_runtime_path_boundaries "$ROLLBACK_TARGET" false',
+            $rollback,
+        );
+        $this->assertStringContainsString(
+            'assert_release_runtime_path_boundaries "$release_root" false',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            'assert_release_runtime_path_boundaries "$release_root" false',
+            $workflow,
+        );
+        $this->assertStringContainsString('local -A collision_keys=()', $archiveValidator);
+        $this->assertStringContainsString(
+            'unsupported filesystem entry type',
+            strtolower($archiveValidator),
+        );
     }
 
     public function test_activation_requires_the_complete_phase_b_runtime_payload(): void
@@ -240,6 +1102,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             'REVISION',
             'artisan',
             'public/index.php',
+            'public/storage/.myapes-selective-media',
             'vendor/autoload.php',
             'public/build/manifest.json',
             'resources/data/releases.json',
@@ -534,7 +1397,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             $destructiveTestWipeCommand,
         ));
         $this->assertSame(1, preg_match_all(
-            '/^[\t ]*' . preg_quote($destructiveTestWipeCommand, '/') . '[\t ]*\r?$/m',
+            '/^[\t ]*'.preg_quote($destructiveTestWipeCommand, '/').'[\t ]*\r?$/m',
             $databaseCompatibilityJob,
         ));
         $this->assertLessThan($destructiveTestWipePosition, $standaloneFoundationPosition);
@@ -1122,7 +1985,10 @@ class DeploymentAuthenticationContractTest extends TestCase
         $script = $this->read('scripts/deploy/rollback-release.sh');
 
         $this->assertStringContainsString('ROLLBACK_TARGET="$(readlink -f "$PREVIOUS_LINK")"', $script);
-        $this->assertStringContainsString('"$ROLLBACK_TARGET" != "${RELEASES_DIR}/"*', $script);
+        $this->assertStringContainsString(
+            '"$ROLLBACK_TARGET" != "${RELEASES_DIR}/${EXPECTED_ROLLBACK_SHA}"',
+            $script,
+        );
         $this->assertStringContainsString(
             '"$ROLLBACK_SHA" != "$EXPECTED_ROLLBACK_SHA"',
             $script,
@@ -1810,6 +2676,1193 @@ BASH;
         return $process;
     }
 
+    /** @return array{Process, string, string, string} */
+    private function runMediaBoundaryHarness(
+        string $scriptPath,
+        string $version,
+        string $layout,
+    ): array {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-media-boundary-'.bin2hex(random_bytes(8));
+        $releases = $root.DIRECTORY_SEPARATOR.'releases';
+        $release = $releases.DIRECTORY_SEPARATOR.str_repeat('a', 40);
+        $public = $release.DIRECTORY_SEPARATOR.'public';
+        $sharedPublic = $root.DIRECTORY_SEPARATOR.'shared'.DIRECTORY_SEPARATOR
+            .'storage'.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'public';
+        $this->assertTrue(mkdir($public, 0700, true));
+        $this->assertTrue(mkdir(
+            $sharedPublic.DIRECTORY_SEPARATOR.'avatars',
+            0700,
+            true,
+        ));
+        $this->assertNotFalse(file_put_contents(
+            $release.DIRECTORY_SEPARATOR.'VERSION',
+            "{$version}\n",
+        ));
+        if (! str_starts_with($layout, 'legacy')) {
+            $storage = $public.DIRECTORY_SEPARATOR.'storage';
+            $this->assertTrue(mkdir($storage, 0700, true));
+            $this->assertNotFalse(file_put_contents(
+                $storage.DIRECTORY_SEPARATOR.'.myapes-selective-media',
+                "myapes-selective-media:v1\n",
+            ));
+            if ($layout === 'unexpected') {
+                $this->assertTrue(mkdir(
+                    $storage.DIRECTORY_SEPARATOR.'pet-profiles',
+                    0700,
+                ));
+            }
+        }
+
+        $function = $this->bashFunction(
+            $this->read($scriptPath),
+            'install_public_storage_boundary',
+        );
+        $harness = $root.DIRECTORY_SEPARATOR.'harness.sh';
+        $this->assertNotFalse(file_put_contents(
+            $harness,
+            "#!/usr/bin/env bash\nset -euo pipefail\n"
+                .'RELEASES_DIR="$1"'."\n"
+                .'SHARED_DIR="$2"'."\n"
+                .'SELECTIVE_MEDIA_MARKER_NAME=".myapes-selective-media"'."\n"
+                .'SELECTIVE_MEDIA_MARKER_CONTENT="myapes-selective-media:v1"'."\n"
+                .'sudo() { if [[ "${4:-}" == -w && -L "${5:-}" ]]; then return 0; fi; return 1; }'."\n\n"
+                .$function."\n"
+                .'if [[ "$4" == legacy ]]; then'."\n"
+                .'  ln -s "$2/storage/app/public" "$3/public/storage"'."\n"
+                .'fi'."\n"
+                .'install_public_storage_boundary "$3"'."\n"
+                .'if [[ "$4" == selective ]]; then'."\n"
+                .'  test -L "$3/public/storage/avatars"'."\n"
+                .'  test "$(readlink -f "$3/public/storage/avatars")" = "$(readlink -f "$2/storage/app/public/avatars")"'."\n"
+                .'elif [[ "$4" == legacy* ]]; then'."\n"
+                .'  test -L "$3/public/storage"'."\n"
+                .'  test "$(readlink -f "$3/public/storage")" = "$(readlink -f "$2/storage/app/public")"'."\n"
+                .'fi'."\n"
+                .'printf "%s-%s-ok\\n" "$5" "$4"'."\n",
+        ));
+        $process = new Process([
+            $this->bashExecutable(),
+            $this->bashPath($harness),
+            $this->bashPath($releases),
+            $this->bashPath($root.DIRECTORY_SEPARATOR.'shared'),
+            $this->bashPath($release),
+            $layout,
+            $version,
+        ], env: ['MSYS' => 'winsymlinks:sys']);
+
+        return [$process, $root, $release, $sharedPublic];
+    }
+
+    private function assertBashSymlinkTarget(string $link, string $target): void
+    {
+        $process = new Process([
+            $this->bashExecutable(),
+            '-c',
+            'test -L "$1" && test "$(readlink -f "$1")" = "$(readlink -f "$2")"',
+            'myapes-media-link-check',
+            $this->bashPath($link),
+            $this->bashPath($target),
+        ], env: ['MSYS' => 'winsymlinks:sys']);
+        $process->mustRun();
+        $this->addToAssertionCount(1);
+    }
+
+    /** @return array{Process, string, string, string, list<string>, ?string} */
+    private function runDeploymentAncestorGuardHarness(
+        string $scriptPath,
+        string $ancestor,
+    ): array {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-deployment-ancestor-'.bin2hex(random_bytes(8));
+        $data = $root.DIRECTORY_SEPARATOR.'data';
+        $releaseSha = str_repeat('a', 40);
+        $currentSha = str_repeat('b', 40);
+        $releases = $data.DIRECTORY_SEPARATOR.'releases';
+        $release = $releases.DIRECTORY_SEPARATOR.$releaseSha;
+        $currentRelease = $releases.DIRECTORY_SEPARATOR.$currentSha;
+        $shared = $data.DIRECTORY_SEPARATOR.'shared';
+        $sharedStorage = $shared.DIRECTORY_SEPARATOR.'storage';
+        $sharedStorageApp = $sharedStorage.DIRECTORY_SEPARATOR.'app';
+        $sharedStoragePublic = $sharedStorageApp.DIRECTORY_SEPARATOR.'public';
+        $sharedStorageAvatars = $sharedStoragePublic.DIRECTORY_SEPARATOR.'avatars';
+        $sharedStorageFramework = $sharedStorage.DIRECTORY_SEPARATOR.'framework';
+        $sharedStorageFrameworkCache = $sharedStorageFramework.DIRECTORY_SEPARATOR.'cache';
+        $sharedStorageFrameworkCacheData = $sharedStorageFrameworkCache.DIRECTORY_SEPARATOR.'data';
+        $sharedStorageFrameworkSessions = $sharedStorageFramework.DIRECTORY_SEPARATOR.'sessions';
+        $sharedStorageFrameworkViews = $sharedStorageFramework.DIRECTORY_SEPARATOR.'views';
+        $sharedStorageLogs = $sharedStorage.DIRECTORY_SEPARATOR.'logs';
+        $this->assertTrue(mkdir(
+            $release.DIRECTORY_SEPARATOR.'public',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $currentRelease.DIRECTORY_SEPARATOR.'public',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir($sharedStorageAvatars, 0700, true));
+        $this->assertTrue(mkdir($sharedStorageFrameworkCacheData, 0700, true));
+        $this->assertTrue(mkdir($sharedStorageFrameworkSessions, 0700, true));
+        $this->assertTrue(mkdir($sharedStorageFrameworkViews, 0700, true));
+        $this->assertTrue(mkdir($sharedStorageLogs, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $shared.DIRECTORY_SEPARATOR.'.env',
+            "APP_ENV=production\nAPP_KEY=test\n",
+        ));
+        $this->assertTrue(mkdir($data.DIRECTORY_SEPARATOR.'apache', 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'apache'.DIRECTORY_SEPARATOR.'app.conf',
+            "SetEnv APP_ENV production\n",
+        ));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'run.sh',
+            "#!/usr/bin/env bash\nexport APP_ENV=production\n",
+        ));
+
+        $target = match ($ancestor) {
+            'data' => $data,
+            'releases' => $releases,
+            'shared' => $shared,
+            'shared-storage' => $sharedStorage,
+            'shared-storage-app' => $sharedStorageApp,
+            'shared-storage-public' => $sharedStoragePublic,
+            'shared-storage-avatars' => $sharedStorageAvatars,
+            'shared-storage-framework' => $sharedStorageFramework,
+            'shared-storage-framework-cache' => $sharedStorageFrameworkCache,
+            'shared-storage-framework-cache-data' => $sharedStorageFrameworkCacheData,
+            'shared-storage-framework-sessions' => $sharedStorageFrameworkSessions,
+            'shared-storage-framework-views' => $sharedStorageFrameworkViews,
+            'shared-storage-logs' => $sharedStorageLogs,
+            'release-root' => $release,
+        };
+        $realTarget = dirname($target).DIRECTORY_SEPARATOR
+            .'real-'.basename($target);
+        $this->assertTrue(rename($target, $realTarget));
+        $this->createDirectoryLink($target, $realTarget, 'bash');
+        $links = [$target];
+
+        if ($scriptPath === 'scripts/deploy/rollback-release.sh') {
+            $previousLink = $data.DIRECTORY_SEPARATOR.'previous';
+            $currentLink = $data.DIRECTORY_SEPARATOR.'current';
+            $this->createDirectoryLink($previousLink, $release, 'bash');
+            $this->createDirectoryLink($currentLink, $currentRelease, 'bash');
+            $links[] = $previousLink;
+            $links[] = $currentLink;
+        }
+
+        $sentinel = $realTarget.DIRECTORY_SEPARATOR.'.no-mutation-sentinel';
+        $this->assertNotFalse(file_put_contents($sentinel, "unchanged\n"));
+        $script = str_replace(
+            'DATA_DIR="/app/data"',
+            'DATA_DIR="'.$this->bashPath($data).'"',
+            $this->read($scriptPath),
+            $replacementCount,
+        );
+        $this->assertSame(1, $replacementCount);
+        $rootHelperSentinel = null;
+        if ($scriptPath === 'scripts/deploy/activate-release.sh'
+            && str_starts_with($ancestor, 'shared-storage-framework')
+            || $scriptPath === 'scripts/deploy/activate-release.sh'
+                && $ancestor === 'shared-storage-logs') {
+            $archive = $data.DIRECTORY_SEPARATOR.'.deploy'.DIRECTORY_SEPARATOR
+                .$releaseSha.DIRECTORY_SEPARATOR.'release.tar.gz';
+            $this->assertTrue(mkdir(dirname($archive), 0700, true));
+            $this->assertNotFalse(file_put_contents($archive, "test archive\n"));
+            $rootHelperSentinel = $root.DIRECTORY_SEPARATOR.'.root-helper-invoked';
+            $script = str_replace(
+                'DATA_DIR="'.$this->bashPath($data).'"',
+                'install() { printf \'%s\\n\' invoked >"'
+                    .$this->bashPath($rootHelperSentinel).'"; return 97; }'."\n"
+                    .'DATA_DIR="'.$this->bashPath($data).'"',
+                $script,
+                $installSpyCount,
+            );
+            $this->assertSame(1, $installSpyCount);
+            $script = str_replace(
+                'install_authenticated_controls "$DEPLOY_DIR" "$CONTROL_RELEASE_DIR"',
+                ': # authenticated-control installation stubbed by the ancestor guard harness',
+                $script,
+                $controlStubCount,
+            );
+            $this->assertSame(1, $controlStubCount);
+        }
+        $harness = $root.DIRECTORY_SEPARATOR.basename($scriptPath);
+        $this->assertNotFalse(file_put_contents($harness, $script));
+
+        $arguments = $scriptPath === 'scripts/deploy/activate-release.sh'
+            ? [$releaseSha, '', str_repeat('c', 64)]
+            : [
+                $releaseSha,
+                $currentSha,
+                str_repeat('c', 64),
+                '/run/myapes-deployment-controls/'.$currentSha,
+            ];
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                ...array_map($this->bashPath(...), $arguments),
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+            $sentinel,
+            $realTarget,
+            $links,
+            $rootHelperSentinel,
+        ];
+    }
+
+    /** @return array{Process, string, string, string, string, string} */
+    private function runActivationEnvironmentGuardHarness(string $layout): array
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-deployment-ancestor-'.bin2hex(random_bytes(8));
+        $data = $root.DIRECTORY_SEPARATOR.'data';
+        $releaseSha = str_repeat('a', 40);
+        $release = $data.DIRECTORY_SEPARATOR.'releases'.DIRECTORY_SEPARATOR.$releaseSha;
+        $shared = $data.DIRECTORY_SEPARATOR.'shared';
+        $sharedStorage = $shared.DIRECTORY_SEPARATOR.'storage';
+        $this->assertTrue(mkdir($release.DIRECTORY_SEPARATOR.'public', 0700, true));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR
+                .'public'.DIRECTORY_SEPARATOR.'avatars',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'framework'.DIRECTORY_SEPARATOR
+                .'cache'.DIRECTORY_SEPARATOR.'data',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'framework'.DIRECTORY_SEPARATOR.'sessions',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'framework'.DIRECTORY_SEPARATOR.'views',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir($sharedStorage.DIRECTORY_SEPARATOR.'logs', 0700, true));
+        $this->assertTrue(mkdir($data.DIRECTORY_SEPARATOR.'apache', 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'apache'.DIRECTORY_SEPARATOR.'app.conf',
+            "SetEnv APP_ENV production\n",
+        ));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'run.sh',
+            "#!/usr/bin/env bash\nexport APP_ENV=production\n",
+        ));
+
+        $externalRoot = $root.DIRECTORY_SEPARATOR.'external-environment';
+        $this->assertTrue(mkdir($externalRoot, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $externalRoot.DIRECTORY_SEPARATOR.'.no-mutation-sentinel',
+            "unchanged\n",
+        ));
+        $environmentTarget = $externalRoot.DIRECTORY_SEPARATOR.'production.env';
+        if ($layout === 'existing') {
+            $this->assertNotFalse(file_put_contents(
+                $environmentTarget,
+                "APP_ENV=production\nAPP_KEY=external\n",
+            ));
+        } else {
+            $this->assertSame('dangling', $layout);
+        }
+
+        $environmentLink = $shared.DIRECTORY_SEPARATOR.'.env';
+        $this->createDirectoryLink($environmentLink, $environmentTarget, 'bash');
+        $archive = $data.DIRECTORY_SEPARATOR.'.deploy'.DIRECTORY_SEPARATOR
+            .$releaseSha.DIRECTORY_SEPARATOR.'release.tar.gz';
+        $this->assertTrue(mkdir(dirname($archive), 0700, true));
+        $this->assertNotFalse(file_put_contents($archive, "test archive\n"));
+        $rootHelperSentinel = $root.DIRECTORY_SEPARATOR.'.root-helper-invoked';
+        $script = str_replace(
+            'DATA_DIR="/app/data"',
+            'install() { printf \'%s\\n\' invoked >"'
+                .$this->bashPath($rootHelperSentinel).'"; return 97; }'."\n"
+                .'DATA_DIR="'.$this->bashPath($data).'"',
+            $this->read('scripts/deploy/activate-release.sh'),
+            $replacementCount,
+        );
+        $this->assertSame(1, $replacementCount);
+        $script = str_replace(
+            'install_authenticated_controls "$DEPLOY_DIR" "$CONTROL_RELEASE_DIR"',
+            ': # authenticated-control installation stubbed by the environment guard harness',
+            $script,
+            $controlStubCount,
+        );
+        $this->assertSame(1, $controlStubCount);
+        $harness = $root.DIRECTORY_SEPARATOR.'activate-release.sh';
+        $this->assertNotFalse(file_put_contents($harness, $script));
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                $releaseSha,
+                '',
+                str_repeat('c', 64),
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+            $externalRoot,
+            $environmentLink,
+            $environmentTarget,
+            $rootHelperSentinel,
+        ];
+    }
+
+    /** @return array{Process, string, string, string, string, string} */
+    private function runRollbackEnvironmentGuardHarness(string $layout): array
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-deployment-ancestor-'.bin2hex(random_bytes(8));
+        $data = $root.DIRECTORY_SEPARATOR.'data';
+        $releaseSha = str_repeat('a', 40);
+        $currentSha = str_repeat('b', 40);
+        $releases = $data.DIRECTORY_SEPARATOR.'releases';
+        $release = $releases.DIRECTORY_SEPARATOR.$releaseSha;
+        $currentRelease = $releases.DIRECTORY_SEPARATOR.$currentSha;
+        $shared = $data.DIRECTORY_SEPARATOR.'shared';
+        $sharedStorage = $shared.DIRECTORY_SEPARATOR.'storage';
+        foreach ([$release, $currentRelease] as $releaseRoot) {
+            $this->assertTrue(mkdir(
+                $releaseRoot.DIRECTORY_SEPARATOR.'public',
+                0700,
+                true,
+            ));
+            $this->assertTrue(mkdir(
+                $releaseRoot.DIRECTORY_SEPARATOR.'bootstrap'.DIRECTORY_SEPARATOR.'cache',
+                0700,
+                true,
+            ));
+        }
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR
+                .'public'.DIRECTORY_SEPARATOR.'avatars',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir($data.DIRECTORY_SEPARATOR.'apache', 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'apache'.DIRECTORY_SEPARATOR.'app.conf',
+            "SetEnv APP_ENV production\n",
+        ));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'run.sh',
+            "#!/usr/bin/env bash\nexport APP_ENV=production\n",
+        ));
+        $this->createDirectoryLink(
+            $data.DIRECTORY_SEPARATOR.'previous',
+            $release,
+            'bash',
+        );
+        $this->createDirectoryLink(
+            $data.DIRECTORY_SEPARATOR.'current',
+            $currentRelease,
+            'bash',
+        );
+
+        $externalRoot = $root.DIRECTORY_SEPARATOR.'external-environment';
+        $this->assertTrue(mkdir($externalRoot, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $externalRoot.DIRECTORY_SEPARATOR.'.no-mutation-sentinel',
+            "unchanged\n",
+        ));
+        $environmentTarget = $externalRoot.DIRECTORY_SEPARATOR.'production.env';
+        if ($layout === 'existing') {
+            $this->assertNotFalse(file_put_contents(
+                $environmentTarget,
+                "APP_ENV=production\nAPP_KEY=external\n",
+            ));
+        } else {
+            $this->assertSame('dangling', $layout);
+        }
+        $environmentLink = $shared.DIRECTORY_SEPARATOR.'.env';
+        $this->createDirectoryLink($environmentLink, $environmentTarget, 'bash');
+
+        $controlReleases = $root.DIRECTORY_SEPARATOR.'control-releases';
+        $controlRoot = $controlReleases.DIRECTORY_SEPARATOR.$currentSha;
+        $harness = $controlRoot.DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR
+            .'deploy'.DIRECTORY_SEPARATOR.'rollback-release.sh';
+        $this->assertTrue(mkdir(dirname($harness), 0700, true));
+        $rootHelperSentinel = $root.DIRECTORY_SEPARATOR.'.root-helper-invoked';
+        $script = str_replace(
+            'DATA_DIR="/app/data"',
+            'root_helper_spy() { printf \'%s\\n\' invoked >"'
+                .$this->bashPath($rootHelperSentinel).'"; return 97; }'."\n"
+                .'install() { root_helper_spy; }'."\n"
+                .'chown() { root_helper_spy; }'."\n"
+                .'chmod() { root_helper_spy; }'."\n"
+                .'cp() { root_helper_spy; }'."\n"
+                .'mv() { root_helper_spy; }'."\n"
+                .'rm() { root_helper_spy; }'."\n"
+                .'ln() { root_helper_spy; }'."\n"
+                .'DATA_DIR="'.$this->bashPath($data).'"',
+            $this->read('scripts/deploy/rollback-release.sh'),
+            $dataReplacementCount,
+        );
+        $this->assertSame(1, $dataReplacementCount);
+        $script = str_replace(
+            'CONTROL_RELEASES_DIR="/run/myapes-deployment-controls"',
+            'CONTROL_RELEASES_DIR="'.$this->bashPath($controlReleases).'"',
+            $script,
+            $controlReplacementCount,
+        );
+        $this->assertSame(1, $controlReplacementCount);
+        $this->assertNotFalse(file_put_contents($harness, $script));
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                $releaseSha,
+                $currentSha,
+                str_repeat('c', 64),
+                $this->bashPath($controlRoot),
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+            $externalRoot,
+            $environmentLink,
+            $environmentTarget,
+            $rootHelperSentinel,
+        ];
+    }
+
+    /** @return array{Process, string, string, string} */
+    private function runLocalMediaTargetGuardHarness(
+        string $validator,
+        string $target,
+    ): array {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-local-media-'.bin2hex(random_bytes(8));
+        $publicStorage = $root.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'storage';
+        $this->assertTrue(mkdir($publicStorage, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $publicStorage.DIRECTORY_SEPARATOR.'.myapes-selective-media',
+            "myapes-selective-media:v1\n",
+        ));
+
+        $storage = $root.DIRECTORY_SEPARATOR.'storage';
+        $storageApp = $storage.DIRECTORY_SEPARATOR.'app';
+        $storagePublic = $storageApp.DIRECTORY_SEPARATOR.'public';
+        $storageAvatars = $storagePublic.DIRECTORY_SEPARATOR.'avatars';
+        $link = match ($target) {
+            'storage' => $storage,
+            'storage-app' => $storageApp,
+            'storage-public' => $storagePublic,
+            'storage-avatars' => $storageAvatars,
+        };
+        if (! is_dir(dirname($link))) {
+            $this->assertTrue(mkdir(dirname($link), 0700, true));
+        }
+        $externalTarget = $root.DIRECTORY_SEPARATOR.'external-'.$target;
+        $this->assertTrue(mkdir($externalTarget, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $externalTarget.DIRECTORY_SEPARATOR.'.no-mutation-sentinel',
+            "unchanged\n",
+        ));
+        $this->createDirectoryLink($link, $externalTarget, $validator);
+
+        $process = $validator === 'powershell'
+            ? $this->runPowerShellMediaValidator($root)
+            : new Process([
+                $this->bashExecutable(),
+                $this->bashPath($this->path('scripts/local/selective-media-boundary.sh')),
+                $this->bashPath($root),
+            ], env: ['MSYS' => 'winsymlinks:sys']);
+
+        return [$process, $root, $externalTarget, $link];
+    }
+
+    /** @return array{Process, string, string, string} */
+    private function runLauncherLogGuardHarness(string $linkedPath): array
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-launcher-log-'.bin2hex(random_bytes(8));
+        $storage = $root.DIRECTORY_SEPARATOR.'storage';
+        $logs = $storage.DIRECTORY_SEPARATOR.'logs';
+        $externalRoot = $root.DIRECTORY_SEPARATOR.'external-logs';
+        $this->assertTrue(mkdir($storage, 0700, true));
+        $this->assertTrue(mkdir($externalRoot, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $externalRoot.DIRECTORY_SEPARATOR.'.no-mutation-sentinel',
+            "unchanged\n",
+        ));
+
+        if ($linkedPath === 'logs') {
+            $link = $logs;
+            $this->createDirectoryLink($link, $externalRoot, 'bash');
+        } else {
+            $this->assertTrue(mkdir($logs, 0700, true));
+            $externalLog = $externalRoot.DIRECTORY_SEPARATOR.$linkedPath;
+            $this->assertNotFalse(file_put_contents($externalLog, "external\n"));
+            $link = $logs.DIRECTORY_SEPARATOR.$linkedPath;
+            $this->createDirectoryLink($link, $externalLog, 'bash');
+        }
+
+        $launcher = $this->read('scripts/deploy/cloudron-run.sh');
+        $function = $this->bashFunctionOrFailureStub(
+            $launcher,
+            'assert_laravel_log_file',
+        ).$this->bashFunctionOrFailureStub(
+            $launcher,
+            'prepare_laravel_logs',
+        );
+        $harness = $root.DIRECTORY_SEPARATOR.'launcher-log-guard.sh';
+        $this->assertNotFalse(file_put_contents(
+            $harness,
+            "#!/usr/bin/env bash\nset -euo pipefail\n"
+                .$function."\nprepare_laravel_logs \"\$1\"\n",
+        ));
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                $this->bashPath($logs),
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+            $externalRoot,
+            $link,
+        ];
+    }
+
+    /** @return array{Process, string, string, string} */
+    private function runLauncherRuntimeControlGuardHarness(string $linkedPath): array
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-launcher-control-'.bin2hex(random_bytes(8));
+        $data = $root.DIRECTORY_SEPARATOR.'data';
+        $apache = $data.DIRECTORY_SEPARATOR.'apache';
+        $this->assertTrue(mkdir($apache, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $apache.DIRECTORY_SEPARATOR.'app.conf',
+            "SetEnv APP_ENV production\n",
+        ));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'run.sh',
+            "#!/usr/bin/env bash\nexport APP_ENV=production\n",
+        ));
+        $externalRoot = $root.DIRECTORY_SEPARATOR.'external-runtime-control';
+        $this->assertTrue(mkdir($externalRoot, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $externalRoot.DIRECTORY_SEPARATOR.'.no-mutation-sentinel',
+            "unchanged\n",
+        ));
+
+        $link = match ($linkedPath) {
+            'apache' => $apache,
+            'apache-app-conf' => $apache.DIRECTORY_SEPARATOR.'app.conf',
+            'run-sh' => $data.DIRECTORY_SEPARATOR.'run.sh',
+        };
+        if ($linkedPath === 'apache') {
+            $linkTarget = $externalRoot.DIRECTORY_SEPARATOR.'apache';
+            $this->assertTrue(rename($apache, $linkTarget));
+        } else {
+            $linkTarget = $externalRoot.DIRECTORY_SEPARATOR.basename($link);
+            $this->assertTrue(rename($link, $linkTarget));
+        }
+        $this->createDirectoryLink($link, $linkTarget, 'bash');
+
+        $launcher = $this->read('scripts/deploy/cloudron-run.sh');
+        $functions = '';
+        foreach ([
+            'assert_ordinary_canonical_runtime_directory',
+            'assert_ordinary_canonical_runtime_file',
+            'assert_runtime_control_paths',
+        ] as $functionName) {
+            $functions .= $this->bashFunctionOrFailureStub($launcher, $functionName);
+        }
+        $harness = $root.DIRECTORY_SEPARATOR.'launcher-control-guard.sh';
+        $this->assertNotFalse(file_put_contents(
+            $harness,
+            "#!/usr/bin/env bash\nset -euo pipefail\n"
+                .$functions."\nassert_runtime_control_paths \"\$1\"\n",
+        ));
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                $this->bashPath($data),
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+            $externalRoot,
+            $link,
+        ];
+    }
+
+    /** @return array{Process, string, string, string} */
+    private function runRuntimeControlPathGuardHarness(
+        string $scriptPath,
+        string $linkedPath,
+    ): array {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-deployment-ancestor-'.bin2hex(random_bytes(8));
+        $data = $root.DIRECTORY_SEPARATOR.'data';
+        $releaseSha = str_repeat('a', 40);
+        $currentSha = str_repeat('b', 40);
+        $release = $data.DIRECTORY_SEPARATOR.'releases'.DIRECTORY_SEPARATOR.$releaseSha;
+        $sharedStorage = $data.DIRECTORY_SEPARATOR.'shared'.DIRECTORY_SEPARATOR.'storage';
+        $apache = $data.DIRECTORY_SEPARATOR.'apache';
+        $this->assertTrue(mkdir(
+            $release.DIRECTORY_SEPARATOR.'public',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR
+                .'public'.DIRECTORY_SEPARATOR.'avatars',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'framework'.DIRECTORY_SEPARATOR
+                .'cache'.DIRECTORY_SEPARATOR.'data',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'framework'.DIRECTORY_SEPARATOR.'sessions',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir(
+            $sharedStorage.DIRECTORY_SEPARATOR.'framework'.DIRECTORY_SEPARATOR.'views',
+            0700,
+            true,
+        ));
+        $this->assertTrue(mkdir($sharedStorage.DIRECTORY_SEPARATOR.'logs', 0700, true));
+        $this->assertTrue(mkdir($apache, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $apache.DIRECTORY_SEPARATOR.'app.conf',
+            "SetEnv APP_ENV production\n",
+        ));
+        $this->assertNotFalse(file_put_contents(
+            $data.DIRECTORY_SEPARATOR.'run.sh',
+            "#!/usr/bin/env bash\nexport APP_ENV=production\n",
+        ));
+
+        $externalRoot = $root.DIRECTORY_SEPARATOR.'external-runtime-control';
+        $this->assertTrue(mkdir($externalRoot, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $externalRoot.DIRECTORY_SEPARATOR.'.no-mutation-sentinel',
+            "unchanged\n",
+        ));
+        $target = match ($linkedPath) {
+            'apache' => $apache,
+            'apache-app-conf' => $apache.DIRECTORY_SEPARATOR.'app.conf',
+            'run-sh' => $data.DIRECTORY_SEPARATOR.'run.sh',
+            'apache-app-conf-stage' => $apache.DIRECTORY_SEPARATOR.'app.conf.rollback',
+            'run-sh-stage' => $data.DIRECTORY_SEPARATOR.'run.sh.rollback',
+        };
+        if ($linkedPath === 'apache') {
+            $this->assertTrue(rename($apache, $externalRoot.DIRECTORY_SEPARATOR.'apache'));
+            $linkTarget = $externalRoot.DIRECTORY_SEPARATOR.'apache';
+        } else {
+            if (file_exists($target)) {
+                $this->assertTrue(rename(
+                    $target,
+                    $externalRoot.DIRECTORY_SEPARATOR.basename($target),
+                ));
+            } else {
+                $this->assertNotFalse(file_put_contents(
+                    $externalRoot.DIRECTORY_SEPARATOR.basename($target),
+                    "staged external\n",
+                ));
+            }
+            $linkTarget = $externalRoot.DIRECTORY_SEPARATOR.basename($target);
+        }
+        $this->createDirectoryLink($target, $linkTarget, 'bash');
+
+        $script = str_replace(
+            'DATA_DIR="/app/data"',
+            'DATA_DIR="'.$this->bashPath($data).'"',
+            $this->read($scriptPath),
+            $replacementCount,
+        );
+        $this->assertSame(1, $replacementCount);
+        $harness = $root.DIRECTORY_SEPARATOR.basename($scriptPath);
+        $this->assertNotFalse(file_put_contents($harness, $script));
+        $arguments = $scriptPath === 'scripts/deploy/activate-release.sh'
+            ? [$releaseSha, '', str_repeat('c', 64)]
+            : [
+                $releaseSha,
+                $currentSha,
+                str_repeat('c', 64),
+                '/run/myapes-deployment-controls/'.$currentSha,
+            ];
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                ...$arguments,
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+            $externalRoot,
+            $target,
+        ];
+    }
+
+    /** @return array{Process, string, string, string} */
+    private function runReleaseRuntimePathGuardHarness(
+        string $scriptPath,
+        string $linkedPath,
+    ): array {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-release-runtime-'.bin2hex(random_bytes(8));
+        $release = $root.DIRECTORY_SEPARATOR.'release';
+        $bootstrap = $release.DIRECTORY_SEPARATOR.'bootstrap';
+        $cache = $bootstrap.DIRECTORY_SEPARATOR.'cache';
+        $externalRoot = $root.DIRECTORY_SEPARATOR.'external-bootstrap';
+        $this->assertTrue(mkdir($release.DIRECTORY_SEPARATOR.'public', 0700, true));
+        $this->assertTrue(mkdir($externalRoot, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $externalRoot.DIRECTORY_SEPARATOR.'.no-mutation-sentinel',
+            "unchanged\n",
+        ));
+
+        if ($linkedPath === 'bootstrap') {
+            $this->assertTrue(mkdir($externalRoot.DIRECTORY_SEPARATOR.'cache', 0700, true));
+            $link = $bootstrap;
+        } else {
+            $this->assertSame('bootstrap-cache', $linkedPath);
+            $this->assertTrue(mkdir($bootstrap, 0700, true));
+            $link = $cache;
+        }
+        $this->createDirectoryLink($link, $externalRoot, 'bash');
+
+        $function = $this->bashFunctionOrFailureStub(
+            $this->read($scriptPath),
+            'assert_release_runtime_path_boundaries',
+        );
+        $harness = $root.DIRECTORY_SEPARATOR.'release-runtime-guard.sh';
+        $this->assertNotFalse(file_put_contents(
+            $harness,
+            "#!/usr/bin/env bash\nset -euo pipefail\n"
+                .$function."\nassert_release_runtime_path_boundaries \"\$1\" true\n",
+        ));
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                $this->bashPath($release),
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+            $externalRoot,
+            $link,
+        ];
+    }
+
+    /** @return array{Process, string} */
+    private function runLocalMediaValidator(string $validator, string $marker): array
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-local-media-'.bin2hex(random_bytes(8));
+        $publicStorage = $root.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'storage';
+        $this->assertTrue(mkdir($publicStorage, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $publicStorage.DIRECTORY_SEPARATOR.'.myapes-selective-media',
+            $marker,
+        ));
+
+        $process = $validator === 'powershell'
+            ? new Process([
+                $this->powershellExecutable(),
+                '-NoProfile',
+                '-ExecutionPolicy',
+                'Bypass',
+                '-File',
+                $this->path('scripts/local/selective-media-boundary.ps1'),
+                '-RootDir',
+                $root,
+            ])
+            : new Process([
+                $this->bashExecutable(),
+                $this->bashPath($this->path('scripts/local/selective-media-boundary.sh')),
+                $this->bashPath($root),
+            ]);
+
+        return [$process, $root];
+    }
+
+    /** @return array{Process, string} */
+    private function runArchiveMediaHarness(): array
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-archive-media-'.bin2hex(random_bytes(8));
+        $this->assertTrue(mkdir($root, 0700, true));
+        $harness = $root.DIRECTORY_SEPARATOR.'harness.sh';
+        $this->assertNotFalse(file_put_contents(
+            $harness,
+            <<<'BASH'
+#!/usr/bin/env bash
+set -euo pipefail
+validator="$1"
+root="$2"
+
+make_marker_tree() {
+  local tree="$1"
+  mkdir -p "$tree/public/storage" "$tree/bootstrap/cache"
+  printf '%s\n' 'myapes-selective-media:v1' \
+    > "$tree/public/storage/.myapes-selective-media"
+}
+
+valid="$root/valid"
+make_marker_tree "$valid"
+"$validator" source "$valid"
+(cd "$root" && "$validator" source valid)
+tar -czf "$root/valid.tar.gz" -C "$valid" .
+"$validator" archive "$root/valid.tar.gz"
+
+for linked_path in bootstrap bootstrap-cache; do
+  tree="$root/linked-$linked_path"
+  external="$root/external-$linked_path"
+  make_marker_tree "$tree"
+  mkdir "$external"
+  printf 'unchanged\n' > "$external/sentinel"
+  if [[ "$linked_path" == bootstrap ]]; then
+    rm -rf "$tree/bootstrap"
+    ln -s "$external" "$tree/bootstrap"
+  else
+    rm -rf "$tree/bootstrap/cache"
+    ln -s "$external" "$tree/bootstrap/cache"
+  fi
+  if "$validator" source "$tree"; then
+    echo "source validator accepted linked $linked_path" >&2
+    exit 1
+  fi
+  tar -czf "$root/linked-$linked_path.tar.gz" -C "$tree" .
+  if "$validator" archive "$root/linked-$linked_path.tar.gz"; then
+    echo "archive validator accepted linked $linked_path" >&2
+    exit 1
+  fi
+  test "$(cat "$external/sentinel")" = unchanged
+done
+
+for collision_order in file-directory directory-file; do
+  tree="$root/collision-$collision_order"
+  make_marker_tree "$tree"
+  printf 'collision\n' > "$tree/collision-file"
+  mkdir "$tree/collision-directory"
+  archive="$root/collision-$collision_order.tar"
+  tar -cf "$archive" --no-recursion -C "$tree" \
+    ./public/storage/ ./bootstrap/ ./bootstrap/cache/
+  tar -rf "$archive" -C "$tree" ./public/storage/.myapes-selective-media
+  if [[ "$collision_order" == file-directory ]]; then
+    tar -rf "$archive" \
+      --transform='s#^collision-file$#./collision#' \
+      -C "$tree" collision-file
+    tar -rf "$archive" --no-recursion \
+      --transform='s#^collision-directory#./collision#' \
+      -C "$tree" collision-directory
+  else
+    tar -rf "$archive" --no-recursion \
+      --transform='s#^collision-directory#./collision#' \
+      -C "$tree" collision-directory
+    tar -rf "$archive" \
+      --transform='s#^collision-file$#./collision#' \
+      -C "$tree" collision-file
+  fi
+  test "$(tar -tf "$archive" | grep -Ec '^\./collision/?$')" = 2
+  gzip -c "$archive" > "$archive.gz"
+  if "$validator" archive "$archive.gz"; then
+    echo "archive validator accepted $collision_order collision" >&2
+    exit 1
+  fi
+done
+
+for schema in missing-parent duplicate-parent alias-parent regular-parent symlink-parent; do
+  schema_root="$root/schema-$schema"
+  tree="$schema_root/tree"
+  make_marker_tree "$tree"
+  archive="$root/schema-$schema.tar"
+  case "$schema" in
+    missing-parent)
+      tar -cf "$archive" -C "$tree" ./public/storage/.myapes-selective-media
+      ;;
+    duplicate-parent)
+      tar -cf "$archive" --no-recursion -C "$tree" ./public/storage/
+      tar -rf "$archive" --no-recursion -C "$tree" ./public/storage/
+      tar -rf "$archive" -C "$tree" ./public/storage/.myapes-selective-media
+      ;;
+    alias-parent)
+      tar -cf "$archive" --no-recursion -C "$tree" ./public/storage/
+      tar -rf "$archive" --no-recursion -C "$tree" public/storage/
+      tar -rf "$archive" -C "$tree" ./public/storage/.myapes-selective-media
+      ;;
+    regular-parent)
+      printf 'not-a-directory\n' > "$schema_root/parent-file"
+      tar -cf "$archive" \
+        --transform='s#^parent-file$#./public/storage#' \
+        -C "$schema_root" parent-file
+      tar -rf "$archive" -C "$tree" ./public/storage/.myapes-selective-media
+      ;;
+    symlink-parent)
+      mkdir "$schema_root/elsewhere"
+      ln -s "$schema_root/elsewhere" "$schema_root/parent-link"
+      tar -cf "$archive" \
+        --transform='s#^parent-link$#./public/storage#' \
+        -C "$schema_root" parent-link
+      tar -rf "$archive" -C "$tree" ./public/storage/.myapes-selective-media
+      ;;
+  esac
+  tar -rf "$archive" --no-recursion -C "$tree" ./bootstrap/ ./bootstrap/cache/
+  archive_list="$(tar -tf "$archive")"
+  test "$(printf '%s\n' "$archive_list" \
+    | sed -E 's#^(\./)+##' \
+    | grep -cx 'public/storage/\.myapes-selective-media')" = 1
+  case "$schema" in
+    missing-parent)
+      test "$(printf '%s\n' "$archive_list" | grep -Fxc './public/storage/' || true)" = 0
+      ;;
+    duplicate-parent)
+      test "$(printf '%s\n' "$archive_list" | grep -Fxc './public/storage/')" = 2
+      ;;
+    alias-parent)
+      test "$(printf '%s\n' "$archive_list" | grep -Fxc './public/storage/')" = 1
+      test "$(printf '%s\n' "$archive_list" \
+        | sed -E 's#^(\./)+##' \
+        | grep -Fxc 'public/storage/')" = 2
+      ;;
+    regular-parent)
+      test "$(tar -tvf "$archive" \
+        | grep -E ' (\./)?public/storage$' \
+        | head -n 1 \
+        | cut -c 1)" = -
+      ;;
+    symlink-parent)
+      test "$(tar -tvf "$archive" \
+        | grep -E ' (\./)?public/storage -> ' \
+        | head -n 1 \
+        | cut -c 1)" = l
+      ;;
+  esac
+  gzip -c "$archive" > "$archive.gz"
+  if "$validator" archive "$archive.gz"; then
+    echo "archive validator accepted $schema" >&2
+    exit 1
+  fi
+  test -e "$tree/public/storage/.myapes-selective-media"
+done
+
+for alias in absolute backslash empty-component dot-component dotdot-component control-character; do
+  tree="$root/alias-$alias"
+  make_marker_tree "$tree"
+  printf 'private\n' > "$tree/shadow"
+  archive="$root/alias-$alias.tar"
+  tar -cf "$archive" --no-recursion -C "$tree" ./public/storage/
+  tar -rf "$archive" -C "$tree" ./public/storage/.myapes-selective-media
+  case "$alias" in
+    absolute)
+      tar -P -rf "$archive" \
+        --transform='s#^shadow$#/public/storage/private#' \
+        -C "$tree" shadow
+      tar -P -tf "$archive" | grep -Fqx '/public/storage/private'
+      ;;
+    backslash)
+      tar -rf "$archive" \
+        --transform='s#^shadow$#./public\\storage\\private#' \
+        -C "$tree" shadow
+      tar --quoting-style=escape -tf "$archive" | grep -Fqx './public\\storage\\private'
+      ;;
+    empty-component)
+      tar -rf "$archive" \
+        --transform='s#^shadow$#./public//storage/private#' \
+        -C "$tree" shadow
+      tar -tf "$archive" | grep -Fqx './public//storage/private'
+      ;;
+    dot-component)
+      tar -rf "$archive" \
+        --transform='s#^shadow$#./public/./storage/private#' \
+        -C "$tree" shadow
+      tar -tf "$archive" | grep -Fqx './public/./storage/private'
+      ;;
+    dotdot-component)
+      tar -rf "$archive" \
+        --transform='s#^shadow$#./private/../public/storage/.myapes-selective-media#' \
+        -C "$tree" shadow
+      tar -tf "$archive" \
+        | grep -Fqx './private/../public/storage/.myapes-selective-media'
+      ;;
+    control-character)
+      control_name=$'./private\tcopy'
+      tar -rf "$archive" \
+        --transform="s#^shadow\$#${control_name}#" \
+        -C "$tree" shadow
+      tar --quoting-style=escape -tf "$archive" | grep -Fqx './private\tcopy'
+      ;;
+  esac
+  tar -rf "$archive" --no-recursion -C "$tree" ./bootstrap/ ./bootstrap/cache/
+  gzip -c "$archive" > "$archive.gz"
+  if "$validator" archive "$archive.gz"; then
+    echo "archive validator accepted $alias alias" >&2
+    exit 1
+  fi
+  test -e "$tree/public/storage/.myapes-selective-media"
+done
+
+for kind in avatars pet-profiles arbitrary-file arbitrary-dir arbitrary-symlink changed-marker symlink-marker; do
+  tree="$root/$kind"
+  make_marker_tree "$tree"
+  case "$kind" in
+    avatars|pet-profiles|arbitrary-dir)
+      entry="${kind/arbitrary-dir/private-export}"
+      mkdir "$tree/public/storage/$entry"
+      ;;
+    arbitrary-file)
+      printf 'private\n' > "$tree/public/storage/debug.txt"
+      ;;
+    arbitrary-symlink)
+      mkdir "$tree/elsewhere"
+      ln -s "$tree/elsewhere" "$tree/public/storage/debug-link"
+      ;;
+    changed-marker)
+      printf '%s\r\n' 'myapes-selective-media:v1' \
+        > "$tree/public/storage/.myapes-selective-media"
+      ;;
+    symlink-marker)
+      rm "$tree/public/storage/.myapes-selective-media"
+      printf '%s\n' 'myapes-selective-media:v1' > "$tree/marker-target"
+      ln -s "$tree/marker-target" "$tree/public/storage/.myapes-selective-media"
+      ;;
+  esac
+
+  if "$validator" source "$tree"; then
+    echo "source validator accepted $kind" >&2
+    exit 1
+  fi
+  test -e "$tree/public/storage/.myapes-selective-media" \
+    || test -L "$tree/public/storage/.myapes-selective-media"
+  tar -czf "$root/$kind.tar.gz" -C "$tree" .
+  if "$validator" archive "$root/$kind.tar.gz"; then
+    echo "archive validator accepted $kind" >&2
+    exit 1
+  fi
+done
+
+printf 'archive-media-ok\n'
+BASH
+        ));
+
+        return [
+            new Process([
+                $this->bashExecutable(),
+                $this->bashPath($harness),
+                $this->bashPath($this->path('scripts/deploy/validate-selective-media-archive.sh')),
+                $this->bashPath($root),
+            ], env: ['MSYS' => 'winsymlinks:sys']),
+            $root,
+        ];
+    }
+
+    /** @return array{string, string, string} */
+    private function createLocalMediaFixture(): array
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR
+            .'myapes-local-media-'.bin2hex(random_bytes(8));
+        $publicStorage = $root.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'storage';
+        $avatarTarget = $root.DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR
+            .'app'.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'avatars';
+        $this->assertTrue(mkdir($publicStorage, 0700, true));
+        $this->assertTrue(mkdir($avatarTarget, 0700, true));
+        $this->assertNotFalse(file_put_contents(
+            $publicStorage.DIRECTORY_SEPARATOR.'.myapes-selective-media',
+            "myapes-selective-media:v1\n",
+        ));
+
+        return [$root, $publicStorage, $avatarTarget];
+    }
+
+    private function runPowerShellMediaValidator(string $root): Process
+    {
+        return new Process([
+            $this->powershellExecutable(),
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            $this->path('scripts/local/selective-media-boundary.ps1'),
+            '-RootDir',
+            $root,
+        ]);
+    }
+
+    private function createWindowsJunction(string $link, string $target): void
+    {
+        $process = new Process([
+            $this->powershellExecutable(),
+            '-NoProfile',
+            '-Command',
+            'New-Item -ItemType Junction -Path $env:MYAPES_TEST_LINK -Target $env:MYAPES_TEST_TARGET -ErrorAction Stop | Out-Null',
+        ], env: [
+            'MYAPES_TEST_LINK' => $link,
+            'MYAPES_TEST_TARGET' => $target,
+        ]);
+        $process->mustRun();
+    }
+
+    private function createDirectoryLink(
+        string $link,
+        string $target,
+        string $validator,
+    ): void {
+        if ($validator === 'powershell' && PHP_OS_FAMILY === 'Windows') {
+            $this->createWindowsJunction($link, $target);
+
+            return;
+        }
+
+        $process = new Process([
+            $this->bashExecutable(),
+            '-c',
+            'ln -s "$1" "$2"',
+            'myapes-local-media-ancestor-link',
+            $this->bashPath($target),
+            $this->bashPath($link),
+        ], env: ['MSYS' => 'winsymlinks:sys']);
+        $process->mustRun();
+    }
+
+    private function removeDirectoryLink(string $link, string $validator): void
+    {
+        if ($validator === 'powershell' && PHP_OS_FAMILY === 'Windows') {
+            $this->removeWindowsJunction($link);
+
+            return;
+        }
+
+        if (file_exists($link) || is_link($link)) {
+            $process = new Process([
+                $this->bashExecutable(),
+                '-c',
+                'test -L "$1" && rm -f -- "$1"',
+                'myapes-local-media-ancestor-unlink',
+                $this->bashPath($link),
+            ], env: ['MSYS' => 'winsymlinks:sys']);
+            $process->mustRun();
+        }
+    }
+
+    private function powershellExecutable(): string
+    {
+        return PHP_OS_FAMILY === 'Windows' ? 'powershell.exe' : 'pwsh';
+    }
+
+    private function removeWindowsJunction(string $link): void
+    {
+        if (file_exists($link) || is_link($link)) {
+            $this->assertTrue(rmdir($link));
+        }
+    }
+
     private function bashFunction(string $script, string $name): string
     {
         $matched = preg_match(
@@ -1820,6 +3873,20 @@ BASH;
         $this->assertSame(1, $matched, "Expected Bash function [{$name}].");
 
         return $matches[0];
+    }
+
+    private function bashFunctionOrFailureStub(string $script, string $name): string
+    {
+        $matched = preg_match(
+            '/^'.preg_quote($name, '/').'\(\) \{\R.*?^\}\R/ms',
+            $script,
+            $matches,
+        );
+        if ($matched === 1) {
+            return $matches[0];
+        }
+
+        return $name.'() { echo "missing '.$name.'" >&2; return 1; }'."\n";
     }
 
     private function assertControlVerifierFails(
@@ -1866,6 +3933,32 @@ BASH;
         return $gitBash;
     }
 
+    /** @return list<string> */
+    private function directoryTreeSnapshot(string $path): array
+    {
+        $snapshot = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(
+                $path,
+                \FilesystemIterator::SKIP_DOTS,
+            ),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+        foreach ($iterator as $item) {
+            $relativePath = substr($item->getPathname(), strlen($path) + 1);
+            if ($item->isLink()) {
+                $snapshot[] = 'link:'.$relativePath.'->'.readlink($item->getPathname());
+            } elseif ($item->isDir()) {
+                $snapshot[] = 'directory:'.$relativePath;
+            } else {
+                $snapshot[] = 'file:'.$relativePath.':'.hash_file('sha256', $item->getPathname());
+            }
+        }
+        sort($snapshot);
+
+        return $snapshot;
+    }
+
     private function removeTemporaryDirectory(string $path): void
     {
         if (! is_dir($path)
@@ -1875,6 +3968,27 @@ BASH;
             ) && ! str_starts_with(
                 basename($path),
                 'myapes-activation-recovery-',
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-media-boundary-',
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-local-media-',
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-archive-media-',
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-deployment-ancestor-',
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-launcher-log-',
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-launcher-control-',
+            ) && ! str_starts_with(
+                basename($path),
+                'myapes-release-runtime-',
             ))) {
             return;
         }
@@ -1887,7 +4001,9 @@ BASH;
             \RecursiveIteratorIterator::CHILD_FIRST,
         );
         foreach ($iterator as $item) {
-            if ($item->isDir()) {
+            if ($item->isLink()) {
+                unlink($item->getPathname());
+            } elseif ($item->isDir()) {
                 rmdir($item->getPathname());
             } else {
                 unlink($item->getPathname());

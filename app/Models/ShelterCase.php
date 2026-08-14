@@ -44,9 +44,17 @@ class ShelterCase extends Model
         User $user,
         string $subCoreKey = self::SUB_CORE_SHELTER_RESCUE,
     ): Builder {
-        return $user->can("{$subCoreKey}.cases.view-all")
-            ? $query
-            : $query->where('user_id', $user->id);
+        $prefix = "{$subCoreKey}.cases.";
+
+        if ($user->can($prefix.'view-all')) {
+            return $query;
+        }
+
+        if ($user->can($prefix.'view-own')) {
+            return $query->where('user_id', $user->id);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     protected function casts(): array

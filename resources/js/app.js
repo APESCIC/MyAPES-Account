@@ -1,6 +1,7 @@
 import {
     ArrowRight,
     BadgeCheck,
+    BriefcaseBusiness,
     Building2,
     ChevronRight,
     CirclePause,
@@ -70,6 +71,7 @@ createIcons({
     icons: {
         ArrowRight,
         BadgeCheck,
+        BriefcaseBusiness,
         Building2,
         ChevronRight,
         CirclePause,

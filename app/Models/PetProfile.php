@@ -26,8 +26,21 @@ class PetProfile extends Model
 
     public const DOMAIN_PETCARE = 'petcare';
 
-    public function scopeVisibleTo(Builder $query, User $user): Builder
-    {
+    public function scopeVisibleTo(
+        Builder $query,
+        User $user,
+        ?string $serviceDomain = null,
+    ): Builder {
+        if ($serviceDomain === self::DOMAIN_SHELTER) {
+            if ($user->can('shelter-rescue.pet-profiles.view-all')) {
+                return $query;
+            }
+
+            return $user->can('shelter-rescue.pet-profiles.view-own')
+                ? $query->where('user_id', $user->id)
+                : $query->whereRaw('1 = 0');
+        }
+
         return $user->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS)
             ? $query
             : $query->where('user_id', $user->id);

@@ -6,6 +6,7 @@ use App\Contracts\ModuleRegistry;
 use App\Modules\ModuleCodeStatus;
 use App\Modules\ModuleDependency;
 use App\Modules\ModuleInstanceDefinition;
+use App\Modules\Summaries\SupportTicketSummaryProvider;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleRegistryValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,7 +57,7 @@ class ModuleRegistryTest extends TestCase
             'shelter-rescue:cases' => ModuleCodeStatus::Shipped,
             'shelter-rescue:consultations' => ModuleCodeStatus::Incompatible,
             'shelter-rescue:pet-profiles' => ModuleCodeStatus::Shipped,
-            'shelter-rescue:tickets' => ModuleCodeStatus::CodeNotShipped,
+            'shelter-rescue:tickets' => ModuleCodeStatus::Shipped,
         ], $matrix);
     }
 
@@ -71,6 +72,7 @@ class ModuleRegistryTest extends TestCase
             'pet-care-clinic:pet-profiles',
             'shelter-rescue:cases',
             'shelter-rescue:pet-profiles',
+            'shelter-rescue:tickets',
         ], array_keys($registry->shippedInstances()));
 
         $this->assertSame(
@@ -80,6 +82,32 @@ class ModuleRegistryTest extends TestCase
         $this->assertSame(
             ['pet-care-clinic:pet-profiles'],
             $registry->instance('pet-care-clinic', 'consultations')->dependencyKeys(),
+        );
+    }
+
+    public function test_shelter_navigation_orders_ticket_before_cases_without_changing_apes_cic(): void
+    {
+        $registry = app(ModuleRegistry::class);
+
+        $this->assertSame(
+            10,
+            $registry->instance('apes-cic', 'tickets')
+                ->module->navigation['apes-cic']->order,
+        );
+        $this->assertSame(
+            20,
+            $registry->instance('apes-cic', 'cases')
+                ->module->navigation['apes-cic']->order,
+        );
+        $this->assertSame(
+            20,
+            $registry->instance('shelter-rescue', 'tickets')
+                ->module->navigation['shelter-rescue']->order,
+        );
+        $this->assertSame(
+            30,
+            $registry->instance('shelter-rescue', 'cases')
+                ->module->navigation['shelter-rescue']->order,
         );
     }
 
@@ -118,6 +146,63 @@ class ModuleRegistryTest extends TestCase
         );
     }
 
+    public function test_registry_validation_rejects_invalid_or_unavailable_instance_provider_overrides(): void
+    {
+        $registry = app(ModuleRegistry::class);
+        $matrix = collect($registry->matrix())
+            ->mapWithKeys(
+                static fn (ModuleInstanceDefinition $instance): array => [
+                    $instance->key() => $instance,
+                ],
+            )
+            ->all();
+        $tickets = $matrix['shelter-rescue:tickets'];
+        $matrix['shelter-rescue:tickets'] = new ModuleInstanceDefinition(
+            $tickets->subCore,
+            $tickets->module,
+            $tickets->codeStatus,
+            [],
+            \stdClass::class,
+        );
+
+        try {
+            app(ModuleRegistryValidator::class)->validate(
+                $registry->subCores(),
+                $registry->modules(),
+                $matrix,
+            );
+            $this->fail('An invalid summary-provider override was accepted.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertSame(
+                'Module summary provider is invalid.',
+                $exception->getMessage(),
+            );
+        }
+
+        $unavailable = $registry->instance('pet-care-clinic', 'tickets');
+        $matrix['pet-care-clinic:tickets'] = new ModuleInstanceDefinition(
+            $unavailable->subCore,
+            $unavailable->module,
+            $unavailable->codeStatus,
+            [],
+            SupportTicketSummaryProvider::class,
+        );
+
+        try {
+            app(ModuleRegistryValidator::class)->validate(
+                $registry->subCores(),
+                $registry->modules(),
+                $matrix,
+            );
+            $this->fail('An unavailable instance override was accepted.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertSame(
+                'Unavailable module instances cannot declare overrides.',
+                $exception->getMessage(),
+            );
+        }
+    }
+
     public function test_permission_descriptors_are_unique_namespaced_and_classified(): void
     {
         $registry = app(ModuleRegistry::class);
@@ -127,14 +212,16 @@ class ModuleRegistryTest extends TestCase
             $permissions,
         );
 
-        $this->assertCount(43, $permissions);
-        $this->assertCount(43, array_unique($names));
+        $this->assertCount(51, $permissions);
+        $this->assertCount(51, array_unique($names));
         $this->assertContains('apes-cic.cases.comment-own', $names);
         $this->assertContains('apes-cic.cases.delete', $names);
         $this->assertContains('apes-cic.tickets.view-own', $names);
         $this->assertContains('apes-cic.tickets.comment-own', $names);
         $this->assertContains('apes-cic.tickets.delete', $names);
         $this->assertContains('shelter-rescue.pet-profiles.update-own', $names);
+        $this->assertContains('shelter-rescue.tickets.view-own', $names);
+        $this->assertContains('shelter-rescue.tickets.delete', $names);
         $this->assertContains('pet-care-clinic.consultations.assign', $names);
 
         foreach ($permissions as $permission) {
@@ -181,6 +268,7 @@ class ModuleRegistryTest extends TestCase
         $this->assertTrue(
             $profile->isSuperAdminOnlyPermission('admin.modules.manage'),
         );
+        $this->assertCount(64, $profile->permissions());
         $this->assertFalse(
             $profile->isDirectoryRestrictedPermission(
                 'apes-cic.tickets.create',

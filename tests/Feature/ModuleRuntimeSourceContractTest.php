@@ -81,7 +81,7 @@ class ModuleRuntimeSourceContractTest extends TestCase
         $frontend = File::get(resource_path('js/app.js'));
 
         foreach (
-            ['Building2', 'CirclePause', 'HeartPulse', 'PawPrint'] as $icon
+            ['BriefcaseBusiness', 'Building2', 'CirclePause', 'HeartPulse', 'PawPrint'] as $icon
         ) {
             $this->assertGreaterThanOrEqual(
                 2,

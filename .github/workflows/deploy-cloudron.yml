@@ -228,9 +228,12 @@ jobs:
             --exclude '/storage/' \
             --exclude '/tests/' \
             --exclude '/public/hot' \
-            --exclude '/public/storage' \
+            --exclude '/public/storage/avatars' \
+            --exclude '/public/storage/pet-profiles' \
             --exclude '/.phpunit.cache/' \
             --exclude '/.phpunit.result.cache'
+
+          bash scripts/deploy/validate-selective-media-archive.sh source build/release
 
           printf '%s\n' "$RELEASE_SHA" > build/release/REVISION
           deployment_control_paths=(
@@ -250,12 +253,15 @@ jobs:
           [[ "$deployment_controls_sha256" == "$TRUSTED_CONTROLS_SHA256" ]]
           tar --create --gzip --file "build/myapes-$RELEASE_SHA.tar.gz" --directory build/release .
           test -s "build/myapes-$RELEASE_SHA.tar.gz"
+          bash scripts/deploy/validate-selective-media-archive.sh \
+            archive "build/myapes-$RELEASE_SHA.tar.gz"
 
           tar --list --gzip --file "build/myapes-$RELEASE_SHA.tar.gz" > build/archive-list.txt
           grep -qx './REVISION' build/archive-list.txt
           grep -qx './VERSION' build/archive-list.txt
           grep -qx './artisan' build/archive-list.txt
           grep -qx './public/build/manifest.json' build/archive-list.txt
+          grep -qx './public/storage/.myapes-selective-media' build/archive-list.txt
           grep -qx './resources/data/releases.json' build/archive-list.txt
           grep -qx './resources/data/module-runtime-contract.json' build/archive-list.txt
           grep -qx './config/modules.php' build/archive-list.txt
@@ -278,6 +284,25 @@ jobs:
           grep -qx './scripts/deploy/cloudron-run.sh' build/archive-list.txt
           grep -qx './scripts/deploy/production.env.example' build/archive-list.txt
           grep -qx './DEPLOYMENT-CONTROLS.sha256' build/archive-list.txt
+
+          if [[ "$(grep -Fxc './public/storage/' build/archive-list.txt || true)" != 1 ]]; then
+            echo "Release archive does not contain one canonical public-storage directory."
+            exit 1
+          fi
+
+          normalized_public_storage_members="$(sed -E 's#^(\./)+##' build/archive-list.txt \
+            | grep -E '^public/storage($|/)' || true)"
+          if [[ "$(printf '%s\n' "$normalized_public_storage_members" \
+            | grep -Fxc 'public/storage/' || true)" != 1 ]]; then
+            echo "Release archive contains a duplicate or alias public-storage directory."
+            exit 1
+          fi
+
+          if printf '%s\n' "$normalized_public_storage_members" \
+            | grep -Ev '^public/storage/$|^public/storage/\.myapes-selective-media$'; then
+            echo "Release archive contains a non-marker public-storage member."
+            exit 1
+          fi
 
           if grep -Eq '^\./(\.git($|/)|\.env($|\.)|docs/|node_modules/|scripts/local/|storage/|tests/)' build/archive-list.txt; then
             echo "Release archive contains an excluded path."
@@ -674,14 +699,85 @@ jobs:
           control_root="/run/myapes-deployment-controls/$release_sha"
           temporary_root="$control_root.installing"
 
+          assert_release_runtime_path_boundaries() {
+            local release_root="${1:-}"
+            local cache_required="${2:-false}"
+            local path=""
+            local canonical_path=""
+            local -a required_directories=(
+              "$release_root"
+              "${release_root}/public"
+              "${release_root}/bootstrap"
+            )
+
+            for path in "${required_directories[@]}"; do
+              if [[ -z "$release_root" || ! -d "$path" || -L "$path" ]]; then
+                echo "Unsafe release runtime path: $path"
+                return 1
+              fi
+              canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+              if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+                echo "Unsafe release runtime path: $path"
+                return 1
+              fi
+            done
+
+            path="${release_root}/bootstrap/cache"
+            if [[ -L "$path" ]]; then
+              echo "Unsafe release runtime path: $path"
+              return 1
+            fi
+            if [[ -e "$path" ]]; then
+              if [[ ! -d "$path" ]]; then
+                echo "Unsafe release runtime path: $path"
+                return 1
+              fi
+              canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+            else
+              if [[ "$cache_required" == true ]]; then
+                echo "Unsafe release runtime path: $path"
+                return 1
+              fi
+              canonical_path="$(readlink -m -- "$path" 2>/dev/null || true)"
+            fi
+            if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+              echo "Unsafe release runtime path: $path"
+              return 1
+            fi
+          }
+
+          assert_runtime_control_paths() {
+            local path=""
+            local canonical_path=""
+
+            for path in /app/data/apache /app/data/run.sh /app/data/apache/app.conf; do
+              if [[ -L "$path" || ! -e "$path" ]]; then
+                echo "Unsafe canonical runtime control path: $path"
+                return 1
+              fi
+              if [[ "$path" == /app/data/apache ]]; then
+                [[ -d "$path" ]] || return 1
+              else
+                [[ -f "$path" ]] || return 1
+              fi
+              canonical_path="$(readlink -f -- "$path" 2>/dev/null || true)"
+              if [[ -z "$canonical_path" || "$canonical_path" != "$path" ]]; then
+                echo "Unsafe canonical runtime control path: $path"
+                return 1
+              fi
+            done
+          }
+
           restore_release_ownership() {
             local release_root="$1"
             local unexpected_owner=""
 
             [[ "$release_root" =~ ^/app/data/releases/[0-9a-f]{40}$ ]]
             test -d "$release_root"
+            assert_release_runtime_path_boundaries "$release_root" false
             chown -hR root:root "$release_root"
             install -d -o www-data -g www-data -m 0770 "$release_root/bootstrap/cache"
+            assert_release_runtime_path_boundaries "$release_root" true
             chown -hR www-data:www-data "$release_root/bootstrap/cache"
             chmod -R a-w "$release_root"
             chmod -R u+rwX,g+rwX,o-rwx "$release_root/bootstrap/cache"
@@ -701,6 +797,7 @@ jobs:
             local previous_target=""
             local unexpected_owner=""
 
+            assert_runtime_control_paths
             current_target="$(readlink -f /app/data/current)"
             [[ "$current_target" == "/app/data/releases/$expected_release_sha" ]]
             test -d /app/data/shared/storage

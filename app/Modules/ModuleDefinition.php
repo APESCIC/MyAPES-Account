@@ -13,6 +13,7 @@ final readonly class ModuleDefinition
      * @param  class-string|null  $summaryProvider
      * @param  class-string|null  $recentActivityProvider
      * @param  class-string|null  $analyticsProvider
+     * @param  class-string|null  $attentionProvider
      */
     public function __construct(
         public string $key,
@@ -27,5 +28,6 @@ final readonly class ModuleDefinition
         public ?string $summaryProvider = null,
         public ?string $recentActivityProvider = null,
         public ?string $analyticsProvider = null,
+        public ?string $attentionProvider = null,
     ) {}
 }

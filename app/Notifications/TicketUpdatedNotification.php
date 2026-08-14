@@ -15,6 +15,7 @@ class TicketUpdatedNotification extends Notification
         private readonly string $eventLabel,
         private readonly string $subCoreKey,
         private readonly string $showRouteName,
+        private readonly string $serviceName,
     ) {}
 
     /**
@@ -33,7 +34,7 @@ class TicketUpdatedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("APES CIC ticket #{$this->ticket->id} {$this->eventLabel}")
+            ->subject("{$this->serviceName} ticket #{$this->ticket->id} {$this->eventLabel}")
             ->line("Ticket #{$this->ticket->id} ({$this->ticket->subject}) was {$this->eventLabel} by {$this->actor->name}.")
             ->line("Status: {$this->ticket->status}")
             ->line("Priority: {$this->ticket->priority}")

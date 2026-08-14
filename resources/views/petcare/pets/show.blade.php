@@ -8,7 +8,7 @@
         <h1>{{ $pet->name }}</h1>
         <p class="muted">{{ $pet->species }} | Age: {{ $pet->age_years ?? 'n/a' }} | {{ $pet->sex }} | {{ $pet->neutering_status }}</p>
         @if($pet->photo_path)
-            <img src="{{ asset('storage/'.$pet->photo_path) }}" alt="{{ $pet->name }}" class="record-photo">
+            <img src="{{ route('petcare.pets.photo', $pet) }}" alt="{{ $pet->name }}" class="record-photo">
         @endif
         <form method="post" action="{{ route('petcare.pets.update', $pet) }}" enctype="multipart/form-data" class="stack-spaced">
             @csrf

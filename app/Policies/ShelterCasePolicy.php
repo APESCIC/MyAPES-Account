@@ -14,12 +14,13 @@ class ShelterCasePolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->can('shelter-rescue.cases.view-own')
+            || $user->can('shelter-rescue.cases.view-all');
     }
 
     public function create(User $user): bool
     {
-        return true;
+        return $user->can('shelter-rescue.cases.create');
     }
 
     public function view(User $user, ShelterCase $case): bool

@@ -3,6 +3,7 @@
 namespace App\Modules\Summaries;
 
 use App\Contracts\ModuleAggregateSummaryProvider;
+use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
@@ -18,6 +19,15 @@ class ShelterCaseSummaryProvider implements ModuleAggregateSummaryProvider
             ->forSubCore($instance->subCore->key)
             ->visibleTo($user, $instance->subCore->key);
         $isApesCic = $instance->subCore->key === ShelterCase::SUB_CORE_APES_CIC;
+        if (! $isApesCic) {
+            $query->whereHas(
+                'petProfile',
+                static fn ($pets) => $pets->where(
+                    'service_domain',
+                    PetProfile::DOMAIN_SHELTER,
+                ),
+            );
+        }
         $open = $isApesCic
             ? (clone $query)
                 ->whereNotIn('status', ['resolved', 'closed'])

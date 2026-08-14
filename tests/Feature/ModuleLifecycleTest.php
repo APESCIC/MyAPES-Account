@@ -106,11 +106,11 @@ class ModuleLifecycleTest extends TestCase
         $this->assertArrayNotHasKey('name', $audit->context);
     }
 
-    public function test_install_rejects_duplicate_unshipped_and_incompatible_instances(): void
+    public function test_install_rejects_duplicate_and_incompatible_instances(): void
     {
         foreach ([
             ['apes-cic', 'tickets', 'duplicate_installation'],
-            ['shelter-rescue', 'tickets', 'code_not_shipped'],
+            ['shelter-rescue', 'tickets', 'duplicate_installation'],
             ['apes-cic', 'pet-profiles', 'incompatible'],
         ] as [$subCore, $module, $reason]) {
             try {
@@ -125,7 +125,7 @@ class ModuleLifecycleTest extends TestCase
             }
         }
 
-        $this->assertDatabaseCount('module_installations', 6);
+        $this->assertDatabaseCount('module_installations', 7);
     }
 
     public function test_install_recreates_an_available_shipped_instance_with_actor_provenance(): void
@@ -241,6 +241,44 @@ class ModuleLifecycleTest extends TestCase
         $this->assertSame(1, $audit->context['active_record_count']);
     }
 
+    public function test_an_active_shelter_ticket_blocks_only_the_shelter_ticket_installation(): void
+    {
+        $owner = User::factory()->create();
+        SupportTicket::create([
+            'sub_core_key' => 'shelter-rescue',
+            'user_id' => $owner->id,
+            'service_area' => 'rescue',
+            'subject' => 'Active Shelter Ticket',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'Only the matching installation is protected.',
+        ]);
+        $shelter = $this->installation('shelter-rescue', 'tickets');
+        $apes = $this->installation('apes-cic', 'tickets');
+
+        $disabledApes = $this->lifecycle->disable(
+            $this->superAdmin,
+            'apes-cic',
+            'tickets',
+            (int) $apes->lock_version,
+        );
+        $this->assertFalse($disabledApes->enabled);
+
+        try {
+            $this->lifecycle->disable(
+                $this->superAdmin,
+                'shelter-rescue',
+                'tickets',
+                (int) $shelter->lock_version,
+            );
+            $this->fail('An active Shelter Ticket did not block its installation.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('active_records', $exception->reason);
+        }
+
+        $this->assertTrue($shelter->fresh()->enabled);
+    }
+
     public function test_each_shipped_module_detector_counts_only_its_active_domain_records(): void
     {
         $owner = User::factory()->create();
@@ -263,6 +301,15 @@ class ModuleLifecycleTest extends TestCase
             'priority' => 'medium',
             'status' => 'open',
             'description' => 'Active ticket.',
+        ]);
+        SupportTicket::query()->create([
+            'sub_core_key' => 'shelter-rescue',
+            'user_id' => $owner->id,
+            'service_area' => 'rescue',
+            'subject' => 'Open Shelter ticket',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'Active Shelter ticket.',
         ]);
         ShelterCase::query()->create([
             'pet_profile_id' => $shelterPet->id,

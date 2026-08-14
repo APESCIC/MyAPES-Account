@@ -11,6 +11,7 @@ use App\Rules\EligibleStaffAssignee;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
 use App\Services\ModuleRouteContext;
+use App\Services\TicketServiceConfiguration;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,16 +21,16 @@ use Illuminate\Validation\ValidationException;
 
 class TicketController extends Controller
 {
-    private const SERVICE_AREAS = ['legal', 'human_resources', 'it', 'web_dev', 'operations', 'other'];
-
     public function __construct(
         private readonly ModuleRouteContext $moduleContext,
+        private readonly TicketServiceConfiguration $ticketServices,
     ) {}
 
     public function index(Request $request): View
     {
         $instance = $this->instance($request);
         $prefix = $this->moduleContext->permissionPrefix($instance);
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
         $user = $request->user();
         abort_unless(
             $user->can($prefix.'view-own') || $user->can($prefix.'view-all'),
@@ -43,8 +44,9 @@ class TicketController extends Controller
 
         return view('apes-cic.tickets.index', [
             'tickets' => $query->paginate(20),
-            'serviceAreas' => self::SERVICE_AREAS,
+            'serviceAreas' => $ticketService->serviceAreas,
             'canCreateTicket' => $user->can($prefix.'create'),
+            'ticketService' => $ticketService,
         ]);
     }
 
@@ -52,9 +54,10 @@ class TicketController extends Controller
     {
         $instance = $this->instance($request);
         $prefix = $this->moduleContext->permissionPrefix($instance);
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
         Gate::authorize($prefix.'create');
         $validated = $request->validate([
-            'service_area' => ['required', Rule::in(self::SERVICE_AREAS)],
+            'service_area' => ['required', Rule::in($ticketService->serviceAreas)],
             'subject' => ['required', 'string', 'max:255'],
             'priority' => ['required', 'in:low,medium,high,urgent'],
             'description' => ['required', 'string'],
@@ -64,6 +67,7 @@ class TicketController extends Controller
             ...$validated,
             'sub_core_key' => $instance->subCore->key,
             'user_id' => $request->user()->id,
+            'status' => 'open',
         ]);
 
         $ticket->messages()->create([
@@ -73,7 +77,7 @@ class TicketController extends Controller
         ]);
 
         $this->notifyTicketStakeholders($ticket, $request->user(), 'created', $instance);
-        $auditLogger->record('apes_cic.ticket.created', $request->user(), $ticket, [
+        $auditLogger->record("{$ticketService->auditPrefix}.created", $request->user(), $ticket, [
             'service_area' => $ticket->service_area,
             'priority' => $ticket->priority,
             'sub_core_key' => $ticket->sub_core_key,
@@ -90,6 +94,7 @@ class TicketController extends Controller
     ): View {
         $instance = $this->instance($request);
         $prefix = $this->moduleContext->permissionPrefix($instance);
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
         $this->requireTicketForInstance($ticket, $instance);
         Gate::authorize('view', $ticket);
         $user = $request->user();
@@ -98,6 +103,7 @@ class TicketController extends Controller
         $canUpdateTicket = $user->can($prefix.'update-all');
         $canCloseTicket = $user->can($prefix.'close');
         $canCommentTicket = $user->can($prefix.'comment-own');
+        $canChooseVisibility = $user->can($prefix.'view-all');
 
         $messagesQuery = $ticket->messages()->with('user')->latest('created_at');
         if (! $user->can($prefix.'view-all')) {
@@ -111,6 +117,7 @@ class TicketController extends Controller
             'canUpdateTicket' => $canUpdateTicket,
             'canCloseTicket' => $canCloseTicket,
             'canCommentTicket' => $canCommentTicket,
+            'canChooseVisibility' => $canChooseVisibility,
             'staffUsers' => $canChangeAssignment
                 ? User::query()
                     ->eligibleStaff()
@@ -118,6 +125,7 @@ class TicketController extends Controller
                     ->orderBy('name')
                     ->get()
                 : collect(),
+            'ticketService' => $ticketService,
         ]);
     }
 
@@ -129,6 +137,7 @@ class TicketController extends Controller
     ): RedirectResponse {
         $instance = $this->instance($request);
         $prefix = $this->moduleContext->permissionPrefix($instance);
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
         $this->requireTicketForInstance($ticket, $instance);
         Gate::authorize('update', $ticket);
         $input = $request->all();
@@ -260,7 +269,7 @@ class TicketController extends Controller
             $instance,
             $internalMessage && ! $ticketChanged,
         );
-        $auditLogger->record('apes_cic.ticket.updated', $request->user(), $ticket, [
+        $auditLogger->record("{$ticketService->auditPrefix}.updated", $request->user(), $ticket, [
             'status' => $ticket->status,
             'priority' => $ticket->priority,
             'assigned_to' => $ticket->assigned_to,
@@ -278,11 +287,13 @@ class TicketController extends Controller
         AuditLogger $auditLogger,
     ): RedirectResponse {
         $instance = $this->instance($request);
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
         $this->requireTicketForInstance($ticket, $instance);
+        abort_unless($ticketService->supportsDelete, 404);
         $actor = $request->user();
         Gate::authorize('delete', $ticket);
 
-        $auditLogger->record('apes_cic.ticket.deleted', $actor, $ticket, [
+        $auditLogger->record("{$ticketService->auditPrefix}.deleted", $actor, $ticket, [
             'sub_core_key' => $ticket->sub_core_key,
             'module_key' => $instance->module->key,
         ]);
@@ -300,6 +311,7 @@ class TicketController extends Controller
         bool $staffOnly = false,
     ): void {
         $prefix = $this->moduleContext->permissionPrefix($instance);
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
         $staffRecipients = User::query()
             ->eligibleStaff()
             ->withAuthorizationPermission($prefix.'view-all')
@@ -320,6 +332,7 @@ class TicketController extends Controller
                 $eventLabel,
                 $instance->subCore->key,
                 $this->moduleContext->showRouteName($instance),
+                $ticketService->serviceName,
             ));
         }
     }

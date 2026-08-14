@@ -236,7 +236,7 @@ class ModuleLifecycleConcurrencyTest extends TestCase
         );
         $this->assertSame([
             'status' => 'success',
-            'created' => 2,
+            'created' => 3,
             'existing' => 4,
         ], $this->readSignal($state, 'synchronize-result'));
         $this->assertFalse(ModuleInstallation::query()

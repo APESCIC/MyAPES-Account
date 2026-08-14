@@ -34,12 +34,12 @@ class ModuleInstallationSynchronizationTest extends TestCase
         ]));
     }
 
-    public function test_synchronization_creates_exactly_the_six_shipped_defaults(): void
+    public function test_synchronization_creates_exactly_the_seven_shipped_defaults(): void
     {
         $result = app(ModuleInstallationSynchronizer::class)->synchronize();
 
-        $this->assertSame(['created' => 1, 'existing' => 5], $result);
-        $this->assertDatabaseCount('module_installations', 6);
+        $this->assertSame(['created' => 2, 'existing' => 5], $result);
+        $this->assertDatabaseCount('module_installations', 7);
         $this->assertSame([
             'apes-cic:cases',
             'apes-cic:tickets',
@@ -47,6 +47,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
             'pet-care-clinic:pet-profiles',
             'shelter-rescue:cases',
             'shelter-rescue:pet-profiles',
+            'shelter-rescue:tickets',
         ], ModuleInstallation::query()
             ->orderBy('sub_core_key')
             ->orderBy('module_key')
@@ -88,7 +89,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
         $result = $synchronizer->synchronize();
         $actual = $installation->fresh()->getRawOriginal();
 
-        $this->assertSame(['created' => 0, 'existing' => 6], $result);
+        $this->assertSame(['created' => 0, 'existing' => 7], $result);
         $this->assertSame($preserved, $actual);
         $this->assertFalse($installation->fresh()->enabled);
     }
@@ -103,11 +104,11 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ->delete();
 
         $this->assertSame(
-            ['created' => 1, 'existing' => 5],
+            ['created' => 1, 'existing' => 6],
             $synchronizer->synchronize(),
         );
-        $this->assertDatabaseCount('module_installations', 6);
-        $this->assertDatabaseMissing('module_installations', [
+        $this->assertDatabaseCount('module_installations', 7);
+        $this->assertDatabaseHas('module_installations', [
             'sub_core_key' => 'shelter-rescue',
             'module_key' => 'tickets',
         ]);
@@ -132,7 +133,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ->delete();
 
         $this->assertSame(
-            ['created' => 1, 'existing' => 5],
+            ['created' => 1, 'existing' => 6],
             $synchronizer->synchronize(),
         );
         $case = ModuleInstallation::query()
@@ -168,15 +169,15 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ->assertSuccessful();
 
         $this->artisan('myapes:modules:sync')
-            ->expectsOutputToContain('Module synchronization: ok (1 created, 5 existing)')
+            ->expectsOutputToContain('Module synchronization: ok (2 created, 5 existing)')
             ->assertSuccessful();
 
         $this->artisan('myapes:modules:sync')
-            ->expectsOutputToContain('Module synchronization: ok (0 created, 6 existing)')
+            ->expectsOutputToContain('Module synchronization: ok (0 created, 7 existing)')
             ->assertSuccessful();
 
         $this->artisan('myapes:modules:check')
-            ->expectsOutputToContain('Module integrity: ok (6 installations)')
+            ->expectsOutputToContain('Module integrity: ok (7 installations)')
             ->assertSuccessful();
     }
 }

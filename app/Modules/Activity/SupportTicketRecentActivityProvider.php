@@ -7,14 +7,21 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
 use App\Modules\ModuleRecentActivityItem;
+use App\Services\TicketServiceConfiguration;
 
 class SupportTicketRecentActivityProvider implements ModuleRecentActivityProvider
 {
+    public function __construct(
+        private readonly TicketServiceConfiguration $ticketServices,
+    ) {}
+
     public function recent(
         ModuleInstanceDefinition $instance,
         User $user,
         int $limit = 5,
     ): array {
+        $ticketService = $this->ticketServices->for($instance->subCore->key);
+
         return SupportTicket::query()
             ->forSubCore($instance->subCore->key)
             ->visibleTo($user, $instance->subCore->key)
@@ -29,7 +36,7 @@ class SupportTicketRecentActivityProvider implements ModuleRecentActivityProvide
                 $ticket->status,
                 $ticket->priority,
                 $ticket->updated_at,
-                'apes-cic.tickets.show',
+                $ticketService->routePrefix.'.show',
                 $ticket->id,
             ))
             ->all();

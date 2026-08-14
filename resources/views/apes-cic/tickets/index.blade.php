@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'APES CIC Tickets')
+@section('title', $ticketService->serviceName.' Tickets')
 
 @section('content')
     <div class="panel">
-        <span class="service-label apes-cic">APES CIC</span>
-        <h1>Organisational support tickets</h1>
-        <p class="muted">Service support for legal, human resources, IT, web development and related needs.</p>
+        <span class="service-label {{ $ticketService->presentationClass }}">{{ $ticketService->serviceName }}</span>
+        <h1>{{ $ticketService->heading }}</h1>
+        <p class="muted">{{ $ticketService->supportingCopy }}</p>
     </div>
     @if($canCreateTicket)
         <div class="panel">
             <h2>Create ticket</h2>
-            <form method="post" action="{{ route('apes-cic.tickets.store') }}">
+            <form method="post" action="{{ route($ticketService->routePrefix.'.store') }}">
             @csrf
             <div class="row">
                 <div>
@@ -53,7 +53,7 @@
                     <td><span class="status">{{ $ticket->status }}</span></td>
                     <td>{{ $ticket->priority }}</td>
                     <td>{{ $ticket->user->name }}</td>
-                    <td><a href="{{ route('apes-cic.tickets.show', $ticket) }}">Open</a></td>
+                    <td><a href="{{ route($ticketService->routePrefix.'.show', $ticket) }}">Open</a></td>
                 </tr>
             @endforeach
             </tbody>

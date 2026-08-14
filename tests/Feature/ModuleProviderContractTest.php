@@ -4,15 +4,30 @@ namespace Tests\Feature;
 
 use App\Contracts\ModuleAggregateSummaryProvider;
 use App\Contracts\ModuleAnalyticsProvider;
+use App\Contracts\ModuleAttentionProvider;
 use App\Contracts\ModuleRecentActivityProvider;
 use App\Contracts\ModuleRegistry;
 use App\Models\CaseUpdate;
 use App\Models\ModuleInstallation;
+use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Modules\Activity\PetProfileRecentActivityProvider;
+use App\Modules\Activity\SupportTicketRecentActivityProvider;
+use App\Modules\Analytics\PetProfileAnalyticsProvider;
+use App\Modules\Analytics\SupportTicketAnalyticsProvider;
+use App\Modules\Attention\CaseAttentionProvider;
+use App\Modules\Attention\ConsultationAttentionProvider;
+use App\Modules\Attention\SupportTicketAttentionProvider;
+use App\Modules\ModuleAnalyticsSnapshot;
+use App\Modules\ModuleInstanceDefinition;
+use App\Modules\ModuleSummary;
+use App\Modules\Summaries\SupportTicketSummaryProvider;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
+use App\Services\ModuleRegistryValidator;
+use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Permission;
@@ -52,6 +67,101 @@ class ModuleProviderContractTest extends TestCase
         $this->assertNull($registry->module('consultations')->analyticsProvider);
     }
 
+    public function test_attention_providers_are_registered_for_open_item_modules_only(): void
+    {
+        $registry = app(ModuleRegistry::class);
+
+        $this->assertSame(
+            SupportTicketAttentionProvider::class,
+            $registry->module('tickets')->attentionProvider,
+        );
+        $this->assertSame(
+            CaseAttentionProvider::class,
+            $registry->module('cases')->attentionProvider,
+        );
+        $this->assertSame(
+            ConsultationAttentionProvider::class,
+            $registry->module('consultations')->attentionProvider,
+        );
+        $this->assertNull($registry->module('pet-profiles')->attentionProvider);
+    }
+
+    public function test_instance_provider_resolvers_prefer_an_override_and_fall_back_to_the_module_contract(): void
+    {
+        $registry = app(ModuleRegistry::class);
+        $fallback = $registry->instance('apes-cic', 'tickets');
+        $tickets = $registry->instance('shelter-rescue', 'tickets');
+        $matrix = collect($registry->matrix())
+            ->mapWithKeys(
+                static fn (ModuleInstanceDefinition $instance): array => [
+                    $instance->key() => $instance,
+                ],
+            )
+            ->all();
+        $matrix[$tickets->key()] = new ModuleInstanceDefinition(
+            $tickets->subCore,
+            $tickets->module,
+            $tickets->codeStatus,
+            $tickets->dependencies,
+            OverrideSummaryProvider::class,
+            OverrideRecentActivityProvider::class,
+            OverrideAnalyticsProvider::class,
+            OverrideAttentionProvider::class,
+        );
+        app(ModuleRegistryValidator::class)->validate(
+            $registry->subCores(),
+            $registry->modules(),
+            $matrix,
+        );
+        $overridden = $matrix[$tickets->key()];
+
+        $this->assertSame(
+            OverrideSummaryProvider::class,
+            $overridden->summaryProviderClass(),
+        );
+        $this->assertSame(
+            OverrideRecentActivityProvider::class,
+            $overridden->recentActivityProviderClass(),
+        );
+        $this->assertSame(
+            OverrideAnalyticsProvider::class,
+            $overridden->analyticsProviderClass(),
+        );
+        $this->assertSame(
+            OverrideAttentionProvider::class,
+            $overridden->attentionProviderClass(),
+        );
+        $this->assertSame(
+            SupportTicketSummaryProvider::class,
+            $fallback->summaryProviderClass(),
+        );
+        $this->assertSame(
+            SupportTicketRecentActivityProvider::class,
+            $fallback->recentActivityProviderClass(),
+        );
+        $this->assertSame(
+            SupportTicketAnalyticsProvider::class,
+            $fallback->analyticsProviderClass(),
+        );
+        $this->assertSame(
+            SupportTicketAttentionProvider::class,
+            $fallback->attentionProviderClass(),
+        );
+    }
+
+    public function test_attention_provider_contract_exposes_the_global_six_item_limit(): void
+    {
+        $method = new \ReflectionMethod(
+            ModuleAttentionProvider::class,
+            'attention',
+        );
+        $parameter = $method->getParameters()[2];
+
+        $this->assertSame('limit', $parameter->getName());
+        $this->assertTrue($parameter->isDefaultValueAvailable());
+        $this->assertSame(6, $parameter->getDefaultValue());
+    }
+
     public function test_case_analytics_are_instance_scoped_and_exact_for_the_requested_range(): void
     {
         $owner = User::factory()->create();
@@ -80,7 +190,7 @@ class ModuleProviderContractTest extends TestCase
         ]);
 
         /** @var ModuleAnalyticsProvider $provider */
-        $provider = app($instance->module->analyticsProvider);
+        $provider = app($instance->analyticsProviderClass());
         $snapshot = $provider->snapshot(
             $instance,
             Carbon::parse('2026-08-01 00:00:00', 'Europe/London'),
@@ -121,7 +231,7 @@ class ModuleProviderContractTest extends TestCase
         ]);
 
         /** @var ModuleAnalyticsProvider $provider */
-        $provider = app($instance->module->analyticsProvider);
+        $provider = app($instance->analyticsProviderClass());
         $snapshot = $provider->snapshot(
             $instance,
             Carbon::parse('2026-08-02 00:00:00', 'Europe/London'),
@@ -149,7 +259,7 @@ class ModuleProviderContractTest extends TestCase
         ]);
 
         /** @var ModuleAnalyticsProvider $provider */
-        $provider = app($instance->module->analyticsProvider);
+        $provider = app($instance->analyticsProviderClass());
         $snapshot = $provider->snapshot(
             $instance,
             Carbon::parse('2026-08-02 00:00:00', 'Europe/London'),
@@ -174,11 +284,76 @@ class ModuleProviderContractTest extends TestCase
 
         $this->actingAs($owner);
         /** @var ModuleAggregateSummaryProvider $provider */
-        $provider = app($instance->module->summaryProvider);
+        $provider = app($instance->summaryProviderClass());
         $summary = $provider->summarize($instance, $owner);
 
         $this->assertSame(4, $summary->total);
         $this->assertSame(2, $summary->active);
+    }
+
+    public function test_shelter_case_providers_exclude_non_shelter_and_missing_pet_cases(): void
+    {
+        Carbon::setTestNow('2026-08-14 12:00:00');
+        $owner = User::factory()->create();
+        $instance = app(ModuleRegistry::class)
+            ->instance('shelter-rescue', 'cases');
+        $shelterPet = $this->petProfileFor($owner);
+        $petCarePet = $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Foreign Pet Care profile',
+        ]);
+        $visible = $this->caseFor($owner, [
+            'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+            'pet_profile_id' => $shelterPet->id,
+            'case_type' => 'rescue',
+            'category' => null,
+            'title' => 'Valid Shelter provider case',
+            'created_at' => now()->subHours(3),
+            'updated_at' => now()->subHours(3),
+        ]);
+        $this->caseFor($owner, [
+            'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+            'pet_profile_id' => $petCarePet->id,
+            'case_type' => 'rescue',
+            'category' => null,
+            'title' => 'Foreign-domain Shelter provider case',
+            'created_at' => now()->subHours(2),
+            'updated_at' => now()->subHours(2),
+        ]);
+        $this->caseFor($owner, [
+            'sub_core_key' => ShelterCase::SUB_CORE_SHELTER_RESCUE,
+            'pet_profile_id' => null,
+            'case_type' => 'rescue',
+            'category' => null,
+            'title' => 'Missing-pet Shelter provider case',
+            'created_at' => now()->subHour(),
+            'updated_at' => now()->subHour(),
+        ]);
+
+        $this->actingAs($owner);
+        /** @var ModuleAggregateSummaryProvider $summaryProvider */
+        $summaryProvider = app($instance->summaryProviderClass());
+        /** @var ModuleRecentActivityProvider $activityProvider */
+        $activityProvider = app($instance->recentActivityProviderClass());
+        /** @var ModuleAnalyticsProvider $analyticsProvider */
+        $analyticsProvider = app($instance->analyticsProviderClass());
+
+        $summary = $summaryProvider->summarize($instance, $owner);
+        $activity = $activityProvider->recent($instance, $owner);
+        $analytics = $analyticsProvider->snapshot(
+            $instance,
+            now()->startOfDay(),
+            now()->addDay()->startOfDay(),
+            'Europe/London',
+        );
+
+        $this->assertSame(1, $summary->total);
+        $this->assertSame(1, $summary->active);
+        $this->assertCount(1, $activity);
+        $this->assertSame($visible->id, $activity[0]->recordId);
+        $this->assertSame('Valid Shelter provider case', $activity[0]->title);
+        $this->assertSame(1, $analytics->total);
+        $this->assertSame(1, $analytics->open);
     }
 
     public function test_ticket_analytics_are_instance_and_range_scoped_with_timezone_buckets(): void
@@ -213,7 +388,7 @@ class ModuleProviderContractTest extends TestCase
         ]);
 
         /** @var ModuleAnalyticsProvider $provider */
-        $provider = app($instance->module->analyticsProvider);
+        $provider = app($instance->analyticsProviderClass());
         $snapshot = $provider->snapshot(
             $instance,
             Carbon::parse('2026-08-01 00:00:00', 'Europe/London'),
@@ -235,6 +410,30 @@ class ModuleProviderContractTest extends TestCase
         ], $snapshot->closedPerDay);
         $this->assertSame(120.0, $snapshot->medianClosureMinutes);
         $this->assertSame(2, $snapshot->closureSampleSize);
+    }
+
+    public function test_ticket_summary_and_recent_activity_use_the_instance_routes(): void
+    {
+        $owner = User::factory()->create();
+        $registry = app(ModuleRegistry::class);
+        $instance = $registry->instance('shelter-rescue', 'tickets');
+        $ticket = $this->ticketFor($owner, [
+            'sub_core_key' => 'shelter-rescue',
+            'service_area' => 'rescue',
+            'subject' => 'Shelter activity route',
+        ]);
+
+        $this->actingAs($owner);
+        /** @var ModuleAggregateSummaryProvider $summaryProvider */
+        $summaryProvider = app($instance->summaryProviderClass());
+        $summary = $summaryProvider->summarize($instance, $owner);
+        /** @var ModuleRecentActivityProvider $activityProvider */
+        $activityProvider = app($instance->recentActivityProviderClass());
+        $activity = $activityProvider->recent($instance, $owner);
+
+        $this->assertSame('shelter.tickets.index', $summary->routeName);
+        $this->assertSame('shelter.tickets.show', $activity[0]->routeName);
+        $this->assertSame($ticket->id, $activity[0]->recordId);
     }
 
     public function test_apes_cic_hub_activity_excludes_internal_update_content_for_owners(): void
@@ -386,7 +585,7 @@ class ModuleProviderContractTest extends TestCase
         foreach (['tickets', 'cases'] as $moduleKey) {
             $instance = $registry->instance('apes-cic', $moduleKey);
             /** @var ModuleAnalyticsProvider $provider */
-            $provider = app($instance->module->analyticsProvider);
+            $provider = app($instance->analyticsProviderClass());
             $snapshot = $provider->snapshot(
                 $instance,
                 Carbon::parse('2026-08-01 00:00:00', 'Europe/London'),
@@ -398,6 +597,108 @@ class ModuleProviderContractTest extends TestCase
             $this->assertSame(0, $snapshot->closureSampleSize);
             $this->assertNull($snapshot->medianClosureMinutes);
         }
+    }
+
+    public function test_pet_profile_activity_and_analytics_are_overridden_only_for_shelter(): void
+    {
+        $registry = app(ModuleRegistry::class);
+        $shelter = $registry->instance('shelter-rescue', 'pet-profiles');
+        $petCare = $registry->instance('pet-care-clinic', 'pet-profiles');
+
+        $this->assertSame(
+            PetProfileRecentActivityProvider::class,
+            $shelter->recentActivityProviderClass(),
+        );
+        $this->assertSame(
+            PetProfileAnalyticsProvider::class,
+            $shelter->analyticsProviderClass(),
+        );
+        $this->assertNull($petCare->recentActivityProviderClass());
+        $this->assertNull($petCare->analyticsProviderClass());
+    }
+
+    public function test_shelter_pet_profile_activity_is_exactly_visible_latest_and_route_scoped(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $instance = app(ModuleRegistry::class)
+            ->instance('shelter-rescue', 'pet-profiles');
+        $this->petProfileFor($owner, [
+            'name' => 'Older visible Shelter profile',
+            'updated_at' => Carbon::parse('2026-08-01 10:00:00', 'UTC'),
+        ]);
+        $latest = $this->petProfileFor($owner, [
+            'name' => 'Latest visible Shelter profile',
+            'updated_at' => Carbon::parse('2026-08-02 10:00:00', 'UTC'),
+        ]);
+        $this->petProfileFor($other, [
+            'name' => 'Other owner Shelter profile',
+            'updated_at' => Carbon::parse('2026-08-03 10:00:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Pet Care profile',
+            'updated_at' => Carbon::parse('2026-08-04 10:00:00', 'UTC'),
+        ]);
+
+        $this->actingAs($owner);
+        /** @var ModuleRecentActivityProvider $provider */
+        $provider = app($instance->recentActivityProviderClass());
+        $activity = $provider->recent($instance, $owner, 1);
+
+        $this->assertCount(1, $activity);
+        $this->assertSame('shelter-rescue:pet-profiles', $activity[0]->instanceKey);
+        $this->assertSame('pet-profiles', $activity[0]->moduleKey);
+        $this->assertSame('Pet profile', $activity[0]->label);
+        $this->assertSame('Latest visible Shelter profile', $activity[0]->title);
+        $this->assertSame('active', $activity[0]->status);
+        $this->assertNull($activity[0]->priority);
+        $this->assertSame('shelter.pets.show', $activity[0]->routeName);
+        $this->assertSame($latest->id, $activity[0]->recordId);
+        $this->assertTrue($latest->updated_at->equalTo($activity[0]->updatedAt));
+    }
+
+    public function test_shelter_pet_profile_analytics_use_half_open_range_and_timezone_buckets(): void
+    {
+        $owner = User::factory()->create();
+        $instance = app(ModuleRegistry::class)
+            ->instance('shelter-rescue', 'pet-profiles');
+        $this->petProfileFor($owner, [
+            'name' => 'First in range',
+            'created_at' => Carbon::parse('2026-07-31 23:30:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'name' => 'Second in range',
+            'created_at' => Carbon::parse('2026-08-01 22:30:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'name' => 'Exclusive boundary',
+            'created_at' => Carbon::parse('2026-08-01 23:00:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Foreign Pet Care profile',
+            'created_at' => Carbon::parse('2026-08-01 12:00:00', 'UTC'),
+        ]);
+
+        /** @var ModuleAnalyticsProvider $provider */
+        $provider = app($instance->analyticsProviderClass());
+        $snapshot = $provider->snapshot(
+            $instance,
+            Carbon::parse('2026-08-01 00:00:00', 'Europe/London'),
+            Carbon::parse('2026-08-02 00:00:00', 'Europe/London'),
+            'Europe/London',
+        );
+
+        $this->assertSame('shelter-rescue:pet-profiles', $snapshot->instanceKey);
+        $this->assertSame(2, $snapshot->total);
+        $this->assertSame(0, $snapshot->open);
+        $this->assertSame(0, $snapshot->highOrUrgent);
+        $this->assertSame(0, $snapshot->unassigned);
+        $this->assertSame(['2026-08-01' => 2], $snapshot->createdPerDay);
+        $this->assertSame([], $snapshot->closedPerDay);
+        $this->assertNull($snapshot->medianClosureMinutes);
+        $this->assertSame(0, $snapshot->closureSampleSize);
     }
 
     private function caseFor(User $owner, array $attributes = []): ShelterCase
@@ -426,6 +727,30 @@ class ModuleProviderContractTest extends TestCase
         return $case->fresh();
     }
 
+    private function petProfileFor(User $owner, array $attributes = []): PetProfile
+    {
+        $timestamps = array_intersect_key(
+            $attributes,
+            array_flip(['created_at', 'updated_at']),
+        );
+        $pet = PetProfile::query()->create(array_merge([
+            'user_id' => $owner->id,
+            'service_domain' => PetProfile::DOMAIN_SHELTER,
+            'name' => 'Shelter profile',
+            'species' => 'dog',
+            'sex' => 'unknown',
+            'neutering_status' => 'unknown',
+        ], $attributes));
+
+        if ($timestamps !== []) {
+            $pet->timestamps = false;
+            $pet->forceFill($timestamps)->saveQuietly();
+            $pet->timestamps = true;
+        }
+
+        return $pet->fresh();
+    }
+
     private function ticketFor(User $owner, array $attributes = []): SupportTicket
     {
         $timestamps = array_intersect_key(
@@ -449,5 +774,49 @@ class ModuleProviderContractTest extends TestCase
         }
 
         return $ticket->fresh();
+    }
+}
+
+final class OverrideSummaryProvider implements ModuleAggregateSummaryProvider
+{
+    public function summarize(
+        ModuleInstanceDefinition $instance,
+        User $user,
+    ): ModuleSummary {
+        return new ModuleSummary($instance->key(), 'Override', 0, 0, 'home', 'home', 'home', '');
+    }
+}
+
+final class OverrideRecentActivityProvider implements ModuleRecentActivityProvider
+{
+    public function recent(
+        ModuleInstanceDefinition $instance,
+        User $user,
+        int $limit = 5,
+    ): array {
+        return [];
+    }
+}
+
+final class OverrideAnalyticsProvider implements ModuleAnalyticsProvider
+{
+    public function snapshot(
+        ModuleInstanceDefinition $instance,
+        DateTimeInterface $from,
+        DateTimeInterface $to,
+        string $timezone,
+    ): ModuleAnalyticsSnapshot {
+        return new ModuleAnalyticsSnapshot($instance->key(), 0, 0, 0, 0, [], [], null, 0);
+    }
+}
+
+final class OverrideAttentionProvider implements ModuleAttentionProvider
+{
+    public function attention(
+        ModuleInstanceDefinition $instance,
+        User $user,
+        int $limit = 6,
+    ): array {
+        return [];
     }
 }

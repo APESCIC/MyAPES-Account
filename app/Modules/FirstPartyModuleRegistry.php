@@ -4,9 +4,14 @@ namespace App\Modules;
 
 use App\Contracts\ModuleRegistry;
 use App\Modules\Activity\CaseRecentActivityProvider;
+use App\Modules\Activity\PetProfileRecentActivityProvider;
 use App\Modules\Activity\SupportTicketRecentActivityProvider;
 use App\Modules\Analytics\CaseAnalyticsProvider;
+use App\Modules\Analytics\PetProfileAnalyticsProvider;
 use App\Modules\Analytics\SupportTicketAnalyticsProvider;
+use App\Modules\Attention\CaseAttentionProvider;
+use App\Modules\Attention\ConsultationAttentionProvider;
+use App\Modules\Attention\SupportTicketAttentionProvider;
 use App\Modules\Detectors\PetCareConsultationActiveRecordDetector;
 use App\Modules\Detectors\PetProfileActiveRecordDetector;
 use App\Modules\Detectors\ShelterCaseActiveRecordDetector;
@@ -175,7 +180,7 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 'Support requests and threaded responses.',
                 '1.0.0',
                 ['apes-cic', 'shelter-rescue', 'pet-care-clinic'],
-                ['apes-cic'],
+                ['apes-cic', 'shelter-rescue'],
                 [
                     $public('view-own', 'View own tickets'),
                     $public('create', 'Create tickets'),
@@ -193,11 +198,18 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                         'ticket',
                         10,
                     ),
+                    'shelter-rescue' => new ModuleNavigationDefinition(
+                        'Tickets',
+                        'shelter.tickets.index',
+                        'ticket',
+                        20,
+                    ),
                 ],
                 SupportTicketActiveRecordDetector::class,
                 SupportTicketSummaryProvider::class,
                 SupportTicketRecentActivityProvider::class,
                 SupportTicketAnalyticsProvider::class,
+                SupportTicketAttentionProvider::class,
             ),
             new ModuleDefinition(
                 'cases',
@@ -228,13 +240,14 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                         'Cases',
                         'shelter.cases.index',
                         'house',
-                        20,
+                        30,
                     ),
                 ],
                 ShelterCaseActiveRecordDetector::class,
                 ShelterCaseSummaryProvider::class,
                 CaseRecentActivityProvider::class,
                 CaseAnalyticsProvider::class,
+                CaseAttentionProvider::class,
             ),
             new ModuleDefinition(
                 'pet-profiles',
@@ -293,6 +306,7 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 ],
                 PetCareConsultationActiveRecordDetector::class,
                 PetCareConsultationSummaryProvider::class,
+                attentionProvider: ConsultationAttentionProvider::class,
             ),
         ];
 
@@ -347,6 +361,14 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                     $module,
                     $status,
                     $dependencies,
+                    recentActivityProvider: "{$subCore->key}:{$module->key}"
+                        === 'shelter-rescue:pet-profiles'
+                        ? PetProfileRecentActivityProvider::class
+                        : null,
+                    analyticsProvider: "{$subCore->key}:{$module->key}"
+                        === 'shelter-rescue:pet-profiles'
+                        ? PetProfileAnalyticsProvider::class
+                        : null,
                 );
                 $matrix[$instance->key()] = $instance;
             }

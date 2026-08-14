@@ -20,12 +20,24 @@ class PetProfilePolicy
 
     public function view(User $user, PetProfile $pet): bool
     {
+        if ($pet->service_domain === PetProfile::DOMAIN_SHELTER) {
+            return $user->can('shelter-rescue.pet-profiles.view-all')
+                || ($pet->user_id === $user->id
+                    && $user->can('shelter-rescue.pet-profiles.view-own'));
+        }
+
         return $this->hasStaffPermission($user)
             || $pet->user_id === $user->id;
     }
 
     public function update(User $user, PetProfile $pet): bool
     {
+        if ($pet->service_domain === PetProfile::DOMAIN_SHELTER) {
+            return $user->can('shelter-rescue.pet-profiles.update-all')
+                || ($pet->user_id === $user->id
+                    && $user->can('shelter-rescue.pet-profiles.update-own'));
+        }
+
         return $this->view($user, $pet);
     }
 

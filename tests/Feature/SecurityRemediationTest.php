@@ -594,6 +594,7 @@ class SecurityRemediationTest extends TestCase
             [
                 'show' => route('apes-cic.tickets.show', $ticket),
                 'update' => route('apes-cic.tickets.update', $ticket),
+                'denied_status' => 403,
                 'payload' => [
                     'status' => 'open',
                     'priority' => 'high',
@@ -604,6 +605,7 @@ class SecurityRemediationTest extends TestCase
             [
                 'show' => route('shelter.cases.show', $case),
                 'update' => route('shelter.cases.update', $case),
+                'denied_status' => 404,
                 'payload' => [
                     'status' => 'in_review',
                     'details' => 'Staff update',
@@ -619,6 +621,7 @@ class SecurityRemediationTest extends TestCase
                     'petcare.consultations.update',
                     $consultation,
                 ),
+                'denied_status' => 403,
                 'payload' => [
                     'status' => 'in_progress',
                     'notes' => 'Staff update',
@@ -630,14 +633,14 @@ class SecurityRemediationTest extends TestCase
         foreach ($workflows as $workflow) {
             $this->actingAs($revoked)
                 ->get($workflow['show'])
-                ->assertForbidden()
+                ->assertStatus($workflow['denied_status'])
                 ->assertDontSee($assignee->name);
             $this->actingAs($revoked)
                 ->put($workflow['update'], [
                     ...$workflow['payload'],
                     'assigned_to' => $assignee->id,
                 ])
-                ->assertForbidden();
+                ->assertStatus($workflow['denied_status']);
             $this->assertSame(
                 $assignee->id,
                 $workflow['record']->fresh()->assigned_to,

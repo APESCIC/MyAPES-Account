@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'auth.landing')->name('home');
 Route::get('/change-log', ChangeLogController::class)->name('change-log.index');
+Route::get('/storage/pet-profiles/{path?}', static fn () => abort(404))
+    ->where('path', '.*');
 
 Route::middleware('guest')->controller(PublicAuthController::class)->group(function (): void {
     Route::get('/login', 'showLogin')->name('public.login');
@@ -168,8 +170,31 @@ Route::middleware([
             ->defaults('subCoreKey', 'shelter-rescue')
             ->middleware('service.selected:shelter-rescue')
             ->name('index');
+        Route::middleware(['module.available:shelter-rescue,tickets', 'service.selected:shelter-rescue'])
+            ->group(function (): void {
+                Route::get('tickets', [TicketController::class, 'index'])
+                    ->defaults('subCoreKey', 'shelter-rescue')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.index');
+                Route::post('tickets', [TicketController::class, 'store'])
+                    ->defaults('subCoreKey', 'shelter-rescue')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.store');
+                Route::get('tickets/{ticket}', [TicketController::class, 'show'])
+                    ->defaults('subCoreKey', 'shelter-rescue')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.show');
+                Route::match(['put', 'patch'], 'tickets/{ticket}', [TicketController::class, 'update'])
+                    ->defaults('subCoreKey', 'shelter-rescue')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.update');
+            });
         Route::middleware(['module.available:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
             ->group(function (): void {
+                Route::get('pets/{pet}/photo', [ShelterPetProfileController::class, 'photo'])
+                    ->defaults('subCoreKey', 'shelter-rescue')
+                    ->defaults('moduleKey', 'pet-profiles')
+                    ->name('pets.photo');
                 Route::resource('pets', ShelterPetProfileController::class)
                     ->only(['index', 'store', 'show', 'update'])
                     ->parameters(['pets' => 'pet']);
@@ -179,6 +204,10 @@ Route::middleware([
                 Route::resource('cases', CaseController::class)
                     ->only(['index', 'store', 'show', 'update'])
                     ->parameters(['cases' => 'case']);
+                Route::post('cases/{case}/updates', [ApesCicCaseUpdateController::class, 'store'])
+                    ->defaults('subCoreKey', 'shelter-rescue')
+                    ->defaults('moduleKey', 'cases')
+                    ->name('cases.updates.store');
             });
     });
 
@@ -189,6 +218,10 @@ Route::middleware([
             ->name('index');
         Route::middleware(['module.available:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
+                Route::get('pets/{pet}/photo', [PetCarePetProfileController::class, 'photo'])
+                    ->defaults('subCoreKey', 'pet-care-clinic')
+                    ->defaults('moduleKey', 'pet-profiles')
+                    ->name('pets.photo');
                 Route::resource('pets', PetCarePetProfileController::class)
                     ->only(['index', 'store', 'show', 'update'])
                     ->parameters(['pets' => 'pet']);

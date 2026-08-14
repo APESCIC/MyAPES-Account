@@ -8,9 +8,10 @@
         <h1>{{ $pet->name }}</h1>
         <p class="muted">{{ $pet->species }} | Age: {{ $pet->age_years ?? 'n/a' }} | {{ $pet->sex }} | {{ $pet->neutering_status }}</p>
         @if($pet->photo_path)
-            <img src="{{ asset('storage/'.$pet->photo_path) }}" alt="{{ $pet->name }}" class="record-photo">
+            <img src="{{ route('shelter.pets.photo', $pet) }}" alt="{{ $pet->name }}" class="record-photo">
         @endif
-        <form method="post" action="{{ route('shelter.pets.update', $pet) }}" enctype="multipart/form-data" class="stack-spaced">
+        @if($canUpdatePet)
+            <form method="post" action="{{ route('shelter.pets.update', $pet) }}" enctype="multipart/form-data" class="stack-spaced">
             @csrf
             @method('put')
             <div class="row">
@@ -29,6 +30,9 @@
                 <button type="submit">Update pet profile</button>
                 <a href="{{ route('shelter.pets.index') }}">Back</a>
             </div>
-        </form>
+            </form>
+        @else
+            <a href="{{ route('shelter.pets.index') }}">Back</a>
+        @endif
     </div>
 @endsection
