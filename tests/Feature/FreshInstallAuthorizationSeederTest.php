@@ -404,6 +404,124 @@ class FreshInstallAuthorizationSeederTest extends TestCase
                     ->all(),
             );
         }
+
+        $petCareTickets = SupportTicket::query()
+            ->forSubCore('pet-care-clinic')
+            ->where('user_id', $serviceUser?->id)
+            ->whereIn('subject', [
+                'QA Seed: APES Pet Care Clinic appointment request',
+                'QA Seed: APES Pet Care Clinic billing follow-up',
+                'QA Seed: APES Pet Care Clinic prescription question',
+            ])
+            ->orderBy('subject')
+            ->get()
+            ->keyBy('subject');
+        $this->assertCount(3, $petCareTickets);
+        $this->assertSame([
+            'pet-care-clinic',
+            $serviceUser?->id,
+            null,
+            'appointment',
+            'low',
+            'open',
+            null,
+        ], [
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic appointment request')?->sub_core_key,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic appointment request')?->user_id,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic appointment request')?->assigned_to,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic appointment request')?->service_area,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic appointment request')?->priority,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic appointment request')?->status,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic appointment request')?->closed_at,
+        ]);
+        $this->assertSame([
+            'pet-care-clinic',
+            $serviceUser?->id,
+            $staffUser?->id,
+            'prescription',
+            'high',
+            'in_progress',
+            null,
+        ], [
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic prescription question')?->sub_core_key,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic prescription question')?->user_id,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic prescription question')?->assigned_to,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic prescription question')?->service_area,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic prescription question')?->priority,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic prescription question')?->status,
+            $petCareTickets->get('QA Seed: APES Pet Care Clinic prescription question')?->closed_at,
+        ]);
+        $closedPetCareTicket = $petCareTickets->get('QA Seed: APES Pet Care Clinic billing follow-up');
+        $this->assertSame([
+            'pet-care-clinic',
+            $serviceUser?->id,
+            $adminUser?->id,
+            'billing',
+            'medium',
+            'closed',
+        ], [
+            $closedPetCareTicket?->sub_core_key,
+            $closedPetCareTicket?->user_id,
+            $closedPetCareTicket?->assigned_to,
+            $closedPetCareTicket?->service_area,
+            $closedPetCareTicket?->priority,
+            $closedPetCareTicket?->status,
+        ]);
+        $this->assertTrue($closedPetCareTicket?->closed_at->equalTo($seededAt->subDays(2)));
+        $this->assertSame(
+            ['appointment', 'billing', 'prescription'],
+            $petCareTickets->pluck('service_area')->sort()->values()->all(),
+        );
+
+        $petCareMessageFixtures = [
+            'QA Seed: APES Pet Care Clinic appointment request' => [
+                [
+                    'user_id' => $serviceUser?->id,
+                    'message' => 'Please help me arrange Pico\'s next clinic appointment.',
+                    'is_staff_note' => false,
+                ],
+                [
+                    'user_id' => $staffUser?->id,
+                    'message' => 'Internal note: check clinician availability before replying.',
+                    'is_staff_note' => true,
+                ],
+            ],
+            'QA Seed: APES Pet Care Clinic billing follow-up' => [
+                [
+                    'user_id' => $serviceUser?->id,
+                    'message' => 'Thank you for explaining the completed clinic charge.',
+                    'is_staff_note' => false,
+                ],
+                [
+                    'user_id' => $adminUser?->id,
+                    'message' => 'Internal note: billing explanation confirmed and ticket closed.',
+                    'is_staff_note' => true,
+                ],
+            ],
+            'QA Seed: APES Pet Care Clinic prescription question' => [
+                [
+                    'user_id' => $serviceUser?->id,
+                    'message' => 'Could you confirm the instructions from Pico\'s prescription?',
+                    'is_staff_note' => false,
+                ],
+                [
+                    'user_id' => $staffUser?->id,
+                    'message' => 'Internal note: verify the consultation advice before responding.',
+                    'is_staff_note' => true,
+                ],
+            ],
+        ];
+        foreach ($petCareMessageFixtures as $subject => $expectedMessages) {
+            $this->assertSame(
+                $expectedMessages,
+                $petCareTickets->get($subject)?->messages()
+                    ->orderBy('id')
+                    ->get(['user_id', 'message', 'is_staff_note'])
+                    ->map->only(['user_id', 'message', 'is_staff_note'])
+                    ->all(),
+            );
+        }
+
         $this->assertSame(4, SupportTicket::query()
             ->forSubCore(SupportTicket::SUB_CORE_APES_CIC)
             ->where('user_id', $serviceUser?->id)
@@ -412,7 +530,18 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             ->forSubCore(ShelterCase::SUB_CORE_SHELTER_RESCUE)
             ->where('user_id', $serviceUser?->id)
             ->count());
-        $this->assertDatabaseCount('support_ticket_messages', 12);
+        $this->assertSame(3, SupportTicket::query()
+            ->forSubCore('pet-care-clinic')
+            ->where('user_id', $serviceUser?->id)
+            ->count());
+        $this->assertSame(
+            9,
+            SupportTicket::query()
+                ->whereKeyNot($collisionSentinel->id)
+                ->count(),
+        );
+        $this->assertDatabaseCount('support_tickets', 10);
+        $this->assertDatabaseCount('support_ticket_messages', 18);
 
         $cases = ShelterCase::query()
             ->forSubCore(ShelterCase::SUB_CORE_APES_CIC)

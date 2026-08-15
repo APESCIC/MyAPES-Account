@@ -31,7 +31,7 @@ class ConsultationUpdatedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("APES Pet Care consultation #{$this->consultation->id} {$this->eventLabel}")
+            ->subject("APES Pet Care Clinic consultation #{$this->consultation->id} {$this->eventLabel}")
             ->line("Consultation #{$this->consultation->id} ({$this->consultation->subject}) was {$this->eventLabel} by {$this->actor->name}.")
             ->line("Status: {$this->consultation->status}")
             ->action('Open consultation', route('petcare.consultations.show', $this->consultation));

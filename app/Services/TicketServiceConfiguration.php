@@ -29,6 +29,16 @@ final class TicketServiceConfiguration
                 ['adoption', 'surrender', 'rescue', 'fostering', 'animal_welfare', 'other'],
                 false,
             ),
+            'pet-care-clinic' => new TicketServiceDefinition(
+                'APES Pet Care Clinic',
+                'petcare.tickets',
+                'petcare.ticket',
+                'apes-petcare',
+                'APES Pet Care Clinic Tickets',
+                'Support for appointments, consultations, prescriptions, billing and follow-up.',
+                ['appointment', 'consultation', 'prescription', 'billing', 'follow_up', 'other'],
+                false,
+            ),
             default => throw new InvalidArgumentException('Unknown ticket service.'),
         };
     }

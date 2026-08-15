@@ -31,6 +31,7 @@ class ModuleStateMiddlewareTest extends TestCase
             'shelter.pets.' => 'module.available:shelter-rescue,pet-profiles',
             'shelter.cases.' => 'module.available:shelter-rescue,cases',
             'petcare.pets.' => 'module.available:pet-care-clinic,pet-profiles',
+            'petcare.tickets.' => 'module.available:pet-care-clinic,tickets',
             'petcare.consultations.' => 'module.available:pet-care-clinic,consultations',
         ];
 
@@ -62,6 +63,9 @@ class ModuleStateMiddlewareTest extends TestCase
             ->assertOk();
         $this->actingAs($user)
             ->get('/shelter/pets')
+            ->assertOk();
+        $this->actingAs($user)
+            ->get('/petcare/tickets')
             ->assertOk();
         $this->actingAs($user)
             ->get('/petcare/consultations')

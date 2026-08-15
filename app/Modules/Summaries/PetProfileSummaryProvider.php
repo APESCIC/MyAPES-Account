@@ -23,7 +23,7 @@ class PetProfileSummaryProvider implements ModuleAggregateSummaryProvider
             'pet-care-clinic' => [
                 PetProfile::DOMAIN_PETCARE,
                 'petcare.pets.index',
-                'Pet Care profiles',
+                'APES Pet Care Clinic profiles',
             ],
             default => throw new \LogicException(
                 'Pet Profiles summary requested for an incompatible sub-core.',

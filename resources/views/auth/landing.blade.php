@@ -7,7 +7,7 @@
         <img src="{{ asset('branding/logo-myapes-account.png') }}" alt="MyAPES Account" class="logo-hero">
         <img src="{{ asset('mascot/bearded-dragon-natural.png') }}" alt="A realistic bearded dragon resting in a natural habitat" class="hero-image" width="1400" height="1120">
         <h1>Welcome to MyAPES Account</h1>
-        <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care.</p>
+        <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.</p>
         <div class="grid">
             <div class="panel panel-flat">
                 <span class="service-label apes-cic">APES CIC</span>
@@ -18,8 +18,8 @@
                 <p>Pet profile management and case workflows for rescue, adoption, surrender and fostering.</p>
             </div>
             <div class="panel panel-flat">
-                <span class="service-label apes-petcare">APES Pet Care</span>
-                <p>Pet care support routes with consultation planning and follow-up management.</p>
+                <span class="service-label apes-petcare">APES Pet Care Clinic</span>
+                <p>Pet Profiles, Tickets, and Consultations for clinic planning and follow-up.</p>
             </div>
         </div>
     </div>

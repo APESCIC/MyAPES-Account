@@ -4,9 +4,11 @@ namespace App\Modules;
 
 use App\Contracts\ModuleRegistry;
 use App\Modules\Activity\CaseRecentActivityProvider;
+use App\Modules\Activity\PetCareConsultationRecentActivityProvider;
 use App\Modules\Activity\PetProfileRecentActivityProvider;
 use App\Modules\Activity\SupportTicketRecentActivityProvider;
 use App\Modules\Analytics\CaseAnalyticsProvider;
+use App\Modules\Analytics\PetCareConsultationAnalyticsProvider;
 use App\Modules\Analytics\PetProfileAnalyticsProvider;
 use App\Modules\Analytics\SupportTicketAnalyticsProvider;
 use App\Modules\Attention\CaseAttentionProvider;
@@ -180,7 +182,7 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 'Support requests and threaded responses.',
                 '1.0.0',
                 ['apes-cic', 'shelter-rescue', 'pet-care-clinic'],
-                ['apes-cic', 'shelter-rescue'],
+                ['apes-cic', 'shelter-rescue', 'pet-care-clinic'],
                 [
                     $public('view-own', 'View own tickets'),
                     $public('create', 'Create tickets'),
@@ -201,6 +203,12 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                     'shelter-rescue' => new ModuleNavigationDefinition(
                         'Tickets',
                         'shelter.tickets.index',
+                        'ticket',
+                        20,
+                    ),
+                    'pet-care-clinic' => new ModuleNavigationDefinition(
+                        'Tickets',
+                        'petcare.tickets.index',
                         'ticket',
                         20,
                     ),
@@ -301,11 +309,13 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                         'Consultations',
                         'petcare.consultations.index',
                         'messages-square',
-                        20,
+                        30,
                     ),
                 ],
                 PetCareConsultationActiveRecordDetector::class,
                 PetCareConsultationSummaryProvider::class,
+                PetCareConsultationRecentActivityProvider::class,
+                PetCareConsultationAnalyticsProvider::class,
                 attentionProvider: ConsultationAttentionProvider::class,
             ),
         ];
@@ -361,12 +371,24 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                     $module,
                     $status,
                     $dependencies,
-                    recentActivityProvider: "{$subCore->key}:{$module->key}"
-                        === 'shelter-rescue:pet-profiles'
+                    recentActivityProvider: in_array(
+                        "{$subCore->key}:{$module->key}",
+                        [
+                            'shelter-rescue:pet-profiles',
+                            'pet-care-clinic:pet-profiles',
+                        ],
+                        true,
+                    )
                         ? PetProfileRecentActivityProvider::class
                         : null,
-                    analyticsProvider: "{$subCore->key}:{$module->key}"
-                        === 'shelter-rescue:pet-profiles'
+                    analyticsProvider: in_array(
+                        "{$subCore->key}:{$module->key}",
+                        [
+                            'shelter-rescue:pet-profiles',
+                            'pet-care-clinic:pet-profiles',
+                        ],
+                        true,
+                    )
                         ? PetProfileAnalyticsProvider::class
                         : null,
                 );

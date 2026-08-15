@@ -9,6 +9,7 @@ use App\Contracts\ModuleRecentActivityProvider;
 use App\Contracts\ModuleRegistry;
 use App\Models\CaseUpdate;
 use App\Models\ModuleInstallation;
+use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
@@ -26,10 +27,13 @@ use App\Modules\ModuleSummary;
 use App\Modules\Summaries\SupportTicketSummaryProvider;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
+use App\Services\ModuleProjectionCache;
 use App\Services\ModuleRegistryValidator;
 use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -45,11 +49,11 @@ class ModuleProviderContractTest extends TestCase
         app(ModuleInstallationSynchronizer::class)->synchronize();
     }
 
-    public function test_ticket_and_case_definitions_expose_optional_typed_provider_slots(): void
+    public function test_ticket_case_and_consultation_definitions_expose_optional_typed_provider_slots(): void
     {
         $registry = app(ModuleRegistry::class);
 
-        foreach (['tickets', 'cases'] as $moduleKey) {
+        foreach (['tickets', 'cases', 'consultations'] as $moduleKey) {
             $module = $registry->module($moduleKey);
             $this->assertTrue(is_a(
                 $module->recentActivityProvider,
@@ -64,7 +68,6 @@ class ModuleProviderContractTest extends TestCase
         }
 
         $this->assertNull($registry->module('pet-profiles')->recentActivityProvider);
-        $this->assertNull($registry->module('consultations')->analyticsProvider);
     }
 
     public function test_attention_providers_are_registered_for_open_item_modules_only(): void
@@ -84,6 +87,75 @@ class ModuleProviderContractTest extends TestCase
             $registry->module('consultations')->attentionProvider,
         );
         $this->assertNull($registry->module('pet-profiles')->attentionProvider);
+    }
+
+    public function test_disabled_pet_care_analytics_providers_return_canonical_empty_snapshots_with_retained_data(): void
+    {
+        $owner = User::factory()->create();
+        $pet = $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Retained disabled analytics pet',
+            'created_at' => now()->subHour(),
+            'updated_at' => now()->subHour(),
+        ]);
+        $ticket = $this->ticketFor($owner, [
+            'sub_core_key' => 'pet-care-clinic',
+            'service_area' => 'appointment',
+            'subject' => 'Retained disabled analytics ticket',
+            'status' => 'closed',
+            'created_at' => now()->subHour(),
+            'updated_at' => now(),
+            'closed_at' => now(),
+        ]);
+        $consultation = PetCareConsultation::query()->create([
+            'pet_profile_id' => $pet->id,
+            'user_id' => $owner->id,
+            'subject' => 'Retained disabled analytics consultation',
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+        $consultation->timestamps = false;
+        $consultation->forceFill([
+            'created_at' => now()->subHour(),
+            'updated_at' => now(),
+        ])->saveQuietly();
+        $consultation->timestamps = true;
+        $registry = app(ModuleRegistry::class);
+
+        foreach (['pet-profiles', 'tickets', 'consultations'] as $moduleKey) {
+            ModuleInstallation::query()
+                ->where('sub_core_key', 'pet-care-clinic')
+                ->where('module_key', $moduleKey)
+                ->update(['enabled' => false]);
+            $instance = $registry->instance('pet-care-clinic', $moduleKey);
+            /** @var ModuleAnalyticsProvider $provider */
+            $provider = app($instance->analyticsProviderClass());
+
+            $snapshot = $provider->snapshot(
+                $instance,
+                now()->subDay(),
+                now()->addDay(),
+                'Europe/London',
+            );
+            $this->assertSame($instance->key(), $snapshot->instanceKey);
+            $this->assertSame(0, $snapshot->total);
+            $this->assertSame(0, $snapshot->open);
+            $this->assertSame(0, $snapshot->highOrUrgent);
+            $this->assertSame(0, $snapshot->unassigned);
+            $this->assertSame([], $snapshot->createdPerDay);
+            $this->assertSame([], $snapshot->closedPerDay);
+            $this->assertNull($snapshot->medianClosureMinutes);
+            $this->assertSame(0, $snapshot->closureSampleSize);
+
+            ModuleInstallation::query()
+                ->where('sub_core_key', 'pet-care-clinic')
+                ->where('module_key', $moduleKey)
+                ->update(['enabled' => true]);
+        }
+
+        $this->assertDatabaseHas('pet_profiles', ['id' => $pet->id]);
+        $this->assertDatabaseHas('support_tickets', ['id' => $ticket->id]);
+        $this->assertDatabaseHas('pet_care_consultations', ['id' => $consultation->id]);
     }
 
     public function test_instance_provider_resolvers_prefer_an_override_and_fall_back_to_the_module_contract(): void
@@ -416,24 +488,45 @@ class ModuleProviderContractTest extends TestCase
     {
         $owner = User::factory()->create();
         $registry = app(ModuleRegistry::class);
-        $instance = $registry->instance('shelter-rescue', 'tickets');
-        $ticket = $this->ticketFor($owner, [
+        $shelterTicket = $this->ticketFor($owner, [
             'sub_core_key' => 'shelter-rescue',
             'service_area' => 'rescue',
             'subject' => 'Shelter activity route',
         ]);
+        $petCareTicket = $this->ticketFor($owner, [
+            'sub_core_key' => 'pet-care-clinic',
+            'service_area' => 'appointment',
+            'subject' => 'Pet Care activity route',
+        ]);
 
         $this->actingAs($owner);
-        /** @var ModuleAggregateSummaryProvider $summaryProvider */
-        $summaryProvider = app($instance->summaryProviderClass());
-        $summary = $summaryProvider->summarize($instance, $owner);
-        /** @var ModuleRecentActivityProvider $activityProvider */
-        $activityProvider = app($instance->recentActivityProviderClass());
-        $activity = $activityProvider->recent($instance, $owner);
+        foreach ([
+            ['shelter-rescue', 'shelter.tickets', $shelterTicket],
+            ['pet-care-clinic', 'petcare.tickets', $petCareTicket],
+        ] as [$subCoreKey, $routePrefix, $ticket]) {
+            $instance = $registry->instance($subCoreKey, 'tickets');
+            /** @var ModuleAggregateSummaryProvider $summaryProvider */
+            $summaryProvider = app($instance->summaryProviderClass());
+            $summary = $summaryProvider->summarize($instance, $owner);
+            /** @var ModuleRecentActivityProvider $activityProvider */
+            $activityProvider = app($instance->recentActivityProviderClass());
+            $activity = $activityProvider->recent($instance, $owner);
+            /** @var ModuleAnalyticsProvider $analyticsProvider */
+            $analyticsProvider = app($instance->analyticsProviderClass());
+            $analytics = $analyticsProvider->snapshot(
+                $instance,
+                now()->subDay(),
+                now()->addDay(),
+                'Europe/London',
+            );
 
-        $this->assertSame('shelter.tickets.index', $summary->routeName);
-        $this->assertSame('shelter.tickets.show', $activity[0]->routeName);
-        $this->assertSame($ticket->id, $activity[0]->recordId);
+            $this->assertSame('Tickets', $summary->label);
+            $this->assertSame($routePrefix.'.index', $summary->routeName);
+            $this->assertSame($routePrefix.'.show', $activity[0]->routeName);
+            $this->assertSame($ticket->id, $activity[0]->recordId);
+            $this->assertSame($subCoreKey.':tickets', $analytics->instanceKey);
+            $this->assertSame(1, $analytics->total);
+        }
     }
 
     public function test_apes_cic_hub_activity_excludes_internal_update_content_for_owners(): void
@@ -578,6 +671,192 @@ class ModuleProviderContractTest extends TestCase
             ->assertDontSee('Disabled case activity');
     }
 
+    public function test_stale_enabled_projection_cannot_render_disabled_pet_care_summaries_or_activity(): void
+    {
+        $owner = User::factory()->create();
+        $pet = $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Retained lifecycle pet',
+        ]);
+        $ticket = $this->ticketFor($owner, [
+            'sub_core_key' => 'pet-care-clinic',
+            'service_area' => 'appointment',
+            'subject' => 'Retained disabled ticket title',
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+        $consultation = PetCareConsultation::query()->create([
+            'pet_profile_id' => $pet->id,
+            'user_id' => $owner->id,
+            'subject' => 'Retained disabled consultation title',
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+        $projection = app(ModuleProjectionCache::class);
+        $projectionVersion = $projection->version();
+
+        $this->actingAs($owner)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(
+                'data-module-instance="pet-care-clinic:tickets"',
+                false,
+            )
+            ->assertSee(
+                'data-module-instance="pet-care-clinic:consultations"',
+                false,
+            );
+        $this->get(route('petcare.index'))
+            ->assertOk()
+            ->assertSee($ticket->subject)
+            ->assertSee($consultation->subject);
+        $this->assertTrue(Cache::has(
+            "myapes:modules:enabled:v{$projectionVersion}",
+        ));
+
+        $updated = ModuleInstallation::query()
+            ->where('sub_core_key', 'pet-care-clinic')
+            ->whereIn('module_key', ['tickets', 'consultations'])
+            ->update([
+                'enabled' => false,
+                'disabled_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->assertSame(2, $updated);
+        $this->assertSame($projectionVersion, $projection->version());
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(
+                'data-module-instance="pet-care-clinic:tickets"',
+                false,
+            )
+            ->assertDontSee(
+                'data-module-instance="pet-care-clinic:consultations"',
+                false,
+            );
+        $this->get(route('petcare.index'))
+            ->assertOk()
+            ->assertDontSee(
+                'data-module-instance="pet-care-clinic:tickets"',
+                false,
+            )
+            ->assertDontSee(
+                'data-module-instance="pet-care-clinic:consultations"',
+                false,
+            )
+            ->assertDontSee($ticket->subject)
+            ->assertDontSee($consultation->subject);
+        $this->get(route('petcare.tickets.show', $ticket))->assertNotFound();
+        $this->get(route('petcare.consultations.show', $consultation))
+            ->assertNotFound();
+        $this->assertDatabaseHas('support_tickets', ['id' => $ticket->id]);
+        $this->assertDatabaseHas('pet_care_consultations', [
+            'id' => $consultation->id,
+        ]);
+    }
+
+    public function test_stale_disabled_projection_cannot_hide_enabled_pet_care_modules(): void
+    {
+        $owner = User::factory()->create();
+        $projection = app(ModuleProjectionCache::class);
+        $projectionVersion = $projection->version();
+        $projectionKey = "myapes:modules:enabled:v{$projectionVersion}";
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'pet-care-clinic')
+            ->whereIn('module_key', ['tickets', 'consultations'])
+            ->update([
+                'enabled' => false,
+                'disabled_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->actingAs($owner)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(
+                'data-module-instance="pet-care-clinic:tickets"',
+                false,
+            )
+            ->assertDontSee(
+                'data-module-instance="pet-care-clinic:consultations"',
+                false,
+            );
+        $this->assertTrue(Cache::has($projectionKey));
+
+        $updated = ModuleInstallation::query()
+            ->where('sub_core_key', 'pet-care-clinic')
+            ->whereIn('module_key', ['tickets', 'consultations'])
+            ->update([
+                'enabled' => true,
+                'disabled_at' => null,
+                'updated_at' => now(),
+            ]);
+
+        $this->assertSame(2, $updated);
+        $this->assertSame($projectionVersion, $projection->version());
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(
+                'data-module-instance="pet-care-clinic:tickets"',
+                false,
+            )
+            ->assertSee(
+                'data-module-instance="pet-care-clinic:consultations"',
+                false,
+            );
+        $this->get(route('petcare.index'))
+            ->assertOk()
+            ->assertSee(
+                'data-module-instance="pet-care-clinic:tickets"',
+                false,
+            )
+            ->assertSee(
+                'data-module-instance="pet-care-clinic:consultations"',
+                false,
+            );
+        $this->get(route('petcare.tickets.index'))->assertOk();
+        $this->get(route('petcare.consultations.index'))->assertOk();
+        $this->assertContains(
+            'pet-care-clinic:tickets',
+            Cache::get($projectionKey),
+        );
+        $this->assertContains(
+            'pet-care-clinic:consultations',
+            Cache::get($projectionKey),
+        );
+    }
+
+    public function test_dashboard_reads_the_authoritative_module_projection_once_per_request(): void
+    {
+        $owner = User::factory()->create();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        try {
+            $this->actingAs($owner)
+                ->get(route('dashboard'))
+                ->assertOk()
+                ->assertSee(
+                    'data-module-instance="pet-care-clinic:tickets"',
+                    false,
+                );
+            $moduleQueries = collect(DB::getQueryLog())
+                ->filter(static function (array $query): bool {
+                    $sql = strtolower(trim($query['query']));
+
+                    return str_starts_with($sql, 'select')
+                        && str_contains($sql, 'module_installations');
+                });
+        } finally {
+            DB::disableQueryLog();
+        }
+
+        $this->assertCount(1, $moduleQueries);
+    }
+
     public function test_empty_analytics_snapshots_report_no_closure_sample(): void
     {
         $registry = app(ModuleRegistry::class);
@@ -599,7 +878,7 @@ class ModuleProviderContractTest extends TestCase
         }
     }
 
-    public function test_pet_profile_activity_and_analytics_are_overridden_only_for_shelter(): void
+    public function test_pet_profile_activity_and_analytics_are_registered_for_both_shipped_instances(): void
     {
         $registry = app(ModuleRegistry::class);
         $shelter = $registry->instance('shelter-rescue', 'pet-profiles');
@@ -613,8 +892,14 @@ class ModuleProviderContractTest extends TestCase
             PetProfileAnalyticsProvider::class,
             $shelter->analyticsProviderClass(),
         );
-        $this->assertNull($petCare->recentActivityProviderClass());
-        $this->assertNull($petCare->analyticsProviderClass());
+        $this->assertSame(
+            PetProfileRecentActivityProvider::class,
+            $petCare->recentActivityProviderClass(),
+        );
+        $this->assertSame(
+            PetProfileAnalyticsProvider::class,
+            $petCare->analyticsProviderClass(),
+        );
     }
 
     public function test_shelter_pet_profile_activity_is_exactly_visible_latest_and_route_scoped(): void
@@ -643,7 +928,9 @@ class ModuleProviderContractTest extends TestCase
 
         $this->actingAs($owner);
         /** @var ModuleRecentActivityProvider $provider */
-        $provider = app($instance->recentActivityProviderClass());
+        $providerClass = $instance->recentActivityProviderClass();
+        $this->assertNotNull($providerClass);
+        $provider = app($providerClass);
         $activity = $provider->recent($instance, $owner, 1);
 
         $this->assertCount(1, $activity);
@@ -682,7 +969,9 @@ class ModuleProviderContractTest extends TestCase
         ]);
 
         /** @var ModuleAnalyticsProvider $provider */
-        $provider = app($instance->analyticsProviderClass());
+        $providerClass = $instance->analyticsProviderClass();
+        $this->assertNotNull($providerClass);
+        $provider = app($providerClass);
         $snapshot = $provider->snapshot(
             $instance,
             Carbon::parse('2026-08-01 00:00:00', 'Europe/London'),
@@ -691,6 +980,152 @@ class ModuleProviderContractTest extends TestCase
         );
 
         $this->assertSame('shelter-rescue:pet-profiles', $snapshot->instanceKey);
+        $this->assertSame(2, $snapshot->total);
+        $this->assertSame(0, $snapshot->open);
+        $this->assertSame(0, $snapshot->highOrUrgent);
+        $this->assertSame(0, $snapshot->unassigned);
+        $this->assertSame(['2026-08-01' => 2], $snapshot->createdPerDay);
+        $this->assertSame([], $snapshot->closedPerDay);
+        $this->assertNull($snapshot->medianClosureMinutes);
+        $this->assertSame(0, $snapshot->closureSampleSize);
+    }
+
+    public function test_pet_care_pet_profile_activity_uses_exact_instance_visibility_route_and_registry_labels(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $instance = app(ModuleRegistry::class)
+            ->instance('pet-care-clinic', 'pet-profiles');
+        $latest = $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Latest visible Clinic profile',
+            'updated_at' => Carbon::parse('2026-08-03 10:00:00', 'UTC'),
+        ]);
+        $this->petProfileFor($other, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Other owner Clinic profile',
+            'updated_at' => Carbon::parse('2026-08-04 10:00:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_SHELTER,
+            'name' => 'Foreign Shelter profile',
+            'updated_at' => Carbon::parse('2026-08-05 10:00:00', 'UTC'),
+        ]);
+
+        $this->actingAs($owner);
+        /** @var ModuleRecentActivityProvider $provider */
+        $providerClass = $instance->recentActivityProviderClass();
+        $this->assertNotNull($providerClass);
+        $provider = app($providerClass);
+        $activity = $provider->recent($instance, $owner, 5);
+        $summaryProvider = app($instance->summaryProviderClass());
+        $summary = $summaryProvider->summarize($instance, $owner);
+
+        $this->assertSame('APES Pet Care Clinic', $instance->subCore->name);
+        $this->assertSame('APES Pet Care Clinic profiles', $summary->label);
+        $this->assertSame(
+            'Pet Profiles',
+            $instance->module->navigation['pet-care-clinic']->label,
+        );
+        $this->assertCount(1, $activity);
+        $this->assertSame('pet-care-clinic:pet-profiles', $activity[0]->instanceKey);
+        $this->assertSame('pet-profiles', $activity[0]->moduleKey);
+        $this->assertSame('Pet profile', $activity[0]->label);
+        $this->assertSame('Latest visible Clinic profile', $activity[0]->title);
+        $this->assertSame('active', $activity[0]->status);
+        $this->assertNull($activity[0]->priority);
+        $this->assertSame('petcare.pets.show', $activity[0]->routeName);
+        $this->assertSame($latest->id, $activity[0]->recordId);
+        $this->assertTrue($latest->updated_at->equalTo($activity[0]->updatedAt));
+    }
+
+    public function test_pet_care_pet_profile_activity_view_all_staff_sees_all_pet_care_owners_but_no_shelter_records(): void
+    {
+        $firstOwner = User::factory()->create();
+        $secondOwner = User::factory()->create();
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $instance = app(ModuleRegistry::class)
+            ->instance('pet-care-clinic', 'pet-profiles');
+        $first = $this->petProfileFor($firstOwner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'First staff-visible Clinic profile',
+            'updated_at' => Carbon::parse('2026-08-02 10:00:00', 'UTC'),
+        ]);
+        $second = $this->petProfileFor($secondOwner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Second staff-visible Clinic profile',
+            'updated_at' => Carbon::parse('2026-08-03 10:00:00', 'UTC'),
+        ]);
+        $this->petProfileFor($firstOwner, [
+            'service_domain' => PetProfile::DOMAIN_SHELTER,
+            'name' => 'Staff-hidden Shelter profile',
+            'updated_at' => Carbon::parse('2026-08-04 10:00:00', 'UTC'),
+        ]);
+
+        $this->actingAs($staff);
+        $this->assertTrue($staff->can('pet-care-clinic.pet-profiles.view-all'));
+        /** @var ModuleRecentActivityProvider $provider */
+        $providerClass = $instance->recentActivityProviderClass();
+        $this->assertNotNull($providerClass);
+        $activity = app($providerClass)->recent($instance, $staff, 5);
+
+        $this->assertSame(
+            [$second->id, $first->id],
+            array_column($activity, 'recordId'),
+        );
+        $this->assertSame(
+            [
+                'Second staff-visible Clinic profile',
+                'First staff-visible Clinic profile',
+            ],
+            array_column($activity, 'title'),
+        );
+        $this->assertSame(
+            ['petcare.pets.show', 'petcare.pets.show'],
+            array_column($activity, 'routeName'),
+        );
+    }
+
+    public function test_pet_care_pet_profile_analytics_use_half_open_range_timezone_and_domain_scope(): void
+    {
+        $owner = User::factory()->create();
+        $instance = app(ModuleRegistry::class)
+            ->instance('pet-care-clinic', 'pet-profiles');
+        $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'First Clinic profile in range',
+            'created_at' => Carbon::parse('2026-07-31 23:30:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Second Clinic profile in range',
+            'created_at' => Carbon::parse('2026-08-01 22:30:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Clinic profile at exclusive boundary',
+            'created_at' => Carbon::parse('2026-08-01 23:00:00', 'UTC'),
+        ]);
+        $this->petProfileFor($owner, [
+            'service_domain' => PetProfile::DOMAIN_SHELTER,
+            'name' => 'Foreign Shelter profile in range',
+            'created_at' => Carbon::parse('2026-08-01 12:00:00', 'UTC'),
+        ]);
+
+        /** @var ModuleAnalyticsProvider $provider */
+        $providerClass = $instance->analyticsProviderClass();
+        $this->assertNotNull($providerClass);
+        $provider = app($providerClass);
+        $snapshot = $provider->snapshot(
+            $instance,
+            Carbon::parse('2026-08-01 00:00:00', 'Europe/London'),
+            Carbon::parse('2026-08-02 00:00:00', 'Europe/London'),
+            'Europe/London',
+        );
+
+        $this->assertSame('pet-care-clinic:pet-profiles', $snapshot->instanceKey);
         $this->assertSame(2, $snapshot->total);
         $this->assertSame(0, $snapshot->open);
         $this->assertSame(0, $snapshot->highOrUrgent);

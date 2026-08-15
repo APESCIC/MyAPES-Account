@@ -29,7 +29,7 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 - **Protected authorization**:
   - The exact protected roles are `service-user`, `staff`, `administrator`, and `super-admin`.
   - The core code-owned permission catalogue contains `staff.access`, `admin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
-  - The first-party registry contributes 51 namespaced permissions for shipped instances. All 64 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
+  - The first-party registry contributes 59 namespaced permissions for shipped instances. All 72 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
   - Administrators retain `admin.modules.view`; `admin.modules.manage` is super-admin-only.
   - Direct user permissions remain an internal central-materializer capability with mandatory provenance and no arbitrary Admin assignment UI. Authorized Admin user details show the same deduplicated role-plus-direct effective set used by the Gate and list each direct source with only a system label or granting account ID.
   - Spatie provides role/permission storage only. Its automatic Gate hook remains disabled while the teams schema and wildcard matching are enabled for the application-owned authorization path. Direct user permissions are allowed only through the central provenance materializer; direct pivot mutation remains disabled.
@@ -48,16 +48,16 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Admin Permissions is a read-only view of the core and shipped-module code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
 - **First-party module registry**:
   - Immutable Laravel contracts define the permanent `apes-cic`, `shelter-rescue`, and `pet-care-clinic` sub-cores plus the `tickets`, `cases`, `pet-profiles`, and `consultations` module types. Executable providers, instance-scoped active-record detectors, routes, summaries, bounded recent activity, and typed analytics snapshots are registered from reviewed source code only; database or writable-storage discovery is unsupported.
-  - The seven shipped instances are APES CIC Tickets and Cases; Shelter and Rescue Pet Profiles, Tickets, and Cases; and Pet Care Clinic Pet Profiles and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state.
-  - Pet Care Clinic Tickets remain compatible but display as **Code not shipped** and have no install action. All other matrix cells are explicitly incompatible.
+  - The eight shipped instances are APES CIC Tickets and Cases; APES Shelter and Rescue Pet Profiles, Tickets, and Cases; and APES Pet Care Clinic Pet Profiles, Tickets, and Consultations. Fresh and upgraded databases keep them installed and enabled by default without overwriting a later intentional disabled state. All other matrix cells are explicitly incompatible.
   - Lifecycle operations are transactional, super-admin-only, and serialized with module write requests through the same durable per-instance advisory/file lock. Lock acquisition has a bounded wait, while ownership lasts for the complete operation. Dependencies and active records are rechecked under the transition transaction; disablement never deletes records, and no uninstall operation exists.
   - Each installation carries a monotonic transition version, so even multiple enable/disable operations within one second invalidate stale Admin forms. Direct route checks read authoritative installation state. Generated navigation and aggregate dashboard summaries use a short versioned projection cache, invalidated after committed lifecycle transitions and synchronization repairs.
   - v0.14.0 adds no database migration. The Shelter modules reuse the existing sub-core-discriminated `support_tickets`/`support_ticket_messages`, `pet_profiles`, `shelter_cases`/`case_updates`, and media storage. Existing records are neither copied nor assigned new IDs, owners, pets, assignees, morph identities, or media paths.
+  - v0.15.0 also adds no database migration. APES Pet Care Clinic reuses its existing rows in `pet_profiles` and `pet_care_consultations` plus the shared sub-core-discriminated `support_tickets` and `support_ticket_messages` tables. Existing IDs, owners, pet links, assignments, schedules, statuses, closure timestamps, audit and notification identities, media paths, and physical media remain unchanged.
 - **Core app features**: account dashboard, profile/settings, role-aware navigation, media uploads.
 - **Service subsections**:
   - **APES CIC** (`/apes-cic`) - organisational support Tickets and Cases. Owners can create and view their own records and add public updates. Staff Ticket replies and Case updates can be explicitly public or internal; owner views, notifications, hub activity, and audits never disclose internal bodies. Ticket and Case records, lifecycle checks, navigation, dashboard totals, recent activity, and analytics are all scoped to the `apes-cic` module instance.
   - **APES Shelter and Rescue** (`/shelter`) - Pet Profiles, Tickets, and pet-linked Cases. Every record, route, summary, activity item, analytics result, attention item, assignee, recipient, and photo request is constrained to the Shelter domain and `shelter-rescue` instance before authorization.
-  - **APES Pet Care** (`/petcare`) - pet profiles and consultation management
+  - **APES Pet Care Clinic** (`/petcare`) - Pet Profiles, Tickets, and Consultations with exact owner/staff permissions and instance-scoped dashboard providers
 - **Cloudron service integrations**: MySQL, Redis (cache/session/queue), and sendmail-compatible SMTP delivery.
 
 ### Login entry points
@@ -110,7 +110,7 @@ Shelter Cases remain linked to a real Shelter-domain Pet Profile and retain the
 authorized owner and touch activity ordering; internal updates are visible
 only to eligible exact-namespace staff, do not notify the owner, and do not
 touch or reorder the parent Case. Update bodies are excluded from audit and
-notification metadata. APES CIC, Pet Care-domain, missing-pet, cross-owner,
+notification metadata. APES CIC, `petcare`-domain, missing-pet, cross-owner,
 and cross-sub-core identifiers fail closed without disclosing a foreign row.
 
 The code-owned Shelter Ticket and Case `delete` abilities remain part of the
@@ -124,6 +124,43 @@ through `shelter.pets.photo` or `petcare.pets.photo` with private, no-store,
 MIME-safe responses. Wrong-domain, malformed-path, missing-file, and
 unauthorized requests return 404; `/storage/pet-profiles/*` is never a public
 delivery path, and only avatars retain a public runtime link.
+
+### APES Pet Care Clinic route, permission, and privacy contract
+
+The APES Pet Care Clinic hub exposes the installed Pet Profiles, Tickets, and
+Consultations modules at the stable `/petcare` route family. Pet Profiles use
+the exact
+`pet-care-clinic.pet-profiles.{view-own,create,update-own,view-all,update-all}`
+namespace. Tickets use the exact
+`pet-care-clinic.tickets.{view-own,create,comment-own,view-all,update-all,assign,close,delete}`
+namespace. Consultations use the exact
+`pet-care-clinic.consultations.{view-own,create,update-own,view-all,update-all,assign,close}`
+namespace. Owners require the matching exact owner permission for their own
+records in the `petcare` domain. Staff-wide visibility, assignee candidates,
+and staff notification recipients require an unsuspended eligible protected staff-class
+identity plus the relevant exact module permission; ordinary staff updates,
+assignment changes, and terminal close/reopen transitions remain independently
+authorized.
+
+APES Pet Care Clinic Tickets are available at
+`GET|POST /petcare/tickets`, `GET /petcare/tickets/{ticket}`, and
+`PUT|PATCH /petcare/tickets/{ticket}` through
+`petcare.tickets.index|store|show|update`. Their service areas are exactly
+`appointment`, `consultation`, `prescription`, `billing`, `follow_up`, and
+`other`. Ticket owners see public messages only; eligible exact-namespace staff
+can see and create internal notes. Message bodies are excluded from audit and
+notification metadata, and internal messages never notify or disclose their
+body to owners. The code-owned Ticket `delete` ability remains part of the
+shared wholesale permission contract, but APES Pet Care Clinic has no DELETE
+route, controller action, form, or link.
+
+Pet Profile and linked-pet requests require the `petcare` domain, and every
+Ticket request requires the `pet-care-clinic` sub-core before record
+authorization. Foreign Shelter or APES CIC identifiers fail with a safe 404.
+Enabled Pet Profiles, Tickets, and Consultations independently contribute
+instance-scoped summaries, bounded recent activity, and typed analytics;
+Tickets and Consultations also contribute attention items. Disabled modules
+contribute no navigation, records, activity, attention, or analytics.
 
 ## Brand assets
 
@@ -212,7 +249,7 @@ Both local bootstrap scripts enforce the tracked selective-media boundary at
 unexpected entries and create only `public/storage/avatars`, targeting
 `storage/app/public/avatars`. Pet Profile photos remain in
 `storage/app/public/pet-profiles` but are delivered only through authenticated,
-authorization-checked Shelter or Pet Care routes; they are never exposed by a
+authorization-checked Shelter or APES Pet Care Clinic routes; they are never exposed by a
 public-storage link.
 
 ### Seeded local QA accounts
@@ -225,7 +262,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 
 | Role | Login email | Login route | Primary QA coverage |
 | --- | --- | --- | --- |
-| Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC Tickets/Cases, Shelter Pet Profiles/Tickets/Cases, and Pet Care Pet Profiles/Consultations (owner-scoped views) |
+| Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC Tickets/Cases, Shelter Pet Profiles/Tickets/Cases, and APES Pet Care Clinic Pet Profiles/Tickets/Consultations (owner-scoped views) |
 | Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Exact-namespace staff visibility, assignment updates, internal Ticket messages and Case updates, status workflows, and the local custom-role fixture |
 | Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus authorized Admin Users/Groups/Roles/Permissions views and allowed account mutations |
 | Super Admin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Custom-role, exact directory-mapping, and guarded module-lifecycle management boundaries |
@@ -234,7 +271,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 
 | Role | Key flows to validate quickly |
 | --- | --- |
-| Public | Create/view/comment on own APES CIC and Shelter Tickets/Cases, update own Shelter/Pet Care Pet Profiles, edit profile/settings, and verify owner-only/public-update visibility |
+| Public | Create/view/comment on own APES CIC and Shelter Tickets/Cases; create/view/comment on own APES Pet Care Clinic Tickets; update own Shelter and APES Pet Care Clinic Pet Profiles and Clinic Consultations; edit profile/settings; and verify owner-only/public-update visibility |
 | Staff | Use exact instance permissions to see all users' Tickets/Cases/Consultations, assign eligible staff/admin accounts, update statuses, and verify internal-note privacy |
 | Admin | Run full staff workflows plus inspect Admin Users, Groups, Roles, Permissions, and Modules and exercise allowed user-management boundaries |
 
@@ -244,7 +281,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 - APES CIC cases: owner-scoped categories, priorities, public updates, internal staff notes, assignment, and close/reopen transitions
 - Shelter Tickets: an open unassigned adoption enquiry, an in-progress staff-assigned rescue request, and a closed admin-assigned animal-welfare follow-up, each with deterministic public and internal messages
 - Shelter Cases: the existing Mango Pet Profile with two open/in-review cases plus a closed example; the rescue Case has deterministic public and internal updates without changing its parent identity or timestamp
-- Pet Care: seeded pet profile with two open/in-progress consultations plus a closed example
+- APES Pet Care Clinic: a seeded Pet Profile with two open/in-progress Consultations plus a closed example, and three deterministic Tickets covering appointment/open/unassigned/low, prescription/in-progress/staff/high, and billing/closed/admin/medium states with one public and one internal message each
 - User profiles: seeded profile data for the same four QA account identities; repeated non-destructive seeding preserves Ticket/Case parent and child IDs, owners, pets, assignees, values, and timestamps without cross-sub-core overwrite
 
 Start Laravel, the queue listener, application logs, and Vite together with the cross-platform Composer script:
@@ -593,6 +630,15 @@ closed with `target_contract_unrepresentable`. There is no supported
 disable-or-delete workaround: operators must take and verify the normal
 pre-deployment database backup, and restoration of that corresponding backup
 is required to return the installation state to v0.13.1.
+
+v0.15.0 synchronizes `pet-care-clinic:tickets` as the eighth persisted module
+installation while retaining the same five legacy-visible entries. A v0.14.0
+target declares only seven shipped instances and cannot represent that eighth
+installation, even when it is disabled, so compatibility validation fails
+closed with `target_contract_unrepresentable` without mutating module state.
+There is no supported disable-or-delete workaround: operators must take and
+verify the normal pre-deployment database backup, and restoration of that
+corresponding backup is required to return the installation state to v0.14.0.
 
 Code rollback enters Laravel maintenance mode before compatibility validation,
 then acquires every code-owned module-instance lock so in-flight writes finish

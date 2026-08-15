@@ -278,6 +278,99 @@ class LocalQaSeeder extends Seeder
         );
         $this->setTimestamps($shelterClosedTicket, $seededAt->subDays(4));
 
+        $petCareAppointmentTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => 'pet-care-clinic',
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: APES Pet Care Clinic appointment request',
+            ],
+            [
+                'assigned_to' => null,
+                'service_area' => 'appointment',
+                'priority' => 'low',
+                'status' => 'open',
+                'description' => 'Service user would like to arrange Pico\'s next clinic appointment.',
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertTicketMessage(
+            $petCareAppointmentTicket,
+            $serviceUser,
+            'Please help me arrange Pico\'s next clinic appointment.',
+            false,
+            $seededAt->addMinutes(45),
+        );
+        $this->upsertTicketMessage(
+            $petCareAppointmentTicket,
+            $staffUser,
+            'Internal note: check clinician availability before replying.',
+            true,
+            $seededAt->addMinutes(50),
+        );
+        $this->setTimestamps($petCareAppointmentTicket, $seededAt->addMinutes(55));
+
+        $petCarePrescriptionTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => 'pet-care-clinic',
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: APES Pet Care Clinic prescription question',
+            ],
+            [
+                'assigned_to' => $staffUser->id,
+                'service_area' => 'prescription',
+                'priority' => 'high',
+                'status' => 'in_progress',
+                'description' => 'Service user needs clarification about consultation prescription instructions.',
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertTicketMessage(
+            $petCarePrescriptionTicket,
+            $serviceUser,
+            'Could you confirm the instructions from Pico\'s prescription?',
+            false,
+            $seededAt->subMinutes(15),
+        );
+        $this->upsertTicketMessage(
+            $petCarePrescriptionTicket,
+            $staffUser,
+            'Internal note: verify the consultation advice before responding.',
+            true,
+            $seededAt->subMinutes(10),
+        );
+        $this->setTimestamps($petCarePrescriptionTicket, $seededAt->subMinutes(5));
+
+        $petCareBillingTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => 'pet-care-clinic',
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: APES Pet Care Clinic billing follow-up',
+            ],
+            [
+                'assigned_to' => $adminUser->id,
+                'service_area' => 'billing',
+                'priority' => 'medium',
+                'status' => 'closed',
+                'description' => 'A completed clinic charge was explained to the service user.',
+                'closed_at' => $seededAt->subDays(2),
+            ],
+        );
+        $this->upsertTicketMessage(
+            $petCareBillingTicket,
+            $serviceUser,
+            'Thank you for explaining the completed clinic charge.',
+            false,
+            $seededAt->subDays(2)->subMinutes(20),
+        );
+        $this->upsertTicketMessage(
+            $petCareBillingTicket,
+            $adminUser,
+            'Internal note: billing explanation confirmed and ticket closed.',
+            true,
+            $seededAt->subDays(2)->subMinutes(10),
+        );
+        $this->setTimestamps($petCareBillingTicket, $seededAt->subDays(2));
+
         $reopenedApesCase = ShelterCase::query()->updateOrCreate(
             [
                 'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,

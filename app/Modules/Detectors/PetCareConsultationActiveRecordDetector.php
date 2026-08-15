@@ -11,6 +11,7 @@ class PetCareConsultationActiveRecordDetector implements ModuleActiveRecordDetec
     public function count(ModuleInstanceDefinition $instance): int
     {
         return PetCareConsultation::query()
+            ->forPetCareDomain()
             ->whereNull('closed_at')
             ->where('status', '<>', 'closed')
             ->count();

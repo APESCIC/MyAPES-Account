@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ModuleInstallation;
 use App\Models\Permission;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
@@ -52,6 +53,38 @@ class AuthorizationPolicyTest extends TestCase
             $this->assertTrue(Gate::allows('update', $resource));
         }
         $this->assertTrue(Gate::allows('delete', $ticket));
+    }
+
+    public function test_pet_care_pet_profile_policy_requires_matching_permission_pairs_and_enabled_installation(): void
+    {
+        $owner = $this->user(User::ROLE_SERVICE_USER);
+        $pet = PetProfile::query()->create([
+            'user_id' => $owner->id,
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Pet Care policy profile',
+            'sex' => 'unknown',
+            'neutering_status' => 'unknown',
+        ]);
+
+        $this->actingAsWithQaContext($owner);
+        $this->assertTrue(Gate::allows('view', $pet));
+        $this->assertTrue(Gate::allows('update', $pet));
+
+        $this->removeRolePermission(
+            AuthorizationProfile::ROLE_SERVICE_USER,
+            'pet-care-clinic.pet-profiles.update-own',
+        );
+        $owner = $owner->fresh();
+        $this->actingAsWithQaContext($owner);
+        $this->assertTrue(Gate::allows('view', $pet));
+        $this->assertFalse(Gate::allows('update', $pet));
+
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'pet-care-clinic')
+            ->where('module_key', 'pet-profiles')
+            ->update(['enabled' => false, 'disabled_at' => now()]);
+        $this->assertFalse(Gate::allows('view', $pet));
+        $this->assertFalse(Gate::allows('update', $pet));
     }
 
     public function test_shelter_case_comment_only_owner_cannot_update_case_metadata_or_status(): void
@@ -209,8 +242,15 @@ class AuthorizationPolicyTest extends TestCase
             'case_type' => 'rescue',
             'title' => 'Policy case',
         ]);
+        $consultationPet = PetProfile::query()->create([
+            'user_id' => $owner->id,
+            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'name' => 'Policy Clinic Pet',
+            'sex' => 'unknown',
+            'neutering_status' => 'unknown',
+        ]);
         $consultation = PetCareConsultation::query()->create([
-            'pet_profile_id' => $pet->id,
+            'pet_profile_id' => $consultationPet->id,
             'user_id' => $owner->id,
             'subject' => 'Policy consultation',
         ]);

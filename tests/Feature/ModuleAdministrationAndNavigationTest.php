@@ -40,8 +40,8 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             ->get('/petcare')
             ->assertOk()
             ->assertSee('APES Pet Care Clinic')
-            ->assertSee('Pet Profiles')
-            ->assertSee('Consultations');
+            ->assertSeeInOrder(['Pet Profiles', 'Tickets', 'Consultations'])
+            ->assertSee(route('petcare.tickets.index'));
     }
 
     public function test_shared_navigation_and_dashboard_summaries_hide_disabled_instances(): void
@@ -95,13 +95,13 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             substr_count($response->getContent(), 'data-module-cell='),
         );
         $this->assertSame(
-            1,
+            0,
             substr_count(
                 $response->getContent(),
                 'data-code-status="code_not_shipped"',
             ),
         );
-        $response->assertSee('Code not shipped');
+        $response->assertDontSee('Code not shipped');
         $response->assertSee('Incompatible');
         $response->assertSeeText('shelter-rescue:pet-profiles (Enabled)');
         $response->assertDontSee('data-module-action-form', false);

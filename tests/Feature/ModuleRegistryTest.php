@@ -53,7 +53,7 @@ class ModuleRegistryTest extends TestCase
             'pet-care-clinic:cases' => ModuleCodeStatus::Incompatible,
             'pet-care-clinic:consultations' => ModuleCodeStatus::Shipped,
             'pet-care-clinic:pet-profiles' => ModuleCodeStatus::Shipped,
-            'pet-care-clinic:tickets' => ModuleCodeStatus::CodeNotShipped,
+            'pet-care-clinic:tickets' => ModuleCodeStatus::Shipped,
             'shelter-rescue:cases' => ModuleCodeStatus::Shipped,
             'shelter-rescue:consultations' => ModuleCodeStatus::Incompatible,
             'shelter-rescue:pet-profiles' => ModuleCodeStatus::Shipped,
@@ -70,6 +70,7 @@ class ModuleRegistryTest extends TestCase
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
+            'pet-care-clinic:tickets',
             'shelter-rescue:cases',
             'shelter-rescue:pet-profiles',
             'shelter-rescue:tickets',
@@ -85,7 +86,7 @@ class ModuleRegistryTest extends TestCase
         );
     }
 
-    public function test_shelter_navigation_orders_ticket_before_cases_without_changing_apes_cic(): void
+    public function test_navigation_orders_shipped_modules_for_each_sub_core(): void
     {
         $registry = app(ModuleRegistry::class);
 
@@ -108,6 +109,21 @@ class ModuleRegistryTest extends TestCase
             30,
             $registry->instance('shelter-rescue', 'cases')
                 ->module->navigation['shelter-rescue']->order,
+        );
+        $this->assertSame(
+            10,
+            $registry->instance('pet-care-clinic', 'pet-profiles')
+                ->module->navigation['pet-care-clinic']->order,
+        );
+        $this->assertSame(
+            20,
+            $registry->instance('pet-care-clinic', 'tickets')
+                ->module->navigation['pet-care-clinic']->order,
+        );
+        $this->assertSame(
+            30,
+            $registry->instance('pet-care-clinic', 'consultations')
+                ->module->navigation['pet-care-clinic']->order,
         );
     }
 
@@ -179,8 +195,8 @@ class ModuleRegistryTest extends TestCase
             );
         }
 
-        $unavailable = $registry->instance('pet-care-clinic', 'tickets');
-        $matrix['pet-care-clinic:tickets'] = new ModuleInstanceDefinition(
+        $unavailable = $registry->instance('pet-care-clinic', 'cases');
+        $matrix['pet-care-clinic:cases'] = new ModuleInstanceDefinition(
             $unavailable->subCore,
             $unavailable->module,
             $unavailable->codeStatus,
@@ -212,8 +228,8 @@ class ModuleRegistryTest extends TestCase
             $permissions,
         );
 
-        $this->assertCount(51, $permissions);
-        $this->assertCount(51, array_unique($names));
+        $this->assertCount(59, $permissions);
+        $this->assertCount(59, array_unique($names));
         $this->assertContains('apes-cic.cases.comment-own', $names);
         $this->assertContains('apes-cic.cases.delete', $names);
         $this->assertContains('apes-cic.tickets.view-own', $names);
@@ -223,6 +239,8 @@ class ModuleRegistryTest extends TestCase
         $this->assertContains('shelter-rescue.tickets.view-own', $names);
         $this->assertContains('shelter-rescue.tickets.delete', $names);
         $this->assertContains('pet-care-clinic.consultations.assign', $names);
+        $this->assertContains('pet-care-clinic.tickets.view-own', $names);
+        $this->assertContains('pet-care-clinic.tickets.delete', $names);
 
         foreach ($permissions as $permission) {
             $this->assertMatchesRegularExpression(
@@ -268,7 +286,7 @@ class ModuleRegistryTest extends TestCase
         $this->assertTrue(
             $profile->isSuperAdminOnlyPermission('admin.modules.manage'),
         );
-        $this->assertCount(64, $profile->permissions());
+        $this->assertCount(72, $profile->permissions());
         $this->assertFalse(
             $profile->isDirectoryRestrictedPermission(
                 'apes-cic.tickets.create',

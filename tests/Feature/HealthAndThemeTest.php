@@ -16,7 +16,7 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.14.0',
+                'version' => '0.15.0',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -50,7 +50,7 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.14.0',
+                'version' => '0.15.0',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -105,6 +105,30 @@ class HealthAndThemeTest extends TestCase
         $response->assertSee('href="'.route('public.register').'"', false);
         $response->assertSee('href="'.route('staff.login').'"', false);
         $response->assertDontSee('rel="mask-icon"', false);
+    }
+
+    public function test_public_entry_points_and_metadata_use_the_complete_pet_care_clinic_name(): void
+    {
+        foreach (['/'] as $path) {
+            $content = $this->get($path)
+                ->assertOk()
+                ->assertSeeText('APES Pet Care Clinic')
+                ->getContent();
+
+            $this->assertStringNotContainsString('>APES Pet Care<', $content);
+            $this->assertStringNotContainsString('and APES Pet Care.</p>', $content);
+        }
+
+        $this->view('auth.login')
+            ->assertSeeText('APES Pet Care Clinic')
+            ->assertDontSee('>APES Pet Care<', false)
+            ->assertDontSee('and APES Pet Care.</p>', false);
+
+        $this->get('/')
+            ->assertSee(
+                'content="MyAPES Account service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic."',
+                false,
+            );
     }
 
     public function test_authenticated_sidebar_is_role_aware(): void

@@ -51,24 +51,20 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
     public function test_the_source_controlled_runtime_manifest_represents_the_current_release(): void
     {
-        $result = app(ModuleRollbackCompatibilityChecker::class)
-            ->check(base_path());
         $manifest = json_decode(
             (string) file_get_contents(resource_path('data/module-runtime-contract.json')),
             true,
             flags: JSON_THROW_ON_ERROR,
         );
 
-        $this->assertSame('manifest', $result['contract']);
-        $this->assertSame(7, $result['installations']);
-        $this->assertSame('0.14.0', $result['target_version']);
-        $this->assertSame('0.14.0', trim((string) file_get_contents(base_path('VERSION'))));
-        $this->assertSame('0.14.0', $manifest['application_version']);
+        $this->assertSame('0.15.0', trim((string) file_get_contents(base_path('VERSION'))));
+        $this->assertSame('0.15.0', $manifest['application_version']);
         $this->assertSame([
             'apes-cic:cases',
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
+            'pet-care-clinic:tickets',
             'shelter-rescue:cases',
             'shelter-rescue:pet-profiles',
             'shelter-rescue:tickets',
@@ -80,6 +76,12 @@ class ModuleRollbackCompatibilityTest extends TestCase
             'shelter-rescue:cases',
             'shelter-rescue:pet-profiles',
         ], $manifest['legacy_visible_instances']);
+
+        $result = app(ModuleRollbackCompatibilityChecker::class)
+            ->check(base_path());
+        $this->assertSame('manifest', $result['contract']);
+        $this->assertSame(8, $result['installations']);
+        $this->assertSame('0.15.0', $result['target_version']);
     }
 
     public function test_a_legacy_target_without_a_manifest_requires_exactly_five_enabled_baselines(): void
@@ -90,6 +92,10 @@ class ModuleRollbackCompatibilityTest extends TestCase
             ->delete();
         ModuleInstallation::query()
             ->where('sub_core_key', 'shelter-rescue')
+            ->where('module_key', 'tickets')
+            ->delete();
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'pet-care-clinic')
             ->where('module_key', 'tickets')
             ->delete();
         $legacy = $this->temporaryRelease();
@@ -116,11 +122,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
     public function test_v0121_target_rejects_the_current_persisted_installations(): void
     {
-        $this->assertSame(
-            7,
-            app(ModuleRollbackCompatibilityChecker::class)
-                ->check(base_path())['installations'],
-        );
+        $this->assertSame(8, ModuleInstallation::query()->count());
 
         try {
             app(ModuleRollbackCompatibilityChecker::class)
@@ -134,7 +136,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
         }
     }
 
-    public function test_v0131_target_rejects_the_synchronized_seventh_installation_without_mutating_state(): void
+    public function test_v0131_target_rejects_the_synchronized_post_v0131_installations_without_mutating_state(): void
     {
         $target = $this->v0131Release();
         $before = DB::table('module_installations')->orderBy('id')->get();
@@ -150,6 +152,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
+            'pet-care-clinic:tickets',
             'shelter-rescue:cases',
             'shelter-rescue:pet-profiles',
             'shelter-rescue:tickets',
@@ -190,6 +193,47 @@ class ModuleRollbackCompatibilityTest extends TestCase
                 ->all(),
         );
         $this->assertTrue(ModuleInstallation::query()->get()->every->enabled);
+    }
+
+    public function test_v0140_target_rejects_the_disabled_eighth_installation_without_mutating_state(): void
+    {
+        $target = $this->v0140Release();
+        $petCareTickets = ModuleInstallation::query()
+            ->where('sub_core_key', 'pet-care-clinic')
+            ->where('module_key', 'tickets')
+            ->firstOrFail();
+        $petCareTickets->forceFill([
+            'enabled' => false,
+            'disabled_at' => now(),
+        ])->save();
+        $before = DB::table('module_installations')->orderBy('id')->get();
+
+        try {
+            app(ModuleRollbackCompatibilityChecker::class)->check($target);
+            $this->fail('The v0.14.0 target accepted the persisted eighth installation.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('target_contract_unrepresentable', $exception->reason);
+        }
+
+        $this->assertEquals(
+            $before,
+            DB::table('module_installations')->orderBy('id')->get(),
+        );
+
+        $this->artisan('myapes:modules:rollback-check', [
+            '--target-release' => $target,
+        ])
+            ->expectsOutputToContain(
+                'Module rollback compatibility: failed (target_contract_unrepresentable)',
+            )
+            ->assertFailed();
+
+        $this->assertEquals(
+            $before,
+            DB::table('module_installations')->orderBy('id')->get(),
+        );
+        $this->assertFalse($petCareTickets->refresh()->enabled);
+        $this->assertNotNull($petCareTickets->disabled_at);
     }
 
     public function test_malformed_or_unsafe_runtime_manifests_fail_closed(): void
@@ -284,6 +328,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             true,
             flags: JSON_THROW_ON_ERROR,
         );
+        $this->assertSame('0.15.0', $manifest['application_version']);
         file_put_contents(
             $target.'/resources/data/module-runtime-contract.json',
             json_encode([
@@ -312,7 +357,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             '--target-release' => base_path(),
         ])
             ->expectsOutputToContain(
-                'Module rollback compatibility: ok (manifest, 7 installations)',
+                'Module rollback compatibility: ok (manifest, 8 installations)',
             )
             ->assertSuccessful();
 
@@ -381,6 +426,39 @@ class ModuleRollbackCompatibilityTest extends TestCase
                     'pet-care-clinic:pet-profiles',
                     'shelter-rescue:cases',
                     'shelter-rescue:pet-profiles',
+                ],
+                'legacy_visible_instances' => [
+                    'apes-cic:tickets',
+                    'pet-care-clinic:consultations',
+                    'pet-care-clinic:pet-profiles',
+                    'shelter-rescue:cases',
+                    'shelter-rescue:pet-profiles',
+                ],
+            ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR),
+        );
+
+        return $path;
+    }
+
+    private function v0140Release(): string
+    {
+        $path = $this->temporaryRelease();
+        file_put_contents($path.'/VERSION', "0.14.0\n");
+        file_put_contents(
+            $path.'/resources/data/module-runtime-contract.json',
+            json_encode([
+                'schema_version' => 1,
+                'application_version' => '0.14.0',
+                'sub_cores' => ['apes-cic', 'pet-care-clinic', 'shelter-rescue'],
+                'module_types' => ['cases', 'consultations', 'pet-profiles', 'tickets'],
+                'shipped_instances' => [
+                    'apes-cic:cases',
+                    'apes-cic:tickets',
+                    'pet-care-clinic:consultations',
+                    'pet-care-clinic:pet-profiles',
+                    'shelter-rescue:cases',
+                    'shelter-rescue:pet-profiles',
+                    'shelter-rescue:tickets',
                 ],
                 'legacy_visible_instances' => [
                     'apes-cic:tickets',

@@ -1,12 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Pet Care Pet Profiles')
+@section('title', 'APES Pet Care Clinic Pet Profiles')
 
 @section('content')
     <div class="panel">
-        <span class="service-label apes-petcare">APES Pet Care</span>
+        <span class="service-label apes-petcare">APES Pet Care Clinic</span>
         <h1>Pet profiles</h1>
     </div>
+    @if($canCreatePet)
     <div class="panel">
         <h2>Add pet profile</h2>
         <form method="post" action="{{ route('petcare.pets.store') }}" enctype="multipart/form-data">
@@ -26,6 +27,7 @@
             <button type="submit">Save pet profile</button>
         </form>
     </div>
+    @endif
     <div class="panel">
         <h2>Profiles</h2>
         <table>
