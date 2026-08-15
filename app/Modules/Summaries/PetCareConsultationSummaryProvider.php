@@ -14,7 +14,9 @@ class PetCareConsultationSummaryProvider implements ModuleAggregateSummaryProvid
         ModuleInstanceDefinition $instance,
         User $user,
     ): ModuleSummary {
-        $query = PetCareConsultation::query()->visibleTo($user);
+        $query = PetCareConsultation::query()
+            ->forPetCareDomain()
+            ->visibleTo($user);
         $open = (clone $query)
             ->whereNull('closed_at')
             ->where('status', '<>', 'closed')

@@ -59,16 +59,24 @@ class ModuleAttentionProviderTest extends TestCase
             'subject' => 'Shelter attention ticket',
             'updated_at' => Carbon::parse('2026-08-14 11:00:00'),
         ]);
+        $petCare = $this->ticketFor($owner, [
+            'sub_core_key' => 'pet-care-clinic',
+            'service_area' => 'appointment',
+            'subject' => 'Pet Care attention ticket',
+            'updated_at' => Carbon::parse('2026-08-14 12:00:00'),
+        ]);
 
         $registry = app(ModuleRegistry::class);
         $apesInstance = $registry->instance('apes-cic', 'tickets');
         $shelterInstance = $registry->instance('shelter-rescue', 'tickets');
+        $petCareInstance = $registry->instance('pet-care-clinic', 'tickets');
         $this->actingAs($owner);
         /** @var ModuleAttentionProvider $provider */
         $provider = app($apesInstance->attentionProviderClass());
         $apesItems = $provider->attention($apesInstance, $owner, 6);
         $limited = $provider->attention($apesInstance, $owner, 1);
         $shelterItems = $provider->attention($shelterInstance, $owner, 6);
+        $petCareItems = $provider->attention($petCareInstance, $owner, 6);
 
         $this->assertSame(
             ['Newest APES attention ticket', 'APES attention ticket'],
@@ -94,6 +102,11 @@ class ModuleAttentionProviderTest extends TestCase
         $this->assertSame('APES Shelter and Rescue', $shelterItems[0]->service);
         $this->assertSame('shelter.tickets.show', $shelterItems[0]->routeName);
         $this->assertSame($shelter->id, $shelterItems[0]->recordId);
+        $this->assertCount(1, $petCareItems);
+        $this->assertSame('pet-care-clinic:tickets', $petCareItems[0]->instanceKey);
+        $this->assertSame('APES Pet Care Clinic', $petCareItems[0]->service);
+        $this->assertSame('petcare.tickets.show', $petCareItems[0]->routeName);
+        $this->assertSame($petCare->id, $petCareItems[0]->recordId);
     }
 
     public function test_case_attention_preserves_instance_open_semantics_copy_and_links(): void
@@ -173,7 +186,7 @@ class ModuleAttentionProviderTest extends TestCase
         $this->assertSame($shelter->id, $shelterItems[0]->recordId);
     }
 
-    public function test_consultation_attention_preserves_pet_care_compatibility_visibility_and_open_links(): void
+    public function test_consultation_attention_requires_exact_visibility_and_uses_clinic_open_links(): void
     {
         Carbon::setTestNow('2026-08-14 10:00:00');
         $owner = User::factory()->create(['name' => 'Consultation owner']);
@@ -216,49 +229,29 @@ class ModuleAttentionProviderTest extends TestCase
         $this->assertFalse($owner->can('pet-care-clinic.consultations.view-own'));
         $ownerItems = $provider->attention($instance, $owner);
 
-        $this->assertCount(1, $ownerItems);
-        $this->assertSame('pet-care-clinic:consultations', $ownerItems[0]->instanceKey);
-        $this->assertSame('consultation', $ownerItems[0]->type);
-        $this->assertSame('messages-square', $ownerItems[0]->icon);
-        $this->assertSame('APES Pet Care', $ownerItems[0]->service);
-        $this->assertSame('Consultation', $ownerItems[0]->label);
-        $this->assertSame('Open attention consultation', $ownerItems[0]->title);
-        $this->assertNull($ownerItems[0]->priority);
-        $this->assertStringStartsWith('Scheduled ', $ownerItems[0]->context);
-        $this->assertSame('Pet: Attention clinic pet', $ownerItems[0]->owner);
-        $this->assertSame(
-            'petcare.consultations.show',
-            $ownerItems[0]->routeName,
-        );
-        $this->assertSame($consultation->id, $ownerItems[0]->recordId);
+        $this->assertSame([], $ownerItems);
 
         $revokedStaff = $revokedStaff->fresh();
         $this->actingAs($revokedStaff);
         $this->assertTrue($revokedStaff->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS));
         $this->assertFalse($revokedStaff->can('pet-care-clinic.consultations.view-all'));
-        $this->assertSame(
-            collect([$consultation->id, $closedConsultation->id, $otherConsultation->id])
-                ->sort()
-                ->values()
-                ->all(),
-            PetCareConsultation::query()
-                ->visibleTo($revokedStaff)
-                ->pluck('id')
-                ->sort()
-                ->values()
-                ->all(),
-        );
-        $this->assertSame(
-            ['Open attention consultation', 'Other owner consultation'],
-            collect($provider->attention($instance, $revokedStaff))
-                ->pluck('title')
-                ->sort()
-                ->values()
-                ->all(),
-        );
+        $this->assertSame([], PetCareConsultation::query()
+            ->visibleTo($revokedStaff)
+            ->pluck('id')
+            ->all());
+        $this->assertSame([], $provider->attention($instance, $revokedStaff));
 
         $this->actingAs($exactStaff);
-        $this->assertCount(2, $provider->attention($instance, $exactStaff));
+        $exactItems = $provider->attention($instance, $exactStaff);
+        $this->assertCount(2, $exactItems);
+        $this->assertSame(
+            ['APES Pet Care Clinic'],
+            collect($exactItems)->pluck('service')->unique()->values()->all(),
+        );
+        $this->assertSame(
+            ['petcare.consultations.show'],
+            collect($exactItems)->pluck('routeName')->unique()->values()->all(),
+        );
     }
 
     private function ticketFor(User $owner, array $attributes = []): SupportTicket

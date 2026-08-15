@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\AuthorizationProfile;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -20,11 +19,40 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class PetCareConsultation extends Model
 {
+    public const PERMISSION_VIEW_OWN = 'pet-care-clinic.consultations.view-own';
+
+    public const PERMISSION_CREATE = 'pet-care-clinic.consultations.create';
+
+    public const PERMISSION_UPDATE_OWN = 'pet-care-clinic.consultations.update-own';
+
+    public const PERMISSION_VIEW_ALL = 'pet-care-clinic.consultations.view-all';
+
+    public const PERMISSION_UPDATE_ALL = 'pet-care-clinic.consultations.update-all';
+
+    public const PERMISSION_ASSIGN = 'pet-care-clinic.consultations.assign';
+
+    public const PERMISSION_CLOSE = 'pet-care-clinic.consultations.close';
+
+    public function scopeForPetCareDomain(Builder $query): Builder
+    {
+        return $query->whereHas(
+            'petProfile',
+            static fn (Builder $pets): Builder => $pets->where(
+                'service_domain',
+                PetProfile::DOMAIN_PETCARE,
+            ),
+        );
+    }
+
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        return $user->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS)
-            ? $query
-            : $query->where('user_id', $user->id);
+        if ($user->can(self::PERMISSION_VIEW_ALL)) {
+            return $query;
+        }
+
+        return $user->can(self::PERMISSION_VIEW_OWN)
+            ? $query->where('user_id', $user->id)
+            : $query->whereRaw('1 = 0');
     }
 
     protected function casts(): array

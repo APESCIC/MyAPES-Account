@@ -1,15 +1,16 @@
 @extends('layouts.app')
 
-@section('title', 'Pet Care Consultations')
+@section('title', 'APES Pet Care Clinic Consultations')
 
 @section('content')
     <div class="panel">
-        <span class="service-label apes-petcare">APES Pet Care</span>
+        <span class="service-label apes-petcare">APES Pet Care Clinic</span>
         <h1>Consultation management</h1>
     </div>
-    <div class="panel">
-        <h2>Create consultation</h2>
-        <form method="post" action="{{ route('petcare.consultations.store') }}">
+    @if($canCreate)
+        <div class="panel">
+            <h2>Create consultation</h2>
+            <form method="post" action="{{ route('petcare.consultations.store') }}">
             @csrf
             <div class="row">
                 <div>
@@ -30,8 +31,9 @@
             <label>Notes</label>
             <textarea name="notes"></textarea>
             <button type="submit">Create consultation</button>
-        </form>
-    </div>
+            </form>
+        </div>
+    @endif
     <div class="panel">
         <h2>Consultations</h2>
         <table>

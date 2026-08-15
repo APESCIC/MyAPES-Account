@@ -21,11 +21,12 @@ class PetProfileController extends Controller
         Gate::authorize('viewAny', PetProfile::class);
         $query = PetProfile::query()
             ->where('service_domain', PetProfile::DOMAIN_PETCARE)
-            ->visibleTo($user)
+            ->visibleTo($user, PetProfile::DOMAIN_PETCARE)
             ->latest();
 
         return view('petcare.pets.index', [
             'pets' => $query->paginate(20),
+            'canCreatePet' => $user->can('pet-care-clinic.pet-profiles.create'),
         ]);
     }
 
@@ -34,6 +35,8 @@ class PetProfileController extends Controller
         SecureUploadService $secureUploadService,
         AuditLogger $auditLogger
     ): RedirectResponse {
+        Gate::authorize('pet-care-clinic.pet-profiles.create');
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'species' => ['nullable', 'string', 'max:255'],
@@ -61,6 +64,8 @@ class PetProfileController extends Controller
         $pet->save();
         $auditLogger->record('petcare.pet_profile.created', $request->user(), $pet, [
             'has_photo' => $request->hasFile('photo'),
+            'sub_core_key' => 'pet-care-clinic',
+            'module_key' => 'pet-profiles',
         ]);
 
         return redirect()->route('petcare.pets.show', $pet);
@@ -70,7 +75,10 @@ class PetProfileController extends Controller
     {
         $this->authorizeDomainPet($pet, PetProfile::DOMAIN_PETCARE, 'view');
 
-        return view('petcare.pets.show', ['pet' => $pet]);
+        return view('petcare.pets.show', [
+            'pet' => $pet,
+            'canUpdatePet' => Gate::allows('update', $pet),
+        ]);
     }
 
     public function photo(
@@ -113,6 +121,8 @@ class PetProfileController extends Controller
         $pet->update($validated);
         $auditLogger->record('petcare.pet_profile.updated', $request->user(), $pet, [
             'photo_replaced' => $request->hasFile('photo'),
+            'sub_core_key' => 'pet-care-clinic',
+            'module_key' => 'pet-profiles',
         ]);
 
         return redirect()->route('petcare.pets.show', $pet)->with('status', 'Pet profile updated.');

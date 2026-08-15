@@ -15,9 +15,23 @@ class PetProfileRecentActivityProvider implements ModuleRecentActivityProvider
         User $user,
         int $limit = 5,
     ): array {
+        [$domain, $route] = match ($instance->subCore->key) {
+            'shelter-rescue' => [
+                PetProfile::DOMAIN_SHELTER,
+                'shelter.pets.show',
+            ],
+            'pet-care-clinic' => [
+                PetProfile::DOMAIN_PETCARE,
+                'petcare.pets.show',
+            ],
+            default => throw new \LogicException(
+                'Pet Profiles activity requested for an incompatible sub-core.',
+            ),
+        };
+
         return PetProfile::query()
-            ->where('service_domain', PetProfile::DOMAIN_SHELTER)
-            ->visibleTo($user, PetProfile::DOMAIN_SHELTER)
+            ->where('service_domain', $domain)
+            ->visibleTo($user, $domain)
             ->latest('updated_at')
             ->limit(max(0, min($limit, 5)))
             ->get()
@@ -29,7 +43,7 @@ class PetProfileRecentActivityProvider implements ModuleRecentActivityProvider
                 'active',
                 null,
                 $pet->updated_at,
-                'shelter.pets.show',
+                $route,
                 $pet->id,
             ))
             ->all();

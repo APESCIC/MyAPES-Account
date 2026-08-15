@@ -216,6 +216,25 @@ Route::middleware([
             ->defaults('subCoreKey', 'pet-care-clinic')
             ->middleware('service.selected:pet-care-clinic')
             ->name('index');
+        Route::middleware(['module.available:pet-care-clinic,tickets', 'service.selected:pet-care-clinic'])
+            ->group(function (): void {
+                Route::get('tickets', [TicketController::class, 'index'])
+                    ->defaults('subCoreKey', 'pet-care-clinic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.index');
+                Route::post('tickets', [TicketController::class, 'store'])
+                    ->defaults('subCoreKey', 'pet-care-clinic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.store');
+                Route::get('tickets/{ticket}', [TicketController::class, 'show'])
+                    ->defaults('subCoreKey', 'pet-care-clinic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.show');
+                Route::match(['put', 'patch'], 'tickets/{ticket}', [TicketController::class, 'update'])
+                    ->defaults('subCoreKey', 'pet-care-clinic')
+                    ->defaults('moduleKey', 'tickets')
+                    ->name('tickets.update');
+            });
         Route::middleware(['module.available:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
                 Route::get('pets/{pet}/photo', [PetCarePetProfileController::class, 'photo'])

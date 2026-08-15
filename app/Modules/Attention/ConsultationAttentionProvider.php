@@ -4,7 +4,6 @@ namespace App\Modules\Attention;
 
 use App\Contracts\ModuleAttentionProvider;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Models\User;
 use App\Modules\ModuleAttentionItem;
 use App\Modules\ModuleInstanceDefinition;
@@ -17,15 +16,10 @@ class ConsultationAttentionProvider implements ModuleAttentionProvider
         int $limit = 6,
     ): array {
         return PetCareConsultation::query()
+            ->forPetCareDomain()
             ->visibleTo($user)
             ->where('status', '<>', 'closed')
-            ->whereHas(
-                'petProfile',
-                static fn ($pets) => $pets->where(
-                    'service_domain',
-                    PetProfile::DOMAIN_PETCARE,
-                ),
-            )
+            ->whereNull('closed_at')
             ->with(['petProfile', 'user'])
             ->latest('updated_at')
             ->limit(max(0, $limit))
@@ -34,7 +28,7 @@ class ConsultationAttentionProvider implements ModuleAttentionProvider
                 $instance->key(),
                 'consultation',
                 'messages-square',
-                'APES Pet Care',
+                'APES Pet Care Clinic',
                 'Consultation',
                 $consultation->subject,
                 $consultation->status,

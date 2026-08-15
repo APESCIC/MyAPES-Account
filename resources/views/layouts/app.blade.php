@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'MyAPES Account')</title>
-    <meta name="description" content="MyAPES Account service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care.">
+    <meta name="description" content="MyAPES Account service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.">
     <meta property="og:type" content="website">
     <meta property="og:title" content="@yield('title', 'MyAPES Account')">
     <meta property="og:description" content="MyAPES Account service portal for APES CIC service users and staff.">

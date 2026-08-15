@@ -17,8 +17,9 @@ class AssignmentAuthorization
         Request $request,
         User $actor,
         Model $subject,
+        ?string $requiredPermission = null,
     ): void {
-        if ($this->allows($actor)) {
+        if ($this->allows($actor, $requiredPermission)) {
             return;
         }
 
@@ -37,11 +38,14 @@ class AssignmentAuthorization
         throw new AuthorizationException;
     }
 
-    public function allows(User $actor): bool
-    {
-        return $actor->can(
-            AuthorizationProfile::PERMISSION_STAFF_ACCESS,
-        )
+    public function allows(
+        User $actor,
+        ?string $requiredPermission = null,
+    ): bool {
+        $permission = $requiredPermission
+            ?? AuthorizationProfile::PERMISSION_STAFF_ACCESS;
+
+        return $actor->can($permission)
             && User::query()
                 ->eligibleStaff()
                 ->whereKey($actor->id)

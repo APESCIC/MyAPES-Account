@@ -1,15 +1,16 @@
 @extends('layouts.app')
 
-@section('title', 'Pet Care Pet: '.$pet->name)
+@section('title', 'APES Pet Care Clinic Pet: '.$pet->name)
 
 @section('content')
     <div class="panel">
-        <span class="service-label apes-petcare">APES Pet Care</span>
+        <span class="service-label apes-petcare">APES Pet Care Clinic</span>
         <h1>{{ $pet->name }}</h1>
         <p class="muted">{{ $pet->species }} | Age: {{ $pet->age_years ?? 'n/a' }} | {{ $pet->sex }} | {{ $pet->neutering_status }}</p>
         @if($pet->photo_path)
             <img src="{{ route('petcare.pets.photo', $pet) }}" alt="{{ $pet->name }}" class="record-photo">
         @endif
+        @if($canUpdatePet)
         <form method="post" action="{{ route('petcare.pets.update', $pet) }}" enctype="multipart/form-data" class="stack-spaced">
             @csrf
             @method('put')
@@ -30,5 +31,8 @@
                 <a href="{{ route('petcare.pets.index') }}">Back</a>
             </div>
         </form>
+        @else
+            <a href="{{ route('petcare.pets.index') }}">Back</a>
+        @endif
     </div>
 @endsection

@@ -164,7 +164,7 @@ class ShelterPetProfileWorkflowTest extends TestCase
             ->assertDontSee(asset('storage/'.$path), false);
     }
 
-    public function test_shelter_summary_is_exact_permission_scoped_while_pet_care_stays_compatible(): void
+    public function test_pet_profile_summaries_do_not_fall_back_after_namespaced_view_permissions_are_removed(): void
     {
         $owner = User::factory()->create();
         $this->shelterPetFor($owner, 'Shelter summary profile');
@@ -179,6 +179,10 @@ class ShelterPetProfileWorkflowTest extends TestCase
         $this->removeRolePermission(
             AuthorizationProfile::ROLE_SERVICE_USER,
             'shelter-rescue.pet-profiles.view-own',
+        );
+        $this->removeRolePermission(
+            AuthorizationProfile::ROLE_SERVICE_USER,
+            'pet-care-clinic.pet-profiles.view-own',
         );
         $owner = $owner->fresh();
         $this->actingAs($owner);
@@ -199,7 +203,7 @@ class ShelterPetProfileWorkflowTest extends TestCase
             $registry->instance('shelter-rescue', 'pet-profiles'),
             $owner,
         )->total);
-        $this->assertSame(1, $petCareProvider->summarize(
+        $this->assertSame(0, $petCareProvider->summarize(
             $registry->instance('pet-care-clinic', 'pet-profiles'),
             $owner,
         )->total);

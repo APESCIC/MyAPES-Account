@@ -111,6 +111,7 @@ class ModuleLifecycleTest extends TestCase
         foreach ([
             ['apes-cic', 'tickets', 'duplicate_installation'],
             ['shelter-rescue', 'tickets', 'duplicate_installation'],
+            ['pet-care-clinic', 'tickets', 'duplicate_installation'],
             ['apes-cic', 'pet-profiles', 'incompatible'],
         ] as [$subCore, $module, $reason]) {
             try {
@@ -125,7 +126,7 @@ class ModuleLifecycleTest extends TestCase
             }
         }
 
-        $this->assertDatabaseCount('module_installations', 7);
+        $this->assertDatabaseCount('module_installations', 8);
     }
 
     public function test_install_recreates_an_available_shipped_instance_with_actor_provenance(): void
@@ -241,6 +242,43 @@ class ModuleLifecycleTest extends TestCase
         $this->assertSame(1, $audit->context['active_record_count']);
     }
 
+    public function test_open_petcare_ticket_blocks_only_its_own_module_disablement(): void
+    {
+        $owner = User::factory()->create();
+        $ticket = SupportTicket::query()->create([
+            'sub_core_key' => 'pet-care-clinic',
+            'user_id' => $owner->id,
+            'service_area' => 'appointment',
+            'subject' => 'Retain this Pet Care ticket',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'Only Pet Care Tickets should be blocked.',
+        ]);
+
+        $petCareInstallation = $this->installation('pet-care-clinic', 'tickets');
+        try {
+            $this->lifecycle->disable(
+                $this->superAdmin,
+                'pet-care-clinic',
+                'tickets',
+                (int) $petCareInstallation->lock_version,
+            );
+            $this->fail('An open Pet Care ticket did not block disablement.');
+        } catch (ModuleLifecycleException $exception) {
+            $this->assertSame('active_records', $exception->reason);
+        }
+
+        $apesInstallation = $this->installation('apes-cic', 'tickets');
+        $disabled = $this->lifecycle->disable(
+            $this->superAdmin,
+            'apes-cic',
+            'tickets',
+            (int) $apesInstallation->lock_version,
+        );
+        $this->assertFalse($disabled->enabled);
+        $this->assertDatabaseHas('support_tickets', ['id' => $ticket->id]);
+    }
+
     public function test_an_active_shelter_ticket_blocks_only_the_shelter_ticket_installation(): void
     {
         $owner = User::factory()->create();
@@ -310,6 +348,15 @@ class ModuleLifecycleTest extends TestCase
             'priority' => 'medium',
             'status' => 'open',
             'description' => 'Active Shelter ticket.',
+        ]);
+        SupportTicket::query()->create([
+            'sub_core_key' => 'pet-care-clinic',
+            'user_id' => $owner->id,
+            'service_area' => 'appointment',
+            'subject' => 'Open Pet Care ticket',
+            'priority' => 'medium',
+            'status' => 'open',
+            'description' => 'Active Pet Care ticket.',
         ]);
         ShelterCase::query()->create([
             'pet_profile_id' => $shelterPet->id,

@@ -19,4 +19,19 @@ final readonly class ModuleAnalyticsSnapshot
         public ?float $medianClosureMinutes,
         public int $closureSampleSize,
     ) {}
+
+    public static function empty(string $instanceKey): self
+    {
+        return new self(
+            $instanceKey,
+            0,
+            0,
+            0,
+            0,
+            [],
+            [],
+            null,
+            0,
+        );
+    }
 }
