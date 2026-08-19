@@ -1,0 +1,50 @@
+name: Task
+description: Track a concrete piece of implementation or maintenance work
+title: "[Task]: "
+assignees:
+  - bmurphy-apescic
+type: Task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the work to complete. Remove credentials, personal data, and private operational details.
+        After opening, agents must still set Priority, Effort, milestone, relationships, and Development via GitHub MCP or `gh`.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should be done, and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Identify what should be included and excluded.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that would make this task complete.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link related issues, systems, or deadlines.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I removed credentials, personal data, and private operational details.
+          required: true

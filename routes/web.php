@@ -257,7 +257,7 @@ Route::middleware([
         ->middleware('admin.denial-audit')
         ->group(function (): void {
             Route::get('/', StaffAdminController::class)
-                ->middleware('can:admin.access')
+                ->middleware('can:admin.analytics.view')
                 ->name('index');
 
             Route::get('/users', [AdminUserController::class, 'index'])

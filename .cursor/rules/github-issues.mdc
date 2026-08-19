@@ -1,0 +1,20 @@
+---
+description: Fill complete GitHub issue metadata whenever creating or updating issues
+alwaysApply: true
+---
+
+# GitHub issue metadata
+
+Search this repository for duplicates before creating an issue. Never open issues in other repositories.
+
+Human issue templates cannot set custom fields, milestone, parent/sub-issues, or Development. After creating or updating a task, fill the sidebar completely with GitHub MCP `issue_write` / `gh` (call `list_issue_types` and `list_issue_fields` for `APESCIC/MyAPES-Account` first):
+
+- **Assignees:** the person doing the work (`bmurphy-apescic` unless another owner is named)
+- **Labels:** `bug`, `enhancement`, or `documentation` (create `chore` only if that label exists)
+- **Type:** `Task` | `Bug` | `Feature`
+- **Fields:** Priority (`Urgent` / `High` / `Medium` / `Low`), Effort (`High` / `Medium` / `Low`); Start date and Target date when known
+- **Milestone:** Public Release v1 (`milestone: 1`) for v1-scoped work
+- **Relationships:** parent/sub-issue via `sub_issue_write`; blocked-by when there is a real dependency
+- **Development:** branch `cursor/{feature|fix|chore}/<issue-number>-<short-slug>` and PR body `Fixes #<n>` or `Closes #<n>`
+
+Comment progress, blockers, and the branch/PR on the issue. Close with `state_reason` `completed`, `not_planned`, or `duplicate`.

@@ -48,6 +48,12 @@ class PetCareConsultationAnalyticsProvider implements ModuleAnalyticsProvider
             static fn (PetCareConsultation $consultation): bool => $consultation->status !== 'closed'
                 && $consultation->closed_at === null,
         );
+        $currentlyOpen = PetCareConsultation::query()
+            ->forPetCareDomain()
+            ->whereNull('closed_at')
+            ->where('status', '!=', 'closed')
+            ->get();
+        $closureMinutes = $this->closureMinutes($closed->all());
 
         return new ModuleAnalyticsSnapshot(
             $instance->key(),
@@ -57,8 +63,12 @@ class PetCareConsultationAnalyticsProvider implements ModuleAnalyticsProvider
             $open->whereNull('assigned_to')->count(),
             $this->perDay($created->all(), 'created_at', $timezone),
             $this->perDay($closed->all(), 'closed_at', $timezone),
-            $this->medianClosureMinutes($closed->all()),
+            $this->median($closureMinutes),
             $closed->count(),
+            $currentlyOpen->count(),
+            0,
+            $currentlyOpen->whereNull('assigned_to')->count(),
+            $closureMinutes,
         );
     }
 
@@ -81,22 +91,26 @@ class PetCareConsultationAnalyticsProvider implements ModuleAnalyticsProvider
     }
 
     /** @param array<int, PetCareConsultation> $records */
-    private function medianClosureMinutes(array $records): ?float
+    private function closureMinutes(array $records): array
     {
-        if ($records === []) {
-            return null;
-        }
-
-        $durations = array_map(
+        return array_map(
             static fn (PetCareConsultation $consultation): float => $consultation->created_at
                 ->diffInMinutes($consultation->closed_at),
             $records,
         );
-        sort($durations, SORT_NUMERIC);
-        $middle = intdiv(count($durations), 2);
+    }
 
-        return count($durations) % 2 === 1
-            ? (float) $durations[$middle]
-            : ($durations[$middle - 1] + $durations[$middle]) / 2;
+    /** @param array<int, float> $values */
+    private function median(array $values): ?float
+    {
+        if ($values === []) {
+            return null;
+        }
+        sort($values, SORT_NUMERIC);
+        $middle = intdiv(count($values), 2);
+
+        return count($values) % 2 === 1
+            ? (float) $values[$middle]
+            : ($values[$middle - 1] + $values[$middle]) / 2;
     }
 }

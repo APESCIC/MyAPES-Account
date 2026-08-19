@@ -16,6 +16,10 @@ class LaravelMaintenanceModeGateway implements MaintenanceModeGateway
 
     public function data(): array
     {
+        if (! $this->maintenanceMode->active()) {
+            return [];
+        }
+
         return $this->maintenanceMode->data();
     }
 

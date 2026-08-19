@@ -7,6 +7,7 @@ final readonly class ModuleAnalyticsSnapshot
     /**
      * @param  array<string, int>  $createdPerDay
      * @param  array<string, int>  $closedPerDay
+     * @param  array<int, float>  $closureMinutes
      */
     public function __construct(
         public string $instanceKey,
@@ -18,6 +19,10 @@ final readonly class ModuleAnalyticsSnapshot
         public array $closedPerDay,
         public ?float $medianClosureMinutes,
         public int $closureSampleSize,
+        public int $currentlyOpen = 0,
+        public int $currentlyHighOrUrgent = 0,
+        public int $currentlyUnassigned = 0,
+        public array $closureMinutes = [],
     ) {}
 
     public static function empty(string $instanceKey): self
@@ -32,6 +37,10 @@ final readonly class ModuleAnalyticsSnapshot
             [],
             null,
             0,
+            0,
+            0,
+            0,
+            [],
         );
     }
 }
