@@ -21,9 +21,11 @@ class AccessCompatibilityMigrationTest extends TestCase
     {
         parent::setUp();
 
-        $this->runInMaintenanceMode(
-            fn () => $this->phaseBMigration()->down(),
-        );
+        if (Schema::hasTable('role_sources')) {
+            $this->runInMaintenanceMode(
+                fn () => $this->phaseBMigration()->down(),
+            );
+        }
     }
 
     public function test_fresh_install_adds_access_compatibility_columns_without_removing_role(): void

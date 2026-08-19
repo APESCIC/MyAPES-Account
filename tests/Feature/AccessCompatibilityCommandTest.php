@@ -22,9 +22,11 @@ class AccessCompatibilityCommandTest extends TestCase
     {
         parent::setUp();
 
-        $this->runInMaintenanceMode(
-            fn () => $this->phaseBMigration()->down(),
-        );
+        if (Schema::hasTable('role_sources')) {
+            $this->runInMaintenanceMode(
+                fn () => $this->phaseBMigration()->down(),
+            );
+        }
     }
 
     public function test_command_reconciles_compatibility_fields_from_legacy_sources(): void

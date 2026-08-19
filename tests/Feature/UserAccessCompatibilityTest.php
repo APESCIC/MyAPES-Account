@@ -20,9 +20,11 @@ class UserAccessCompatibilityTest extends TestCase
     {
         parent::setUp();
 
-        $this->runInMaintenanceMode(
-            fn () => $this->phaseBMigration()->down(),
-        );
+        if (Schema::hasTable('role_sources')) {
+            $this->runInMaintenanceMode(
+                fn () => $this->phaseBMigration()->down(),
+            );
+        }
     }
 
     public function test_access_level_reads_legacy_value_and_dual_writes_role_when_present(): void

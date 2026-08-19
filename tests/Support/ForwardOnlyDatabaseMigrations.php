@@ -17,8 +17,6 @@ trait ForwardOnlyDatabaseMigrations
         $this->afterRefreshingDatabase();
 
         $this->beforeApplicationDestroyed(function (): void {
-            $this->rollBackDatabaseMigrations();
-
             RefreshDatabaseState::$migrated = false;
         });
     }

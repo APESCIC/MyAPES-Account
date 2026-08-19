@@ -51,6 +51,10 @@ class ReleaseHistoryRepository
 
     public function readVersionFile(string $path): string
     {
+        if (! is_file($path)) {
+            throw new RuntimeException("Unable to read version file [{$path}].");
+        }
+
         $contents = file_get_contents($path);
 
         if (! is_string($contents)) {
@@ -65,6 +69,10 @@ class ReleaseHistoryRepository
      */
     public function readReleaseFile(string $path): array
     {
+        if (! is_file($path)) {
+            throw new RuntimeException("Unable to read release file [{$path}].");
+        }
+
         $contents = file_get_contents($path);
 
         if (! is_string($contents)) {
