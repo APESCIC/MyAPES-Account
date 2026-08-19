@@ -15,7 +15,7 @@
     <meta name="twitter:title" content="@yield('title', 'MyAPES Account')">
     <meta name="twitter:description" content="MyAPES Account service portal for APES CIC service users and staff.">
     <meta name="twitter:image" content="{{ asset('social/og-image-1200x630.jpg') }}">
-    <meta name="theme-color" content="#f7f1e3">
+    <meta name="theme-color" content="#f3e4c4">
     <meta name="msapplication-config" content="{{ asset('browserconfig.xml') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicons/favicon-16x16.png') }}">
@@ -43,7 +43,14 @@
 
 <header class="mobile-header">
     <a href="{{ route('home') }}" class="mobile-brand" aria-label="MyAPES Account home">
-        <img src="{{ asset('branding/logo-myapes-account.png') }}" alt="">
+        <img
+            src="{{ asset('branding/logo-myapes-account.png') }}"
+            srcset="{{ asset('logos/myapes-mark-256x256.png') }} 256w, {{ asset('branding/logo-myapes-account.png') }} 1024w"
+            sizes="3.2rem"
+            width="1024"
+            height="1024"
+            alt=""
+        >
         <span><strong>MyAPES</strong> Account</span>
     </a>
     <button
@@ -66,7 +73,14 @@
             </button>
 
             <a href="{{ route('home') }}" class="sidebar-brand" aria-label="MyAPES Account home">
-                <img src="{{ asset('branding/logo-myapes-account.png') }}" alt="MyAPES Account">
+                <img
+                    src="{{ asset('branding/logo-myapes-account.png') }}"
+                    srcset="{{ asset('logos/myapes-mark-256x256.png') }} 256w, {{ asset('branding/logo-myapes-account.png') }} 1024w"
+                    sizes="(max-width: 64rem) 8.5rem, 10.75rem"
+                    width="1024"
+                    height="1024"
+                    alt="MyAPES Account"
+                >
             </a>
 
             <nav class="primary-nav" aria-label="Primary navigation">
@@ -214,5 +228,19 @@
 </footer>
     </div>
 </div>
+@if($mascotTip)
+    <aside
+        class="mascot-dock"
+        data-mascot-dock
+        data-mascot-route="{{ $mascotTip['route'] }}"
+        aria-label="Tip from Spike, the MyAPES bearded dragon"
+    >
+        <img src="{{ asset('mascot/spike.svg') }}" alt="" class="mascot-dock__avatar" width="128" height="128">
+        <div class="mascot-dock__bubble">
+            <p><strong>{{ $mascotTip['title'] }}</strong> {{ $mascotTip['body'] }}</p>
+            <button type="button" class="mascot-dock__dismiss" data-mascot-dismiss>Hide tip</button>
+        </div>
+    </aside>
+@endif
 </body>
 </html>

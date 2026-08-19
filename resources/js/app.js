@@ -47,7 +47,7 @@ const applyTheme = (theme, persist = false) => {
 
     document.documentElement.dataset.theme = normalizedTheme;
     document.documentElement.style.colorScheme = normalizedTheme;
-    themeColor?.setAttribute('content', normalizedTheme === 'dark' ? '#021b20' : '#f7f1e3');
+    themeColor?.setAttribute('content', normalizedTheme === 'dark' ? '#1c1914' : '#f3e4c4');
 
     if (themeToggle) {
         const isDark = normalizedTheme === 'dark';
@@ -175,3 +175,42 @@ document.addEventListener('keydown', (event) => {
 sidebarMedia.addEventListener('change', () => {
     setSidebarOpen(false, false);
 });
+
+const mascotStorageKey = 'myapes-mascot-dismissed';
+const mascotDock = document.querySelector('[data-mascot-dock]');
+const mascotDismiss = document.querySelector('[data-mascot-dismiss]');
+
+const readDismissedMascotRoutes = () => {
+    try {
+        const stored = JSON.parse(localStorage.getItem(mascotStorageKey) ?? '[]');
+
+        return Array.isArray(stored) ? stored.filter((value) => typeof value === 'string') : [];
+    } catch {
+        return [];
+    }
+};
+
+if (mascotDock instanceof HTMLElement) {
+    const routeName = mascotDock.dataset.mascotRoute ?? '';
+
+    if (routeName !== '' && readDismissedMascotRoutes().includes(routeName)) {
+        mascotDock.hidden = true;
+    }
+
+    mascotDismiss?.addEventListener('click', () => {
+        if (routeName === '') {
+            return;
+        }
+
+        const dismissed = new Set(readDismissedMascotRoutes());
+        dismissed.add(routeName);
+
+        try {
+            localStorage.setItem(mascotStorageKey, JSON.stringify([...dismissed]));
+        } catch {
+            // The tip still hides for this page when storage is unavailable.
+        }
+
+        mascotDock.hidden = true;
+    });
+}

@@ -6,6 +6,7 @@
     <div class="panel">
         <h1>Complete your account setup</h1>
         <p class="muted">Confirm your UK contact details, services, and optional contact choices.</p>
+        <x-mascot-tip />
         <form method="post" action="{{ route('onboarding.update') }}">
             @csrf
             @method('put')

@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="panel">
-        <img src="{{ asset('mascot/bearded-dragon-natural.png') }}" alt="A realistic bearded dragon resting in a natural habitat" class="hero-image" width="1400" height="1120">
+        <img src="{{ asset('mascot/spike-welcome.png') }}" alt="Spike, the cartoon MyAPES bearded dragon mascot" class="hero-image" width="1024" height="1024">
         <h1>Staff sign in</h1>
         <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.</p>
         <div class="grid">

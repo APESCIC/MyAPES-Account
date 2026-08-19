@@ -6,6 +6,7 @@
     <div class="panel">
         <h1>Create public account</h1>
         <p class="muted">Register to access services, your profile, and your pets.</p>
+        <x-mascot-tip />
         <form method="post" action="{{ route('public.register.submit') }}">
             @csrf
             <label for="name">Full name</label>

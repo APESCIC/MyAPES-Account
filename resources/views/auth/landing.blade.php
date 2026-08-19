@@ -4,10 +4,12 @@
 
 @section('content')
     <div class="panel">
-        <img src="{{ asset('branding/logo-myapes-account.png') }}" alt="MyAPES Account" class="logo-hero">
-        <img src="{{ asset('mascot/bearded-dragon-natural.png') }}" alt="A realistic bearded dragon resting in a natural habitat" class="hero-image" width="1400" height="1120">
-        <h1>Welcome to MyAPES Account</h1>
+        <h1 class="welcome-heading">
+            Welcome to MyAPES Account
+            <img src="{{ asset('mascot/spike-welcome.png') }}" alt="" class="welcome-heading__mascot" width="1024" height="1024">
+        </h1>
         <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.</p>
+        <x-mascot-tip />
         <div class="grid">
             <div class="panel panel-flat">
                 <span class="service-label apes-cic">APES CIC</span>

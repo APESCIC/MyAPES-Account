@@ -7,6 +7,7 @@
         <span class="service-label {{ $ticketService->presentationClass }}">{{ $ticketService->serviceName }}</span>
         <h1>{{ $ticketService->heading }}</h1>
         <p class="muted">{{ $ticketService->supportingCopy }}</p>
+        <x-mascot-tip />
     </div>
     @if($canCreateTicket)
         <div class="panel">

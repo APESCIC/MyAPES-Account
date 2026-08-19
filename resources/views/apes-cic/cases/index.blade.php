@@ -7,6 +7,7 @@
         <span class="service-label apes-cic">APES CIC</span>
         <h1>Cases</h1>
         <p class="muted">Track membership, operations, complaints and welfare casework.</p>
+        <x-mascot-tip />
     </div>
     @if($canCreateCase)
         <div class="panel">
@@ -42,7 +43,11 @@
     <div class="panel">
         <h2>Your available cases</h2>
         @if($cases->isEmpty())
-            <p class="muted">No cases are available to you yet.</p>
+            <x-mascot-tip
+                variant="empty"
+                title="No cases are available to you yet."
+                body="When a case is shared with you, or you open one, it will appear here."
+            />
         @else
             <table>
                 <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Status</th><th>Priority</th><th>Owner</th><th></th></tr></thead>

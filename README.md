@@ -187,11 +187,13 @@ The generator preserves the supplied square animal artwork for the sidebar and v
 
 | Asset | Purpose |
 | --- | --- |
-| `public/mascot/bearded-dragon-natural.png` | Photorealistic dashboard and landing portrait generated for the approved Naturalist Notebook design |
+| `public/mascot/spike-welcome.png` | Cartoon Spike portrait for landing, staff sign-in, and the dashboard identity card |
+| `public/mascot/spike-tip.png` | Smaller Spike artwork for in-page help callouts |
+| `public/mascot/spike.svg` | Compact Spike mark for the dismissible helper dock |
 
-The portrait is intentionally unnamed and is presented as a realistic animal rather than an anthropomorphic character.
+Spike is a named cartoon helper who offers short operational tips. Page-keyed copy lives in `app/Support/MascotTips.php`. Guests and signed-in users can hide the dock for the current page; that choice is stored locally as `myapes-mascot-dismissed`. Admin and change-log pages do not show the dock.
 
-The interface uses a light-first Naturalist Notebook theme with a persistent deep-teal desktop sidebar and an accessible mobile drawer. A saved colour-theme choice is stored locally in the browser as `myapes-theme`; the first visit always starts in light mode.
+The interface uses a light-first desert theme with a sun-baked earth sidebar, sand canvas, clay and sage accents, and teal as the oasis focus colour. A saved colour-theme choice is stored locally in the browser as `myapes-theme`; the first visit always starts in light mode.
 ### Browser, PWA, and social assets
 
 | Asset | Purpose |

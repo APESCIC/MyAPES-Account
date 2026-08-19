@@ -6,6 +6,7 @@
     <div class="panel">
         <h1>Public Login</h1>
         <p class="muted">Sign in to access your services, profile, and pet records.</p>
+        <x-mascot-tip />
         <form method="post" action="{{ route('public.login.submit') }}">
             @csrf
             <label for="login">Username or email</label>
