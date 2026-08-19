@@ -3,12 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\OnboardingController;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\RoleSource;
+use App\Models\StaffProfile;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\AuthorizationMutationService;
 use App\Services\AuthorizationProfile;
+use App\Services\ContactPreferenceUpdater;
+use App\Services\SecureUploadService;
+use App\Services\StaffProfilePhotoResponder;
+use App\Services\UkPhoneNumber;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +24,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminUserController extends Controller
 {
@@ -26,12 +34,12 @@ class AdminUserController extends Controller
     ): View {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
+            'account_type' => ['nullable', Rule::in(['public', 'staff'])],
             'identity_type' => [
                 'nullable',
                 Rule::in([
                     User::IDENTITY_LOCAL,
                     User::IDENTITY_CLOUDRON_OIDC,
-                    User::IDENTITY_HYBRID,
                 ]),
             ],
             'status' => ['nullable', Rule::in(['active', 'suspended'])],
@@ -55,6 +63,27 @@ class AdminUserController extends Controller
 
         if (isset($filters['identity_type'])) {
             $query->where('identity_type', $filters['identity_type']);
+        }
+
+        $staffRoles = [
+            AuthorizationProfile::ROLE_STAFF,
+            AuthorizationProfile::ROLE_ADMINISTRATOR,
+            AuthorizationProfile::ROLE_SUPER_ADMIN,
+        ];
+        if (($filters['account_type'] ?? null) === 'staff') {
+            $query->whereHas(
+                'roles',
+                static fn ($query) => $query
+                    ->where('roles.guard_name', 'web')
+                    ->whereIn('roles.name', $staffRoles),
+            );
+        } elseif (($filters['account_type'] ?? null) === 'public') {
+            $query->whereDoesntHave(
+                'roles',
+                static fn ($query) => $query
+                    ->where('roles.guard_name', 'web')
+                    ->whereIn('roles.name', $staffRoles),
+            );
         }
 
         if (($filters['status'] ?? null) === 'active') {
@@ -83,7 +112,6 @@ class AdminUserController extends Controller
             'identityTypes' => [
                 User::IDENTITY_LOCAL => 'Local',
                 User::IDENTITY_CLOUDRON_OIDC => 'Cloudron OIDC',
-                User::IDENTITY_HYBRID => 'Hybrid',
             ],
             'protectedRoles' => $profile->protectedRolesByPrecedence(),
             'authorizationProfile' => $profile,
@@ -98,6 +126,10 @@ class AdminUserController extends Controller
         Gate::authorize('admin.users.view');
         $managedUser = User::query()->findOrFail($user);
         $managedUser->load([
+            'profile',
+            'staffProfile',
+            'contactPreference',
+            'serviceSelections',
             'permissions' => fn ($query) => $query->orderBy('name'),
             'permissionSources' => fn ($query) => $query
                 ->with(['permission', 'actor'])
@@ -177,6 +209,20 @@ class AdminUserController extends Controller
                 User::IDENTITY_HYBRID => 'Hybrid',
                 default => 'Unknown',
             },
+            'isStaffAccount' => app(AuthorizationProfile::class)
+                ->hasDirectoryProtectedEligibility($managedUser),
+            'teams' => [
+                StaffProfile::TEAM_APES_CIC => 'APES CIC',
+                StaffProfile::TEAM_SHELTER_RESCUE => 'APES Shelter and Rescue',
+                StaffProfile::TEAM_PET_CARE_CLINIC => 'APES Pet Care Clinic',
+                StaffProfile::TEAM_OPERATIONS => 'Operations',
+            ],
+            'selectedServices' => $managedUser->serviceSelections
+                ->pluck('sub_core_key')
+                ->all(),
+            'preference' => $managedUser->contactPreference,
+            'profile' => $managedUser->profile,
+            'staffProfile' => $managedUser->staffProfile,
         ]);
     }
 
@@ -265,5 +311,162 @@ class AdminUserController extends Controller
         return redirect()
             ->route('admin.users.show', $user)
             ->with('status', 'User reactivated.');
+    }
+
+    public function updateProfile(
+        Request $request,
+        string $user,
+        AuthorizationProfile $profile,
+        AuthorizationMutationService $mutations,
+        SecureUploadService $secureUploadService,
+        AuditLogger $auditLogger,
+        ContactPreferenceUpdater $preferences,
+        OnboardingController $onboarding,
+        UkPhoneNumber $phones,
+    ): RedirectResponse {
+        Gate::authorize('admin.users.manage');
+        $managedUser = User::query()->findOrFail($user);
+        abort_unless($mutations->canManageTarget($request->user(), $managedUser), 403);
+        abort_if($profile->hasDirectoryProtectedEligibility($managedUser), 403);
+
+        $onboarding->normalizePhones($request, $phones);
+        $validated = $request->validate([
+            'preferred_name' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'organization' => ['nullable', 'string', 'max:255'],
+            'support_needs' => ['nullable', 'string'],
+            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'address_line_1' => ['required', 'string', 'max:255'],
+            'address_line_2' => ['nullable', 'string', 'max:255'],
+            'town_city' => ['required', 'string', 'max:255'],
+            'county' => ['nullable', 'string', 'max:255'],
+            'postcode' => ['required', 'string', 'max:16', 'regex:/^[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}$/'],
+            'mobile_number' => ['required', 'string', 'max:32', 'regex:/^\+44\d{9,10}$/'],
+            'landline_number' => ['nullable', 'string', 'max:32', 'regex:/^\+44\d{9,10}$/'],
+            'whatsapp_number' => ['nullable', 'string', 'max:32', 'regex:/^\+44\d{9,10}$/'],
+            'telegram_username' => ['nullable', 'string', 'max:32', 'regex:/^[A-Za-z0-9_]{5,32}$/'],
+            'services' => ['required', 'array', 'min:1'],
+            'services.*' => ['string', Rule::in(['apes-cic', 'shelter-rescue', 'pet-care-clinic'])],
+            'contact_preferences_confirmed' => ['accepted'],
+        ]);
+
+        $existingProfile = $managedUser->profile;
+        $previousAvatarPath = $existingProfile?->avatar_path;
+        $payload = [
+            'preferred_name' => $validated['preferred_name'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'organization' => $validated['organization'] ?? null,
+            'support_needs' => $validated['support_needs'] ?? null,
+        ] + $onboarding->profilePayload($validated);
+
+        if ($request->hasFile('avatar')) {
+            $payload['avatar_path'] = $secureUploadService->storeImage(
+                $request->file('avatar'),
+                'avatars',
+                'avatar',
+            );
+        }
+
+        $userProfile = $managedUser->profile()->updateOrCreate(
+            ['user_id' => $managedUser->id],
+            $payload,
+        );
+        $managedUser->serviceSelections()->whereNotIn('sub_core_key', $validated['services'])->delete();
+        foreach ($validated['services'] as $service) {
+            $managedUser->serviceSelections()->firstOrCreate(['sub_core_key' => $service]);
+        }
+        $preferences->update(
+            $managedUser,
+            $request->user(),
+            $onboarding->contactChoices($request),
+            'preferences',
+        );
+
+        if ($request->hasFile('avatar') && is_string($previousAvatarPath) && $previousAvatarPath !== '' && $previousAvatarPath !== $userProfile->avatar_path) {
+            $secureUploadService->deleteIfPresent($previousAvatarPath);
+        }
+
+        $auditLogger->record('profile.updated', $request->user(), $userProfile, [
+            'target_user_id' => $managedUser->id,
+            'avatar_updated' => $request->hasFile('avatar'),
+        ]);
+
+        return redirect()
+            ->route('admin.users.show', $managedUser)
+            ->with('status', 'Public profile updated.');
+    }
+
+    public function updateStaffProfile(
+        Request $request,
+        string $user,
+        AuthorizationProfile $profile,
+        AuthorizationMutationService $mutations,
+        SecureUploadService $secureUploadService,
+        AuditLogger $auditLogger,
+        UkPhoneNumber $phones,
+    ): RedirectResponse {
+        Gate::authorize('admin.users.manage');
+        $managedUser = User::query()->findOrFail($user);
+        abort_unless($mutations->canManageTarget($request->user(), $managedUser), 403);
+        abort_unless($profile->hasDirectoryProtectedEligibility($managedUser), 403);
+
+        $request->merge([
+            'work_phone' => $phones->normalize($request->input('work_phone'), 'work_phone', false),
+        ]);
+        $validated = $request->validate([
+            'job_title' => ['nullable', 'string', 'max:255'],
+            'team' => ['nullable', 'string', Rule::in(StaffProfile::teams())],
+            'work_phone' => ['nullable', 'string', 'max:32', 'regex:/^\+44\d{9,10}$/'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+        ]);
+
+        $existing = $managedUser->staffProfile;
+        $previousPhotoPath = $existing?->photo_path;
+        $payload = [
+            'job_title' => $validated['job_title'] ?? null,
+            'team' => $validated['team'] ?? null,
+            'work_phone' => $validated['work_phone'] ?? null,
+        ];
+
+        if ($request->hasFile('photo')) {
+            $payload['photo_path'] = $secureUploadService->storeImage(
+                $request->file('photo'),
+                'staff-photos',
+                'photo',
+            );
+        }
+
+        $staffProfile = $managedUser->staffProfile()->updateOrCreate(
+            ['user_id' => $managedUser->id],
+            $payload,
+        );
+
+        if (
+            $request->hasFile('photo')
+            && is_string($previousPhotoPath)
+            && $previousPhotoPath !== ''
+            && $previousPhotoPath !== $staffProfile->photo_path
+        ) {
+            $secureUploadService->deleteIfPresent($previousPhotoPath);
+        }
+
+        $auditLogger->record('staff_profile.updated', $request->user(), $staffProfile, [
+            'target_user_id' => $managedUser->id,
+            'photo_updated' => $request->hasFile('photo'),
+        ]);
+
+        return redirect()
+            ->route('admin.users.show', $managedUser)
+            ->with('status', 'Staff profile updated.');
+    }
+
+    public function staffPhoto(
+        string $user,
+        StaffProfilePhotoResponder $photos,
+    ): StreamedResponse {
+        Gate::authorize('admin.users.view');
+        $managedUser = User::query()->findOrFail($user);
+
+        return $photos->response($managedUser->staffProfile);
     }
 }

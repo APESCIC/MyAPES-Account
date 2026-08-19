@@ -59,12 +59,12 @@ class AuthorizationAuthenticationTest extends TestCase
         ]);
     }
 
-    public function test_hybrid_password_login_is_limited_to_public_account_access(): void
+    public function test_staff_eligible_password_login_is_blocked_on_the_public_form(): void
     {
         $user = User::factory()->accessLevel(User::ROLE_ADMIN)->create([
             'email' => 'hybrid@example.com',
             'password' => 'hybrid-password',
-            'identity_type' => User::IDENTITY_HYBRID,
+            'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
             'oidc_sub' => 'hybrid-subject',
         ]);
 
@@ -73,23 +73,12 @@ class AuthorizationAuthenticationTest extends TestCase
             'password' => 'hybrid-password',
         ]);
 
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame(
-            route('dashboard'),
-            $response->headers->get('Location'),
-        );
-        $response->assertSessionHas(
-            'myapes.authentication_method',
-            'password',
-        );
-        $response->assertSessionHas(
-            'myapes.authorization_epoch',
-            $user->authorization_epoch,
-        );
-        $this->assertAuthenticatedAs($user);
-
-        $this->get(route('dashboard'))->assertOk();
-        $this->get(route('admin.index'))->assertForbidden();
+        $response->assertRedirect(route('staff.login'));
+        $this->assertGuest();
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'auth.public_login_blocked_for_staff',
+            'user_id' => $user->id,
+        ]);
     }
 
     public function test_remembered_public_login_restores_a_current_password_context(): void
@@ -130,39 +119,23 @@ class AuthorizationAuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_remembered_hybrid_password_login_restores_only_public_account_access(): void
+    public function test_remembered_staff_password_login_is_not_accepted_on_public_routes(): void
     {
         $user = User::factory()
             ->accessLevel(User::ROLE_ADMIN)
             ->create([
                 'email' => 'remembered-hybrid@example.com',
                 'password' => 'remembered-hybrid-password',
-                'identity_type' => User::IDENTITY_HYBRID,
+                'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
                 'oidc_sub' => 'remembered-hybrid-subject',
             ]);
 
-        $login = $this->post(route('public.login.submit'), [
+        $this->post(route('public.login.submit'), [
             'email' => $user->email,
             'password' => 'remembered-hybrid-password',
             'remember' => '1',
-        ]);
-        $recallerName = Auth::guard()->getRecallerName();
-        $recaller = $login->getCookie($recallerName);
-        $this->assertNotNull($recaller);
+        ])->assertRedirect(route('staff.login'));
 
-        session()->flush();
-        Auth::forgetGuards();
-
-        $response = $this
-            ->withCookie($recallerName, $recaller->getValue())
-            ->get(route('dashboard'));
-
-        $this->assertSame(200, $response->getStatusCode());
-        $response->assertSessionHas(
-            'myapes.authentication_method',
-            'password',
-        );
-        $this->assertAuthenticatedAs($user);
-        $this->get(route('admin.index'))->assertForbidden();
+        $this->assertGuest();
     }
 }

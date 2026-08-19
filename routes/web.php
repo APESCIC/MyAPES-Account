@@ -105,8 +105,7 @@ Route::middleware([
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::post('/profile/link-cloudron', [OidcAuthController::class, 'startLink'])
-        ->name('profile.oidc-link.start');
+    Route::get('/profile/staff-photo', [ProfileController::class, 'staffPhoto'])->name('profile.staff-photo');
 
     Route::prefix('apes-cic')->name('apes-cic.')->group(function (): void {
         Route::get('/', [SubCoreController::class, 'show'])
@@ -267,6 +266,15 @@ Route::middleware([
             Route::get('/users/{user}', [AdminUserController::class, 'show'])
                 ->middleware('can:admin.users.view')
                 ->name('users.show');
+            Route::put('/users/{user}/profile', [AdminUserController::class, 'updateProfile'])
+                ->middleware('can:admin.users.manage')
+                ->name('users.profile.update');
+            Route::put('/users/{user}/staff-profile', [AdminUserController::class, 'updateStaffProfile'])
+                ->middleware('can:admin.users.manage')
+                ->name('users.staff-profile.update');
+            Route::get('/users/{user}/staff-photo', [AdminUserController::class, 'staffPhoto'])
+                ->middleware('can:admin.users.view')
+                ->name('users.staff-photo');
             Route::put('/users/{user}/roles', [AdminUserController::class, 'updateRoles'])
                 ->middleware('can:admin.users.manage')
                 ->name('users.roles.update');

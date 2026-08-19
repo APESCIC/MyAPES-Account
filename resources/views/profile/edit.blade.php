@@ -32,16 +32,5 @@
                 <button type="submit">Save profile</button>
             </div>
         </form>
-        @if (in_array(auth()->user()->identity_type, [\App\Models\User::IDENTITY_LOCAL, \App\Models\User::IDENTITY_HYBRID], true))
-            <hr>
-            <h2>Cloudron staff identity</h2>
-            <p class="muted">Link only when your verified public email is also your eligible Cloudron staff email.</p>
-            <form method="post" action="{{ route('profile.oidc-link.start') }}">
-                @csrf
-                <label for="current_password">Confirm current password</label>
-                <input id="current_password" type="password" name="current_password" required>
-                <button type="submit">Link Cloudron identity</button>
-            </form>
-        @endif
     </div>
 @endsection

@@ -119,8 +119,7 @@ class PublicAuthController extends Controller
                 ->withErrors([$credentialField => 'This account is suspended.']);
         }
 
-        if ($user->identity_type !== User::IDENTITY_HYBRID
-            && $this->authorizationProfile->hasDirectoryProtectedEligibility($user)) {
+        if ($this->authorizationProfile->hasDirectoryProtectedEligibility($user)) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

@@ -57,10 +57,19 @@ class AccountLifecycleReadinessChecker
             throw new RuntimeException('account_lifecycle_schema');
         }
 
-        $publicAccounts = User::query()->whereIn('identity_type', [
-            User::IDENTITY_LOCAL,
-            User::IDENTITY_HYBRID,
-        ]);
+        $staffRoles = [
+            AuthorizationProfile::ROLE_STAFF,
+            AuthorizationProfile::ROLE_ADMINISTRATOR,
+            AuthorizationProfile::ROLE_SUPER_ADMIN,
+        ];
+        $publicAccounts = User::query()
+            ->where('identity_type', User::IDENTITY_LOCAL)
+            ->whereDoesntHave(
+                'roles',
+                static fn ($query) => $query
+                    ->where('roles.guard_name', 'web')
+                    ->whereIn('roles.name', $staffRoles),
+            );
 
         if ((clone $publicAccounts)->whereDoesntHave('contactPreference')->exists()) {
             throw new RuntimeException('contact_preference_backfill');

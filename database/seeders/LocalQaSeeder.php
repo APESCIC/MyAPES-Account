@@ -8,6 +8,7 @@ use App\Models\PetProfile;
 use App\Models\Role;
 use App\Models\RoleSource;
 use App\Models\ShelterCase;
+use App\Models\StaffProfile;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\UserProfile;
@@ -88,9 +89,9 @@ class LocalQaSeeder extends Seeder
         $this->upsertCustomRole($superAdminUser, $staffUser);
 
         $this->upsertProfile($serviceUser, 'Service User', '+44 7700 900101', 'APES CIC Service User');
-        $this->upsertProfile($staffUser, 'Staff User', '+44 7700 900102', 'APES CIC Staff');
-        $this->upsertProfile($adminUser, 'Admin User', '+44 7700 900103', 'APES CIC Admin');
-        $this->upsertProfile($superAdminUser, 'Superadmin User', '+44 7700 900104', 'APES CIC Superadmin');
+        $this->upsertStaffProfile($staffUser, 'Rescue coordinator', StaffProfile::TEAM_SHELTER_RESCUE, '+447700900102');
+        $this->upsertStaffProfile($adminUser, 'Operations manager', StaffProfile::TEAM_OPERATIONS, '+447700900103');
+        $this->upsertStaffProfile($superAdminUser, 'Director', StaffProfile::TEAM_OPERATIONS, '+447700900104');
 
         $openTicket = SupportTicket::query()->updateOrCreate(
             [
@@ -687,6 +688,23 @@ class LocalQaSeeder extends Seeder
                 'country' => 'GB',
                 'mobile_number' => '+447400123456',
             ]
+        );
+    }
+
+    private function upsertStaffProfile(
+        User $user,
+        string $jobTitle,
+        string $team,
+        string $workPhone,
+    ): void {
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'job_title' => $jobTitle,
+                'team' => $team,
+                'work_phone' => $workPhone,
+                'photo_path' => null,
+            ],
         );
     }
 
