@@ -44,10 +44,10 @@ if (! is_string($mode)
 
 if (! in_array(
     DB::connection()->getDriverName(),
-    ['mysql', 'mariadb'],
+    ['mysql'],
     true,
 )) {
-    fwrite(STDERR, 'Concurrency worker requires MySQL or MariaDB.'.PHP_EOL);
+    fwrite(STDERR, 'Concurrency worker requires MySQL.'.PHP_EOL);
     exit(2);
 }
 

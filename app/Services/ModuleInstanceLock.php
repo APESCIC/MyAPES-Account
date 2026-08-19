@@ -54,7 +54,7 @@ class ModuleInstanceLock
         $driver = DB::connection()->getDriverName();
 
         return match ($driver) {
-            'mysql', 'mariadb' => $this->runWithDatabaseLock(
+            'mysql' => $this->runWithDatabaseLock(
                 $instanceKey,
                 $operation,
             ),

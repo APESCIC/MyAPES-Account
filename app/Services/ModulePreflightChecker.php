@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class ModulePreflightChecker
 {
-    private const SUPPORTED_DRIVERS = ['sqlite', 'mysql', 'mariadb'];
+    private const SUPPORTED_DRIVERS = ['sqlite', 'mysql'];
 
     public function __construct(
         private readonly ModuleRegistry $registry,

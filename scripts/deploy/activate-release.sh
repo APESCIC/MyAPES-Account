@@ -455,6 +455,44 @@ assert_shared_environment_path() {
   fi
 }
 
+upsert_shared_env_key() {
+  local key="${1:-}"
+  local value="${2:-}"
+  local environment_path="${SHARED_DIR}/.env"
+
+  if [[ ! "$key" =~ ^[A-Z][A-Z0-9_]*$ || -z "$value" ]]; then
+    echo "Invalid shared environment assignment: ${key}=${value}"
+    return 1
+  fi
+  assert_shared_environment_path
+  if [[ ! -f "$environment_path" ]]; then
+    echo "Shared environment is missing."
+    return 1
+  fi
+  if grep -Eq "^${key}=" "$environment_path"; then
+    sed -i "s|^${key}=.*$|${key}=${value}|" "$environment_path"
+  else
+    printf '%s=%s\n' "$key" "$value" >>"$environment_path"
+  fi
+}
+
+ensure_cloudron_redis_runtime() {
+  if [[ -z "${CLOUDRON_REDIS_HOST:-}" ]]; then
+    echo "Cloudron Redis is required."
+    return 1
+  fi
+
+  upsert_shared_env_key CACHE_STORE redis
+  upsert_shared_env_key QUEUE_CONNECTION redis
+  upsert_shared_env_key SESSION_DRIVER redis
+  upsert_shared_env_key APP_MAINTENANCE_STORE redis
+  upsert_shared_env_key REDIS_CLIENT phpredis
+
+  assert_shared_environment_path
+  chown root:www-data "${SHARED_DIR}/.env"
+  chmod 0640 "${SHARED_DIR}/.env"
+}
+
 assert_activation_path_boundaries() {
   assert_canonical_deployment_directory "$DATA_DIR" "application data root" true
   assert_canonical_deployment_directory "${DATA_DIR}/apache" "Apache runtime parent" true
@@ -847,6 +885,7 @@ elif ! grep -Eq '^APP_ENV=production$' "${SHARED_DIR}/.env"; then
   echo "Refusing deployment because ${SHARED_DIR}/.env is not marked APP_ENV=production."
   exit 1
 fi
+ensure_cloudron_redis_runtime
 
 harden_shared_runtime_boundaries
 restore_data_root_ownership

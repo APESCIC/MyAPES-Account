@@ -304,11 +304,11 @@ class AuthorizationCutoverConcurrencyTest extends TestCase
     {
         if (! in_array(
             DB::connection()->getDriverName(),
-            ['mysql', 'mariadb'],
+            ['mysql'],
             true,
         )) {
             $this->markTestSkipped(
-                'True cutover concurrency requires MySQL or MariaDB.',
+                'True cutover concurrency requires MySQL.',
             );
         }
     }
@@ -576,7 +576,7 @@ class AuthorizationCutoverConcurrencyTest extends TestCase
                     $block,
                     'LOCK WAIT',
                 ) && preg_match(
-                    '/MariaDB thread id\s+'.
+                    '/MySQL thread id\s+'.
                     preg_quote((string) $waitingConnectionId, '/').',/',
                     $block,
                 ) === 1,

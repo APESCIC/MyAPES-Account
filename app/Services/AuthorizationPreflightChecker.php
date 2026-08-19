@@ -33,7 +33,7 @@ class AuthorizationPreflightChecker
     {
         if (! in_array(
             DB::connection()->getDriverName(),
-            ['sqlite', 'mysql', 'mariadb'],
+            ['sqlite', 'mysql'],
             true,
         )) {
             throw new AuthorizationLifecycleException('database_driver');

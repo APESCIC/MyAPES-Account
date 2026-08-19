@@ -385,8 +385,8 @@ class ModuleLifecycleConcurrencyTest extends TestCase
 
     private function requireMysqlFamily(): void
     {
-        if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
-            $this->markTestSkipped('Cross-process module locking requires MySQL or MariaDB.');
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Cross-process module locking requires MySQL.');
         }
     }
 

@@ -269,7 +269,7 @@ class User extends Authenticatable implements MustVerifyEmail
             $query->getModel()->getConnection()->getDriverName()
         ) {
             'sqlite' => "'directory:' || CAST(eligible_sources.directory_group_id AS TEXT)",
-            'mysql', 'mariadb' => "CONCAT('directory:', eligible_sources.directory_group_id)",
+            'mysql' => "CONCAT('directory:', eligible_sources.directory_group_id)",
             default => throw new LogicException(
                 'Staff eligibility requires a supported database driver.',
             ),

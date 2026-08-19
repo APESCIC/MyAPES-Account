@@ -505,8 +505,8 @@ class AuthorizationCutoverGuardTest extends TestCase
 
     public function test_guard_model_type_is_independent_of_mysql_backslash_mode(): void
     {
-        if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
-            $this->markTestSkipped('MySQL-family SQL mode test.');
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            $this->markTestSkipped('MySQL SQL mode test.');
         }
 
         $guard = app(AuthorizationCompatibilityDatabaseGuard::class);

@@ -38,7 +38,7 @@ class AuthorizationCompatibilityDatabaseGuard
     {
         $driver = $this->driverName();
 
-        if (! in_array($driver, ['sqlite', 'mysql', 'mariadb'], true)) {
+        if (! in_array($driver, ['sqlite', 'mysql'], true)) {
             throw new RuntimeException(
                 'Authorization compatibility database guard is unsupported.',
             );
@@ -53,7 +53,7 @@ class AuthorizationCompatibilityDatabaseGuard
         try {
             match ($driver) {
                 'sqlite' => $this->installSqlite(),
-                'mysql', 'mariadb' => $this->installMysql(),
+                'mysql' => $this->installMysql(),
             };
 
             if (! $this->isInstalled()) {
@@ -121,7 +121,7 @@ class AuthorizationCompatibilityDatabaseGuard
             return true;
         }
 
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+        if ($driver === 'mysql') {
             $expected = $this->mysqlDefinitions();
             $actual = collect(DB::select(
                 'SELECT trigger_name AS name,

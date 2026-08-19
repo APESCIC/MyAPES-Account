@@ -22,7 +22,7 @@ class AccessCompatibilityDatabaseGuard
         try {
             match (DB::connection()->getDriverName()) {
                 'sqlite' => $this->installSqlite(),
-                'mysql', 'mariadb' => $this->installMysql(),
+                'mysql' => $this->installMysql(),
                 default => throw new RuntimeException(
                     'Access compatibility database guard is unsupported.',
                 ),
@@ -60,7 +60,7 @@ class AccessCompatibilityDatabaseGuard
             ], $definitions->all());
         }
 
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+        if ($driver === 'mysql') {
             $rows = DB::select(
                 'SELECT TRIGGER_NAME AS trigger_name,
                         ACTION_TIMING AS action_timing,

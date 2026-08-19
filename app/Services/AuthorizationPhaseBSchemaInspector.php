@@ -397,7 +397,7 @@ class AuthorizationPhaseBSchemaInspector
                 );
         }
 
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+        if ($driver === 'mysql') {
             $columnType = DB::table('information_schema.COLUMNS')
                 ->where('TABLE_SCHEMA', DB::connection()->getDatabaseName())
                 ->where('TABLE_NAME', $table)

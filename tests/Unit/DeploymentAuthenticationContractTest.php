@@ -1281,7 +1281,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
     }
 
-    public function test_workflow_runs_the_phase_b_contract_on_mysql_and_mariadb(): void
+    public function test_workflow_runs_the_phase_b_contract_on_mysql(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
         $databaseCompatibilityJob = substr(
@@ -1293,16 +1293,13 @@ class DeploymentAuthenticationContractTest extends TestCase
         $deployJob = substr($workflow, $this->position($workflow, '  deploy:'), 500);
 
         $this->assertStringContainsString('database-compatibility:', $workflow);
-        $this->assertStringContainsString('fail-fast: false', $workflow);
         $this->assertStringContainsString('image: mysql:8.4', $workflow);
-        $this->assertStringContainsString('image: mariadb:11.4', $workflow);
         $this->assertStringContainsString('php-version: \'8.4\'', $workflow);
         $this->assertStringContainsString('pdo_mysql', $workflow);
         $this->assertStringContainsString('pcntl', $workflow);
         $this->assertStringContainsString('MYSQL_DATABASE: myapes_test', $workflow);
-        $this->assertStringContainsString('MARIADB_DATABASE: myapes_test', $workflow);
         $this->assertStringContainsString('mysqladmin ping', $workflow);
-        $this->assertStringContainsString('healthcheck.sh --connect --innodb_initialized', $workflow);
+        $this->assertStringContainsString('DB_CONNECTION: mysql', $databaseCompatibilityJob);
         $this->assertStringContainsString('--tmpfs /var/lib/mysql', $databaseCompatibilityJob);
         $this->assertStringContainsString('MYSQL_INITDB_SKIP_TZINFO', $databaseCompatibilityJob);
         $this->assertStringContainsString('innodb_flush_log_at_trx_commit=0', $databaseCompatibilityJob);
@@ -1310,6 +1307,9 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('APP_MAINTENANCE_STORE: file', $workflow);
         $this->assertStringContainsString('CACHE_STORE: array', $databaseCompatibilityJob);
         $this->assertStringContainsString('LOG_CHANNEL: \'null\'', $databaseCompatibilityJob);
+        $this->assertStringNotContainsString('image: mariadb', $workflow);
+        $this->assertStringNotContainsString('MARIADB_', $databaseCompatibilityJob);
+        $this->assertStringNotContainsString('mariadb:11.4', $workflow);
         $this->assertStringNotContainsString('CACHE_STORE: database', $databaseCompatibilityJob);
         $this->assertStringNotContainsString('npm run build', $databaseCompatibilityJob);
 
@@ -1366,6 +1366,15 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/deploy:\s*\R(?:(?!\n\S).)*needs:\s*\[\s*deployment-control-authentication,\s*quality,\s*database-compatibility\s*\]/s',
             $deployJob,
         );
+    }
+
+    public function test_database_config_does_not_define_a_mariadb_connection(): void
+    {
+        $database = $this->read('config/database.php');
+
+        $this->assertStringContainsString("'mysql' => [", $database);
+        $this->assertStringNotContainsString("'mariadb' => [", $database);
+        $this->assertStringNotContainsString("'driver' => 'mariadb'", $database);
     }
 
     public function test_workflow_isolates_the_destructive_foundation_migration_contract(): void
@@ -1949,6 +1958,39 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString(
             'sudo -u www-data test -w "${CURRENT_DIR}/bootstrap/cache"',
             $runScript,
+        );
+    }
+
+    public function test_activation_upserts_cloudron_redis_runtime_keys(): void
+    {
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+
+        $this->assertStringContainsString('ensure_cloudron_redis_runtime', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key', $activation);
+        $this->assertStringContainsString('CLOUDRON_REDIS_HOST', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key CACHE_STORE redis', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key QUEUE_CONNECTION redis', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key SESSION_DRIVER redis', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key APP_MAINTENANCE_STORE redis', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key REDIS_CLIENT phpredis', $activation);
+        $this->assertStringContainsString('Cloudron Redis is required.', $activation);
+        $this->assertStringNotContainsString('REDIS_HOST=127.0.0.1', $activation);
+        $this->assertStringNotContainsString('upsert_shared_env_key REDIS_HOST', $activation);
+    }
+
+    public function test_laravel_defaults_to_redis_when_cloudron_redis_is_present(): void
+    {
+        $this->assertStringContainsString(
+            "env('CACHE_STORE', env('CLOUDRON_REDIS_HOST') ? 'redis' : 'database')",
+            $this->read('config/cache.php'),
+        );
+        $this->assertStringContainsString(
+            "env('QUEUE_CONNECTION', env('CLOUDRON_REDIS_HOST') ? 'redis' : 'database')",
+            $this->read('config/queue.php'),
+        );
+        $this->assertStringContainsString(
+            "env('SESSION_DRIVER', env('CLOUDRON_REDIS_HOST') ? 'redis' : 'database')",
+            $this->read('config/session.php'),
         );
     }
 
