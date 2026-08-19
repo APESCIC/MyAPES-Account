@@ -64,6 +64,10 @@ class ReleaseHistoryCommandTest extends TestCase
                     'label' => 'Issue #56',
                     'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/56',
                 ],
+                [
+                    'label' => 'PR #57',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/57',
+                ],
             ],
             $current['references'],
         );
@@ -74,6 +78,7 @@ class ReleaseHistoryCommandTest extends TestCase
             'cloudron',
             'mariadb',
             'issue #56',
+            'pull request #57',
             'no database rollback',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);

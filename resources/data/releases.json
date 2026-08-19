@@ -27,11 +27,15 @@
       "This patch does not change application features, authorization, or data. Local and PHPUnit environments still use file, array, and sync stores. MySQL advisory module locks and the CI jobs-table timeout probe remain on the database."
     ],
     "rollback": "Revert this patch record, VERSION, runtime manifest version, database-compatibility workflow, driver allowlists, activate-release Redis upsert, and cache, queue, and session defaults. No database rollback is needed.",
-    "provenance": "Defined by the MySQL-only Cloudron Redis work for MyAPES Account issue #56.",
+    "provenance": "Defined by the MySQL-only Cloudron Redis work for MyAPES Account issue #56 and pull request #57.",
     "references": [
       {
         "label": "Issue #56",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/56"
+      },
+      {
+        "label": "PR #57",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/57"
       }
     ]
   },
