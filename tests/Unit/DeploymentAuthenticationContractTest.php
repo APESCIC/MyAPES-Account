@@ -460,36 +460,37 @@ class DeploymentAuthenticationContractTest extends TestCase
     public function test_release_archive_and_apache_keep_pet_profiles_outside_public_storage(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $packaging = $workflow."\n".$this->deploymentScripts();
         $apache = $this->read('scripts/deploy/cloudron-app.conf');
 
-        $this->assertStringNotContainsString("--exclude '/public/storage'", $workflow);
+        $this->assertStringNotContainsString("--exclude '/public/storage'", $packaging);
         $this->assertStringContainsString(
             "grep -qx './public/storage/.myapes-selective-media' build/archive-list.txt",
-            $workflow,
+            $packaging,
         );
         $this->assertStringContainsString(
             'validate-selective-media-archive.sh source build/release',
-            $workflow,
+            $packaging,
         );
         $this->assertStringContainsString(
             'validate-selective-media-archive.sh',
-            $workflow,
+            $packaging,
         );
         $this->assertStringContainsString(
             '^public/storage/$|^public/storage/\\.myapes-selective-media$',
-            $workflow,
+            $packaging,
         );
         $this->assertStringContainsString(
             "grep -Fxc './public/storage/' build/archive-list.txt",
-            $workflow,
+            $packaging,
         );
         $this->assertStringContainsString(
             "grep -Fxc 'public/storage/'",
-            $workflow,
+            $packaging,
         );
         $this->assertStringContainsString(
             '^public/storage($|/)',
-            $workflow,
+            $packaging,
         );
         $this->assertStringContainsString('RewriteEngine On', $apache);
         $this->assertStringContainsString(
@@ -1230,10 +1231,8 @@ class DeploymentAuthenticationContractTest extends TestCase
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
 
         foreach ([
-            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' => 2,
-            'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0' => 1,
-            'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1' => 1,
-            'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1' => 1,
+            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' => 3,
+            'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0' => 2,
         ] as $reference => $expectedOccurrences) {
             $this->assertSame(
                 $expectedOccurrences,
@@ -1241,6 +1240,9 @@ class DeploymentAuthenticationContractTest extends TestCase
                 "Unexpected occurrence count for {$reference}.",
             );
         }
+
+        $this->assertStringNotContainsString('actions/upload-artifact@', $workflow);
+        $this->assertStringNotContainsString('actions/download-artifact@', $workflow);
 
         foreach ([
             'actions/checkout@v4',
@@ -1408,10 +1410,12 @@ class DeploymentAuthenticationContractTest extends TestCase
     public function test_workflow_packages_and_verifies_semantic_and_commit_identities(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $packaging = $workflow."\n".$this->deploymentScripts();
 
         $this->assertStringContainsString('app_version:', $workflow);
         $this->assertStringContainsString('app_version=', $workflow);
-        $this->assertStringContainsString("grep -qx './VERSION' build/archive-list.txt", $workflow);
+        $this->assertStringContainsString('scripts/deploy/package-release.sh', $workflow);
+        $this->assertStringContainsString("grep -qx './VERSION' build/archive-list.txt", $packaging);
         foreach ([
             'resources/data/releases.json',
             'resources/data/module-runtime-contract.json',
@@ -1438,7 +1442,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         ] as $requiredPath) {
             $this->assertStringContainsString(
                 "grep -qx './{$requiredPath}' build/archive-list.txt",
-                $workflow,
+                $packaging,
             );
         }
         $this->assertStringContainsString('reported_version', $workflow);
@@ -1888,10 +1892,11 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_release_exclusion_only_rejects_the_git_directory(): void
     {
-        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $packaging = $this->read('.github/workflows/deploy-cloudron.yml')
+            ."\n".$this->deploymentScripts();
 
-        $this->assertStringContainsString('\.git($|/)', $workflow);
-        $this->assertStringNotContainsString('^\./(\.git|', $workflow);
+        $this->assertStringContainsString('\.git($|/)', $packaging);
+        $this->assertStringNotContainsString('^\./(\.git|', $packaging);
     }
 
     public function test_production_environment_has_no_legacy_group_list_inputs(): void
