@@ -1284,6 +1284,12 @@ class DeploymentAuthenticationContractTest extends TestCase
     public function test_workflow_runs_the_phase_b_contract_on_mysql_and_mariadb(): void
     {
         $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $databaseCompatibilityJob = substr(
+            $workflow,
+            $this->position($workflow, '  database-compatibility:'),
+            $this->position($workflow, '  deploy:')
+                - $this->position($workflow, '  database-compatibility:'),
+        );
         $deployJob = substr($workflow, $this->position($workflow, '  deploy:'), 500);
 
         $this->assertStringContainsString('database-compatibility:', $workflow);
@@ -1297,9 +1303,15 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('MARIADB_DATABASE: myapes_test', $workflow);
         $this->assertStringContainsString('mysqladmin ping', $workflow);
         $this->assertStringContainsString('healthcheck.sh --connect --innodb_initialized', $workflow);
+        $this->assertStringContainsString('--tmpfs /var/lib/mysql', $databaseCompatibilityJob);
+        $this->assertStringContainsString('MYSQL_INITDB_SKIP_TZINFO', $databaseCompatibilityJob);
+        $this->assertStringContainsString('innodb_flush_log_at_trx_commit=0', $databaseCompatibilityJob);
         $this->assertStringContainsString('APP_MAINTENANCE_DRIVER: file', $workflow);
         $this->assertStringContainsString('APP_MAINTENANCE_STORE: file', $workflow);
-        $this->assertStringContainsString('CACHE_STORE: database', $workflow);
+        $this->assertStringContainsString('CACHE_STORE: array', $databaseCompatibilityJob);
+        $this->assertStringContainsString('LOG_CHANNEL: \'null\'', $databaseCompatibilityJob);
+        $this->assertStringNotContainsString('CACHE_STORE: database', $databaseCompatibilityJob);
+        $this->assertStringNotContainsString('npm run build', $databaseCompatibilityJob);
 
         foreach ([
             'AuthorizationSchemaTest.php',

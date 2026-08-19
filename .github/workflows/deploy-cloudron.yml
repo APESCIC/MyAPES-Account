@@ -214,8 +214,8 @@ jobs:
   database-compatibility:
     name: Authorization and module database contract (${{ matrix.engine }})
     runs-on: ubuntu-latest
-    # Forward-only migration/rollback and concurrency contracts can exceed
-    # twenty minutes on hosted MySQL 8.4 runners.
+    # Hosted MySQL fsync dominates this job. tmpfs datadir is the GHA equivalent of
+    # innodb_flush_log_at_trx_commit=0 / sync_binlog=0 (service containers cannot pass mysqld argv).
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -235,8 +235,10 @@ jobs:
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
           MYSQL_DATABASE: myapes_test
+          MYSQL_INITDB_SKIP_TZINFO: '1'
           MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 'yes'
           MARIADB_DATABASE: myapes_test
+          MARIADB_INITDB_SKIP_TZINFO: '1'
         ports:
           - 3306:3306
         options: >-
@@ -244,6 +246,9 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+          --tmpfs /var/lib/mysql:rw,noexec,nosuid,size=1g
+          --tmpfs /tmp
+          --shm-size=1g
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -266,7 +271,8 @@ jobs:
         env:
           APP_MAINTENANCE_DRIVER: file
           APP_MAINTENANCE_STORE: file
-          CACHE_STORE: database
+          CACHE_STORE: array
+          LOG_CHANNEL: 'null'
           DB_CONNECTION: ${{ matrix.connection }}
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
