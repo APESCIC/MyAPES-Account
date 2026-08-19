@@ -191,4 +191,26 @@ class LocalQaAuthTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_seeded_public_and_staff_accounts_use_separate_profile_types(): void
+    {
+        $this->seed(LocalQaSeeder::class);
+
+        $public = User::query()
+            ->where('email', LocalQaSeeder::SERVICE_USER_EMAIL)
+            ->firstOrFail();
+        $staff = User::query()
+            ->where('email', LocalQaSeeder::STAFF_EMAIL)
+            ->firstOrFail();
+        $admin = User::query()
+            ->where('email', LocalQaSeeder::ADMIN_EMAIL)
+            ->firstOrFail();
+
+        $this->assertNotNull($public->profile);
+        $this->assertNull($public->staffProfile);
+        $this->assertNull($staff->profile);
+        $this->assertSame('Rescue coordinator', $staff->staffProfile?->job_title);
+        $this->assertNull($admin->profile);
+        $this->assertSame('Operations manager', $admin->staffProfile?->job_title);
+    }
 }

@@ -62,4 +62,19 @@ class AccountLifecycleReadinessTest extends TestCase
             ->expectsOutputToContain('contact_preference_backfill')
             ->assertFailed();
     }
+
+    public function test_staff_accounts_are_not_required_to_have_public_profile_defaults(): void
+    {
+        $staff = User::factory()
+            ->accessLevel(User::ROLE_STAFF)
+            ->create([
+                'identity_type' => User::IDENTITY_LOCAL,
+            ]);
+        $staff->contactPreference()->delete();
+        $staff->serviceSelections()->delete();
+
+        $this->artisan('myapes:accounts:check')
+            ->expectsOutputToContain('Account lifecycle readiness: ok')
+            ->assertSuccessful();
+    }
 }

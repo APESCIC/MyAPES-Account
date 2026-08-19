@@ -27,6 +27,72 @@
         </dl>
     </section>
 
+    @if($isStaffAccount)
+        <section class="panel" aria-labelledby="staff-profile-title">
+            <h2 id="staff-profile-title">Staff profile</h2>
+            <p class="muted">Directory name, email, and groups stay read-only.</p>
+            @can('admin.users.manage')
+                @if($canManageTarget)
+                    <form method="post" action="{{ route('admin.users.staff-profile.update', $managedUser) }}" enctype="multipart/form-data">
+                        @csrf
+                        @method('put')
+                        <label for="job_title">Job title</label>
+                        <input id="job_title" name="job_title" value="{{ old('job_title', $staffProfile?->job_title) }}">
+                        <label for="team">Team</label>
+                        <select id="team" name="team">
+                            <option value="">Select a team</option>
+                            @foreach($teams as $value => $label)
+                                <option value="{{ $value }}" @selected(old('team', $staffProfile?->team) === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <label for="work_phone">Work phone</label>
+                        <input id="work_phone" name="work_phone" value="{{ old('work_phone', $staffProfile?->work_phone) }}">
+                        @if($staffProfile?->photo_path)
+                            <p>
+                                <img src="{{ route('admin.users.staff-photo', $managedUser) }}" alt="Current staff photo" width="96" height="96">
+                            </p>
+                        @endif
+                        <label for="photo">Staff photo</label>
+                        <input id="photo" type="file" name="photo" accept="image/*">
+                        <div class="actions"><button type="submit">Save staff profile</button></div>
+                    </form>
+                @endif
+            @endcan
+        </section>
+    @else
+        <section class="panel" aria-labelledby="public-profile-title">
+            <h2 id="public-profile-title">Public profile</h2>
+            @can('admin.users.manage')
+                @if($canManageTarget)
+                    <form method="post" action="{{ route('admin.users.profile.update', $managedUser) }}" enctype="multipart/form-data">
+                        @csrf
+                        @method('put')
+                        <div class="row">
+                            <div>
+                                <label for="preferred_name">Preferred name</label>
+                                <input id="preferred_name" name="preferred_name" value="{{ old('preferred_name', $profile?->preferred_name) }}">
+                            </div>
+                            <div>
+                                <label for="phone">Phone</label>
+                                <input id="phone" name="phone" value="{{ old('phone', $profile?->phone) }}">
+                            </div>
+                            <div>
+                                <label for="organization">Organisation</label>
+                                <input id="organization" name="organization" value="{{ old('organization', $profile?->organization) }}">
+                            </div>
+                        </div>
+                        <label for="support_needs">Support needs or access notes</label>
+                        <textarea id="support_needs" name="support_needs">{{ old('support_needs', $profile?->support_needs) }}</textarea>
+                        @include('profile._account-fields')
+                        <label for="avatar">Avatar photo</label>
+                        <input id="avatar" type="file" name="avatar" accept="image/*">
+                        <div class="actions"><button type="submit">Save public profile</button></div>
+                    </form>
+                @endif
+            @endcan
+        </section>
+    @endif
+
     <section class="panel" aria-labelledby="role-provenance-title">
         <h2 id="role-provenance-title">Provenanced roles</h2>
         <table>

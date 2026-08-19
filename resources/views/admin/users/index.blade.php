@@ -6,10 +6,28 @@
     @include('admin._navigation')
 
     <section class="panel" aria-labelledby="admin-users-title">
-        <h1 id="admin-users-title">Users</h1>
+        <h1 id="admin-users-title">
+            @if(($filters['account_type'] ?? '') === 'staff')
+                Staff
+            @elseif(($filters['account_type'] ?? '') === 'public')
+                Public users
+            @else
+                Users
+            @endif
+        </h1>
         <p class="muted">Search accounts and review their identity, status, and effective protected role. Directory-owned names and email addresses are read-only.</p>
+        <p>
+            <a href="{{ route('admin.users.index', ['account_type' => 'public']) }}">Public users</a>
+            ·
+            <a href="{{ route('admin.users.index', ['account_type' => 'staff']) }}">Staff</a>
+            ·
+            <a href="{{ route('admin.users.index') }}">All accounts</a>
+        </p>
 
         <form method="get" action="{{ route('admin.users.index') }}">
+            @if(! empty($filters['account_type']))
+                <input type="hidden" name="account_type" value="{{ $filters['account_type'] }}">
+            @endif
             <div class="row">
                 <div>
                     <label for="user-search">Search name or email</label>

@@ -284,7 +284,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 - Shelter Tickets: an open unassigned adoption enquiry, an in-progress staff-assigned rescue request, and a closed admin-assigned animal-welfare follow-up, each with deterministic public and internal messages
 - Shelter Cases: the existing Mango Pet Profile with two open/in-review cases plus a closed example; the rescue Case has deterministic public and internal updates without changing its parent identity or timestamp
 - APES Pet Care Clinic: a seeded Pet Profile with two open/in-progress Consultations plus a closed example, and three deterministic Tickets covering appointment/open/unassigned/low, prescription/in-progress/staff/high, and billing/closed/admin/medium states with one public and one internal message each
-- User profiles: seeded profile data for the same four QA account identities; repeated non-destructive seeding preserves Ticket/Case parent and child IDs, owners, pets, assignees, values, and timestamps without cross-sub-core overwrite
+- Profiles: the public QA account has a `UserProfile`; staff, admin, and superadmin QA accounts have `StaffProfile` workplace details. Repeated non-destructive seeding preserves Ticket/Case parent and child IDs, owners, pets, assignees, values, and timestamps without cross-sub-core overwrite
 
 Start Laravel, the queue listener, application logs, and Vite together with the cross-platform Composer script:
 

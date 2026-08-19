@@ -2,23 +2,41 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\StaffProfile;
 use App\Services\AuditLogger;
+use App\Services\AuthorizationProfile;
 use App\Services\ContactPreferenceUpdater;
 use App\Services\SecureUploadService;
+use App\Services\StaffProfilePhotoResponder;
 use App\Services\UkPhoneNumber;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
 {
-    public function edit(): View
+    public function __construct(
+        private readonly AuthorizationProfile $authorization,
+        private readonly StaffProfilePhotoResponder $staffPhotos,
+    ) {}
+
+    public function edit(Request $request): View
     {
+        $user = $request->user();
+
+        if ($this->authorization->hasDirectoryProtectedEligibility($user)) {
+            return view('profile.staff-edit', [
+                'staffProfile' => $user->staffProfile,
+                'teams' => $this->teamOptions(),
+            ]);
+        }
+
         return view('profile.edit', [
-            'profile' => request()->user()->profile,
-            'preference' => request()->user()->contactPreference,
-            'selectedServices' => request()->user()->serviceSelections()->pluck('sub_core_key')->all(),
+            'profile' => $user->profile,
+            'preference' => $user->contactPreference,
+            'selectedServices' => $user->serviceSelections()->pluck('sub_core_key')->all(),
         ]);
     }
 
@@ -30,6 +48,15 @@ class ProfileController extends Controller
         OnboardingController $onboarding,
         UkPhoneNumber $phones,
     ): RedirectResponse {
+        if ($this->authorization->hasDirectoryProtectedEligibility($request->user())) {
+            return $this->updateStaffProfile(
+                $request,
+                $secureUploadService,
+                $auditLogger,
+                $phones,
+            );
+        }
+
         $onboarding->normalizePhones($request, $phones);
         $validated = $request->validate([
             'preferred_name' => ['nullable', 'string', 'max:255'],
@@ -94,5 +121,82 @@ class ProfileController extends Controller
         ]);
 
         return redirect()->route('profile.edit')->with('status', 'Profile updated.');
+    }
+
+    public function staffPhoto(Request $request): StreamedResponse
+    {
+        abort_unless(
+            $this->authorization->hasDirectoryProtectedEligibility($request->user()),
+            404,
+        );
+
+        return $this->staffPhotos->response($request->user()->staffProfile);
+    }
+
+    private function updateStaffProfile(
+        Request $request,
+        SecureUploadService $secureUploadService,
+        AuditLogger $auditLogger,
+        UkPhoneNumber $phones,
+    ): RedirectResponse {
+        $request->merge([
+            'work_phone' => $phones->normalize($request->input('work_phone'), 'work_phone', false),
+        ]);
+        $validated = $request->validate([
+            'job_title' => ['nullable', 'string', 'max:255'],
+            'team' => ['nullable', 'string', Rule::in(StaffProfile::teams())],
+            'work_phone' => ['nullable', 'string', 'max:32', 'regex:/^\+44\d{9,10}$/'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+        ]);
+
+        $user = $request->user();
+        $existing = $user->staffProfile;
+        $previousPhotoPath = $existing?->photo_path;
+        $payload = [
+            'job_title' => $validated['job_title'] ?? null,
+            'team' => $validated['team'] ?? null,
+            'work_phone' => $validated['work_phone'] ?? null,
+        ];
+
+        if ($request->hasFile('photo')) {
+            $payload['photo_path'] = $secureUploadService->storeImage(
+                $request->file('photo'),
+                'staff-photos',
+                'photo',
+            );
+        }
+
+        $staffProfile = $user->staffProfile()->updateOrCreate(
+            ['user_id' => $user->id],
+            $payload,
+        );
+
+        if (
+            $request->hasFile('photo')
+            && is_string($previousPhotoPath)
+            && $previousPhotoPath !== ''
+            && $previousPhotoPath !== $staffProfile->photo_path
+        ) {
+            $secureUploadService->deleteIfPresent($previousPhotoPath);
+        }
+
+        $auditLogger->record('staff_profile.updated', $user, $staffProfile, [
+            'photo_updated' => $request->hasFile('photo'),
+        ]);
+
+        return redirect()->route('profile.edit')->with('status', 'Staff profile updated.');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function teamOptions(): array
+    {
+        return [
+            StaffProfile::TEAM_APES_CIC => 'APES CIC',
+            StaffProfile::TEAM_SHELTER_RESCUE => 'APES Shelter and Rescue',
+            StaffProfile::TEAM_PET_CARE_CLINIC => 'APES Pet Care Clinic',
+            StaffProfile::TEAM_OPERATIONS => 'Operations',
+        ];
     }
 }

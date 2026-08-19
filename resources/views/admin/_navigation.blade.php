@@ -1,7 +1,8 @@
 <nav class="admin-nav" aria-label="Admin sections">
     <a href="{{ route('admin.index') }}" @if(request()->routeIs('admin.index')) aria-current="page" @endif>Overview</a>
     @can('admin.users.view')
-        <a href="{{ route('admin.users.index') }}" @if(request()->routeIs('admin.users.*')) aria-current="page" @endif>Users</a>
+        <a href="{{ route('admin.users.index', ['account_type' => 'public']) }}" @if(request()->routeIs('admin.users.*') && request('account_type') === 'public') aria-current="page" @endif>Public users</a>
+        <a href="{{ route('admin.users.index', ['account_type' => 'staff']) }}" @if(request()->routeIs('admin.users.*') && request('account_type') === 'staff') aria-current="page" @endif>Staff</a>
     @endcan
     @can('admin.groups.view')
         <a href="{{ route('admin.groups.index') }}" @if(request()->routeIs('admin.groups.*')) aria-current="page" @endif>Groups</a>
