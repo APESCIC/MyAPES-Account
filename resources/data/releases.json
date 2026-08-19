@@ -1,5 +1,45 @@
 [
   {
+    "version": "0.16.2",
+    "date": "2026-08-19",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Faster MySQL and MariaDB contract CI",
+    "summary": "Shortened hosted MySQL 8.4 and MariaDB 11.4 authorization contract jobs by keeping the test database in memory, skipping redundant schema teardown, and silencing missing Vite-manifest warnings.",
+    "changes": [
+      "Mounted the GitHub Actions MySQL and MariaDB datadir on tmpfs and skipped timezone import so contract DDL no longer waits on hosted disk fsync.",
+      "Stopped rolling the full schema back after every isolated contract test, skipped repeated Phase B downs when that schema is already gone, used array cache with a null log channel, and mocked Vite as soon as the test application boots."
+    ],
+    "affected_areas": [
+      "GitHub Actions database-compatibility job, PHPUnit harness, and release-history file reads"
+    ],
+    "categories": [
+      "changed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible patch release speeding hosted database contract CI without changing application features, authorization, or data.",
+    "validation": [
+      "Deployment authentication contract tests cover tmpfs, array cache, and null logs, and source-controlled release-history validation covers this patch record."
+    ],
+    "known_limitations": [
+      "This patch does not change application features, authorization, or data. GitHub Actions service containers still cannot pass mysqld argv, so durability-off is implemented with tmpfs rather than innodb flags."
+    ],
+    "rollback": "Revert this patch record, VERSION, runtime manifest version, database-compatibility workflow, PHPUnit harness, and release-history file reads. No database rollback is needed.",
+    "provenance": "Defined by the MySQL and MariaDB contract CI speed work for MyAPES Account issue #52 and pull request #53.",
+    "references": [
+      {
+        "label": "Issue #52",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/52"
+      },
+      {
+        "label": "PR #53",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/53"
+      }
+    ]
+  },
+  {
     "version": "0.16.1",
     "date": "2026-08-19",
     "channel": "stable",
