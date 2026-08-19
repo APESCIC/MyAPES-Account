@@ -61,6 +61,10 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame(
             [
                 [
+                    'label' => 'Issue #54',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/54',
+                ],
+                [
                     'label' => 'Issue #52',
                     'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/52',
                 ],
@@ -77,9 +81,11 @@ class ReleaseHistoryCommandTest extends TestCase
             'mysql',
             'mariadb',
             'contract',
+            'issue #54',
             'issue #52',
             'pull request #53',
             'no database rollback',
+            'ssl ca',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }

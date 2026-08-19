@@ -1310,6 +1310,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('APP_MAINTENANCE_STORE: file', $workflow);
         $this->assertStringContainsString('CACHE_STORE: array', $databaseCompatibilityJob);
         $this->assertStringContainsString('LOG_CHANNEL: \'null\'', $databaseCompatibilityJob);
+        $this->assertStringContainsString('MYSQL_ATTR_SSL_CA: \'\'', $databaseCompatibilityJob);
         $this->assertStringNotContainsString('CACHE_STORE: database', $databaseCompatibilityJob);
         $this->assertStringNotContainsString('npm run build', $databaseCompatibilityJob);
 
@@ -1366,6 +1367,28 @@ class DeploymentAuthenticationContractTest extends TestCase
             '/deploy:\s*\R(?:(?!\n\S).)*needs:\s*\[\s*deployment-control-authentication,\s*quality,\s*database-compatibility\s*\]/s',
             $deployJob,
         );
+    }
+
+    public function test_mysql_and_mariadb_ssl_ca_options_require_an_existing_certificate_file(): void
+    {
+        $database = $this->read('config/database.php');
+        $mysql = substr(
+            $database,
+            $this->position($database, "'mysql' => ["),
+            $this->position($database, "'mariadb' => [")
+                - $this->position($database, "'mysql' => ["),
+        );
+        $mariadb = substr(
+            $database,
+            $this->position($database, "'mariadb' => ["),
+            $this->position($database, "'pgsql' => [")
+                - $this->position($database, "'mariadb' => ["),
+        );
+
+        foreach ([$mysql, $mariadb] as $connection) {
+            $this->assertStringContainsString('is_file($ca)', $connection);
+            $this->assertStringContainsString("env('MYSQL_ATTR_SSL_CA')", $connection);
+        }
     }
 
     public function test_workflow_isolates_the_destructive_foundation_migration_contract(): void

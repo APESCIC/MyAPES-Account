@@ -273,6 +273,7 @@ jobs:
           APP_MAINTENANCE_STORE: file
           CACHE_STORE: array
           LOG_CHANNEL: 'null'
+          MYSQL_ATTR_SSL_CA: ''
           DB_CONNECTION: ${{ matrix.connection }}
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
