@@ -27,7 +27,7 @@
       "This patch does not change application features, authorization, or data. GitHub Actions service containers still cannot pass mysqld argv, so durability-off is implemented with tmpfs rather than innodb flags."
     ],
     "rollback": "Revert this patch record, VERSION, runtime manifest version, database-compatibility workflow, PHPUnit harness, and release-history file reads. No database rollback is needed.",
-    "provenance": "Defined by the MySQL and MariaDB contract CI speed work for MyAPES Account issue #52 and pull request #53, plus the follow-up release-history and warning fix for issue #54.",
+    "provenance": "Defined by the MySQL and MariaDB contract CI speed work for MyAPES Account issue #52 and pull request #53, plus the follow-up release-history and warning fix for issue #54 and pull request #55.",
     "references": [
       {
         "label": "Issue #54",
@@ -40,6 +40,10 @@
       {
         "label": "PR #53",
         "url": "https://github.com/APESCIC/MyAPES-Account/pull/53"
+      },
+      {
+        "label": "PR #55",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/55"
       }
     ]
   },

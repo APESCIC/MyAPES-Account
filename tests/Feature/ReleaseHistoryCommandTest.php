@@ -72,6 +72,10 @@ class ReleaseHistoryCommandTest extends TestCase
                     'label' => 'PR #53',
                     'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/53',
                 ],
+                [
+                    'label' => 'PR #55',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/55',
+                ],
             ],
             $current['references'],
         );
@@ -84,6 +88,7 @@ class ReleaseHistoryCommandTest extends TestCase
             'issue #54',
             'issue #52',
             'pull request #53',
+            'pull request #55',
             'no database rollback',
             'ssl ca',
         ] as $requiredReleaseText) {
