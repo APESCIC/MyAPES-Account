@@ -424,7 +424,7 @@ that are still marked code-owned; similarly prefixed custom permissions,
 other guards, and exact-name permissions deliberately demoted to custom
 ownership are preserved with their pivots and provenance.
 
-Module locks use MySQL/MariaDB connection-scoped advisory locks in production
+Module locks use MySQL connection-scoped advisory locks in production
 and operating-system file locks on SQLite. Each database advisory-lock name is
 derived from both the active database namespace and module-instance key, so
 applications in separate databases on the same server do not block each other.
@@ -666,7 +666,7 @@ runtimes; version comments beside each pin make deliberate upgrades auditable.
 
 1. A dependency-independent job fetches the exact Git revision with the built-in runner tools, reads the four deployment-control blobs directly from Git, and exports their fixed-path manifest digest before any action or package dependency can influence it.
 2. The SQLite/package job checks out that revision, validates the append-only release history, runs the complete PHP and frontend suites, validates shell and PowerShell syntax, builds Vite assets, and creates an immutable production archive with exact `VERSION`, full-SHA `REVISION`, and deployment controls that must match the Git-derived digest.
-3. Independent PHP 8.4 matrix jobs create clean `myapes_test` databases on MySQL 8.4 and MariaDB 11.4 and run the guarded authorization cutover plus module migration, synchronization, dependency, rollback, concurrent lifecycle/write-lock, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
+3. An independent PHP 8.4 job creates a clean `myapes_test` database on MySQL 8.4 and runs the guarded authorization cutover plus module migration, synchronization, dependency, rollback, concurrent lifecycle/write-lock, catalogue, mapping, directory-role, and real PCNTL queue-timeout suites through `pdo_mysql`.
 4. Only a successful `main` push proceeds. Cloudron creates the pre-deployment backup before any upload or activation.
 5. The pinned Cloudron CLI uploads the archive into `/app/data/.deploy/<sha>` only after local verification of the externally exported control-manifest digest and all four complete control files.
 6. The activation script publishes a root-only authenticated control copy under `/run`, extracts and validates the complete application payload under `/app/data/releases/<sha>`, rejects noncanonical release/bootstrap/cache or launcher/Apache paths, restores the shared `.env` and storage links, and verifies the tracked selective-media boundary plus its single shared `avatars` link as root before any application command. It creates shared runtime children as `www-data`, revalidates them before root hardening, and assigns protected runtime and release paths to root while restoring application ownership only to Laravel's cache and shared storage. It then forces and verifies `APP_ENV=production` and runs every Artisan step as `www-data` through that release:
