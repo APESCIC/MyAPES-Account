@@ -21,11 +21,11 @@
                 </p>
             </div>
             <img
-                src="{{ asset('mascot/bearded-dragon-natural.png') }}"
-                alt="A realistic bearded dragon resting in a natural habitat"
+                src="{{ asset('mascot/spike-welcome.png') }}"
+                alt="Spike, the cartoon MyAPES bearded dragon mascot"
                 class="identity-card__mascot"
-                width="1400"
-                height="1120"
+                width="1024"
+                height="1024"
             >
             <div class="identity-card__mission">
                 <span class="identity-card__mission-icon" aria-hidden="true">
@@ -78,11 +78,11 @@
                     </a>
                 @empty
                     <div class="attention-empty">
-                        <i data-lucide="circle-check-big" aria-hidden="true"></i>
-                        <div>
-                            <strong>You are all caught up.</strong>
-                            <p>No open tickets, shelter cases or consultations need attention.</p>
-                        </div>
+                        <x-mascot-tip
+                            variant="empty"
+                            title="You are all caught up."
+                            body="No open tickets, shelter cases or consultations need attention."
+                        />
                     </div>
                 @endforelse
             </div>

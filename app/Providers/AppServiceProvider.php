@@ -60,6 +60,7 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layouts.app', function (IlluminateView $view): void {
             $view->with('appVersion', app(ReleaseHistoryRepository::class)->version());
+            $view->with('mascotTip', app(\App\Support\MascotTips::class)->forCurrentRequest());
             $view->with(
                 'moduleNavigation',
                 auth()->check()

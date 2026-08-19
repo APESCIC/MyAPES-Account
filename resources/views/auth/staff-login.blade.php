@@ -4,9 +4,9 @@
 
 @section('content')
     <div class="panel">
-        <img src="{{ asset('branding/logo-myapes-account.png') }}" alt="MyAPES Account staff login" class="logo-hero">
         <h1>Staff Login</h1>
         <p class="muted">APES staff and administrators sign in via APES Cloudron.</p>
+        <x-mascot-tip />
         @if(app()->environment(['local', 'testing']))
             <p class="muted">Local QA mode: use seeded staff/admin credentials to sign in directly.</p>
             <form method="post" action="{{ route('staff.local-login.submit') }}">

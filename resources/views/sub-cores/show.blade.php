@@ -36,11 +36,11 @@
                 </a>
             @empty
                 <div class="attention-empty">
-                    <i data-lucide="circle-pause" aria-hidden="true"></i>
-                    <div>
-                        <strong>No modules are currently available.</strong>
-                        <p>Enabled services will appear here when available.</p>
-                    </div>
+                    <x-mascot-tip
+                        variant="empty"
+                        title="No modules are currently available."
+                        body="Enabled services will appear here when available."
+                    />
                 </div>
             @endforelse
         </div>

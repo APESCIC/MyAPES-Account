@@ -16,7 +16,7 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.15.0',
+                'version' => '0.16.0',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -50,7 +50,7 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.15.0',
+                'version' => '0.16.0',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -101,6 +101,15 @@ class HealthAndThemeTest extends TestCase
         $response->assertSee('data-sidebar', false);
         $response->assertSee('data-sidebar-toggle', false);
         $response->assertSee('branding/logo-myapes-account.png', false);
+        $response->assertSee('logos/myapes-mark-256x256.png', false);
+        $response->assertSee('srcset=', false);
+        $response->assertSee('width="1024"', false);
+        $response->assertSee('height="1024"', false);
+        $response->assertSee('mascot/spike-welcome.png', false);
+        $response->assertSee('welcome-heading__mascot', false);
+        $response->assertDontSee('class="hero-image"', false);
+        $response->assertSee('data-mascot-dock', false);
+        $response->assertSee('data-mascot-dismiss', false);
         $response->assertSee('href="'.route('public.login').'"', false);
         $response->assertSee('href="'.route('public.register').'"', false);
         $response->assertSee('href="'.route('staff.login').'"', false);
