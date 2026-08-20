@@ -682,6 +682,10 @@ form.inline {
     background: var(--sage);
 }
 
+.attention-item--pet .attention-item__icon {
+    background: var(--brand-teal);
+}
+
 [data-theme='dark'] .attention-item--ticket .attention-item__icon {
     background: #8f482e;
 }
@@ -692,6 +696,10 @@ form.inline {
 
 [data-theme='dark'] .attention-item--consultation .attention-item__icon {
     background: #4b6841;
+}
+
+[data-theme='dark'] .attention-item--pet .attention-item__icon {
+    background: #2a7f78;
 }
 
 .attention-item__icon svg {
