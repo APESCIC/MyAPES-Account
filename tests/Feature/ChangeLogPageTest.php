@@ -89,7 +89,7 @@ class ChangeLogPageTest extends TestCase
     {
         $content = $response->getContent();
         $firstDetails = strpos($content, '<details');
-        $firstChange = strpos($content, 'Grouped dashboard service totals into per-sub-core panels with accent rails, short module labels, and Open service links to each hub.');
+        $firstChange = strpos($content, 'Replaced the Hide tip text control with a high-contrast top-right × close button on the tip bubble.');
 
         $this->assertNotFalse($firstDetails);
         $this->assertNotFalse($firstChange);
