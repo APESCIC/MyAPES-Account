@@ -29,11 +29,15 @@
       "None for this release."
     ],
     "rollback": "Revert this release record, VERSION, runtime manifest version, ModuleSummaryGroup and dashboard summary grouping, dashboard Blade and CSS, short summary labels, and related feature assertions. No database rollback is needed.",
-    "provenance": "Defined by the dashboard service-summary sub-core panel work for MyAPES Account issue #63.",
+    "provenance": "Defined by the dashboard service-summary sub-core panel work for MyAPES Account issue #63 and pull request #73.",
     "references": [
       {
         "label": "Issue #63",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/63"
+      },
+      {
+        "label": "Pull request #73",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/73"
       }
     ]
   },

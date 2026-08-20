@@ -72,6 +72,10 @@ class ReleaseHistoryCommandTest extends TestCase
                     'label' => 'Issue #63',
                     'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/63',
                 ],
+                [
+                    'label' => 'Pull request #73',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/73',
+                ],
             ],
             $current['references'],
         );
@@ -80,6 +84,7 @@ class ReleaseHistoryCommandTest extends TestCase
             'service totals',
             'sub-core',
             'issue #63',
+            'pull request #73',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }
