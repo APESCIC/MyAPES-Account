@@ -244,7 +244,7 @@ class AuthorizationProfile
      */
     public function qaSwitchSelectors(): array
     {
-        return ['service_user', 'staff', 'admin'];
+        return ['service_user', 'staff', 'admin', 'superadmin'];
     }
 
     public function matchesQaSelector(User $user, string $selector): bool

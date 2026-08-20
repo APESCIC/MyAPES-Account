@@ -163,12 +163,31 @@ class LocalQaAuthTest extends TestCase
         ]);
     }
 
+    public function test_role_switcher_can_switch_to_seeded_super_admin_user(): void
+    {
+        $this->seed(LocalQaSeeder::class);
+
+        $response = $this->post(route('qa.switch-role'), [
+            'role' => User::ROLE_SUPERADMIN,
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticated();
+        $this->assertSame(User::ROLE_SUPERADMIN, auth()->user()?->accessLevel());
+        $this->assertSame(LocalQaSeeder::SUPERADMIN_EMAIL, auth()->user()?->email);
+        $this->assertTrue(auth()->user()?->can('superadmin.access'));
+
+        $this->get(route('superadmin.index'))
+            ->assertOk()
+            ->assertSee('Super Admin overview');
+    }
+
     public function test_role_switcher_rejects_unsupported_role(): void
     {
         $this->seed(LocalQaSeeder::class);
 
         $response = $this->from('/')->post(route('qa.switch-role'), [
-            'role' => 'superadmin',
+            'role' => 'not-a-role',
         ]);
 
         $response->assertRedirect('/');

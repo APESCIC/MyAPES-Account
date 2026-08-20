@@ -192,6 +192,7 @@
                     'service_user' => 'Public',
                     'staff' => 'Staff',
                     'admin' => 'Admin',
+                    'superadmin' => 'Super Admin',
                 ] as $role => $label)
                     <form method="post" action="{{ route('qa.switch-role') }}">
                         @csrf
