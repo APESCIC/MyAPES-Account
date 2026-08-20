@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRoleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
+use App\Http\Controllers\Admin\SuperAdminDashboardController;
 use App\Http\Controllers\ApesCic\CaseController as ApesCicCaseController;
 use App\Http\Controllers\ApesCic\CaseUpdateController as ApesCicCaseUpdateController;
 use App\Http\Controllers\ApesCic\TicketController;
@@ -251,6 +252,15 @@ Route::middleware([
                     ->parameters(['consultations' => 'consultation']);
             });
     });
+
+    Route::prefix('superadmin')
+        ->name('superadmin.')
+        ->middleware('admin.denial-audit')
+        ->group(function (): void {
+            Route::get('/', SuperAdminDashboardController::class)
+                ->middleware('can:superadmin.access')
+                ->name('index');
+        });
 
     Route::prefix('admin')
         ->name('admin.')

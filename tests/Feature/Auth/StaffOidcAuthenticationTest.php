@@ -78,7 +78,26 @@ class StaffOidcAuthenticationTest extends TestCase
         ]);
     }
 
-    public function test_administrator_callback_redirects_to_recovery_while_maintenance_is_active(): void
+    public function test_super_admin_callback_redirects_to_recovery_while_maintenance_is_active(): void
+    {
+        $this->fakeMaintenanceMode(true);
+        $this->identityProvider->identity = new OidcIdentity(
+            'maintenance-superadmin-subject',
+            'maintenance-superadmin@example.com',
+            'Maintenance Super Admin',
+        );
+        $this->directory->groups = ['myapes.superadmin'];
+
+        $this->get(route('staff.auth.callback'))
+            ->assertRedirect(route('admin.maintenance.index'));
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'auth.login_success',
+        ]);
+    }
+
+    public function test_administrator_callback_returns_maintenance_response_while_maintenance_is_active(): void
     {
         $this->fakeMaintenanceMode(true);
         $this->identityProvider->identity = new OidcIdentity(
@@ -89,12 +108,10 @@ class StaffOidcAuthenticationTest extends TestCase
         $this->directory->groups = ['myapes.admin'];
 
         $this->get(route('staff.auth.callback'))
-            ->assertRedirect(route('admin.maintenance.index'));
+            ->assertServiceUnavailable()
+            ->assertSeeText('Temporarily unavailable');
 
         $this->assertAuthenticated();
-        $this->assertDatabaseHas('audit_logs', [
-            'event' => 'auth.login_success',
-        ]);
     }
 
     public function test_ordinary_staff_callback_authenticates_but_returns_maintenance_response(): void

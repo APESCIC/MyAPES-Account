@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Maintenance | MyAPES Account')
+@section('title', 'Super Admin maintenance | MyAPES Account')
 
 @section('content')
-    @include('admin._navigation')
+    @include('superadmin._navigation')
 
     <header class="page-heading">
         <div>
             <p class="eyebrow">Guarded recovery controls</p>
-            <h1>Maintenance</h1>
+            <h1>Super Admin maintenance</h1>
             <p>Manage Laravel maintenance mode without creating a secret bypass route.</p>
         </div>
     </header>

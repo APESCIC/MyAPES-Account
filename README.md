@@ -28,8 +28,8 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Durable authorization epochs, recent directory-validation timestamps, suspension checks, remember-token rotation, and the Phase B session-cutover marker force reauthentication whenever authorization changes.
 - **Protected authorization**:
   - The exact protected roles are `service-user`, `staff`, `administrator`, and `super-admin`.
-  - The core code-owned permission catalogue contains `staff.access`, `admin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
-  - The first-party registry contributes 59 namespaced permissions for shipped instances. All 72 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
+  - The core code-owned permission catalogue contains `staff.access`, `admin.access`, `superadmin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
+  - The first-party registry contributes 59 namespaced permissions for shipped instances. All 73 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
   - Administrators retain `admin.modules.view`; `admin.modules.manage` is super-admin-only.
   - Direct user permissions remain an internal central-materializer capability with mandatory provenance and no arbitrary Admin assignment UI. Authorized Admin user details show the same deduplicated role-plus-direct effective set used by the Gate and list each direct source with only a system label or granting account ID.
   - Spatie provides role/permission storage only. Its automatic Gate hook remains disabled while the teams schema and wildcard matching are enabled for the application-owned authorization path. Direct user permissions are allowed only through the central provenance materializer; direct pivot mutation remains disabled.
@@ -260,14 +260,14 @@ All seeded users use this password:
 
 - `MyAPES-Local-QA-2026!`
 
-In local/testing, opening `/login` immediately signs into the seeded public account. Use the in-app QA role switcher to move between Public, Staff, and Admin without re-entering credentials. These are local identities with `qa` session provenance and system-provenanced protected baselines; they do not contain OIDC subjects, directory memberships, production group aliases, or direct user permissions. The Staff fixture also has the deterministic local custom role `local-qa-reviewer`.
+In local/testing, opening `/login` immediately signs into the seeded public account. Use the in-app QA role switcher to move between Public, Staff, Admin, and Super Admin without re-entering credentials. These are local identities with `qa` session provenance and system-provenanced protected baselines; they do not contain OIDC subjects, directory memberships, production group aliases, or direct user permissions. The Staff fixture also has the deterministic local custom role `local-qa-reviewer`. If a seeded account is missing, re-run `php artisan db:seed` in the local environment.
 
 | Role | Login email | Login route | Primary QA coverage |
 | --- | --- | --- | --- |
 | Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC Tickets/Cases, Shelter Pet Profiles/Tickets/Cases, and APES Pet Care Clinic Pet Profiles/Tickets/Consultations (owner-scoped views) |
 | Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Exact-namespace staff visibility, assignment updates, internal Ticket messages and Case updates, status workflows, and the local custom-role fixture |
-| Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus authorized Admin Users/Groups/Roles/Permissions views and allowed account mutations |
-| Super Admin (optional extra coverage) | `qa.superadmin@myapes.local` | `/staff/login` (local direct login form) | Custom-role, exact directory-mapping, and guarded module-lifecycle management boundaries |
+| Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus Admin Users and the simplified Admin overview KPIs |
+| Super Admin | `qa.superadmin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Super Admin panel (`/superadmin`): directory groups, roles, permissions, modules, maintenance, and technical analytics charts |
 
 ### Feature test matrix by seeded role
 
@@ -275,7 +275,8 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 | --- | --- |
 | Public | Create/view/comment on own APES CIC and Shelter Tickets/Cases; create/view/comment on own APES Pet Care Clinic Tickets; update own Shelter and APES Pet Care Clinic Pet Profiles and Clinic Consultations; edit profile/settings; and verify owner-only/public-update visibility |
 | Staff | Use exact instance permissions to see all users' Tickets/Cases/Consultations, assign eligible staff/admin accounts, update statuses, and verify internal-note privacy |
-| Admin | Run full staff workflows plus inspect Admin Users, Groups, Roles, Permissions, and Modules and exercise allowed user-management boundaries |
+| Admin | Run full staff workflows plus inspect Admin Users and the simplified Admin overview |
+| Super Admin | Open `/superadmin`, exercise Groups/Roles/Permissions/Modules/Maintenance, and confirm overview charts stay fixed-height |
 
 ### Seeded data included for quick E2E checks
 

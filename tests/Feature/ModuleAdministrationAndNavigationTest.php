@@ -81,13 +81,36 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             ->assertSee('No modules are currently available');
     }
 
-    public function test_administrators_can_view_the_complete_matrix_but_cannot_mutate_it(): void
+    public function test_administrators_cannot_open_module_administration(): void
     {
         $administrator = User::factory()
             ->protectedRole(AuthorizationProfile::ROLE_ADMINISTRATOR)
             ->create();
 
-        $response = $this->actingAs($administrator)->get('/admin/modules');
+        $this->actingAs($administrator)
+            ->get('/admin/modules')
+            ->assertForbidden();
+
+        $this->actingAs($administrator)
+            ->post('/admin/modules/apes-cic/tickets/transition', [
+                'action' => 'disable',
+                'confirm_action' => '1',
+                'confirm_navigation' => '1',
+                'version' => $this->installation(
+                    'apes-cic',
+                    'tickets',
+                )->lock_version,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_super_admins_can_view_the_complete_matrix_with_manage_controls_open(): void
+    {
+        $superAdmin = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SUPER_ADMIN)
+            ->create();
+
+        $response = $this->actingAs($superAdmin)->get('/admin/modules');
 
         $response->assertOk();
         $response->assertSee('module-registry', false);
@@ -109,19 +132,9 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $response->assertDontSee('Code not shipped');
         $response->assertSee('Incompatible');
         $response->assertSeeText('shelter-rescue:pet-profiles (Enabled)');
-        $response->assertDontSee('data-module-action-form', false);
-
-        $this->actingAs($administrator)
-            ->post('/admin/modules/apes-cic/tickets/transition', [
-                'action' => 'disable',
-                'confirm_action' => '1',
-                'confirm_navigation' => '1',
-                'version' => $this->installation(
-                    'apes-cic',
-                    'tickets',
-                )->lock_version,
-            ])
-            ->assertForbidden();
+        $response->assertSee('data-module-action-form', false);
+        $response->assertSee('data-module-manage', false);
+        $response->assertDontSee('<details', false);
     }
 
     public function test_guest_and_staff_cannot_open_module_administration(): void

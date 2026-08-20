@@ -73,14 +73,14 @@ class ModulePermissionGateTest extends TestCase
         $this->assertFalse($serviceUser->can('apes-cic.tickets.assign'));
     }
 
-    public function test_module_administration_is_viewable_by_administrators_and_mutable_only_by_super_admins(): void
+    public function test_module_administration_is_super_admin_only(): void
     {
         $administrator = User::factory()
             ->protectedRole(AuthorizationProfile::ROLE_ADMINISTRATOR)
             ->create();
         $this->actingAs($administrator);
 
-        $this->assertTrue($administrator->can('admin.modules.view'));
+        $this->assertFalse($administrator->can('admin.modules.view'));
         $this->assertFalse($administrator->can('admin.modules.manage'));
 
         $superAdmin = User::factory()
@@ -90,6 +90,7 @@ class ModulePermissionGateTest extends TestCase
 
         $this->assertTrue($superAdmin->can('admin.modules.view'));
         $this->assertTrue($superAdmin->can('admin.modules.manage'));
+        $this->assertTrue($superAdmin->can('superadmin.access'));
     }
 
     public function test_suspension_denies_public_and_staff_module_permissions_immediately(): void

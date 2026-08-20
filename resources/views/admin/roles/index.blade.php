@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Admin roles | MyAPES Account')
+@section('title', 'Super Admin roles | MyAPES Account')
 
 @section('content')
-    @include('admin._navigation')
+    @include('superadmin._navigation')
 
     <section class="panel" aria-labelledby="admin-roles-title">
-        <h1 id="admin-roles-title">Roles</h1>
-        <p class="muted">Protected role matrices are read-only. Super-admins can create custom roles using only code-owned catalogue permissions.</p>
+        <h1 id="admin-roles-title">Super Admin roles</h1>
+        <p class="muted">Protected roles sync from application code. Custom roles can only use catalogue permissions that are not Super Admin–only.</p>
 
         <form method="get" action="{{ route('admin.roles.index') }}">
             <label for="role-search">Search roles</label>
@@ -27,15 +27,30 @@
                 <label for="new-role-name">Role name</label>
                 <input id="new-role-name" name="name" required minlength="3" maxlength="64" pattern="[a-z][a-z0-9]*(?:-[a-z0-9]+)*" aria-describedby="role-name-help">
                 <p id="role-name-help" class="muted">Use lower kebab case, for example <code>case-reviewer</code>.</p>
-                <fieldset class="admin-checkbox-grid">
-                    <legend>Permissions</legend>
-                    @foreach($permissions as $permission)
-                        <label class="inline-check">
-                            <input type="checkbox" name="permissions[]" value="{{ $permission->name }}">
-                            <code>{{ $permission->name }}</code>
-                        </label>
-                    @endforeach
-                </fieldset>
+                @php
+                    $createGroups = $permissions
+                        ->groupBy(fn ($permission) => \App\Support\PermissionDescriptions::group($permission->name))
+                        ->sortKeys();
+                @endphp
+                @foreach($createGroups as $groupName => $groupPermissions)
+                    <fieldset class="permission-choice-group">
+                        <legend>{{ $groupName }}</legend>
+                        <ul class="permission-choice-list">
+                            @foreach($groupPermissions as $permission)
+                                <li>
+                                    <label class="permission-choice">
+                                        <input type="checkbox" name="permissions[]" value="{{ $permission->name }}">
+                                        <span class="permission-choice__body">
+                                            <span class="permission-choice__title">{{ \App\Support\PermissionDescriptions::title($permission->name) }}</span>
+                                            <span class="permission-choice__description muted">{{ \App\Support\PermissionDescriptions::description($permission->name) }}</span>
+                                            <code class="permission-choice__key">{{ $permission->name }}</code>
+                                        </span>
+                                    </label>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </fieldset>
+                @endforeach
                 <div class="actions"><button type="submit">Create role</button></div>
             </form>
         </section>

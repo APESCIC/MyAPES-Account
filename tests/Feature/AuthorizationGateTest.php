@@ -101,6 +101,7 @@ class AuthorizationGateTest extends TestCase
         foreach ([
             'staff.access',
             'admin.access',
+            'superadmin.access',
             'admin.users.view',
             'admin.users.manage',
             'admin.groups.view',

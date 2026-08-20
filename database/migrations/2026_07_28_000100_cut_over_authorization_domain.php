@@ -32,6 +32,7 @@ return new class extends Migration
     private const PERMISSIONS = [
         'staff.access',
         'admin.access',
+        'superadmin.access',
         'admin.users.view',
         'admin.users.manage',
         'admin.groups.view',

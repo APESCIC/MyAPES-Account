@@ -2,17 +2,12 @@
 
 @section('title', 'Admin | MyAPES Account')
 
-@push('head')
-    @vite('resources/js/admin-analytics.js')
-@endpush
-
 @section('content')
     @include('admin._navigation')
 
     @php
         $accounts = $dashboard['accounts'];
         $workload = $dashboard['workload'];
-        $median = $workload['median_closure_minutes'];
         $identityLabels = [
             'local' => 'Local',
             'cloudron_oidc' => 'Cloudron OIDC',
@@ -24,22 +19,11 @@
             'administrator' => 'Administrator',
             'super-admin' => 'Super-admin',
         ];
-        $alertLabels = [
-            'disabled' => 'Disabled',
-            'blocked' => 'Blocked',
-            'active-records' => 'Active records',
-        ];
-        $chartData = [
-            'days' => $workload['days'],
-            'created' => $workload['created_per_day'],
-            'closed' => $workload['closed_per_day'],
-            'instances' => $workload['by_instance'],
-        ];
     @endphp
 
     <div class="panel">
-        <h1>Admin operations</h1>
-        <p class="muted">Operational analytics for administrators. No individual productivity ranking is shown.</p>
+        <h1>Admin overview</h1>
+        <p class="muted">Day-to-day account health for administrators. Technical charts, directory controls, and module lifecycle live in Super Admin.</p>
 
         <form method="get" action="{{ route('admin.index') }}" class="analytics-range" aria-label="Reporting range">
             <fieldset>
@@ -79,20 +63,6 @@
                 <h3>Unassigned</h3>
                 <div data-kpi="unassigned">{{ $workload['unassigned'] }}</div>
             </div>
-            <div class="panel panel-flat" role="listitem">
-                <h3>Enabled modules</h3>
-                <div data-kpi="enabled-modules">{{ $dashboard['modules']['enabled'] }} / {{ $dashboard['modules']['installed'] }}</div>
-            </div>
-            <div class="panel panel-flat" role="listitem">
-                <h3>Median closure</h3>
-                <div data-kpi="median-closure">
-                    @if($median === null)
-                        not available
-                    @else
-                        {{ number_format($median, 1) }} minutes
-                    @endif
-                </div>
-            </div>
         </div>
     </div>
 
@@ -126,114 +96,6 @@
         </div>
     </div>
 
-    <div class="panel">
-        <h2>Created versus closed</h2>
-        <p class="muted">Daily created and closed items for the selected range. Patterned series, not colour alone.</p>
-        <canvas id="analytics-trend-chart" role="img" aria-labelledby="analytics-trend-caption"></canvas>
-        <table id="analytics-trend-table" data-table="created-versus-closed">
-            <caption id="analytics-trend-caption">Created versus closed items per day</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Day</th>
-                    <th scope="col">Created</th>
-                    <th scope="col">Closed</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach($workload['days'] as $index => $day)
-                <tr>
-                    <th scope="row">{{ $day }}</th>
-                    <td>{{ $workload['created_per_day'][$index] }}</td>
-                    <td>{{ $workload['closed_per_day'][$index] }}</td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-    </div>
-
-    <div class="panel">
-        <h2>Open workload by service</h2>
-        <p class="muted">Currently open tickets, cases, and consultations by installed module.</p>
-        <canvas id="analytics-workload-chart" role="img" aria-labelledby="analytics-workload-caption"></canvas>
-        <table id="analytics-workload-table" data-table="workload-by-service">
-            <caption id="analytics-workload-caption">Open workload by sub-core and module</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Service</th>
-                    <th scope="col">Open</th>
-                    <th scope="col">High or urgent</th>
-                    <th scope="col">Unassigned</th>
-                </tr>
-            </thead>
-            <tbody>
-            @forelse($workload['by_instance'] as $instance)
-                <tr data-instance="{{ $instance['key'] }}">
-                    <th scope="row">{{ $instance['sub_core'] }} — {{ $instance['module'] }}</th>
-                    <td>{{ $instance['open'] }}</td>
-                    <td>{{ $instance['high_or_urgent'] }}</td>
-                    <td>{{ $instance['unassigned'] }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="4">No module analytics are available.</td>
-                </tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="panel">
-        <h2>Operational context</h2>
-        <p data-maintenance-state="{{ $dashboard['maintenance']['active'] ? 'active' : 'inactive' }}">
-            Maintenance is
-            <strong>{{ $dashboard['maintenance']['active'] ? 'active' : 'inactive' }}</strong>
-            @if($dashboard['maintenance']['message'])
-                — {{ $dashboard['maintenance']['message'] }}
-            @endif
-        </p>
-        <table data-table="module-alerts">
-            <caption>Disabled, blocked, or active-record module warnings</caption>
-            <thead><tr><th scope="col">Module</th><th scope="col">Status</th></tr></thead>
-            <tbody>
-            @forelse($dashboard['module_alerts'] as $alert)
-                <tr data-alert-kind="{{ $alert['kind'] }}">
-                    <th scope="row">{{ $alert['label'] }}</th>
-                    <td>{{ $alertLabels[$alert['kind']] ?? $alert['kind'] }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="2">No module warnings.</td>
-                </tr>
-            @endforelse
-            </tbody>
-        </table>
-        <table data-table="privileged-events">
-            <caption>Recent privileged audit events</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Action</th>
-                    <th scope="col">Actor</th>
-                    <th scope="col">Time</th>
-                </tr>
-            </thead>
-            <tbody>
-            @forelse($dashboard['privileged_events'] as $event)
-                <tr>
-                    <th scope="row">{{ $event['event'] }}</th>
-                    <td>{{ $event['actor'] }}</td>
-                    <td>{{ $event['occurred_at'] }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="3">No privileged events in the audit log.</td>
-                </tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <script type="application/json" id="admin-analytics-chart-data">@json($chartData)</script>
-
     @can('admin.users.view')
         <div class="panel">
             <h2>Recent accounts</h2>
@@ -250,6 +112,11 @@
                 @endforeach
                 </tbody>
             </table>
+            <p class="actions">
+                <a href="{{ route('admin.users.index', ['account_type' => 'public']) }}">Manage public users</a>
+                ·
+                <a href="{{ route('admin.users.index', ['account_type' => 'staff']) }}">Manage staff</a>
+            </p>
         </div>
     @endcan
 @endsection

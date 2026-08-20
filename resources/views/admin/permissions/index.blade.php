@@ -1,47 +1,73 @@
 @extends('layouts.app')
 
-@section('title', 'Admin permissions | MyAPES Account')
+@section('title', 'Super Admin permissions | MyAPES Account')
 
 @section('content')
-    @include('admin._navigation')
+    @include('superadmin._navigation')
 
     <section class="panel" aria-labelledby="admin-permissions-title">
-        <h1 id="admin-permissions-title">Permissions</h1>
-        <p class="muted">Code-owned permission catalogue. Permissions are read-only and can be assigned only through custom roles.</p>
-        <form method="get" action="{{ route('admin.permissions.index') }}">
-            <label for="permission-search">Search permission keys</label>
-            <input id="permission-search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100">
+        <h1 id="admin-permissions-title">Super Admin permissions</h1>
+        <p class="muted">Code-owned catalogue with plain-language titles. Permissions are assigned through custom roles, not directly to users.</p>
+        <form method="get" action="{{ route('admin.permissions.index') }}" class="permission-filter-form">
+            <div class="row">
+                <div>
+                    <label for="permission-search">Search</label>
+                    <input id="permission-search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="Title or key, e.g. users or admin.modules">
+                </div>
+                <div>
+                    <label for="permission-group">Group</label>
+                    <select id="permission-group" name="group">
+                        <option value="">All groups</option>
+                        @foreach($groups as $group)
+                            <option value="{{ $group }}" @selected(($filters['group'] ?? '') === $group)>{{ $group }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
             <div class="actions">
-                <button type="submit">Search</button>
-                <a href="{{ route('admin.permissions.index') }}">Clear search</a>
+                <button type="submit">Apply filters</button>
+                <a href="{{ route('admin.permissions.index') }}">Clear</a>
             </div>
         </form>
     </section>
 
     <section class="panel" aria-labelledby="permission-results-title">
         <h2 id="permission-results-title">Permission catalogue</h2>
-        <table>
-            <caption>{{ $permissions->total() }} code-owned permissions, ordered by key</caption>
-            <thead><tr><th scope="col">Key</th><th scope="col">Description</th><th scope="col">Owner</th><th scope="col">Assigned roles</th></tr></thead>
-            <tbody>
-            @forelse($permissions as $permission)
-                <tr>
-                    <td><code>{{ $permission->name }}</code></td>
-                    <td>{{ \Illuminate\Support\Str::headline(str_replace('.', ' ', $permission->name)) }}</td>
-                    <td>Application code</td>
-                    <td>
-                        @forelse($permission->roles as $role)
-                            <a href="{{ route('admin.roles.show', $role) }}">{{ $role->name }}</a>@if(! $loop->last), @endif
-                        @empty
-                            None
-                        @endforelse
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="4">No permissions match this search.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
+        <p class="muted">{{ $permissions->total() }} permissions match these filters.</p>
+
+        @php
+            $grouped = $permissions->getCollection()
+                ->groupBy(fn ($permission) => \App\Support\PermissionDescriptions::group($permission->name))
+                ->sortKeys();
+        @endphp
+
+        @forelse($grouped as $groupName => $groupPermissions)
+            <div class="permission-catalogue-group">
+                <h3>{{ $groupName }}</h3>
+                <ul class="permission-readable-list">
+                    @foreach($groupPermissions as $permission)
+                        <li>
+                            <div class="permission-readable-heading">
+                                <strong>{{ \App\Support\PermissionDescriptions::title($permission->name) }}</strong>
+                                <code>{{ $permission->name }}</code>
+                            </div>
+                            <p class="muted">{{ \App\Support\PermissionDescriptions::description($permission->name) }}</p>
+                            <p>
+                                <span class="muted">Assigned roles:</span>
+                                @forelse($permission->roles as $role)
+                                    <a href="{{ route('admin.roles.show', $role) }}">{{ $role->name }}</a>@if(! $loop->last), @endif
+                                @empty
+                                    None
+                                @endforelse
+                            </p>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @empty
+            <p>No permissions match this search.</p>
+        @endforelse
+
         {{ $permissions->links() }}
     </section>
 @endsection

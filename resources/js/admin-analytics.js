@@ -92,6 +92,7 @@ if (data) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                resizeDelay: 0,
                 plugins: {
                     legend: { labels: { color: ink, usePointStyle: true } },
                 },
@@ -135,6 +136,7 @@ if (data) {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
+                resizeDelay: 0,
                 plugins: {
                     legend: { labels: { color: ink, usePointStyle: true } },
                 },

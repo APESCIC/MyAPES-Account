@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Admin groups | MyAPES Account')
+@section('title', 'Super Admin groups | MyAPES Account')
 
 @section('content')
-    @include('admin._navigation')
+    @include('superadmin._navigation')
 
     <section class="panel" aria-labelledby="admin-groups-title">
-        <h1 id="admin-groups-title">Directory groups</h1>
-        <p class="muted">Review the normalized directory catalogue and its role mappings. Missing groups remain visible for operational review.</p>
+        <h1 id="admin-groups-title">Super Admin groups</h1>
+        <p class="muted">Cloudron directory catalogue and role mappings. Groups always come from Cloudron; “custom” means a custom role mapping, not an app-owned group. Missing groups stay visible for review.</p>
 
         <form method="get" action="{{ route('admin.groups.index') }}">
             <div class="row">
@@ -50,20 +50,23 @@
         <h2 id="group-results-title">Group results</h2>
         <table>
             <caption>{{ $groups->total() }} directory groups, ordered by normalized name</caption>
-            <thead><tr><th scope="col">Group</th><th scope="col">Status</th><th scope="col">Members</th><th scope="col">Mapped roles</th><th scope="col">Management</th></tr></thead>
+            <thead><tr><th scope="col">Group</th><th scope="col">Source</th><th scope="col">Status</th><th scope="col">Members</th><th scope="col">Mapped roles</th><th scope="col">Management</th></tr></thead>
             <tbody>
             @forelse($groups as $group)
                 <tr>
                     <td><code>{{ $group->name }}</code></td>
+                    <td>
+                        <span class="status" title="{{ \App\Support\DirectoryGroupLabels::sourceHint($group) }}">
+                            {{ \App\Support\DirectoryGroupLabels::sourceLabel($group) }}
+                        </span>
+                    </td>
                     <td>{{ ucfirst($group->status) }}</td>
                     <td>{{ $group->member_count ?? 'Unknown' }}</td>
                     <td>
                         @forelse($group->roles as $role)
                             <div>
                                 <a href="{{ route('admin.roles.show', $role) }}">{{ $role->name }}</a>
-                                @if($role->pivot->is_immutable)
-                                    <span class="status">Protected mapping</span>
-                                @endif
+                                <span class="status">{{ \App\Support\DirectoryGroupLabels::mappingLabel((bool) $role->pivot->is_immutable) }}</span>
                                 @can('admin.group-mappings.manage')
                                     @if(! $role->pivot->is_immutable)
                                         <form class="inline" method="post" action="{{ route('admin.groups.mappings.destroy', $role->pivot->id) }}">
@@ -97,7 +100,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5">No directory groups match these filters.</td></tr>
+                <tr><td colspan="6">No directory groups match these filters.</td></tr>
             @endforelse
             </tbody>
         </table>

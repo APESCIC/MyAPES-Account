@@ -25,13 +25,16 @@ class AdminAccessAndViewsTest extends TestCase
     {
         $administrator = $this->userWithAccess(User::ROLE_ADMIN);
 
+        $this->actingAs($administrator)->get('/admin/users')->assertOk();
+
         foreach ([
-            '/admin/users',
             '/admin/groups',
             '/admin/roles',
             '/admin/permissions',
+            '/admin/modules',
+            '/superadmin',
         ] as $path) {
-            $this->actingAs($administrator)->get($path)->assertOk();
+            $this->actingAs($administrator)->get($path)->assertForbidden();
         }
 
         $this->actingAs($administrator)
@@ -49,18 +52,16 @@ class AdminAccessAndViewsTest extends TestCase
             ->where('user_id', $administrator->id)
             ->get();
 
-        $this->assertCount(2, $denials);
-        $this->assertSame(
-            ['admin.groups.sync', 'admin.roles.store'],
-            $denials->pluck('context.route_name')->sort()->values()->all(),
+        $this->assertGreaterThanOrEqual(2, $denials->count());
+        $this->assertTrue(
+            $denials->pluck('context.route_name')->contains('admin.roles.store'),
+        );
+        $this->assertTrue(
+            $denials->pluck('context.route_name')->contains('admin.groups.sync'),
         );
         $this->assertSame(
             ['permission_denied'],
             $denials->pluck('context.reason_code')->unique()->values()->all(),
-        );
-        $this->assertEqualsCanonicalizing(
-            ['POST'],
-            $denials->pluck('context.method')->unique()->values()->all(),
         );
     }
 
@@ -166,7 +167,7 @@ class AdminAccessAndViewsTest extends TestCase
             'guard_name' => 'web',
         ]);
         $systemPermission = Permission::query()
-            ->where('name', 'admin.groups.view')
+            ->where('name', 'admin.users.view')
             ->where('guard_name', 'web')
             ->firstOrFail();
         $duplicatePermission = Permission::query()
@@ -205,7 +206,7 @@ class AdminAccessAndViewsTest extends TestCase
             ->get(route('admin.users.show', $target))
             ->assertOk()
             ->assertSee('admin.users.*')
-            ->assertSee('admin.groups.view')
+            ->assertSee('admin.users.view')
             ->assertSee('Direct permission provenance')
             ->assertSee('local')
             ->assertSee((string) $grantingAdministrator->id)
@@ -222,7 +223,7 @@ class AdminAccessAndViewsTest extends TestCase
 
     public function test_group_role_and_permission_lists_support_validated_search_and_semantic_markup(): void
     {
-        $administrator = $this->userWithAccess(User::ROLE_ADMIN);
+        $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
         DirectoryGroup::query()->create([
             'name' => 'myapes.empty-reviewers',
             'status' => DirectoryGroup::STATUS_PRESENT,
@@ -233,35 +234,38 @@ class AdminAccessAndViewsTest extends TestCase
             'guard_name' => 'web',
         ]);
 
-        $this->actingAs($administrator)
+        $this->actingAs($superAdmin)
             ->get('/admin/groups?q=empty&status=present&mapped=0')
             ->assertOk()
             ->assertSee('myapes.empty-reviewers')
+            ->assertSee('Cloudron MyAPES')
             ->assertDontSee('myapes.staff')
             ->assertSee('<table', false);
-        $this->actingAs($administrator)
+        $this->actingAs($superAdmin)
             ->get('/admin/roles?q=case')
             ->assertOk()
             ->assertSee('case-reviewer')
             ->assertDontSee('super-admin')
-            ->assertSee('Protected role matrices are read-only');
-        $this->actingAs($administrator)
+            ->assertSee('Protected roles sync from application code');
+        $this->actingAs($superAdmin)
             ->get('/admin/permissions?q=users.view')
             ->assertOk()
             ->assertSee('admin.users.view')
+            ->assertSee('View accounts')
             ->assertDontSee('admin.roles.manage')
-            ->assertSee('Code-owned permission catalogue');
+            ->assertSee('Code-owned catalogue');
 
-        $this->actingAs($administrator)
+        $this->actingAs($superAdmin)
             ->from('/admin/groups')
             ->get('/admin/groups?mapped=maybe')
             ->assertRedirect('/admin/groups')
             ->assertSessionHasErrors('mapped');
     }
 
-    public function test_administrator_can_read_custom_role_permissions_without_management_controls(): void
+    public function test_super_admin_can_read_custom_role_permissions_and_administrators_cannot(): void
     {
         $administrator = $this->userWithAccess(User::ROLE_ADMIN);
+        $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
         $role = Role::query()->create([
             'name' => 'case-reviewer',
             'guard_name' => 'web',
@@ -274,10 +278,14 @@ class AdminAccessAndViewsTest extends TestCase
 
         $this->actingAs($administrator)
             ->get("/admin/roles/{$role->id}")
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->get("/admin/roles/{$role->id}")
             ->assertOk()
-            ->assertSee('Current permissions')
+            ->assertSee('View accounts')
             ->assertSee('admin.users.view')
-            ->assertDontSee('Update role');
+            ->assertSee('Update role');
     }
 
     public function test_admin_mutations_require_csrf_tokens(): void
