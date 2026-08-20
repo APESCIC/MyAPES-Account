@@ -316,11 +316,18 @@ Every future change merged to `main` must:
 
 1. Prepend exactly one higher semantic version to `resources/data/releases.json`.
 2. Update `VERSION` to that same version.
-3. Leave every previously published record unchanged and in the same order.
-4. Use a minor version for a new backward-compatible capability and a patch version for a compatible fix. While the application remains pre-1.0, document a breaking change explicitly and advance the minor version.
-5. Keep public notes free of credentials, personal data, private operational identifiers, exploitable security detail, and unnecessary infrastructure detail.
+3. Keep `resources/data/module-runtime-contract.json` → `application_version` in sync with `VERSION`.
+4. Leave every previously published record unchanged and in the same order.
+5. Use a minor version for a new backward-compatible capability and a patch version for a compatible fix. While the application remains pre-1.0, document a breaking change explicitly and advance the minor version.
+6. Keep public notes free of credentials, personal data, private operational identifiers, exploitable security detail, and unnecessary infrastructure detail.
 
-Validate the current structure locally:
+Preferred workflow (agents and humans): scaffold the next release in the same pull request as the feature or fix:
+
+```powershell
+php artisan myapes:changelog-prepare --type=patch --title="Short public title" --issue=<n> [--pr=<n>]
+```
+
+Replace every `TODO:` field in the new head record, then validate:
 
 ```powershell
 php artisan myapes:changelog-validate

@@ -23,7 +23,8 @@ class ValidateChangeLog extends Command
         try {
             $version = $repository->readVersionFile(base_path('VERSION'));
             $releases = $repository->readReleaseFile(resource_path('data/releases.json'));
-            $errors = $validator->validate($releases, $version);
+            $manifestVersion = $this->readManifestVersion();
+            $errors = $validator->validate($releases, $version, $manifestVersion);
 
             $baseRef = trim((string) $this->option('base-ref'));
 
@@ -40,6 +41,7 @@ class ValidateChangeLog extends Command
                             $version,
                             $base['releases'],
                             $base['version'],
+                            $manifestVersion,
                         ),
                     ];
                 }
@@ -113,5 +115,28 @@ class ValidateChangeLog extends Command
         }
 
         return $process->getOutput();
+    }
+
+    private function readManifestVersion(): ?string
+    {
+        $path = resource_path('data/module-runtime-contract.json');
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path);
+
+        if (! is_string($contents)) {
+            throw new RuntimeException("Unable to read module runtime manifest [{$path}].");
+        }
+
+        $manifest = json_decode($contents, true);
+
+        if (! is_array($manifest) || ! is_string($manifest['application_version'] ?? null)) {
+            throw new RuntimeException('Module runtime manifest is missing application_version.');
+        }
+
+        return trim($manifest['application_version']);
     }
 }
