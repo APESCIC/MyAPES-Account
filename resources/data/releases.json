@@ -1,5 +1,45 @@
 [
   {
+    "version": "0.19.0",
+    "date": "2026-08-20",
+    "channel": "stable",
+    "type": "minor",
+    "title": "Agent release metadata prepare command",
+    "summary": "Adds myapes:changelog-prepare so agents scaffold and sync VERSION, releases.json, module-runtime-contract.json, and version-pinned tests in the same PR before merge and Cloudron deploy.",
+    "changes": [
+      "Added myapes:changelog-prepare with stub-then-fill release scaffolding, dry-run support, and guards against incomplete or repeated bumps.",
+      "Extended release validation to require module-runtime-contract.json application_version sync and reject scaffold TODO: placeholders.",
+      "Documented mandatory end-of-work release steps in AGENTS.md, a Cursor rule, and a release-metadata skill."
+    ],
+    "affected_areas": [
+      "Release history validation",
+      "Agent instructions and Cursor skills",
+      "Cloudron deploy pre-merge contract"
+    ],
+    "categories": [
+      "added"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible minor release adding agent-facing release preparation tooling without changing runtime application behavior.",
+    "validation": [
+      "PrepareChangeLog and ReleaseHistory phpunit suites, myapes:changelog-validate, and myapes:changelog-prepare dry-run against the repository."
+    ],
+    "known_limitations": [
+      "Agents must still replace scaffold TODO: narrative fields before validation passes; the prepare command does not author public release prose."
+    ],
+    "rollback": "Revert this release record, VERSION, runtime manifest version, the prepare command and preparer service, validator extensions, agent docs, and version-pinned test updates. No database rollback is needed.",
+    "provenance": "Defined by the agent release metadata prepare command work for MyAPES Account issue #67.",
+    "references": [
+      {
+        "label": "Issue #67",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/67"
+      }
+    ]
+  },
+  {
     "version": "0.18.2",
     "date": "2026-08-20",
     "channel": "stable",
@@ -53,7 +93,7 @@
       "Updated package-lock.json so the development dependency graph resolves nanoid 3.3.18 instead of the affected 3.3.16 release under PostCSS."
     ],
     "affected_areas": [
-      "Frontend development lockfile (Vite → PostCSS → nanoid)"
+      "Frontend development lockfile (Vite \u2192 PostCSS \u2192 nanoid)"
     ],
     "categories": [
       "fixed",
@@ -305,8 +345,15 @@
     "affected_areas": [
       "APES Pet Care Clinic Pet Profiles, Tickets, Consultations, shared module providers, authorization, notifications, protected media, local QA data, and rollback compatibility"
     ],
-    "categories": ["added", "changed", "security"],
-    "audiences": ["public-facing", "internal-only"],
+    "categories": [
+      "added",
+      "changed",
+      "security"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
     "version_rationale": "A backward-compatible minor release completing the APES Pet Care Clinic module set and its exact permission, privacy, provider, QA, runtime, and rollback contracts.",
     "validation": [
       "Focused registry, synchronization, authorization, Pet Profile, Ticket, Consultation, provider, privacy, local-seeder, runtime-manifest, rollback, release-history, health, footer, wording, route-inventory, and migration-inventory coverage verifies the release contract; full repository and browser verification remains assigned to the final Issue #14 verification task."
@@ -498,15 +545,32 @@
       "Added branded HTML and sanitized JSON maintenance responses while preserving health, staff authentication, and authorized Admin recovery routes.",
       "Protected native maintenance transitions with atomic locks and made deployment and rollback controls preserve pre-existing operator maintenance."
     ],
-    "affected_areas": ["Admin operations, recovery routing, health reporting, deployment and rollback controls"],
-    "categories": ["added", "security", "changed"],
-    "audiences": ["internal-only"],
+    "affected_areas": [
+      "Admin operations, recovery routing, health reporting, deployment and rollback controls"
+    ],
+    "categories": [
+      "added",
+      "security",
+      "changed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
     "version_rationale": "A backward-compatible minor release adding the guarded operational capability planned in issue #16.",
-    "validation": ["Authorization, confirmations, concurrency, native and history partial failures, reconciliation, branded responses, OIDC recovery, health reporting, and deployment ownership are covered."],
-    "known_limitations": ["Planned end times are informational only; maintenance restoration remains an explicit authorized operation."],
+    "validation": [
+      "Authorization, confirmations, concurrency, native and history partial failures, reconciliation, branded responses, OIDC recovery, health reporting, and deployment ownership are covered."
+    ],
+    "known_limitations": [
+      "Planned end times are informational only; maintenance restoration remains an explicit authorized operation."
+    ],
     "rollback": "Compatible rollback preserves the authoritative Redis-backed Laravel maintenance state. Releases without the Admin console retain emergency recovery through the Laravel CLI.",
     "provenance": "Defined by the guarded Admin maintenance-control work for MyAPES Account issue #16.",
-    "references": [{"label": "Issue #16", "url": "https://github.com/APESCIC/MyAPES-Account/issues/16"}]
+    "references": [
+      {
+        "label": "Issue #16",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/16"
+      }
+    ]
   },
   {
     "version": "0.11.0",
@@ -520,15 +584,32 @@
       "Required the current password, matching verified email, unclaimed OIDC subject, current exact LDAP eligibility, and an unconsumed link intent.",
       "Preserved public capabilities on hybrid accounts while requiring a current OIDC session for directory-derived staff permissions."
     ],
-    "affected_areas": ["Public accounts, Cloudron authentication, protected staff authorization"],
-    "categories": ["added", "security"],
-    "audiences": ["public-facing", "internal-only"],
+    "affected_areas": [
+      "Public accounts, Cloudron authentication, protected staff authorization"
+    ],
+    "categories": [
+      "added",
+      "security"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
     "version_rationale": "A backward-compatible minor release completing the explicit hybrid identity capability planned in issue #19.",
-    "validation": ["Link success, password proof, mismatched email, claimed subject, expired or replayed intent, directory eligibility, session rotation, and existing staff OIDC authentication are covered."],
-    "known_limitations": ["Cloudron linking does not provision or modify accounts in external services and username changes remain unavailable."],
+    "validation": [
+      "Link success, password proof, mismatched email, claimed subject, expired or replayed intent, directory eligibility, session rotation, and existing staff OIDC authentication are covered."
+    ],
+    "known_limitations": [
+      "Cloudron linking does not provision or modify accounts in external services and username changes remain unavailable."
+    ],
     "rollback": "The preceding public-lifecycle release continues to operate with linked rows stored as hybrid accounts; directory permissions remain guarded by the existing authentication-context checks.",
     "provenance": "Defined by the explicit identity-linking phase for MyAPES Account issue #19.",
-    "references": [{"label": "Issue #19", "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"}]
+    "references": [
+      {
+        "label": "Issue #19",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"
+      }
+    ]
   },
   {
     "version": "0.10.0",
@@ -542,15 +623,31 @@
       "Added explicit all-false contact confirmation with policy-versioned grant and withdrawal events.",
       "Aligned navigation, public permissions, and direct service routes with selections while preserving OIDC staff access and all existing service records."
     ],
-    "affected_areas": ["Registration, login, profiles, navigation, service access, and contact preferences"],
-    "categories": ["added", "changed"],
-    "audiences": ["public-facing"],
+    "affected_areas": [
+      "Registration, login, profiles, navigation, service access, and contact preferences"
+    ],
+    "categories": [
+      "added",
+      "changed"
+    ],
+    "audiences": [
+      "public-facing"
+    ],
     "version_rationale": "A backward-compatible minor release adding the user-facing public account lifecycle planned in issue #19.",
-    "validation": ["Registration, case-insensitive login, verification and onboarding gates, UK contact validation, consent evidence, navigation, permissions, route gating, and retained service selections are covered."],
-    "known_limitations": ["Explicit Cloudron identity linking is delivered in the following compatible release and final consent wording remains subject to APES GDPR approval."],
+    "validation": [
+      "Registration, case-insensitive login, verification and onboarding gates, UK contact validation, consent evidence, navigation, permissions, route gating, and retained service selections are covered."
+    ],
+    "known_limitations": [
+      "Explicit Cloudron identity linking is delivered in the following compatible release and final consent wording remains subject to APES GDPR approval."
+    ],
     "rollback": "The compatible v0.9.1 storage remains intact and the previous application ignores the new preference state without deleting service records.",
     "provenance": "Defined by the public lifecycle phase for MyAPES Account issue #19.",
-    "references": [{"label": "Issue #19", "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"}]
+    "references": [
+      {
+        "label": "Issue #19",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"
+      }
+    ]
   },
   {
     "version": "0.9.2",
@@ -562,15 +659,30 @@
     "changes": [
       "Aligned account preflight with the configured consent policy version and privacy notice URL so valid production settings are recognized during activation."
     ],
-    "affected_areas": ["Account lifecycle deployment readiness"],
-    "categories": ["fixed"],
-    "audiences": ["internal-only"],
+    "affected_areas": [
+      "Account lifecycle deployment readiness"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
     "version_rationale": "A backward-compatible patch correcting the pre-switch deployment gate before the public lifecycle cutover.",
-    "validation": ["Account readiness tests use the production consent namespace and cover valid configuration, missing legal configuration, collisions, and post-migration defaults."],
-    "known_limitations": ["Registration, onboarding, service gating, and explicit identity linking remain disabled until the following compatible releases."],
+    "validation": [
+      "Account readiness tests use the production consent namespace and cover valid configuration, missing legal configuration, collisions, and post-migration defaults."
+    ],
+    "known_limitations": [
+      "Registration, onboarding, service gating, and explicit identity linking remain disabled until the following compatible releases."
+    ],
     "rollback": "The previous release remains compatible with the additive account-lifecycle schema; database migrations stay forward-only and no user data is removed.",
     "provenance": "Defined by the pre-switch v0.9.1 production activation failure for MyAPES Account issue #19.",
-    "references": [{"label": "Issue #19", "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"}]
+    "references": [
+      {
+        "label": "Issue #19",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"
+      }
+    ]
   },
   {
     "version": "0.9.1",
@@ -584,15 +696,31 @@
       "Added per-user service selections, current contact preferences, append-only consent evidence, and expiring OIDC link intents.",
       "Backfilled existing public accounts with all three services and false contact defaults without inventing consent events."
     ],
-    "affected_areas": ["Account storage and upgrade compatibility"],
-    "categories": ["added", "changed"],
-    "audiences": ["internal-only"],
+    "affected_areas": [
+      "Account storage and upgrade compatibility"
+    ],
+    "categories": [
+      "added",
+      "changed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
     "version_rationale": "A compatible patch establishing additive storage and backfills before user-facing account lifecycle behavior is enabled.",
-    "validation": ["Fresh and upgrade migration tests cover schema, email collision refusal, service backfills, false consent defaults, and preserved OIDC-only accounts."],
-    "known_limitations": ["Registration, onboarding, service gating, and explicit identity linking remain disabled until the following compatible releases."],
+    "validation": [
+      "Fresh and upgrade migration tests cover schema, email collision refusal, service backfills, false consent defaults, and preserved OIDC-only accounts."
+    ],
+    "known_limitations": [
+      "Registration, onboarding, service gating, and explicit identity linking remain disabled until the following compatible releases."
+    ],
     "rollback": "The previous release ignores the additive columns and tables. Existing records and legacy phone data remain available; no destructive cleanup is performed.",
     "provenance": "Defined by the first compatible delivery phase for MyAPES Account issue #19.",
-    "references": [{"label": "Issue #19", "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"}]
+    "references": [
+      {
+        "label": "Issue #19",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/19"
+      }
+    ]
   },
   {
     "version": "0.9.0",
@@ -638,655 +766,655 @@
     ]
   },
   {
-        "version": "0.8.3",
-        "date": "2026-08-06",
-        "channel": "stable",
-        "type": "patch",
-        "title": "Root-owned runtime release boundaries",
-        "summary": "Restored root ownership after Cloudron startup normalization so application code cannot relax immutable release and deployment-control permissions.",
-        "changes": [
-            "Made the launcher accept only the verified Cloudron ownership-normalization contract, restore root ownership synchronously, and refuse Apache startup until the protected runtime boundary is verified.",
-            "Added post-restart ownership restoration and complete ownership verification for active and rollback releases while retaining writable Laravel cache and shared-storage paths."
-        ],
-        "affected_areas": [
-            "Cloudron application startup, immutable release ownership, and rollback verification"
-        ],
-        "categories": [
-            "fixed",
-            "security"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible patch correcting the ownership-control gap found during v0.8.2 production acceptance.",
-        "validation": [
-            "Deployment contracts require root ownership for protected runtime paths and every immutable-release path outside Laravel bootstrap cache, with the shared environment root-owned and readable only by the application group.",
-            "The post-restart gate restores ownership before reading the retained archive, reauthenticates deployment controls, preserves only required cache and storage writes, and reruns exact release health, OIDC, and authorization checks."
-        ],
-        "known_limitations": [
-            "This patch changes deployment ownership enforcement only; it does not alter the v0.8.0 authorization or Admin feature set."
-        ],
-        "rollback": "Restore the exact pre-activation application release while retaining the forward-only Phase B database migration; rollback remains fail-closed unless the previous release and authenticated controls retain root-owned immutable boundaries.",
-        "provenance": "Defined by v0.8.2 production ownership evidence for Phase B of MyAPES Account issue #10.",
-        "references": [
-            {
-                "label": "Issue #10",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
-            }
-        ]
-    },
-    {
-        "version": "0.8.2",
-        "date": "2026-08-05",
-        "channel": "stable",
-        "type": "patch",
-        "title": "Post-restart deployment-control hardening",
-        "summary": "Hardened Cloudron release and rollback controls so platform ownership normalization cannot make authenticated runtime controls application-writable after a restart.",
-        "changes": [
-            "Added mode-based immutable release boundaries that survive Cloudron ownership normalization while retaining the required writable Laravel cache and shared-storage paths.",
-            "Reauthenticated the fixed deployment-control set into a root-only runtime directory after restart and immediately before rollback, then verified the live write boundaries before health acceptance."
-        ],
-        "affected_areas": [
-            "Cloudron release restart, runtime-control authentication, and exact-release rollback"
-        ],
-        "categories": [
-            "fixed",
-            "security"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible patch correcting the post-restart ownership boundary discovered during v0.8.1 production verification.",
-        "validation": [
-            "Deployment contract tests require authenticated post-restart and pre-rollback control extraction, exact fixed-path hashes, root-only runtime controls, and non-writable active and rollback release boundaries for the application user.",
-            "The complete SQLite, MySQL 8.4, MariaDB 11.4, frontend, packaging, migration, authorization, health, OIDC, and post-restart production gates remain required before issue completion."
-        ],
-        "known_limitations": [
-            "This patch changes deployment and rollback hardening only; it does not alter the v0.8.0 authorization or Admin feature set."
-        ],
-        "rollback": "Restore the exact pre-activation application release while retaining the forward-only Phase B database migration; rollback controls must still pass the externally authenticated runtime-control and immutable-release gates.",
-        "provenance": "Defined by post-restart production evidence for Phase B of MyAPES Account issue #10.",
-        "references": [
-            {
-                "label": "Issue #10",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
-            }
-        ]
-    },
-    {
-        "version": "0.8.1",
-        "date": "2026-08-05",
-        "channel": "stable",
-        "type": "patch",
-        "title": "Root-controlled public storage activation",
-        "summary": "Corrected Cloudron release activation so the shared public-storage link is installed by the root-controlled deployment path before application commands run.",
-        "changes": [
-            "Moved public-storage link installation out of the application user process and into the root-controlled immutable release preparation step.",
-            "Added fail-closed target and ownership checks so the application user cannot replace the release public directory or redirect the shared storage link."
-        ],
-        "affected_areas": [
-            "Cloudron release activation and immutable shared-storage preparation"
-        ],
-        "categories": [
-            "fixed",
-            "security"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible patch correcting the deployment-time public-storage link boundary discovered during the v0.8.0 production activation attempt.",
-        "validation": [
-            "Deployment contract tests require root-controlled link creation before Artisan, exact shared-storage targeting, and a non-writable immutable public directory for the application user.",
-            "The complete SQLite, MySQL 8.4, MariaDB 11.4, frontend, packaging, authenticated-control, migration, authorization, health, and OIDC deployment gates remain required before release."
-        ],
-        "known_limitations": [
-            "This patch changes deployment preparation only and does not alter the v0.8.0 authorization or Admin feature set."
-        ],
-        "rollback": "Restore the exact pre-activation application release while retaining the forward-only Phase B database migration; the authenticated control and backup boundaries remain unchanged.",
-        "provenance": "Defined by the production activation evidence for Phase B of MyAPES Account issue #10.",
-        "references": [
-            {
-                "label": "Issue #10",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
-            }
-        ]
-    },
-    {
-        "version": "0.8.0",
-        "date": "2026-08-05",
-        "channel": "stable",
-        "type": "minor",
-        "title": "Protected RBAC and authorization administration",
-        "summary": "Introduced protected role-based authorization, context-aware sessions, exact directory synchronization, suspension controls, and complete Admin authorization management.",
-        "changes": [
-            "Introduced four protected roles and thirteen code-owned permissions enforced through application-owned Gate and policy decisions, with provenance-guarded direct user permissions available only to central authorization services.",
-            "Added source-provenanced role assignments with mandatory persisted actors for local grants and actor-free non-local sources, authorization epochs, context-aware password, Cloudron OIDC, and local quality-assurance sessions, plus suspension and forced reauthentication controls.",
-            "Added exact normalized directory-group mappings, catalogue synchronization, eligibility revocation, and lifecycle commands for guarded activation and verification.",
-            "Added accessible Admin Users, Groups, Roles, and Permissions sections with transactional assignment, mapping, suspension, custom-role, and final-super-admin safeguards.",
-            "Aligned Admin user permission inventories with the runtime Gate by combining role and provenanced direct grants without exposing an arbitrary direct-assignment interface.",
-            "Restricted assignment and operational notifications to unsuspended staff whose protected baseline and qualifying provenance agree, with uniform authorization-first denial handling.",
-            "Bound and coalesced directory synchronization work, made final and repeated queue-failure callbacks durably invalidate prior directory sessions while clearing only their matching lease, and pinned the production application environment.",
-            "Serialized privileged mutations behind authorization-state locks with session, epoch, generation, exact-role provenance, and present-group revalidation, including one final-super-admin predicate shared by runtime and lifecycle checks.",
-            "Derived deployment-control trust directly from the exact Git revision before third-party actions or dependencies and published root-owned, application-non-writable activation and rollback controls."
-        ],
-        "affected_areas": [
-            "Authentication sessions, authorization, policies, and account suspension",
-            "Directory group catalogue, mappings, synchronization, and revocation",
-            "Admin Users, Groups, Roles, and Permissions",
-            "Authorization migration, activation, verification, and rollback compatibility"
-        ],
-        "categories": [
-            "added",
-            "changed",
-            "security",
-            "accessibility"
-        ],
-        "audiences": [
-            "public-facing",
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible minor release completing the protected authorization and administration capability planned in issue #10.",
-        "validation": [
-            "Automated tests cover the guarded cutover, exact source and pivot parity, roleless and interrupted retries, protected permission matrix, actor-attributed local grants, actor-free non-local sources, direct-permission inventory parity, correlated provenance, session context, suspension, assignment integrity, uniform denial responses, bounded directory synchronization, lifecycle commands, and Admin authorization boundaries.",
-            "The release gate requires complete SQLite coverage plus deterministic two-process row-lock and reconciliation tests and a real correlated queue-timeout probe on MySQL 8.4 and MariaDB 11.4, queue and LDAP bounds, transaction-time privileged reauthorization, Git-derived deployment-control authentication, root-owned control-use checks, exact environment and rollback contracts, frontend tests, production assets, archive checks, and exact post-restart health and OIDC verification."
-        ],
-        "known_limitations": [
-            "Issue #11 public identity and consent work is not included.",
-            "Issue #19 version-management automation is not included."
-        ],
-        "rollback": "Code rollback is idempotent and bound to the exact failed and pre-activation releases, with complete runtime controls derived from the exact Git revision and consumed from a root-owned application-non-writable directory, while retaining the Phase B database migrations. A deliberate maintenance downgrade refuses unrepresentable revocation state and invalidates sessions first; the pre-deployment backup remains the database recovery boundary.",
-        "provenance": "Defined by Phase B of MyAPES Account issue #10.",
-        "references": [
-            {
-                "label": "Issue #10",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
-            }
-        ]
-    },
-    {
-        "version": "0.7.1",
-        "date": "2026-07-28",
-        "channel": "stable",
-        "type": "patch",
-        "title": "Guest authentication redirect correction",
-        "summary": "Corrected protected-route handling so signed-out visitors reach Public Login instead of a server error.",
-        "changes": [
-            "Directed browser guests from protected pages to the existing Public Login route while preserving their intended destination.",
-            "Restored unauthorized JSON responses for clients that explicitly request JSON."
-        ],
-        "affected_areas": [
-            "Guest authentication redirects and protected-route error handling"
-        ],
-        "categories": [
-            "fixed"
-        ],
-        "audiences": [
-            "public-facing"
-        ],
-        "version_rationale": "A backward-compatible patch correcting guest access to the existing authentication entry point.",
-        "validation": [
-            "Automated feature tests cover browser redirects, intended destinations, and unauthorized JSON responses.",
-            "The complete application, release-validation, frontend, build, cache, migration, and deployment checks remain required before release."
-        ],
-        "known_limitations": [
-            "This correction does not change authentication methods, account authorization, or staff OIDC behavior."
-        ],
-        "rollback": "Restore the previous application release, accepting that signed-out protected-route requests will again return a server error.",
-        "provenance": "Defined by MyAPES Account issue #25 after the defect was reproduced during production acceptance.",
-        "references": [
-            {
-                "label": "Issue #25",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/25"
-            }
-        ]
-    },
-    {
-        "version": "0.7.0",
-        "date": "2026-07-27",
-        "channel": "stable",
-        "type": "minor",
-        "title": "Access-control compatibility foundation",
-        "summary": "Added the transitional identity and access-level foundation required for the protected role-based access-control rollout while preserving current access behavior.",
-        "changes": [
-            "Added explicit local and Cloudron identity classifications plus a centralized legacy access-level contract.",
+    "version": "0.8.3",
+    "date": "2026-08-06",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Root-owned runtime release boundaries",
+    "summary": "Restored root ownership after Cloudron startup normalization so application code cannot relax immutable release and deployment-control permissions.",
+    "changes": [
+      "Made the launcher accept only the verified Cloudron ownership-normalization contract, restore root ownership synchronously, and refuse Apache startup until the protected runtime boundary is verified.",
+      "Added post-restart ownership restoration and complete ownership verification for active and rollback releases while retaining writable Laravel cache and shared-storage paths."
+    ],
+    "affected_areas": [
+      "Cloudron application startup, immutable release ownership, and rollback verification"
+    ],
+    "categories": [
+      "fixed",
+      "security"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible patch correcting the ownership-control gap found during v0.8.2 production acceptance.",
+    "validation": [
+      "Deployment contracts require root ownership for protected runtime paths and every immutable-release path outside Laravel bootstrap cache, with the shared environment root-owned and readable only by the application group.",
+      "The post-restart gate restores ownership before reading the retained archive, reauthenticates deployment controls, preserves only required cache and storage writes, and reruns exact release health, OIDC, and authorization checks."
+    ],
+    "known_limitations": [
+      "This patch changes deployment ownership enforcement only; it does not alter the v0.8.0 authorization or Admin feature set."
+    ],
+    "rollback": "Restore the exact pre-activation application release while retaining the forward-only Phase B database migration; rollback remains fail-closed unless the previous release and authenticated controls retain root-owned immutable boundaries.",
+    "provenance": "Defined by v0.8.2 production ownership evidence for Phase B of MyAPES Account issue #10.",
+    "references": [
+      {
+        "label": "Issue #10",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
+      }
+    ]
+  },
+  {
+    "version": "0.8.2",
+    "date": "2026-08-05",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Post-restart deployment-control hardening",
+    "summary": "Hardened Cloudron release and rollback controls so platform ownership normalization cannot make authenticated runtime controls application-writable after a restart.",
+    "changes": [
+      "Added mode-based immutable release boundaries that survive Cloudron ownership normalization while retaining the required writable Laravel cache and shared-storage paths.",
+      "Reauthenticated the fixed deployment-control set into a root-only runtime directory after restart and immediately before rollback, then verified the live write boundaries before health acceptance."
+    ],
+    "affected_areas": [
+      "Cloudron release restart, runtime-control authentication, and exact-release rollback"
+    ],
+    "categories": [
+      "fixed",
+      "security"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible patch correcting the post-restart ownership boundary discovered during v0.8.1 production verification.",
+    "validation": [
+      "Deployment contract tests require authenticated post-restart and pre-rollback control extraction, exact fixed-path hashes, root-only runtime controls, and non-writable active and rollback release boundaries for the application user.",
+      "The complete SQLite, MySQL 8.4, MariaDB 11.4, frontend, packaging, migration, authorization, health, OIDC, and post-restart production gates remain required before issue completion."
+    ],
+    "known_limitations": [
+      "This patch changes deployment and rollback hardening only; it does not alter the v0.8.0 authorization or Admin feature set."
+    ],
+    "rollback": "Restore the exact pre-activation application release while retaining the forward-only Phase B database migration; rollback controls must still pass the externally authenticated runtime-control and immutable-release gates.",
+    "provenance": "Defined by post-restart production evidence for Phase B of MyAPES Account issue #10.",
+    "references": [
+      {
+        "label": "Issue #10",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
+      }
+    ]
+  },
+  {
+    "version": "0.8.1",
+    "date": "2026-08-05",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Root-controlled public storage activation",
+    "summary": "Corrected Cloudron release activation so the shared public-storage link is installed by the root-controlled deployment path before application commands run.",
+    "changes": [
+      "Moved public-storage link installation out of the application user process and into the root-controlled immutable release preparation step.",
+      "Added fail-closed target and ownership checks so the application user cannot replace the release public directory or redirect the shared storage link."
+    ],
+    "affected_areas": [
+      "Cloudron release activation and immutable shared-storage preparation"
+    ],
+    "categories": [
+      "fixed",
+      "security"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible patch correcting the deployment-time public-storage link boundary discovered during the v0.8.0 production activation attempt.",
+    "validation": [
+      "Deployment contract tests require root-controlled link creation before Artisan, exact shared-storage targeting, and a non-writable immutable public directory for the application user.",
+      "The complete SQLite, MySQL 8.4, MariaDB 11.4, frontend, packaging, authenticated-control, migration, authorization, health, and OIDC deployment gates remain required before release."
+    ],
+    "known_limitations": [
+      "This patch changes deployment preparation only and does not alter the v0.8.0 authorization or Admin feature set."
+    ],
+    "rollback": "Restore the exact pre-activation application release while retaining the forward-only Phase B database migration; the authenticated control and backup boundaries remain unchanged.",
+    "provenance": "Defined by the production activation evidence for Phase B of MyAPES Account issue #10.",
+    "references": [
+      {
+        "label": "Issue #10",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
+      }
+    ]
+  },
+  {
+    "version": "0.8.0",
+    "date": "2026-08-05",
+    "channel": "stable",
+    "type": "minor",
+    "title": "Protected RBAC and authorization administration",
+    "summary": "Introduced protected role-based authorization, context-aware sessions, exact directory synchronization, suspension controls, and complete Admin authorization management.",
+    "changes": [
+      "Introduced four protected roles and thirteen code-owned permissions enforced through application-owned Gate and policy decisions, with provenance-guarded direct user permissions available only to central authorization services.",
+      "Added source-provenanced role assignments with mandatory persisted actors for local grants and actor-free non-local sources, authorization epochs, context-aware password, Cloudron OIDC, and local quality-assurance sessions, plus suspension and forced reauthentication controls.",
+      "Added exact normalized directory-group mappings, catalogue synchronization, eligibility revocation, and lifecycle commands for guarded activation and verification.",
+      "Added accessible Admin Users, Groups, Roles, and Permissions sections with transactional assignment, mapping, suspension, custom-role, and final-super-admin safeguards.",
+      "Aligned Admin user permission inventories with the runtime Gate by combining role and provenanced direct grants without exposing an arbitrary direct-assignment interface.",
+      "Restricted assignment and operational notifications to unsuspended staff whose protected baseline and qualifying provenance agree, with uniform authorization-first denial handling.",
+      "Bound and coalesced directory synchronization work, made final and repeated queue-failure callbacks durably invalidate prior directory sessions while clearing only their matching lease, and pinned the production application environment.",
+      "Serialized privileged mutations behind authorization-state locks with session, epoch, generation, exact-role provenance, and present-group revalidation, including one final-super-admin predicate shared by runtime and lifecycle checks.",
+      "Derived deployment-control trust directly from the exact Git revision before third-party actions or dependencies and published root-owned, application-non-writable activation and rollback controls."
+    ],
+    "affected_areas": [
+      "Authentication sessions, authorization, policies, and account suspension",
+      "Directory group catalogue, mappings, synchronization, and revocation",
+      "Admin Users, Groups, Roles, and Permissions",
+      "Authorization migration, activation, verification, and rollback compatibility"
+    ],
+    "categories": [
+      "added",
+      "changed",
+      "security",
+      "accessibility"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible minor release completing the protected authorization and administration capability planned in issue #10.",
+    "validation": [
+      "Automated tests cover the guarded cutover, exact source and pivot parity, roleless and interrupted retries, protected permission matrix, actor-attributed local grants, actor-free non-local sources, direct-permission inventory parity, correlated provenance, session context, suspension, assignment integrity, uniform denial responses, bounded directory synchronization, lifecycle commands, and Admin authorization boundaries.",
+      "The release gate requires complete SQLite coverage plus deterministic two-process row-lock and reconciliation tests and a real correlated queue-timeout probe on MySQL 8.4 and MariaDB 11.4, queue and LDAP bounds, transaction-time privileged reauthorization, Git-derived deployment-control authentication, root-owned control-use checks, exact environment and rollback contracts, frontend tests, production assets, archive checks, and exact post-restart health and OIDC verification."
+    ],
+    "known_limitations": [
+      "Issue #11 public identity and consent work is not included.",
+      "Issue #19 version-management automation is not included."
+    ],
+    "rollback": "Code rollback is idempotent and bound to the exact failed and pre-activation releases, with complete runtime controls derived from the exact Git revision and consumed from a root-owned application-non-writable directory, while retaining the Phase B database migrations. A deliberate maintenance downgrade refuses unrepresentable revocation state and invalidates sessions first; the pre-deployment backup remains the database recovery boundary.",
+    "provenance": "Defined by Phase B of MyAPES Account issue #10.",
+    "references": [
+      {
+        "label": "Issue #10",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
+      }
+    ]
+  },
+  {
+    "version": "0.7.1",
+    "date": "2026-07-28",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Guest authentication redirect correction",
+    "summary": "Corrected protected-route handling so signed-out visitors reach Public Login instead of a server error.",
+    "changes": [
+      "Directed browser guests from protected pages to the existing Public Login route while preserving their intended destination.",
+      "Restored unauthorized JSON responses for clients that explicitly request JSON."
+    ],
+    "affected_areas": [
+      "Guest authentication redirects and protected-route error handling"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "public-facing"
+    ],
+    "version_rationale": "A backward-compatible patch correcting guest access to the existing authentication entry point.",
+    "validation": [
+      "Automated feature tests cover browser redirects, intended destinations, and unauthorized JSON responses.",
+      "The complete application, release-validation, frontend, build, cache, migration, and deployment checks remain required before release."
+    ],
+    "known_limitations": [
+      "This correction does not change authentication methods, account authorization, or staff OIDC behavior."
+    ],
+    "rollback": "Restore the previous application release, accepting that signed-out protected-route requests will again return a server error.",
+    "provenance": "Defined by MyAPES Account issue #25 after the defect was reproduced during production acceptance.",
+    "references": [
+      {
+        "label": "Issue #25",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/25"
+      }
+    ]
+  },
+  {
+    "version": "0.7.0",
+    "date": "2026-07-27",
+    "channel": "stable",
+    "type": "minor",
+    "title": "Access-control compatibility foundation",
+    "summary": "Added the transitional identity and access-level foundation required for the protected role-based access-control rollout while preserving current access behavior.",
+    "changes": [
+      "Added explicit local and Cloudron identity classifications plus a centralized legacy access-level contract.",
       "Kept the existing role field synchronized through application dual-writes and a transitional database guard so in-flight legacy writes remain compatible during cutover and rollback.",
       "Added guarded pre-activation reconciliation with database-guard and postcondition checks for safe migration, rollback, and retry behavior."
-        ],
-        "affected_areas": [
-            "User identity and access-level compatibility data",
-            "Authentication, directory revalidation, and staff-scoped application queries",
+    ],
+    "affected_areas": [
+      "User identity and access-level compatibility data",
+      "Authentication, directory revalidation, and staff-scoped application queries",
       "Release activation and database compatibility checks"
-        ],
-        "categories": [
-            "added",
-            "changed",
-            "security"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible minor release introducing the first independently deployable capability for the staged authorization architecture.",
-        "validation": [
+    ],
+    "categories": [
+      "added",
+      "changed",
+      "security"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible minor release introducing the first independently deployable capability for the staged authorization architecture.",
+    "validation": [
       "Automated SQLite and MySQL upgrade, fresh-install, database-guard, dual-write, role-absent, authentication, authorization, and activation-order tests cover the compatibility contract.",
-            "The complete application test and build checks continue to verify unchanged public, staff, and administrator behavior."
-        ],
-        "known_limitations": [
-            "This release does not add granular permissions, role-management pages, directory-group mappings, or the final role-based access-control system.",
+      "The complete application test and build checks continue to verify unchanged public, staff, and administrator behavior."
+    ],
+    "known_limitations": [
+      "This release does not add granular permissions, role-management pages, directory-group mappings, or the final role-based access-control system.",
       "The legacy access level remains the authorization source until Phase B is separately deployed and verified.",
       "Phase B must remove the transitional database guard before removing the legacy role column."
-        ],
+    ],
     "rollback": "Restore the previous application release; the existing role field remains available and the transitional database guard keeps legacy writes aligned with the additive compatibility fields.",
-        "provenance": "Defined by Phase A of MyAPES Account issue #10 as the compatibility release required before the protected RBAC rollout.",
-        "references": [
-            {
-                "label": "Issue #10",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
-            }
-        ]
-    },
-    {
-        "version": "0.6.1",
-        "date": "2026-07-27",
-        "channel": "stable",
-        "type": "patch",
-        "title": "Post-merge release validation correction",
-        "summary": "Corrected the bootstrap validation test so the release foundation remains verifiable after it is merged to the main branch.",
-        "changes": [
-            "Changed the bootstrap comparison test to use the repository root commit, which permanently predates source-controlled release metadata.",
-            "Removed the incorrect assumption that origin/main remains a pre-release-contract base after the foundation is merged."
-        ],
-        "affected_areas": [
-            "Release-history command regression coverage",
-            "Post-merge continuous integration and deployment gating"
-        ],
-        "categories": [
-            "fixed"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A compatible patch correcting a post-merge test assumption without changing the public Change Log Hub or release contract.",
-        "validation": [
-            "The focused bootstrap comparison test and complete application suite pass when run from a branch based on the merged release foundation.",
-            "Append-only comparison against the current main branch confirms exactly one higher release record."
-        ],
-        "known_limitations": [
-            "This patch changes test setup only and does not add a user-facing application capability."
-        ],
-        "rollback": "Restore the earlier test base only if the release foundation is also removed from the main branch.",
-        "provenance": "Defined during post-merge deployment verification for MyAPES Account issue #20.",
-        "references": [
-            {
-                "label": "Issue #20",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/20"
-            }
-        ]
-    },
-    {
-        "version": "0.6.0",
-        "date": "2026-07-27",
-        "channel": "stable",
-        "type": "minor",
-        "title": "Public Change Log Hub and semantic versioning",
-        "summary": "Introduced a public, searchable MyAPES release history and a source-controlled semantic version contract for future releases.",
-        "changes": [
-            "Added the public Change Log Hub with search, release filters, expandable records, current-release navigation, and accessible result feedback.",
-            "Added a shared footer version link so guests, public users, and staff can reach the current release record from every application screen.",
-            "Added append-only release validation for pull requests and main-branch updates without creating a database-backed editor.",
-            "Separated the semantic application version from the immutable deployment commit identity in health and release verification."
-        ],
-        "affected_areas": [
-            "Public Change Log Hub and shared application footer",
-            "Release metadata validation and continuous integration",
-            "Health reporting and immutable release packaging"
-        ],
-        "categories": [
-            "added",
-            "changed",
-            "accessibility"
-        ],
-        "audiences": [
-            "public-facing",
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible minor release establishing a new public capability and the release-management contract for later roadmap work.",
-        "validation": [
-            "Release schema, append-only history, public access, footer consistency, health reporting, filtering behavior, and packaging contracts are covered by automated tests.",
-            "Responsive light and dark layouts, keyboard operation, focus visibility, reduced motion, and no-JavaScript readability are included in local acceptance."
-        ],
-        "known_limitations": [
-            "Release history is reviewed source-controlled data and has no database editor.",
-            "No Git tag, GitHub Release, production deployment, or authenticated production acceptance is included in this release implementation pass."
-        ],
-        "rollback": "Restore the previous application release; its deployment identity remains available through the existing immutable commit and code-rollback process.",
-        "provenance": "Defined by MyAPES Account issue #20 and implemented as the release foundation for roadmap issue #17.",
-        "references": [
-            {
-                "label": "Issue #20",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/20"
-            }
-        ]
-    },
-    {
-        "version": "0.5.0",
-        "date": "2026-07-27",
-        "channel": "stable",
-        "type": "minor",
-        "title": "Responsive sidebar and refreshed MyAPES branding",
-        "summary": "Replaced the shared horizontal navigation with a responsive sidebar and mobile drawer while refreshing the application brand assets.",
-        "changes": [
-            "Introduced one responsive navigation shell for authenticated and guest pages while preserving role-aware routes and theme behavior.",
-            "Regenerated browser, progressive-web-app, login, email, and social assets from the approved APES artwork.",
-            "Added deterministic brand-asset generation and design quality-assurance evidence."
-        ],
-        "affected_areas": [
-            "Shared navigation, mobile drawer, footer, and themes",
-            "Browser, progressive-web-app, login, email, and social brand assets",
-            "Design quality-assurance tooling and documentation"
-        ],
-        "categories": [
-            "added",
-            "changed",
-            "accessibility"
-        ],
-        "audiences": [
-            "public-facing"
-        ],
-        "version_rationale": "A backward-compatible minor release with a substantial user-visible navigation and branding improvement.",
-        "validation": [
-            "Automated PHP tests and the production frontend build passed for the merged change.",
-            "Desktop light and dark layouts plus mobile open and closed navigation states received browser-based design review."
-        ],
-        "known_limitations": [
-            "The release did not change application APIs, database schema, authentication roles, or deployment endpoints."
-        ],
-        "rollback": "Restore the previous shared layout, stylesheet, JavaScript entry point, and generated brand assets.",
-        "provenance": "This historical record was reconstructed from merged pull request #9 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #9",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/9"
-            }
-        ]
-    },
-    {
-        "version": "0.4.2",
-        "date": "2026-07-24",
-        "channel": "stable",
-        "type": "patch",
-        "title": "Initial Cloudron release activation correction",
-        "summary": "Corrected first-release activation so an absent current-release link is handled safely.",
-        "changes": [
-            "Changed activation guards to resolve current and previous release targets only when those paths are symbolic links.",
-            "Preserved the existing fail-closed release-path checks and immutable activation behavior."
-        ],
-        "affected_areas": [
-            "Cloudron release activation and rollback safeguards"
-        ],
-        "categories": [
-            "fixed"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A compatible patch correcting the initial activation path without changing the release architecture.",
-        "validation": [
-            "Automated application tests, deployment shell syntax, and an absent-link activation probe passed for the merged correction."
-        ],
-        "known_limitations": [
-            "The earlier blocked upload was not accepted as the live release."
-        ],
-        "rollback": "Restore the earlier activation guard if the corrected symbolic-link handling must be withdrawn.",
-        "provenance": "This historical record was reconstructed from merged pull request #7 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #7",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/7"
-            }
-        ]
-    },
-    {
-        "version": "0.4.1",
-        "date": "2026-07-24",
-        "channel": "beta",
-        "type": "patch",
-        "title": "Continuous-integration application-key correction",
-        "summary": "Made automated Laravel tests independent from an untracked local environment file.",
-        "changes": [
-            "Added a deterministic non-secret testing key to the PHPUnit environment.",
-            "Kept production secrets and runtime environment configuration outside the repository."
-        ],
-        "affected_areas": [
-            "Automated PHP test configuration"
-        ],
-        "categories": [
-            "fixed",
-            "security"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A compatible patch restoring reliable continuous-integration testing.",
-        "validation": [
-            "The complete automated PHP test suite passed with the corrected test-only configuration."
-        ],
-        "known_limitations": [
-            "The correction affected testing only and did not deploy application code by itself."
-        ],
-        "rollback": "Restore the previous PHPUnit environment configuration, accepting that automated tests would again depend on an external application key.",
-        "provenance": "This historical record was reconstructed from merged pull request #6 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #6",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/6"
-            }
-        ]
-    },
-    {
-        "version": "0.4.0",
-        "date": "2026-07-24",
-        "channel": "beta",
-        "type": "minor",
-        "title": "MyAPES takeover with secure staff identity",
-        "summary": "Introduced the Naturalist Notebook interface, deterministic local quality assurance, and protected staff sign-in backed by Cloudron identity and directory eligibility.",
-        "changes": [
-            "Added the approved light and dark application interface with role-scoped dashboard attention and local quality-assurance identities.",
-            "Added standards-based staff sign-in with protected authorization state and exact directory-group eligibility.",
-            "Added periodic directory revalidation, secure local logout behavior, readiness checks, and immutable release activation with rollback.",
-            "Added sanitized health and staff-login verification around the release workflow."
-        ],
-        "affected_areas": [
-            "Authentication, directory authorization, sessions, and staff logout",
-            "Shared application interface and role-scoped dashboard",
-            "Release activation, rollback, health, and post-release verification"
-        ],
-        "categories": [
-            "added",
-            "changed",
-            "security",
-            "accessibility"
-        ],
-        "audiences": [
-            "public-facing",
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible minor release introducing major application, identity, and deployment capabilities.",
-        "validation": [
-            "Automated tests covered identity redirects, claims, collisions, denials, role precedence, directory changes, outages, logout, readiness, release gates, and rollback.",
-            "Application tests, the frontend build, cache warm-up, script syntax, and public-route availability were reviewed."
-        ],
-        "known_limitations": [
-            "Production identity configuration and authenticated acceptance remained controlled human-administrator steps."
-        ],
-        "rollback": "Use the immutable code rollback process and restore the prior application interface and identity integration if release verification fails.",
-        "provenance": "This historical record was reconstructed from merged pull request #5 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #5",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/5"
-            }
-        ]
-    },
-    {
-        "version": "0.3.0",
-        "date": "2026-07-24",
-        "channel": "beta",
-        "type": "minor",
-        "title": "Mascot-led interface and product direction",
-        "summary": "Refreshed the shared application interface with a warmer mascot-led visual system and documented product design principles.",
-        "changes": [
-            "Integrated approved brand, browser, progressive-web-app, and social assets.",
-            "Added reusable mascot artwork to key entry and dashboard surfaces.",
-            "Unified shared styling for navigation, panels, forms, tables, alerts, and the footer.",
-            "Added product direction covering users, purpose, personality, anti-references, and accessibility."
-        ],
-        "affected_areas": [
-            "Authentication, dashboard, administration, and service screens",
-            "Shared layout, branding, and product documentation"
-        ],
-        "categories": [
-            "added",
-            "changed",
-            "accessibility"
-        ],
-        "audiences": [
-            "public-facing"
-        ],
-        "version_rationale": "A backward-compatible minor release delivering a substantial visual and product-design capability.",
-        "validation": [
-            "The automated PHP test suite passed for the merged interface refresh."
-        ],
-        "known_limitations": [
-            "The release concentrated visual behavior in the shared layout and did not change service data contracts."
-        ],
-        "rollback": "Restore the previous shared layout, view styling, documentation, and application-facing brand assets.",
-        "provenance": "This historical record was reconstructed from merged pull request #4 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #4",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/4"
-            }
-        ]
-    },
-    {
-        "version": "0.2.1",
-        "date": "2026-07-24",
-        "channel": "beta",
-        "type": "patch",
-        "title": "Local quality-assurance and review hardening",
-        "summary": "Added deterministic local accounts, seeded service records, and repeatable setup paths for end-to-end review.",
-        "changes": [
-            "Added deterministic public, staff, administrator, and superadministrator quality-assurance users and service records.",
-            "Added fresh and non-destructive local bootstrap modes for Windows and Unix-like systems.",
-            "Added environment-gated local sign-in shortcuts and a role switcher for rapid review.",
-            "Documented the local feature matrix and seeded workflows."
-        ],
-        "affected_areas": [
-            "Local setup, seeded data, test authentication, and quality-assurance documentation"
-        ],
-        "categories": [
-            "changed",
-            "fixed"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "A compatible patch hardening local review and correcting setup gaps after the application baseline.",
-        "validation": [
-            "Fresh migration and seeding plus the automated PHP test suite passed for the merged change."
-        ],
-        "known_limitations": [
-            "Local authentication shortcuts remain strictly limited to local and testing environments."
-        ],
-        "rollback": "Remove the deterministic seed and environment-gated quality-assurance helpers while retaining the underlying application baseline.",
-        "provenance": "This historical record was reconstructed from merged pull request #2 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #2",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/2"
-            }
-        ]
-    },
-    {
-        "version": "0.2.0",
-        "date": "2026-07-24",
-        "channel": "beta",
-        "type": "minor",
-        "title": "Application baseline and approved branding",
-        "summary": "Introduced the full Laravel application structure, initial service areas, and the approved MyAPES branding pack.",
-        "changes": [
-            "Added controllers, models, routes, views, configuration, migrations, tests, and local development scripts.",
-            "Added role-aware APES CIC, Shelter, and Pet Care areas with the initial account and administration surfaces.",
-            "Integrated the approved header, browser, progressive-web-app, and social artwork.",
-            "Aligned local setup and Cloudron deployment automation with the expanded application."
-        ],
-        "affected_areas": [
-            "Whole MyAPES Laravel application baseline",
-            "APES CIC, Shelter, Pet Care, accounts, and administration",
-            "Application branding and local/deployment tooling"
-        ],
-        "categories": [
-            "added",
-            "changed"
-        ],
-        "audiences": [
-            "public-facing",
-            "internal-only"
-        ],
-        "version_rationale": "A backward-compatible minor release introducing the main application baseline and service capabilities.",
-        "validation": [
-            "Repository review covered the complete runnable baseline and approved brand integration."
-        ],
-        "known_limitations": [
-            "The initial baseline preceded the later identity, release, and responsive-navigation hardening."
-        ],
-        "rollback": "Restore the earlier deployment-only foundation and remove the introduced application baseline and brand integration.",
-        "provenance": "This historical record was reconstructed from merged pull request #3 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #3",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/3"
-            }
-        ]
-    },
-    {
-        "version": "0.1.0",
-        "date": "2026-07-24",
-        "channel": "beta",
-        "type": "minor",
-        "title": "Deployment and local setup foundation",
-        "summary": "Established repeatable Laravel local setup and the first automated Cloudron delivery workflow.",
-        "changes": [
-            "Added Windows and Unix-like local bootstrap and development helpers.",
-            "Added automated testing and deployment workflow scaffolding for main-branch and manual runs.",
-            "Added guarded remote release steps and deployment documentation."
-        ],
-        "affected_areas": [
-            "Local development setup",
-            "Continuous integration and Cloudron delivery foundation",
-            "Repository operational documentation"
-        ],
-        "categories": [
-            "added",
-            "changed"
-        ],
-        "audiences": [
-            "internal-only"
-        ],
-        "version_rationale": "The first minor beta release established the repository's development and delivery foundation.",
-        "validation": [
-            "The merged foundation included fail-fast configuration checks and post-restart health verification."
-        ],
-        "known_limitations": [
-            "The first workflow was later replaced and hardened as the application architecture matured."
-        ],
-        "rollback": "Remove the initial local helpers and automated delivery workflow to return to the pre-automation repository state.",
-        "provenance": "This historical record was reconstructed from merged pull request #1 and was not represented by a historical Git tag.",
-        "references": [
-            {
-                "label": "PR #1",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/1"
-            }
-        ]
-    }
+    "provenance": "Defined by Phase A of MyAPES Account issue #10 as the compatibility release required before the protected RBAC rollout.",
+    "references": [
+      {
+        "label": "Issue #10",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/10"
+      }
+    ]
+  },
+  {
+    "version": "0.6.1",
+    "date": "2026-07-27",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Post-merge release validation correction",
+    "summary": "Corrected the bootstrap validation test so the release foundation remains verifiable after it is merged to the main branch.",
+    "changes": [
+      "Changed the bootstrap comparison test to use the repository root commit, which permanently predates source-controlled release metadata.",
+      "Removed the incorrect assumption that origin/main remains a pre-release-contract base after the foundation is merged."
+    ],
+    "affected_areas": [
+      "Release-history command regression coverage",
+      "Post-merge continuous integration and deployment gating"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A compatible patch correcting a post-merge test assumption without changing the public Change Log Hub or release contract.",
+    "validation": [
+      "The focused bootstrap comparison test and complete application suite pass when run from a branch based on the merged release foundation.",
+      "Append-only comparison against the current main branch confirms exactly one higher release record."
+    ],
+    "known_limitations": [
+      "This patch changes test setup only and does not add a user-facing application capability."
+    ],
+    "rollback": "Restore the earlier test base only if the release foundation is also removed from the main branch.",
+    "provenance": "Defined during post-merge deployment verification for MyAPES Account issue #20.",
+    "references": [
+      {
+        "label": "Issue #20",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/20"
+      }
+    ]
+  },
+  {
+    "version": "0.6.0",
+    "date": "2026-07-27",
+    "channel": "stable",
+    "type": "minor",
+    "title": "Public Change Log Hub and semantic versioning",
+    "summary": "Introduced a public, searchable MyAPES release history and a source-controlled semantic version contract for future releases.",
+    "changes": [
+      "Added the public Change Log Hub with search, release filters, expandable records, current-release navigation, and accessible result feedback.",
+      "Added a shared footer version link so guests, public users, and staff can reach the current release record from every application screen.",
+      "Added append-only release validation for pull requests and main-branch updates without creating a database-backed editor.",
+      "Separated the semantic application version from the immutable deployment commit identity in health and release verification."
+    ],
+    "affected_areas": [
+      "Public Change Log Hub and shared application footer",
+      "Release metadata validation and continuous integration",
+      "Health reporting and immutable release packaging"
+    ],
+    "categories": [
+      "added",
+      "changed",
+      "accessibility"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible minor release establishing a new public capability and the release-management contract for later roadmap work.",
+    "validation": [
+      "Release schema, append-only history, public access, footer consistency, health reporting, filtering behavior, and packaging contracts are covered by automated tests.",
+      "Responsive light and dark layouts, keyboard operation, focus visibility, reduced motion, and no-JavaScript readability are included in local acceptance."
+    ],
+    "known_limitations": [
+      "Release history is reviewed source-controlled data and has no database editor.",
+      "No Git tag, GitHub Release, production deployment, or authenticated production acceptance is included in this release implementation pass."
+    ],
+    "rollback": "Restore the previous application release; its deployment identity remains available through the existing immutable commit and code-rollback process.",
+    "provenance": "Defined by MyAPES Account issue #20 and implemented as the release foundation for roadmap issue #17.",
+    "references": [
+      {
+        "label": "Issue #20",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/20"
+      }
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-07-27",
+    "channel": "stable",
+    "type": "minor",
+    "title": "Responsive sidebar and refreshed MyAPES branding",
+    "summary": "Replaced the shared horizontal navigation with a responsive sidebar and mobile drawer while refreshing the application brand assets.",
+    "changes": [
+      "Introduced one responsive navigation shell for authenticated and guest pages while preserving role-aware routes and theme behavior.",
+      "Regenerated browser, progressive-web-app, login, email, and social assets from the approved APES artwork.",
+      "Added deterministic brand-asset generation and design quality-assurance evidence."
+    ],
+    "affected_areas": [
+      "Shared navigation, mobile drawer, footer, and themes",
+      "Browser, progressive-web-app, login, email, and social brand assets",
+      "Design quality-assurance tooling and documentation"
+    ],
+    "categories": [
+      "added",
+      "changed",
+      "accessibility"
+    ],
+    "audiences": [
+      "public-facing"
+    ],
+    "version_rationale": "A backward-compatible minor release with a substantial user-visible navigation and branding improvement.",
+    "validation": [
+      "Automated PHP tests and the production frontend build passed for the merged change.",
+      "Desktop light and dark layouts plus mobile open and closed navigation states received browser-based design review."
+    ],
+    "known_limitations": [
+      "The release did not change application APIs, database schema, authentication roles, or deployment endpoints."
+    ],
+    "rollback": "Restore the previous shared layout, stylesheet, JavaScript entry point, and generated brand assets.",
+    "provenance": "This historical record was reconstructed from merged pull request #9 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #9",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/9"
+      }
+    ]
+  },
+  {
+    "version": "0.4.2",
+    "date": "2026-07-24",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Initial Cloudron release activation correction",
+    "summary": "Corrected first-release activation so an absent current-release link is handled safely.",
+    "changes": [
+      "Changed activation guards to resolve current and previous release targets only when those paths are symbolic links.",
+      "Preserved the existing fail-closed release-path checks and immutable activation behavior."
+    ],
+    "affected_areas": [
+      "Cloudron release activation and rollback safeguards"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A compatible patch correcting the initial activation path without changing the release architecture.",
+    "validation": [
+      "Automated application tests, deployment shell syntax, and an absent-link activation probe passed for the merged correction."
+    ],
+    "known_limitations": [
+      "The earlier blocked upload was not accepted as the live release."
+    ],
+    "rollback": "Restore the earlier activation guard if the corrected symbolic-link handling must be withdrawn.",
+    "provenance": "This historical record was reconstructed from merged pull request #7 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #7",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/7"
+      }
+    ]
+  },
+  {
+    "version": "0.4.1",
+    "date": "2026-07-24",
+    "channel": "beta",
+    "type": "patch",
+    "title": "Continuous-integration application-key correction",
+    "summary": "Made automated Laravel tests independent from an untracked local environment file.",
+    "changes": [
+      "Added a deterministic non-secret testing key to the PHPUnit environment.",
+      "Kept production secrets and runtime environment configuration outside the repository."
+    ],
+    "affected_areas": [
+      "Automated PHP test configuration"
+    ],
+    "categories": [
+      "fixed",
+      "security"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A compatible patch restoring reliable continuous-integration testing.",
+    "validation": [
+      "The complete automated PHP test suite passed with the corrected test-only configuration."
+    ],
+    "known_limitations": [
+      "The correction affected testing only and did not deploy application code by itself."
+    ],
+    "rollback": "Restore the previous PHPUnit environment configuration, accepting that automated tests would again depend on an external application key.",
+    "provenance": "This historical record was reconstructed from merged pull request #6 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #6",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/6"
+      }
+    ]
+  },
+  {
+    "version": "0.4.0",
+    "date": "2026-07-24",
+    "channel": "beta",
+    "type": "minor",
+    "title": "MyAPES takeover with secure staff identity",
+    "summary": "Introduced the Naturalist Notebook interface, deterministic local quality assurance, and protected staff sign-in backed by Cloudron identity and directory eligibility.",
+    "changes": [
+      "Added the approved light and dark application interface with role-scoped dashboard attention and local quality-assurance identities.",
+      "Added standards-based staff sign-in with protected authorization state and exact directory-group eligibility.",
+      "Added periodic directory revalidation, secure local logout behavior, readiness checks, and immutable release activation with rollback.",
+      "Added sanitized health and staff-login verification around the release workflow."
+    ],
+    "affected_areas": [
+      "Authentication, directory authorization, sessions, and staff logout",
+      "Shared application interface and role-scoped dashboard",
+      "Release activation, rollback, health, and post-release verification"
+    ],
+    "categories": [
+      "added",
+      "changed",
+      "security",
+      "accessibility"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible minor release introducing major application, identity, and deployment capabilities.",
+    "validation": [
+      "Automated tests covered identity redirects, claims, collisions, denials, role precedence, directory changes, outages, logout, readiness, release gates, and rollback.",
+      "Application tests, the frontend build, cache warm-up, script syntax, and public-route availability were reviewed."
+    ],
+    "known_limitations": [
+      "Production identity configuration and authenticated acceptance remained controlled human-administrator steps."
+    ],
+    "rollback": "Use the immutable code rollback process and restore the prior application interface and identity integration if release verification fails.",
+    "provenance": "This historical record was reconstructed from merged pull request #5 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #5",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/5"
+      }
+    ]
+  },
+  {
+    "version": "0.3.0",
+    "date": "2026-07-24",
+    "channel": "beta",
+    "type": "minor",
+    "title": "Mascot-led interface and product direction",
+    "summary": "Refreshed the shared application interface with a warmer mascot-led visual system and documented product design principles.",
+    "changes": [
+      "Integrated approved brand, browser, progressive-web-app, and social assets.",
+      "Added reusable mascot artwork to key entry and dashboard surfaces.",
+      "Unified shared styling for navigation, panels, forms, tables, alerts, and the footer.",
+      "Added product direction covering users, purpose, personality, anti-references, and accessibility."
+    ],
+    "affected_areas": [
+      "Authentication, dashboard, administration, and service screens",
+      "Shared layout, branding, and product documentation"
+    ],
+    "categories": [
+      "added",
+      "changed",
+      "accessibility"
+    ],
+    "audiences": [
+      "public-facing"
+    ],
+    "version_rationale": "A backward-compatible minor release delivering a substantial visual and product-design capability.",
+    "validation": [
+      "The automated PHP test suite passed for the merged interface refresh."
+    ],
+    "known_limitations": [
+      "The release concentrated visual behavior in the shared layout and did not change service data contracts."
+    ],
+    "rollback": "Restore the previous shared layout, view styling, documentation, and application-facing brand assets.",
+    "provenance": "This historical record was reconstructed from merged pull request #4 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #4",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/4"
+      }
+    ]
+  },
+  {
+    "version": "0.2.1",
+    "date": "2026-07-24",
+    "channel": "beta",
+    "type": "patch",
+    "title": "Local quality-assurance and review hardening",
+    "summary": "Added deterministic local accounts, seeded service records, and repeatable setup paths for end-to-end review.",
+    "changes": [
+      "Added deterministic public, staff, administrator, and superadministrator quality-assurance users and service records.",
+      "Added fresh and non-destructive local bootstrap modes for Windows and Unix-like systems.",
+      "Added environment-gated local sign-in shortcuts and a role switcher for rapid review.",
+      "Documented the local feature matrix and seeded workflows."
+    ],
+    "affected_areas": [
+      "Local setup, seeded data, test authentication, and quality-assurance documentation"
+    ],
+    "categories": [
+      "changed",
+      "fixed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "A compatible patch hardening local review and correcting setup gaps after the application baseline.",
+    "validation": [
+      "Fresh migration and seeding plus the automated PHP test suite passed for the merged change."
+    ],
+    "known_limitations": [
+      "Local authentication shortcuts remain strictly limited to local and testing environments."
+    ],
+    "rollback": "Remove the deterministic seed and environment-gated quality-assurance helpers while retaining the underlying application baseline.",
+    "provenance": "This historical record was reconstructed from merged pull request #2 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #2",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/2"
+      }
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-07-24",
+    "channel": "beta",
+    "type": "minor",
+    "title": "Application baseline and approved branding",
+    "summary": "Introduced the full Laravel application structure, initial service areas, and the approved MyAPES branding pack.",
+    "changes": [
+      "Added controllers, models, routes, views, configuration, migrations, tests, and local development scripts.",
+      "Added role-aware APES CIC, Shelter, and Pet Care areas with the initial account and administration surfaces.",
+      "Integrated the approved header, browser, progressive-web-app, and social artwork.",
+      "Aligned local setup and Cloudron deployment automation with the expanded application."
+    ],
+    "affected_areas": [
+      "Whole MyAPES Laravel application baseline",
+      "APES CIC, Shelter, Pet Care, accounts, and administration",
+      "Application branding and local/deployment tooling"
+    ],
+    "categories": [
+      "added",
+      "changed"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "A backward-compatible minor release introducing the main application baseline and service capabilities.",
+    "validation": [
+      "Repository review covered the complete runnable baseline and approved brand integration."
+    ],
+    "known_limitations": [
+      "The initial baseline preceded the later identity, release, and responsive-navigation hardening."
+    ],
+    "rollback": "Restore the earlier deployment-only foundation and remove the introduced application baseline and brand integration.",
+    "provenance": "This historical record was reconstructed from merged pull request #3 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #3",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/3"
+      }
+    ]
+  },
+  {
+    "version": "0.1.0",
+    "date": "2026-07-24",
+    "channel": "beta",
+    "type": "minor",
+    "title": "Deployment and local setup foundation",
+    "summary": "Established repeatable Laravel local setup and the first automated Cloudron delivery workflow.",
+    "changes": [
+      "Added Windows and Unix-like local bootstrap and development helpers.",
+      "Added automated testing and deployment workflow scaffolding for main-branch and manual runs.",
+      "Added guarded remote release steps and deployment documentation."
+    ],
+    "affected_areas": [
+      "Local development setup",
+      "Continuous integration and Cloudron delivery foundation",
+      "Repository operational documentation"
+    ],
+    "categories": [
+      "added",
+      "changed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "The first minor beta release established the repository's development and delivery foundation.",
+    "validation": [
+      "The merged foundation included fail-fast configuration checks and post-restart health verification."
+    ],
+    "known_limitations": [
+      "The first workflow was later replaced and hardened as the application architecture matured."
+    ],
+    "rollback": "Remove the initial local helpers and automated delivery workflow to return to the pre-automation repository state.",
+    "provenance": "This historical record was reconstructed from merged pull request #1 and was not represented by a historical Git tag.",
+    "references": [
+      {
+        "label": "PR #1",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/1"
+      }
+    ]
+  }
 ]

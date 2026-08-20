@@ -21,4 +21,23 @@ Human templates live in `.github/ISSUE_TEMPLATE/`. After a template create, stil
 
 ## Releases
 
-Every change merged to `main` prepends exactly one higher semantic version in `resources/data/releases.json`, matching `VERSION` and `resources/data/module-runtime-contract.json`. Do not edit or reorder published records.
+Every change merged to `main` must include release metadata in the **same pull request** as the feature or fix work. Do not open a separate release-only PR after merge.
+
+### End-of-work checklist
+
+1. Complete the feature/fix and its tests on the working branch.
+2. Scaffold the next release:
+   ```powershell
+   php artisan myapes:changelog-prepare --type=patch --title="Short public title" --issue=<n> [--pr=<n>]
+   ```
+   Use `--type=minor` for backward-compatible capabilities and `--type=patch` for compatible fixes. While the app is pre-1.0, document breaking changes and bump **minor**.
+3. Replace every `TODO:` field in the new head record of `resources/data/releases.json` with reviewed public prose. Keep notes free of credentials, personal data, private operational identifiers, exploitable security detail, and unnecessary infrastructure detail.
+4. Validate against remote `main`:
+   ```powershell
+   git fetch origin
+   php artisan myapes:changelog-validate --base-ref=origin/main
+   ```
+5. Include `VERSION`, `resources/data/releases.json`, `resources/data/module-runtime-contract.json`, and the version-pinned test updates from the prepare command in the **same PR**. Merge only when CI is green.
+6. Cloudron deploy runs automatically after a successful merge to `main`; do not deploy manually for normal releases.
+
+The prepare command syncs `VERSION`, prepends one release record, updates `module-runtime-contract.json` → `application_version`, and patches version-pinned tests. Do not edit or reorder published release records. See `.cursor/skills/release-metadata/SKILL.md` for full guidance.
