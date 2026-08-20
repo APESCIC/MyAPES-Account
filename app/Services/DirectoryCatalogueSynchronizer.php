@@ -8,6 +8,7 @@ use App\Models\AuthorizationState;
 use App\Models\DirectoryGroup;
 use App\Models\DirectorySyncRun;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
@@ -99,9 +100,11 @@ class DirectoryCatalogueSynchronizer
                         $stored = new DirectoryGroup;
                         $stored->name = $group['name'];
                         $stored->first_seen_at = $synchronizedAt;
-                        $stored->app_enabled = DirectoryGroup::defaultAppEnabledForName(
-                            $group['name'],
-                        );
+                        if (Schema::hasColumn('directory_groups', 'app_enabled')) {
+                            $stored->app_enabled = DirectoryGroup::defaultAppEnabledForName(
+                                $group['name'],
+                            );
+                        }
                     } elseif ($stored->first_seen_at === null) {
                         $stored->first_seen_at = $synchronizedAt;
                     }
@@ -114,7 +117,10 @@ class DirectoryCatalogueSynchronizer
                         'last_synced_at' => $synchronizedAt,
                     ];
 
-                    if (DirectoryGroup::isAlwaysEnabledName($group['name'])) {
+                    if (
+                        Schema::hasColumn('directory_groups', 'app_enabled')
+                        && DirectoryGroup::isAlwaysEnabledName($group['name'])
+                    ) {
                         $payload['app_enabled'] = true;
                     }
 
