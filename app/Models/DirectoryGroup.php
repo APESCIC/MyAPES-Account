@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'external_id',
     'member_count',
     'status',
+    'app_enabled',
     'first_seen_at',
     'last_seen_at',
     'last_synced_at',
@@ -28,6 +29,7 @@ class DirectoryGroup extends Model
     {
         return [
             'member_count' => 'integer',
+            'app_enabled' => 'boolean',
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'last_synced_at' => 'datetime',
@@ -44,5 +46,31 @@ class DirectoryGroup extends Model
     public function roleSources(): HasMany
     {
         return $this->hasMany(RoleSource::class);
+    }
+
+    public function isAppEnabled(): bool
+    {
+        return (bool) $this->app_enabled;
+    }
+
+    public function isAlwaysEnabled(): bool
+    {
+        return self::isAlwaysEnabledName($this->name);
+    }
+
+    public static function isAlwaysEnabledName(?string $name): bool
+    {
+        if (! is_string($name) || $name === '') {
+            return false;
+        }
+
+        $required = config('myapes.directory.required_groups', []);
+
+        return in_array($name, $required, true);
+    }
+
+    public static function defaultAppEnabledForName(string $name): bool
+    {
+        return self::isAlwaysEnabledName($name);
     }
 }

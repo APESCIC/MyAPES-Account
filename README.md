@@ -43,7 +43,7 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Manual and scheduled catalogue requests share one unique, coalesced job and the same database lease. Attempts, backoff, execution, queue reservation, and LDAP connection/search times are bounded; the queue reservation always exceeds one job attempt.
 - **Administration**:
   - Admin Users supports safe identity detail, search/filtering, custom local-role assignment, suspension/reactivation, effective permissions, provenance, and audit history within target-aware authorization boundaries. Target lookup occurs only after authorization, so missing and existing identifiers produce the same sanitized denial for unauthorized actors.
-  - Admin Groups shows present/missing directory groups and aggregate counts; super-admins can manage mutable exact mappings and request asynchronous synchronization.
+  - Admin Groups shows present/missing directory groups and aggregate counts; super-admins can enable or disable groups for this app, manage mutable exact mappings, and request asynchronous synchronization. Required Cloudron MyAPES groups stay always enabled.
   - Admin Roles lets authorized administrators inspect custom roles while only super-admins can create, update permissions for, or delete unassigned custom roles.
   - Admin Permissions is a read-only view of the core and shipped-module code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
 - **First-party module registry**:

@@ -8,6 +8,7 @@ use App\Models\DirectoryGroupRoleMapping;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AuthorizationMetadataSynchronizer
 {
@@ -116,7 +117,7 @@ class AuthorizationMetadataSynchronizer
                 ->first();
 
             if ($group === null) {
-                $group = DirectoryGroup::query()->create([
+                $attributes = [
                     'name' => $groupName,
                     'external_id' => null,
                     'member_count' => null,
@@ -124,7 +125,20 @@ class AuthorizationMetadataSynchronizer
                     'first_seen_at' => null,
                     'last_seen_at' => null,
                     'last_synced_at' => null,
-                ]);
+                ];
+
+                if (Schema::hasColumn('directory_groups', 'app_enabled')) {
+                    $attributes['app_enabled'] = true;
+                }
+
+                $group = DirectoryGroup::query()->create($attributes);
+            } elseif (
+                Schema::hasColumn('directory_groups', 'app_enabled')
+                && ! $group->app_enabled
+            ) {
+                $group->forceFill([
+                    'app_enabled' => true,
+                ])->save();
             }
 
             $role = Role::query()

@@ -59,6 +59,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
             'external_id' => '4101',
             'member_count' => 7,
             'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => true,
             'first_seen_at' => '2026-07-28 09:00:00',
             'last_seen_at' => '2026-07-28 09:00:00',
             'last_synced_at' => '2026-07-28 09:00:00',
@@ -67,10 +68,12 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
             'name' => 'myapes.empty',
             'member_count' => 0,
             'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => false,
         ]);
         $this->assertDatabaseHas('directory_groups', [
             'name' => 'myapes.superadmin',
             'status' => DirectoryGroup::STATUS_MISSING,
+            'app_enabled' => true,
             'last_synced_at' => '2026-07-28 09:00:00',
         ]);
         $this->assertSame(

@@ -370,6 +370,10 @@ class User extends Authenticatable implements MustVerifyEmail
                                                         ->where(
                                                             'eligible_groups.status',
                                                             DirectoryGroup::STATUS_PRESENT,
+                                                        )
+                                                        ->where(
+                                                            'eligible_groups.app_enabled',
+                                                            true,
                                                         );
                                                 },
                                             );

@@ -141,6 +141,7 @@ class DirectoryRoleSynchronizer
                 'directory_group_role_mappings.role_id',
             )
             ->whereIn('directory_groups.name', $normalized)
+            ->where('directory_groups.app_enabled', true)
             ->where('roles.guard_name', 'web')
             ->get([
                 'directory_groups.id as group_id',

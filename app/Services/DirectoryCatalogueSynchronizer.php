@@ -99,17 +99,26 @@ class DirectoryCatalogueSynchronizer
                         $stored = new DirectoryGroup;
                         $stored->name = $group['name'];
                         $stored->first_seen_at = $synchronizedAt;
+                        $stored->app_enabled = DirectoryGroup::defaultAppEnabledForName(
+                            $group['name'],
+                        );
                     } elseif ($stored->first_seen_at === null) {
                         $stored->first_seen_at = $synchronizedAt;
                     }
 
-                    $stored->forceFill([
+                    $payload = [
                         'external_id' => $group['external_id'],
                         'member_count' => $group['member_count'],
                         'status' => DirectoryGroup::STATUS_PRESENT,
                         'last_seen_at' => $synchronizedAt,
                         'last_synced_at' => $synchronizedAt,
-                    ])->save();
+                    ];
+
+                    if (DirectoryGroup::isAlwaysEnabledName($group['name'])) {
+                        $payload['app_enabled'] = true;
+                    }
+
+                    $stored->forceFill($payload)->save();
                 }
 
                 $missing = DirectoryGroup::query();

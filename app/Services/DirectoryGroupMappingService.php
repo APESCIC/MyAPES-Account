@@ -187,6 +187,82 @@ class DirectoryGroupMappingService
         }
     }
 
+    public function setAppEnabled(
+        User $actor,
+        DirectoryGroup $group,
+        bool $enabled,
+    ): DirectoryGroup {
+        try {
+            return DB::transaction(function () use (
+                $actor,
+                $group,
+                $enabled,
+            ): DirectoryGroup {
+                [$lockedActor, $lockedUsers] = $this->authorizer->lock($actor);
+                $this->authorize($lockedActor);
+                $storedGroup = DirectoryGroup::query()
+                    ->whereKey($group->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $this->assertExactGroup($storedGroup);
+
+                if ($storedGroup->isAlwaysEnabled() && ! $enabled) {
+                    $this->deny(
+                        'required_group_always_enabled',
+                        'Required Cloudron MyAPES groups cannot be disabled for this app.',
+                    );
+                }
+
+                if ((bool) $storedGroup->app_enabled === $enabled) {
+                    return $storedGroup;
+                }
+
+                $storedGroup->forceFill([
+                    'app_enabled' => $enabled,
+                ])->save();
+
+                [$matchedCount, $changedCount] = $this->resynchronizeUsers(
+                    $storedGroup->name,
+                    $lockedUsers,
+                );
+                $this->assertAnActiveSuperAdminRemains();
+                $this->auditLogger->record(
+                    'authorization.directory_group_app_access_changed',
+                    $lockedActor,
+                    $storedGroup,
+                    [
+                        'action' => $enabled ? 'enabled' : 'disabled',
+                        'group_id' => $storedGroup->id,
+                        'group_name' => $storedGroup->name,
+                        'app_enabled' => $enabled,
+                        'matched_user_count' => $matchedCount,
+                        'changed_user_count' => $changedCount,
+                    ],
+                );
+
+                return $storedGroup->refresh();
+            });
+        } catch (AuthorizationMutationDenied $exception) {
+            $this->auditDenied(
+                $actor,
+                $enabled ? 'group_enable' : 'group_disable',
+                $exception->reasonCode,
+                $group,
+            );
+
+            throw $exception;
+        } catch (AuthorizationException $exception) {
+            $this->auditDenied(
+                $actor,
+                $enabled ? 'group_enable' : 'group_disable',
+                'super_admin_required',
+                $group,
+            );
+
+            throw $exception;
+        }
+    }
+
     private function authorize(User $actor): void
     {
         if (! $this->authorizer->authorizes(
