@@ -190,7 +190,8 @@ class DashboardAttentionTest extends TestCase
         );
         $response->assertViewHas(
             'moduleSummaries',
-            static fn (array $summaries): bool => collect($summaries)
+            static fn (array $groups): bool => collect($groups)
+                ->flatMap(static fn ($group) => $group->summaries)
                 ->contains(
                     static fn ($summary): bool => $summary->instanceKey
                             === 'shelter-rescue:pet-profiles'
@@ -234,7 +235,8 @@ class DashboardAttentionTest extends TestCase
         $response->assertOk();
         $response->assertViewHas(
             'moduleSummaries',
-            static fn (array $summaries): bool => collect($summaries)
+            static fn (array $groups): bool => collect($groups)
+                ->flatMap(static fn ($group) => $group->summaries)
                 ->contains(
                     static fn ($summary): bool => $summary->instanceKey === 'apes-cic:tickets'
                         && $summary->total === 8,

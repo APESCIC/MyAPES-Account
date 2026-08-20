@@ -39,13 +39,15 @@ class ShelterCaseSummaryProvider implements ModuleAggregateSummaryProvider
 
         return new ModuleSummary(
             $instance->key(),
-            $isApesCic ? 'APES CIC cases' : 'Shelter cases',
+            'Cases',
             (clone $query)->count(),
             $open,
             $isApesCic ? 'apes-cic.cases.index' : 'shelter.cases.index',
             $isApesCic ? 'briefcase-business' : 'house',
             $isApesCic ? 'ticket' : 'shelter',
             "{$open} open",
+            $instance->subCore->key,
+            $instance->subCore->name,
         );
     }
 }

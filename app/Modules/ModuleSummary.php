@@ -13,5 +13,7 @@ final readonly class ModuleSummary
         public string $icon,
         public string $style,
         public string $detail,
+        public string $subCoreKey,
+        public string $subCoreName,
     ) {}
 }

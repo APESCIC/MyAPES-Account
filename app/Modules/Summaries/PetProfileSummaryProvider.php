@@ -14,16 +14,14 @@ class PetProfileSummaryProvider implements ModuleAggregateSummaryProvider
         ModuleInstanceDefinition $instance,
         User $user,
     ): ModuleSummary {
-        [$domain, $route, $label] = match ($instance->subCore->key) {
+        [$domain, $route] = match ($instance->subCore->key) {
             'shelter-rescue' => [
                 PetProfile::DOMAIN_SHELTER,
                 'shelter.pets.index',
-                'Shelter pet profiles',
             ],
             'pet-care-clinic' => [
                 PetProfile::DOMAIN_PETCARE,
                 'petcare.pets.index',
-                'APES Pet Care Clinic profiles',
             ],
             default => throw new \LogicException(
                 'Pet Profiles summary requested for an incompatible sub-core.',
@@ -36,13 +34,15 @@ class PetProfileSummaryProvider implements ModuleAggregateSummaryProvider
 
         return new ModuleSummary(
             $instance->key(),
-            $label,
+            'Pet profiles',
             $total,
             null,
             $route,
             'heart',
             'pet',
             'Profiles in this service',
+            $instance->subCore->key,
+            $instance->subCore->name,
         );
     }
 }

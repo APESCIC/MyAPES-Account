@@ -21,6 +21,7 @@ class SubCoreController extends Controller
         $user = $request->user();
         $modules = $navigation->forSubCore($user, $subCoreKey);
         $summaryByInstance = collect($summaries->forUser($user))
+            ->flatMap(static fn ($group) => $group->summaries)
             ->keyBy('instanceKey');
         $activity = collect();
 
