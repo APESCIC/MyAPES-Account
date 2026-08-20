@@ -13,30 +13,44 @@
         </div>
     </header>
 
-    <div class="module-matrix-wrap" role="region" aria-label="Module compatibility and lifecycle matrix" tabindex="0">
-        <table class="module-matrix">
-            <thead>
-                <tr>
-                    <th scope="col">Sub-core</th>
-                    @foreach($modules as $module)
-                        <th scope="col">
-                            {{ $module->name }}
-                            <small>v{{ $module->version }}</small>
-                        </th>
-                    @endforeach
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($subCores as $subCore)
-                    <tr>
-                        <th scope="row">
-                            {{ $subCore->name }}
-                            <small><code>{{ $subCore->key }}</code></small>
-                        </th>
-                        @foreach($modules as $module)
+    <div class="module-registry" role="region" aria-label="Module compatibility and lifecycle registry">
+        @foreach($subCores as $subCore)
+            @php
+                $shippedRows = [];
+                $unavailableChips = [];
+
+                foreach ($modules as $module) {
+                    $cell = $cells[$subCore->key.':'.$module->key];
+                    $definition = $cell['definition'];
+
+                    if ($definition->isShipped()) {
+                        $shippedRows[] = [
+                            'module' => $module,
+                            'cell' => $cell,
+                            'definition' => $definition,
+                        ];
+                    } else {
+                        $unavailableChips[] = [
+                            'module' => $module,
+                            'definition' => $definition,
+                        ];
+                    }
+                }
+            @endphp
+
+            <section class="module-registry__subcore" aria-labelledby="module-subcore-{{ $subCore->key }}">
+                <header class="module-registry__subcore-header">
+                    <h2 id="module-subcore-{{ $subCore->key }}">{{ $subCore->name }}</h2>
+                    <p class="module-registry__subcore-key"><code>{{ $subCore->key }}</code></p>
+                </header>
+
+                @if($shippedRows !== [])
+                    <ul class="module-registry__rows">
+                        @foreach($shippedRows as $row)
                             @php
-                                $cell = $cells[$subCore->key.':'.$module->key];
-                                $definition = $cell['definition'];
+                                $module = $row['module'];
+                                $cell = $row['cell'];
+                                $definition = $row['definition'];
                                 $installation = $cell['installation'];
                                 $status = $definition->codeStatus;
                                 $action = $installation === null
@@ -45,55 +59,41 @@
                                 $stateClass = $installation === null
                                     ? $status->value
                                     : ($installation->enabled ? 'enabled' : 'disabled');
+                                $stateLabel = $installation
+                                    ? ($installation->enabled ? 'Enabled' : 'Disabled')
+                                    : 'Available';
+                                $dependencySummary = collect($cell['dependencies'])
+                                    ->map(fn (array $dependency): string => $dependency['key'].' ('.($dependency['enabled'] ? 'Enabled' : 'Unavailable').')')
+                                    ->implode(', ');
+                                if ($dependencySummary === '') {
+                                    $dependencySummary = 'None';
+                                }
+                                $transitionLabel = $cell['transition_at']?->format('Y-m-d H:i') ?? 'Release default';
+                                $actorLabel = $cell['actor_id'] ?? 'System';
                             @endphp
-                            <td
+
+                            <li
+                                class="module-registry__row module-registry__row--shipped"
                                 data-module-cell="{{ $definition->key() }}"
                                 data-code-status="{{ $status->value }}"
-                                @class([
-                                    'module-matrix__cell',
-                                    'module-matrix__cell--shipped' => $definition->isShipped(),
-                                    'module-matrix__cell--unavailable' => ! $definition->isShipped(),
-                                ])
                             >
-                                <strong class="module-state module-state--{{ $stateClass }}">
-                                    @if($definition->isShipped() && $installation)
-                                        {{ $installation->enabled ? 'Enabled' : 'Disabled' }}
-                                    @elseif($definition->isShipped())
-                                        Available
-                                    @else
-                                        {{ $status->label() }}
-                                    @endif
-                                </strong>
+                                <div class="module-registry__row-main">
+                                    <div class="module-registry__row-title">
+                                        <span class="module-registry__module-name">{{ $module->name }}</span>
+                                        <small>v{{ $module->version }}</small>
+                                    </div>
+                                    <strong class="module-state module-state--{{ $stateClass }}">{{ $stateLabel }}</strong>
+                                    <p class="module-registry__metrics muted">
+                                        {{ $cell['active_record_count'] }} {{ \Illuminate\Support\Str::plural('record', (int) $cell['active_record_count']) }}
+                                        · {{ $dependencySummary === 'None' ? 'no deps' : $dependencySummary }}
+                                        · last {{ $transitionLabel }}
+                                        · actor {{ $actorLabel }}
+                                    </p>
+                                </div>
 
-                                @if($definition->isShipped())
-                                    <dl class="module-matrix__facts">
-                                        <div>
-                                            <dt>Active records</dt>
-                                            <dd>{{ $cell['active_record_count'] }}</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Dependencies</dt>
-                                            <dd>
-                                                @forelse($cell['dependencies'] as $dependency)
-                                                    {{ $dependency['key'] }} ({{ $dependency['enabled'] ? 'Enabled' : 'Unavailable' }})@if(! $loop->last), @endif
-                                                @empty
-                                                    None
-                                                @endforelse
-                                            </dd>
-                                        </div>
-                                        <div>
-                                            <dt>Last transition</dt>
-                                            <dd>
-                                                {{ $cell['transition_at']?->format('Y-m-d H:i') ?? 'Release default' }}
-                                            </dd>
-                                        </div>
-                                        <div>
-                                            <dt>Actor account ID</dt>
-                                            <dd>{{ $cell['actor_id'] ?? 'System' }}</dd>
-                                        </div>
-                                    </dl>
-
-                                    @can('admin.modules.manage')
+                                @can('admin.modules.manage')
+                                    <details class="module-registry__manage">
+                                        <summary>Manage</summary>
                                         <form
                                             method="post"
                                             action="{{ route('admin.modules.transition', [$subCore->key, $module->key]) }}"
@@ -117,19 +117,36 @@
                                                 {{ str($action)->title() }}
                                             </button>
                                         </form>
-                                    @endcan
-                                @else
-                                    <p class="muted">
-                                        {{ $status === \App\Modules\ModuleCodeStatus::CodeNotShipped
-                                            ? 'Compatible code is not included in this release.'
-                                            : 'This module type is not compatible with this sub-core.' }}
-                                    </p>
-                                @endif
-                            </td>
+                                    </details>
+                                @endcan
+                            </li>
                         @endforeach
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+                    </ul>
+                @endif
+
+                @if($unavailableChips !== [])
+                    <div class="module-registry__unavailable">
+                        <p class="module-registry__unavailable-label muted">Not compatible with this sub-core</p>
+                        <ul class="module-registry__chips" aria-label="Unavailable module types for {{ $subCore->name }}">
+                            @foreach($unavailableChips as $chip)
+                                @php
+                                    $module = $chip['module'];
+                                    $definition = $chip['definition'];
+                                    $status = $definition->codeStatus;
+                                @endphp
+                                <li
+                                    class="module-registry__chip"
+                                    data-module-cell="{{ $definition->key() }}"
+                                    data-code-status="{{ $status->value }}"
+                                >
+                                    <strong class="module-state module-state--{{ $status->value }}">{{ $status->label() }}</strong>
+                                    <span>{{ $module->name }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </section>
+        @endforeach
     </div>
 @endsection
