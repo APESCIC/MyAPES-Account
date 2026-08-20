@@ -21,8 +21,9 @@ class ChangeLogPageTest extends TestCase
             ->assertSeeText('Current version v0.19.4')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
-            ->assertSee('href="#release-v0-19-3"', false)
+            ->assertSee('href="#release-v0-19-4"', false)
             ->assertSee('<details', false)
+            ->assertSeeText('Polish Spike tip dock dismiss and avatar')
             ->assertSeeText('Group dashboard service totals by subcore panels')
             ->assertSeeText('Fix release history tests for v0.19.1')
             ->assertSeeText('Clearer Admin Modules registry layout')
@@ -38,7 +39,7 @@ class ChangeLogPageTest extends TestCase
             ->assertSeeText('Repository discovery and support metadata')
             ->assertSeeText('APES CIC Tickets and Cases');
 
-        $this->assertSame(38, substr_count($response->getContent(), 'data-release-record'));
+        $this->assertSame(39, substr_count($response->getContent(), 'data-release-record'));
 
         foreach (['0.19.4', '0.19.3', '0.19.2', '0.19.1', '0.19.0', '0.18.2', '0.18.1', '0.18.0', '0.17.0', '0.16.3', '0.16.1', '0.16.0', '0.15.0', '0.14.0', '0.13.1', '0.13.0', '0.12.1', '0.12.0', '0.11.0', '0.10.0', '0.9.2', '0.9.1', '0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'] as $version) {
             $response->assertSeeText("v{$version}");

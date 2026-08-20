@@ -30,36 +30,37 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-20', $releases[4]['date']);
         $this->assertSame('2026-08-20', $releases[5]['date']);
         $this->assertSame('2026-08-20', $releases[6]['date']);
-        $this->assertSame('2026-08-19', $releases[7]['date']);
+        $this->assertSame('2026-08-20', $releases[7]['date']);
         $this->assertSame('2026-08-19', $releases[8]['date']);
         $this->assertSame('2026-08-19', $releases[9]['date']);
         $this->assertSame('2026-08-19', $releases[10]['date']);
-        $this->assertSame('2026-08-14', $releases[11]['date']);
+        $this->assertSame('2026-08-19', $releases[11]['date']);
         $this->assertSame('2026-08-14', $releases[12]['date']);
-        $this->assertSame('2026-08-11', $releases[13]['date']);
-        $this->assertSame('2026-08-10', $releases[14]['date']);
+        $this->assertSame('2026-08-14', $releases[13]['date']);
+        $this->assertSame('2026-08-11', $releases[14]['date']);
         $this->assertSame('2026-08-10', $releases[15]['date']);
         $this->assertSame('2026-08-10', $releases[16]['date']);
-        $this->assertSame('2026-08-09', $releases[17]['date']);
+        $this->assertSame('2026-08-10', $releases[17]['date']);
         $this->assertSame('2026-08-09', $releases[18]['date']);
         $this->assertSame('2026-08-09', $releases[19]['date']);
-        $this->assertSame('2026-08-08', $releases[20]['date']);
-        $this->assertSame('2026-08-07', $releases[21]['date']);
-        $this->assertSame('2026-08-06', $releases[22]['date']);
-        $this->assertSame('2026-08-05', $releases[23]['date']);
+        $this->assertSame('2026-08-09', $releases[20]['date']);
+        $this->assertSame('2026-08-08', $releases[21]['date']);
+        $this->assertSame('2026-08-07', $releases[22]['date']);
+        $this->assertSame('2026-08-06', $releases[23]['date']);
         $this->assertSame('2026-08-05', $releases[24]['date']);
         $this->assertSame('2026-08-05', $releases[25]['date']);
-        $this->assertSame('2026-07-28', $releases[26]['date']);
-        $this->assertSame('2026-07-27', $releases[27]['date']);
+        $this->assertSame('2026-08-05', $releases[26]['date']);
+        $this->assertSame('2026-07-28', $releases[27]['date']);
         $this->assertSame('2026-07-27', $releases[28]['date']);
         $this->assertSame('2026-07-27', $releases[29]['date']);
         $this->assertSame('2026-07-27', $releases[30]['date']);
+        $this->assertSame('2026-07-27', $releases[31]['date']);
 
-        foreach (array_slice($releases, 33) as $release) {
+        foreach (array_slice($releases, 32) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 30) as $release) {
+        foreach (array_slice($releases, 31) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
 
@@ -69,27 +70,28 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame(
             [
                 [
-                    'label' => 'Issue #63',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/63',
+                    'label' => 'Issue #74',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/74',
                 ],
                 [
-                    'label' => 'Pull request #73',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/73',
+                    'label' => 'Pull request #75',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/75',
                 ],
             ],
             $current['references'],
         );
         $currentText = strtolower(json_encode($current, JSON_THROW_ON_ERROR));
         foreach ([
-            'service totals',
-            'sub-core',
-            'issue #63',
-            'pull request #73',
+            'tip dock',
+            'spike',
+            'dismiss',
+            'issue #74',
+            'pull request #75',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }
 
-        $desertRelease = $releases[10];
+        $desertRelease = $releases[11];
         $this->assertSame('minor', $desertRelease['type']);
         $desertText = strtolower(json_encode($desertRelease, JSON_THROW_ON_ERROR));
         foreach ([
@@ -106,7 +108,7 @@ class ReleaseHistoryCommandTest extends TestCase
         }
         $this->assertStringNotContainsString('pull request', $desertText);
 
-        $apesCicRelease = $releases[14];
+        $apesCicRelease = $releases[15];
         $this->assertSame('minor', $apesCicRelease['type']);
         $this->assertSame(
             [[
@@ -120,7 +122,7 @@ class ReleaseHistoryCommandTest extends TestCase
             strtolower(implode(' ', $apesCicRelease['known_limitations'])),
         );
 
-        $phaseB = $releases[25];
+        $phaseB = $releases[26];
         $this->assertStringContainsString(
             'issue #11',
             strtolower(implode(' ', $phaseB['known_limitations'])),
