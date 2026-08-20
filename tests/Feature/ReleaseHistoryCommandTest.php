@@ -74,6 +74,10 @@ class ReleaseHistoryCommandTest extends TestCase
                     'label' => 'Issue #76',
                     'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/76',
                 ],
+                [
+                    'label' => 'Pull request #77',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/77',
+                ],
             ],
             $current['references'],
         );
@@ -83,6 +87,7 @@ class ReleaseHistoryCommandTest extends TestCase
             'chart',
             'cloudron',
             'issue #76',
+            'pull request #77',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }

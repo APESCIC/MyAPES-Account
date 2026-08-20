@@ -40,11 +40,15 @@
       "Existing /admin technical URLs remain at the same paths and are now Super Admin–gated rather than relocated under /superadmin except for the new overview."
     ],
     "rollback": "Revert this release record, VERSION, runtime manifest version, Super Admin views and routes, authorization matrix updates, admin UI Blade/CSS/JS changes, and related feature assertions. Re-run authorization metadata synchronization after rollback so protected role permissions match the restored matrix. No database schema rollback is required beyond restoring permission seed expectations.",
-    "provenance": "Defined by the Admin UX cleanup with Super Admin technical panel for MyAPES Account issue #76.",
+    "provenance": "Defined by the Admin UX cleanup with Super Admin technical panel for MyAPES Account issue #76 and pull request #77.",
     "references": [
       {
         "label": "Issue #76",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/76"
+      },
+      {
+        "label": "Pull request #77",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/77"
       }
     ]
   },
