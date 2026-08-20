@@ -24,10 +24,11 @@ class MascotHelperTest extends TestCase
             ->assertSee('mascot/spike-welcome.png', false)
             ->assertSee('welcome-heading__mascot', false)
             ->assertDontSee('class="hero-image"', false)
-            ->assertSee('mascot/spike.svg', false)
+            ->assertSee('mascot/spike-dock.png', false)
             ->assertSee('data-mascot-dock', false)
             ->assertSee('data-mascot-route="home"', false)
             ->assertSee('data-mascot-dismiss', false)
+            ->assertSee('aria-label="Hide tip"', false)
             ->assertSeeText('Spike says')
             ->assertSeeText('Pick the door that matches you.')
             ->assertDontSee('bearded-dragon-natural.png', false);
