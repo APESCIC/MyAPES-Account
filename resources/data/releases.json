@@ -13,7 +13,8 @@
       "Made roles and permissions easier to read with plain-language titles, descriptions, and grouped catalogues.",
       "Showed module manage controls open by default instead of collapsed disclosures.",
       "Fixed Chart.js overview canvases so fixed-height wrappers stop infinite page growth and broken chart imagery.",
-      "Enabled the Local QA role switcher to sign into the seeded Super Admin account for local Super Admin panel testing."
+      "Enabled the Local QA role switcher to sign into the seeded Super Admin account for local Super Admin panel testing.",
+      "Tidied the Local QA role switcher layout so four roles and the environment label stay readable without overlap."
     ],
     "affected_areas": [
       "Admin panel",

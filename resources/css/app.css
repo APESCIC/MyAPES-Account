@@ -409,12 +409,14 @@ code {
 }
 
 .qa-switcher {
-    min-height: 4.2rem;
     margin-bottom: 1.15rem;
-    padding: 0.7rem 1.1rem;
+    padding: 0.75rem 1.1rem;
     display: grid;
-    grid-template-columns: auto auto minmax(15rem, 1fr) auto;
-    gap: 1.4rem;
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+        "identity current environment"
+        "forms forms forms";
+    gap: 0.7rem 1.15rem;
     align-items: center;
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
@@ -431,6 +433,7 @@ code {
 }
 
 .qa-switcher__identity {
+    grid-area: identity;
     gap: 0.65rem;
 }
 
@@ -451,6 +454,7 @@ code {
 }
 
 .qa-switcher__current {
+    grid-area: current;
     gap: 0.55rem;
     font-size: 0.86rem;
 }
@@ -467,6 +471,8 @@ code {
 }
 
 .qa-switcher__forms {
+    grid-area: forms;
+    flex-wrap: wrap;
     gap: 0.55rem;
 }
 
@@ -476,15 +482,16 @@ form.inline {
 }
 
 .qa-role-button {
-    min-width: 5.5rem;
+    min-width: 4.75rem;
     min-height: 2.45rem;
-    padding: 0.45rem 0.9rem;
+    padding: 0.45rem 0.85rem;
     border: 1px solid var(--line-strong);
     border-radius: 0.5rem;
     background: var(--surface);
     color: var(--ink);
     box-shadow: none;
     font-weight: 760;
+    white-space: nowrap;
 }
 
 .qa-role-button:hover,
@@ -497,6 +504,7 @@ form.inline {
 }
 
 .qa-switcher__environment {
+    grid-area: environment;
     gap: 0.55rem;
     justify-self: end;
     color: var(--muted);
@@ -2060,11 +2068,15 @@ caption {
 
 @media (max-width: 78rem) {
     .qa-switcher {
-        grid-template-columns: auto auto minmax(13rem, 1fr);
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "identity environment"
+            "current current"
+            "forms forms";
     }
 
     .qa-switcher__environment {
-        display: none;
+        justify-self: end;
     }
 
     .service-summary__item {
@@ -2212,6 +2224,11 @@ caption {
 
     .qa-switcher {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            "identity"
+            "current"
+            "forms"
+            "environment";
         gap: 0.8rem;
     }
 
@@ -2221,7 +2238,11 @@ caption {
 
     .qa-switcher__forms {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .qa-switcher__environment {
+        justify-self: start;
     }
 
     .qa-role-button {
