@@ -45,6 +45,11 @@ class SupportTicketAnalyticsProvider implements ModuleAnalyticsProvider
             ->where('closed_at', '<', $toBoundary)
             ->get();
         $open = $created->whereNotIn('status', ['resolved', 'closed']);
+        $currentlyOpen = SupportTicket::query()
+            ->forSubCore($instance->subCore->key)
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->get();
+        $closureMinutes = $this->closureMinutes($closed->all());
 
         return new ModuleAnalyticsSnapshot(
             $instance->key(),
@@ -54,8 +59,12 @@ class SupportTicketAnalyticsProvider implements ModuleAnalyticsProvider
             $open->whereNull('assigned_to')->count(),
             $this->perDay($created->all(), 'created_at', $timezone),
             $this->perDay($closed->all(), 'closed_at', $timezone),
-            $this->medianMinutes($closed->all()),
+            $this->median($closureMinutes),
             $closed->count(),
+            $currentlyOpen->count(),
+            $currentlyOpen->whereIn('priority', ['high', 'urgent'])->count(),
+            $currentlyOpen->whereNull('assigned_to')->count(),
+            $closureMinutes,
         );
     }
 
@@ -71,15 +80,14 @@ class SupportTicketAnalyticsProvider implements ModuleAnalyticsProvider
         return $counts;
     }
 
-    private function medianMinutes(array $records): ?float
+    /** @param array<int, SupportTicket> $records */
+    private function closureMinutes(array $records): array
     {
-        $durations = array_map(
+        return array_map(
             static fn (SupportTicket $ticket): float => $ticket->created_at
                 ->diffInMinutes($ticket->closed_at),
             $records,
         );
-
-        return $this->median($durations);
     }
 
     private function median(array $values): ?float

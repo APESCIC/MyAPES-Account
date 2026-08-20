@@ -7,18 +7,30 @@ use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Modules\ModuleAnalyticsSnapshot;
 use App\Modules\ModuleInstanceDefinition;
+use App\Services\ModuleState;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 class CaseAnalyticsProvider implements ModuleAnalyticsProvider
 {
+    public function __construct(
+        private readonly ModuleState $modules,
+    ) {}
+
     public function snapshot(
         ModuleInstanceDefinition $instance,
         DateTimeInterface $from,
         DateTimeInterface $to,
         string $timezone,
     ): ModuleAnalyticsSnapshot {
+        if (! $this->modules->enabled(
+            $instance->subCore->key,
+            $instance->module->key,
+        )) {
+            return ModuleAnalyticsSnapshot::empty($instance->key());
+        }
+
         $fromBoundary = Carbon::instance($from)
             ->setTimezone(config('app.timezone'));
         $toBoundary = Carbon::instance($to)
@@ -43,6 +55,10 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
         }
         $closed = $closedQuery->get();
         $open = $created->whereNotIn('status', ['resolved', 'closed']);
+        $currentlyOpen = $this->caseQuery($instance)
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->get();
+        $closureMinutes = $this->closureMinutes($closed->all(), $terminalField);
 
         return new ModuleAnalyticsSnapshot(
             $instance->key(),
@@ -52,8 +68,12 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
             $open->whereNull('assigned_to')->count(),
             $this->perDay($created->all(), 'created_at', $timezone),
             $this->perDay($closed->all(), $terminalField, $timezone),
-            $this->medianMinutes($closed->all(), $terminalField),
+            $this->median($closureMinutes),
             $closed->count(),
+            $currentlyOpen->count(),
+            $currentlyOpen->whereIn('priority', ['high', 'urgent'])->count(),
+            $currentlyOpen->whereNull('assigned_to')->count(),
+            $closureMinutes,
         );
     }
 
@@ -86,21 +106,27 @@ class CaseAnalyticsProvider implements ModuleAnalyticsProvider
         return $counts;
     }
 
-    private function medianMinutes(array $records, string $terminalField): ?float
+    /** @param array<int, ShelterCase> $records */
+    private function closureMinutes(array $records, string $terminalField): array
     {
-        $durations = array_map(
+        return array_map(
             static fn (ShelterCase $case): float => ($case->opened_at ?? $case->created_at)
                 ->diffInMinutes(Carbon::parse($case->{$terminalField})),
             $records,
         );
-        if ($durations === []) {
+    }
+
+    /** @param array<int, float> $values */
+    private function median(array $values): ?float
+    {
+        if ($values === []) {
             return null;
         }
-        sort($durations, SORT_NUMERIC);
-        $middle = intdiv(count($durations), 2);
+        sort($values, SORT_NUMERIC);
+        $middle = intdiv(count($values), 2);
 
-        return count($durations) % 2 === 1
-            ? (float) $durations[$middle]
-            : ($durations[$middle - 1] + $durations[$middle]) / 2;
+        return count($values) % 2 === 1
+            ? (float) $values[$middle]
+            : ($values[$middle - 1] + $values[$middle]) / 2;
     }
 }

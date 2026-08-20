@@ -371,11 +371,14 @@ class AdminAccessAndViewsTest extends TestCase
             'name' => 'dashboard-operator',
             'guard_name' => 'web',
         ]);
-        $permission = Permission::query()
-            ->where('name', AuthorizationProfile::PERMISSION_ADMIN_ACCESS)
+        $permissions = Permission::query()
+            ->whereIn('name', [
+                AuthorizationProfile::PERMISSION_ADMIN_ACCESS,
+                'admin.analytics.view',
+            ])
             ->where('guard_name', 'web')
-            ->firstOrFail();
-        $role->permissions()->attach($permission->id);
+            ->pluck('id');
+        $role->permissions()->attach($permissions);
         app(AuthorizationRoleMaterializer::class)->grant(
             $actor,
             $role,
@@ -390,7 +393,7 @@ class AdminAccessAndViewsTest extends TestCase
         $this->actingAs($actor)
             ->get(route('admin.index'))
             ->assertOk()
-            ->assertSee('Total users')
+            ->assertSee('Total accounts')
             ->assertDontSee($recent->name)
             ->assertDontSee($recent->email)
             ->assertDontSee('Recent accounts');

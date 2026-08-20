@@ -33,11 +33,15 @@ class AuthorizationQueryScopeTest extends TestCase
             User::query()->eligibleStaff()->orderBy('id')->pluck('id')->all(),
         );
 
-        $this->actingAs($administrator)
+        $accounts = $this->actingAs($administrator)
             ->get(route('admin.index'))
             ->assertOk()
-            ->assertViewHas('staffUsers', 2)
-            ->assertViewHas('adminUsers', 1);
+            ->viewData('dashboard')['accounts'];
+
+        $this->assertSame(3, $accounts['total']);
+        $this->assertSame(1, $accounts['suspended']);
+        $this->assertSame(1, $accounts['by_access_class'][AuthorizationProfile::ROLE_ADMINISTRATOR]);
+        $this->assertSame(2, $accounts['by_access_class'][AuthorizationProfile::ROLE_STAFF]);
 
         $this->assertNotSame($activeStaff->id, $suspendedStaff->id);
     }

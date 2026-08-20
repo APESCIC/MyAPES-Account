@@ -484,6 +484,32 @@ class ModuleProviderContractTest extends TestCase
         $this->assertSame(2, $snapshot->closureSampleSize);
     }
 
+    public function test_case_analytics_return_empty_when_the_module_is_disabled(): void
+    {
+        $owner = User::factory()->create();
+        $instance = app(ModuleRegistry::class)->instance('apes-cic', 'cases');
+        $this->caseFor($owner);
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'apes-cic')
+            ->where('module_key', 'cases')
+            ->update([
+                'enabled' => false,
+                'disabled_at' => now(),
+            ]);
+
+        $snapshot = app($instance->analyticsProviderClass())->snapshot(
+            $instance,
+            now()->subDays(7),
+            now()->addDay(),
+            'UTC',
+        );
+
+        $this->assertSame(0, $snapshot->total);
+        $this->assertSame(0, $snapshot->currentlyOpen);
+        $this->assertSame(0, $snapshot->currentlyHighOrUrgent);
+        $this->assertSame(0, $snapshot->currentlyUnassigned);
+    }
+
     public function test_ticket_summary_and_recent_activity_use_the_instance_routes(): void
     {
         $owner = User::factory()->create();
