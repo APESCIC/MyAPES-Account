@@ -76,14 +76,25 @@
     <section class="service-summary" id="service-summary" aria-label="Service totals">
         @foreach($moduleSummaries as $group)
             <section
-                class="service-summary__group"
+                class="service-summary__group service-summary__group--{{ $group->key }}"
                 data-sub-core="{{ $group->key }}"
                 aria-labelledby="service-summary-{{ $group->key }}"
             >
-                <h2 class="service-summary__heading" id="service-summary-{{ $group->key }}">
-                    {{ $group->name }}
-                </h2>
-                <div class="service-summary__items">
+                <header class="service-summary__header">
+                    <h2 class="service-summary__heading" id="service-summary-{{ $group->key }}">
+                        {{ $group->name }}
+                    </h2>
+                    <a
+                        href="{{ route($group->routeName) }}"
+                        class="service-summary__service-link"
+                    >
+                        Open service <i data-lucide="arrow-right" aria-hidden="true"></i>
+                    </a>
+                </header>
+                <div
+                    class="service-summary__items"
+                    style="--module-count: {{ count($group->summaries) }}"
+                >
                     @foreach($group->summaries as $summary)
                         <a
                             href="{{ route($summary->routeName) }}"
@@ -96,7 +107,6 @@
                                 <strong>{{ $summary->label }}</strong>
                                 <small>{{ $summary->detail }}</small>
                             </span>
-                            <span class="service-summary__link">Open module <i data-lucide="arrow-right" aria-hidden="true"></i></span>
                         </a>
                     @endforeach
                 </div>

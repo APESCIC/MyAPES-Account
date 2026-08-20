@@ -607,9 +607,17 @@ class ModuleProviderContractTest extends TestCase
         $response->assertSee('id="service-summary-shelter-rescue"', false);
         $response->assertSee('id="service-summary-pet-care-clinic"', false);
         $response->assertSee('data-sub-core="apes-cic"', false);
+        $response->assertSee('service-summary__group--apes-cic', false);
+        $response->assertSee('service-summary__group--shelter-rescue', false);
+        $response->assertSee('service-summary__group--pet-care-clinic', false);
+        $response->assertSee('Open service', false);
+        $response->assertSee(route('apes-cic.index'), false);
+        $response->assertSee(route('shelter.index'), false);
+        $response->assertSee(route('petcare.index'), false);
         $response->assertSee('data-module-instance="apes-cic:tickets"', false);
         $response->assertSee('data-module-instance="shelter-rescue:tickets"', false);
         $response->assertSee('data-module-instance="pet-care-clinic:tickets"', false);
+        $response->assertDontSee('Open module', false);
         $response->assertViewHas(
             'moduleSummaries',
             static function (array $groups): bool {
@@ -625,15 +633,21 @@ class ModuleProviderContractTest extends TestCase
                     return false;
                 }
 
+                $routesByGroup = [];
                 $labelsByGroup = [];
                 foreach ($groups as $group) {
+                    $routesByGroup[$group->key] = $group->routeName;
                     $labelsByGroup[$group->key] = array_map(
                         static fn ($summary): string => $summary->label,
                         $group->summaries,
                     );
                 }
 
-                return $labelsByGroup === [
+                return $routesByGroup === [
+                    'apes-cic' => 'apes-cic.index',
+                    'shelter-rescue' => 'shelter.index',
+                    'pet-care-clinic' => 'petcare.index',
+                ] && $labelsByGroup === [
                     'apes-cic' => ['Tickets', 'Cases'],
                     'shelter-rescue' => ['Pet profiles', 'Tickets', 'Cases'],
                     'pet-care-clinic' => [

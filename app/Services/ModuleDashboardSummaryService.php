@@ -46,6 +46,7 @@ class ModuleDashboardSummaryService
             $groups[] = new ModuleSummaryGroup(
                 $subCoreNavigation->subCore->key,
                 $subCoreNavigation->subCore->name,
+                $subCoreNavigation->subCore->routeName,
                 $summaries,
             );
         }
