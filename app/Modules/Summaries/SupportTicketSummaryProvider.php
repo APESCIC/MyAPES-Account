@@ -43,6 +43,8 @@ class SupportTicketSummaryProvider implements ModuleAggregateSummaryProvider
             'ticket',
             'ticket',
             "{$open} open · {$highPriority} high priority",
+            $instance->subCore->key,
+            $instance->subCore->name,
         );
     }
 }

@@ -547,6 +547,8 @@ class ModuleProviderContractTest extends TestCase
             );
 
             $this->assertSame('Tickets', $summary->label);
+            $this->assertSame($subCoreKey, $summary->subCoreKey);
+            $this->assertSame($instance->subCore->name, $summary->subCoreName);
             $this->assertSame($routePrefix.'.index', $summary->routeName);
             $this->assertSame($routePrefix.'.show', $activity[0]->routeName);
             $this->assertSame($ticket->id, $activity[0]->recordId);
@@ -592,6 +594,56 @@ class ModuleProviderContractTest extends TestCase
             ->assertSee('data-module-instance="apes-cic:cases"', false)
             ->assertSee('Membership support needed')
             ->assertSee(route('apes-cic.cases.show', $case));
+    }
+
+    public function test_dashboard_service_summary_groups_modules_under_sub_core_headings(): void
+    {
+        $owner = User::factory()->create();
+
+        $response = $this->actingAs($owner)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('id="service-summary-apes-cic"', false);
+        $response->assertSee('id="service-summary-shelter-rescue"', false);
+        $response->assertSee('id="service-summary-pet-care-clinic"', false);
+        $response->assertSee('data-sub-core="apes-cic"', false);
+        $response->assertSee('data-module-instance="apes-cic:tickets"', false);
+        $response->assertSee('data-module-instance="shelter-rescue:tickets"', false);
+        $response->assertSee('data-module-instance="pet-care-clinic:tickets"', false);
+        $response->assertViewHas(
+            'moduleSummaries',
+            static function (array $groups): bool {
+                $keys = array_map(
+                    static fn ($group): string => $group->key,
+                    $groups,
+                );
+                if ($keys !== [
+                    'apes-cic',
+                    'shelter-rescue',
+                    'pet-care-clinic',
+                ]) {
+                    return false;
+                }
+
+                $labelsByGroup = [];
+                foreach ($groups as $group) {
+                    $labelsByGroup[$group->key] = array_map(
+                        static fn ($summary): string => $summary->label,
+                        $group->summaries,
+                    );
+                }
+
+                return $labelsByGroup === [
+                    'apes-cic' => ['Tickets', 'Cases'],
+                    'shelter-rescue' => ['Pet profiles', 'Tickets', 'Cases'],
+                    'pet-care-clinic' => [
+                        'Pet profiles',
+                        'Tickets',
+                        'Consultations',
+                    ],
+                ];
+            },
+        );
     }
 
     public function test_dashboard_excludes_tickets_from_other_sub_cores(): void
@@ -1048,7 +1100,9 @@ class ModuleProviderContractTest extends TestCase
         $summary = $summaryProvider->summarize($instance, $owner);
 
         $this->assertSame('APES Pet Care Clinic', $instance->subCore->name);
-        $this->assertSame('APES Pet Care Clinic profiles', $summary->label);
+        $this->assertSame('Pet profiles', $summary->label);
+        $this->assertSame('pet-care-clinic', $summary->subCoreKey);
+        $this->assertSame('APES Pet Care Clinic', $summary->subCoreName);
         $this->assertSame(
             'Pet Profiles',
             $instance->module->navigation['pet-care-clinic']->label,
@@ -1244,7 +1298,18 @@ final class OverrideSummaryProvider implements ModuleAggregateSummaryProvider
         ModuleInstanceDefinition $instance,
         User $user,
     ): ModuleSummary {
-        return new ModuleSummary($instance->key(), 'Override', 0, 0, 'home', 'home', 'home', '');
+        return new ModuleSummary(
+            $instance->key(),
+            'Override',
+            0,
+            0,
+            'home',
+            'home',
+            'home',
+            '',
+            $instance->subCore->key,
+            $instance->subCore->name,
+        );
     }
 }
 

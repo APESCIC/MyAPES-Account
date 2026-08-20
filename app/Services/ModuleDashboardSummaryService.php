@@ -6,7 +6,7 @@ use App\Contracts\ModuleAggregateSummaryProvider;
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\ModuleRegistry;
 use App\Models\User;
-use App\Modules\ModuleSummary;
+use App\Modules\ModuleSummaryGroup;
 
 class ModuleDashboardSummaryService
 {
@@ -15,31 +15,41 @@ class ModuleDashboardSummaryService
         private readonly ModuleNavigationProvider $navigation,
     ) {}
 
-    /** @return array<int, ModuleSummary> */
+    /** @return list<ModuleSummaryGroup> */
     public function forUser(User $user): array
     {
-        $visible = [];
-        foreach ($this->navigation->forUser($user) as $subCore) {
-            foreach ($subCore->modules as $module) {
-                $visible[] = $module->instanceKey;
+        $groups = [];
+
+        foreach ($this->navigation->forUser($user) as $subCoreNavigation) {
+            $summaries = [];
+
+            foreach ($subCoreNavigation->modules as $module) {
+                $instance = $this->registry->instance(
+                    $subCoreNavigation->subCore->key,
+                    $module->moduleKey,
+                );
+                $providerClass = $instance->summaryProviderClass();
+
+                if ($providerClass === null) {
+                    continue;
+                }
+
+                /** @var ModuleAggregateSummaryProvider $provider */
+                $provider = app($providerClass);
+                $summaries[] = $provider->summarize($instance, $user);
             }
-        }
 
-        $summaries = [];
-        foreach ($visible as $key) {
-            [$subCoreKey, $moduleKey] = explode(':', $key, 2);
-            $instance = $this->registry->instance($subCoreKey, $moduleKey);
-            $providerClass = $instance->summaryProviderClass();
-
-            if ($providerClass === null) {
+            if ($summaries === []) {
                 continue;
             }
 
-            /** @var ModuleAggregateSummaryProvider $provider */
-            $provider = app($providerClass);
-            $summaries[] = $provider->summarize($instance, $user);
+            $groups[] = new ModuleSummaryGroup(
+                $subCoreNavigation->subCore->key,
+                $subCoreNavigation->subCore->name,
+                $summaries,
+            );
         }
 
-        return $summaries;
+        return $groups;
     }
 }

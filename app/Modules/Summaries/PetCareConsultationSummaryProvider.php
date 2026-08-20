@@ -31,6 +31,8 @@ class PetCareConsultationSummaryProvider implements ModuleAggregateSummaryProvid
             'messages-square',
             'consultation',
             "{$open} open",
+            $instance->subCore->key,
+            $instance->subCore->name,
         );
     }
 }
