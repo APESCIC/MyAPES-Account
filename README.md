@@ -189,9 +189,9 @@ The generator preserves the supplied square animal artwork for the sidebar and v
 | --- | --- |
 | `public/mascot/spike-welcome.png` | Cartoon Spike portrait for landing, staff sign-in, and the dashboard identity card |
 | `public/mascot/spike-tip.png` | Smaller Spike artwork for in-page help callouts |
-| `public/mascot/spike.svg` | Compact Spike mark for the dismissible helper dock |
+| `public/mascot/spike-dock.png` | Full-body pointing Spike for the dismissible helper dock |
 
-Spike is a named cartoon helper who offers short operational tips. Page-keyed copy lives in `app/Support/MascotTips.php`. Guests and signed-in users can hide the dock for the current page; that choice is stored locally as `myapes-mascot-dismissed`. Admin and change-log pages do not show the dock.
+Spike is a named cartoon helper who offers short operational tips. Page-keyed copy lives in `app/Support/MascotTips.php`. Guests and signed-in users can hide the dock for the current page; that choice is stored locally as `myapes-mascot-dismissed-v2`. Admin and change-log pages do not show the dock.
 
 The interface uses a light-first desert theme with a sun-baked earth sidebar, sand canvas, clay and sage accents, and teal as the oasis focus colour. A saved colour-theme choice is stored locally in the browser as `myapes-theme`; the first visit always starts in light mode.
 ### Browser, PWA, and social assets

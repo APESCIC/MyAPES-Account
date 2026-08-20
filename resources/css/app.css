@@ -1686,12 +1686,14 @@ tbody tr:hover {
     width: 4.6rem;
     height: 4.6rem;
     flex: 0 0 auto;
+    object-fit: contain;
     filter: drop-shadow(0 8px 16px rgba(42, 31, 20, 0.18));
 }
 
 .mascot-dock__bubble {
+    position: relative;
     min-width: 0;
-    padding: 0.85rem 1rem 0.7rem;
+    padding: 0.85rem 2.15rem 0.85rem 1rem;
     border: 1px solid var(--line);
     border-radius: 1.15rem 1.15rem 0.35rem 1.15rem;
     background: var(--surface-raised);
@@ -1699,18 +1701,40 @@ tbody tr:hover {
 }
 
 .mascot-dock__bubble p {
-    margin: 0 0 0.55rem;
+    margin: 0;
     color: var(--ink-soft);
     font-size: 0.92rem;
 }
 
 .mascot-dock__dismiss {
-    padding: 0.2rem 0;
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    padding: 0;
     border: 0;
+    border-radius: 0.45rem;
     background: transparent;
-    color: var(--brand-text);
+    color: var(--ink);
+    font-size: 1.35rem;
     font-weight: 700;
+    line-height: 1;
     cursor: pointer;
+}
+
+.mascot-dock__dismiss:hover,
+.mascot-dock__dismiss:focus-visible {
+    background: var(--surface-subtle);
+    color: var(--brand-midnight);
+    outline: none;
+}
+
+.mascot-dock__dismiss:focus-visible {
+    box-shadow: 0 0 0 2px var(--brand-teal);
 }
 
 @media (prefers-reduced-motion: no-preference) {

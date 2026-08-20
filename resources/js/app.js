@@ -176,7 +176,7 @@ sidebarMedia.addEventListener('change', () => {
     setSidebarOpen(false, false);
 });
 
-const mascotStorageKey = 'myapes-mascot-dismissed';
+const mascotStorageKey = 'myapes-mascot-dismissed-v2';
 const mascotDock = document.querySelector('[data-mascot-dock]');
 const mascotDismiss = document.querySelector('[data-mascot-dismiss]');
 

@@ -235,10 +235,23 @@
         data-mascot-route="{{ $mascotTip['route'] }}"
         aria-label="Tip from Spike, the MyAPES bearded dragon"
     >
-        <img src="{{ asset('mascot/spike.svg') }}" alt="" class="mascot-dock__avatar" width="128" height="128">
+        <img
+            src="{{ asset('mascot/spike-dock.png') }}"
+            alt=""
+            class="mascot-dock__avatar"
+            width="1024"
+            height="1024"
+        >
         <div class="mascot-dock__bubble">
+            <button
+                type="button"
+                class="mascot-dock__dismiss"
+                data-mascot-dismiss
+                aria-label="Hide tip"
+            >
+                <span aria-hidden="true">&times;</span>
+            </button>
             <p><strong>{{ $mascotTip['title'] }}</strong> {{ $mascotTip['body'] }}</p>
-            <button type="button" class="mascot-dock__dismiss" data-mascot-dismiss>Hide tip</button>
         </div>
     </aside>
 @endif
