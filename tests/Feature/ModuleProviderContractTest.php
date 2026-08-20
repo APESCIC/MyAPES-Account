@@ -719,11 +719,38 @@ class ModuleProviderContractTest extends TestCase
             ->assertSee('Case activity 2')
             ->assertSee('Case activity 3')
             ->assertDontSee('Ticket activity 3')
-            ->assertDontSee('Foreign activity title');
+            ->assertDontSee('Foreign activity title')
+            ->assertSee('attention-item__icon', false)
+            ->assertSee('attention-item__meta', false)
+            ->assertSee('attention-item__chevron', false);
         $this->assertSame(
             5,
-            substr_count($response->getContent(), 'class="attention-item"'),
+            substr_count($response->getContent(), 'attention-item__icon'),
         );
+    }
+
+    public function test_hub_recent_activity_uses_full_attention_row_layout_on_all_sub_cores(): void
+    {
+        $owner = User::factory()->create();
+        $this->ticketFor($owner, [
+            'sub_core_key' => 'shelter-rescue',
+            'service_area' => 'rescue',
+            'subject' => 'Shelter hub activity row',
+        ]);
+        $this->ticketFor($owner, [
+            'sub_core_key' => 'pet-care-clinic',
+            'service_area' => 'appointment',
+            'subject' => 'Pet Care hub activity row',
+        ]);
+
+        foreach (['shelter.index', 'petcare.index'] as $routeName) {
+            $this->actingAs($owner)
+                ->get(route($routeName))
+                ->assertOk()
+                ->assertSee('attention-item__icon', false)
+                ->assertSee('attention-item__meta', false)
+                ->assertSee('attention-item__chevron', false);
+        }
     }
 
     public function test_disabled_module_is_absent_from_hub_cards_and_activity(): void

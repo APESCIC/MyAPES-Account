@@ -682,6 +682,10 @@ form.inline {
     background: var(--sage);
 }
 
+.attention-item--pet .attention-item__icon {
+    background: var(--brand-teal);
+}
+
 [data-theme='dark'] .attention-item--ticket .attention-item__icon {
     background: #8f482e;
 }
@@ -692,6 +696,10 @@ form.inline {
 
 [data-theme='dark'] .attention-item--consultation .attention-item__icon {
     background: #4b6841;
+}
+
+[data-theme='dark'] .attention-item--pet .attention-item__icon {
+    background: #2a7f78;
 }
 
 .attention-item__icon svg {
@@ -1046,35 +1054,132 @@ form.inline {
     color: var(--muted);
 }
 
-.module-matrix-wrap {
-    overflow-x: auto;
+.module-registry {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.module-registry__subcore {
+    padding: 1.1rem 1.2rem 1.2rem;
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     background: var(--surface);
     box-shadow: var(--shadow-soft);
 }
 
-.module-matrix {
-    min-width: 72rem;
+.module-registry__subcore-header {
+    margin-bottom: 0.85rem;
 }
 
-.module-matrix th small {
-    display: block;
-    margin-top: 0.2rem;
+.module-registry__subcore-header h2 {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.module-registry__subcore-key {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.module-registry__rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.module-registry__row {
+    padding: 0.85rem 0.95rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+}
+
+.module-registry__row-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.85rem;
+    align-items: start;
+}
+
+.module-registry__row-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.module-registry__module-name {
+    font-weight: 750;
+    color: var(--ink);
+}
+
+.module-registry__row-title small {
     color: var(--muted);
     font-size: 0.72rem;
     font-weight: 650;
-    letter-spacing: normal;
-    text-transform: none;
 }
 
-.module-matrix__cell {
-    width: 20%;
-    min-width: 14rem;
+.module-registry__metrics {
+    margin: 0;
+    grid-column: 1 / -1;
+    overflow-wrap: anywhere;
+    font-size: 0.78rem;
+    line-height: 1.45;
 }
 
-.module-matrix__cell--unavailable {
+.module-registry__manage {
+    margin-top: 0.65rem;
+}
+
+.module-registry__manage summary {
+    width: fit-content;
+    cursor: pointer;
+    color: var(--brand-text);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.module-registry__manage summary:hover {
+    text-decoration: underline;
+}
+
+.module-registry__unavailable {
+    margin-top: 0.9rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+}
+
+.module-registry__unavailable-label {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+}
+
+.module-registry__chips {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.module-registry__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--surface-subtle) 70%, transparent);
+    color: var(--ink-soft);
+    font-size: 0.78rem;
 }
 
 .module-state {
@@ -1101,28 +1206,12 @@ form.inline {
     color: var(--danger);
 }
 
-.module-matrix__facts {
-    margin: 0.75rem 0;
-    display: grid;
-    gap: 0.5rem;
-}
-
-.module-matrix__facts div {
-    display: grid;
-    grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.2fr);
-    gap: 0.5rem;
-}
-
-.module-matrix__facts dt {
+.module-state--incompatible,
+.module-state--code_not_shipped,
+.module-state--shipped {
+    border-color: var(--line-strong);
+    background: var(--surface-subtle);
     color: var(--muted);
-    font-size: 0.72rem;
-    font-weight: 780;
-}
-
-.module-matrix__facts dd {
-    margin: 0;
-    overflow-wrap: anywhere;
-    font-size: 0.78rem;
 }
 
 .module-action-form {
@@ -1145,6 +1234,12 @@ form.inline {
     width: auto;
     min-height: auto;
     margin-top: 0.15rem;
+}
+
+@media (max-width: 40rem) {
+    .module-registry__row-main {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .admin-definition-list {

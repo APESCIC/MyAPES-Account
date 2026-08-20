@@ -32,7 +32,11 @@ class ReleaseHistoryRepository
         }
 
         $releases = $this->readReleaseFile(resource_path('data/releases.json'));
-        $errors = $this->validator->validate($releases, $this->version());
+        $errors = $this->validator->validate(
+            $releases,
+            $this->version(),
+            $this->readManifestVersion(),
+        );
 
         if ($errors !== []) {
             throw new UnexpectedValueException(implode(PHP_EOL, $errors));
@@ -104,5 +108,28 @@ class ReleaseHistoryRepository
         }
 
         return $releases;
+    }
+
+    private function readManifestVersion(): ?string
+    {
+        $path = resource_path('data/module-runtime-contract.json');
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path);
+
+        if (! is_string($contents)) {
+            throw new RuntimeException("Unable to read module runtime manifest [{$path}].");
+        }
+
+        $manifest = json_decode($contents, true);
+
+        if (! is_array($manifest) || ! is_string($manifest['application_version'] ?? null)) {
+            throw new UnexpectedValueException('Module runtime manifest is missing application_version.');
+        }
+
+        return trim($manifest['application_version']);
     }
 }

@@ -69,6 +69,25 @@ class ReleaseHistoryValidatorTest extends TestCase
         );
     }
 
+    public function test_manifest_version_must_match_version_file(): void
+    {
+        $this->assertContains(
+            'module-runtime-contract.json application_version must match VERSION.',
+            $this->validator()->validate($this->validHistory(), '0.6.0', '0.5.0'),
+        );
+    }
+
+    public function test_scaffold_todo_placeholders_are_rejected(): void
+    {
+        $history = $this->validHistory();
+        $history[0]['summary'] = 'TODO: Replace with a security-safe public summary.';
+
+        $this->assertContains(
+            'Release 1 still contains scaffold TODO: Replace placeholders.',
+            $this->validator()->validate($history, '0.6.0'),
+        );
+    }
+
     public function test_unexpected_fields_and_credential_shaped_text_are_rejected(): void
     {
         $history = $this->validHistory();

@@ -48,34 +48,18 @@
 
             <div class="attention-list">
                 @forelse($attentionItems as $item)
-                    <a href="{{ route($item->routeName, $item->recordId) }}" class="attention-item attention-item--{{ $item->type }}">
-                        <span class="attention-item__icon" aria-hidden="true">
-                            <i data-lucide="{{ $item->icon }}"></i>
-                        </span>
-                        <span class="attention-item__body">
-                            <span class="attention-item__kicker">{{ $item->service }} · {{ $item->label }}</span>
-                            <strong>{{ $item->title }}</strong>
-                            <span class="attention-item__detail">
-                                <span>{{ str($item->status)->replace('_', ' ')->title() }}</span>
-                                @if($item->priority)
-                                    <span aria-hidden="true">•</span>
-                                    <span>Priority: <b class="priority priority--{{ $item->priority }}">{{ str($item->priority)->title() }}</b></span>
-                                @elseif($item->context)
-                                    <span aria-hidden="true">•</span>
-                                    <span>{{ $item->context }}</span>
-                                @endif
-                            </span>
-                        </span>
-                        <span class="attention-item__meta">
-                            <time datetime="{{ $item->updatedAt->toAtomString() }}" title="{{ $item->updatedAt->format('j F Y, H:i') }}">
-                                {{ $item->updatedAt->diffForHumans() }}
-                            </time>
-                            @if($item->owner)
-                                <span>{{ $item->owner }}</span>
-                            @endif
-                        </span>
-                        <i data-lucide="chevron-right" class="attention-item__chevron" aria-hidden="true"></i>
-                    </a>
+                    <x-attention-item-link
+                        :href="route($item->routeName, $item->recordId)"
+                        :type="$item->type"
+                        :icon="$item->icon"
+                        :kicker="$item->service.' · '.$item->label"
+                        :title="$item->title"
+                        :status="$item->status"
+                        :priority="$item->priority"
+                        :context="$item->context"
+                        :owner="$item->owner"
+                        :updated-at="$item->updatedAt"
+                    />
                 @empty
                     <div class="attention-empty">
                         <x-mascot-tip

@@ -60,7 +60,7 @@ class ReleaseHistoryValidator
      * @param  list<array<string, mixed>>  $releases
      * @return list<string>
      */
-    public function validate(array $releases, string $version): array
+    public function validate(array $releases, string $version, ?string $manifestVersion = null): array
     {
         $errors = [];
         $version = trim($version);
@@ -147,10 +147,18 @@ class ReleaseHistoryValidator
             if ($this->containsCredentialShapedText($release)) {
                 $errors[] = "Release {$recordNumber} contains text that resembles a credential.";
             }
+
+            if ($this->containsScaffoldPlaceholder($release)) {
+                $errors[] = "Release {$recordNumber} still contains scaffold TODO: Replace placeholders.";
+            }
         }
 
         if (($releases[0]['version'] ?? null) !== $version) {
             $errors[] = 'VERSION must match the newest release record.';
+        }
+
+        if ($manifestVersion !== null && trim($manifestVersion) !== $version) {
+            $errors[] = 'module-runtime-contract.json application_version must match VERSION.';
         }
 
         return array_values(array_unique($errors));
@@ -166,9 +174,10 @@ class ReleaseHistoryValidator
         string $version,
         array $baseReleases,
         string $baseVersion,
+        ?string $manifestVersion = null,
     ): array {
         $errors = [
-            ...$this->validate($releases, $version),
+            ...$this->validate($releases, $version, $manifestVersion),
             ...$this->validate($baseReleases, $baseVersion),
         ];
 
@@ -283,5 +292,19 @@ class ReleaseHistoryValidator
             '/(?:gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)/',
             $encoded,
         ) === 1;
+    }
+
+    /**
+     * @param  array<string, mixed>  $release
+     */
+    private function containsScaffoldPlaceholder(array $release): bool
+    {
+        $encoded = json_encode($release);
+
+        if (! is_string($encoded)) {
+            return true;
+        }
+
+        return str_contains($encoded, 'TODO: Replace');
     }
 }
