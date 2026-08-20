@@ -106,9 +106,15 @@
                         </a>
                     @endforeach
                     @can('admin.access')
-                        <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('admin.*')]) @if(request()->routeIs('admin.*')) aria-current="page" @endif>
+                        <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('admin.index', 'admin.users.*')]) @if(request()->routeIs('admin.index', 'admin.users.*')) aria-current="page" @endif>
                             <i data-lucide="settings" aria-hidden="true"></i>
                             <span>Admin</span>
+                        </a>
+                    @endcan
+                    @can('superadmin.access')
+                        <a href="{{ route('superadmin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('superadmin.*', 'admin.groups.*', 'admin.roles.*', 'admin.permissions.*', 'admin.modules.*', 'admin.maintenance.*')]) @if(request()->routeIs('superadmin.*', 'admin.groups.*', 'admin.roles.*', 'admin.permissions.*', 'admin.modules.*', 'admin.maintenance.*')) aria-current="page" @endif>
+                            <i data-lucide="shield" aria-hidden="true"></i>
+                            <span>Super Admin</span>
                         </a>
                     @endcan
                 @else

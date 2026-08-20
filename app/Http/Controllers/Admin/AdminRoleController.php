@@ -17,7 +17,7 @@ use InvalidArgumentException;
 
 class AdminRoleController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, AuthorizationProfile $profile): View
     {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -40,16 +40,12 @@ class AdminRoleController extends Controller
                 ->orderBy('name')
                 ->paginate(25)
                 ->withQueryString(),
-            'permissions' => Permission::query()
-                ->where('guard_name', 'web')
-                ->where('is_code_owned', true)
-                ->orderBy('name')
-                ->get(),
+            'permissions' => $this->assignablePermissions($profile),
             'filters' => $filters,
         ]);
     }
 
-    public function show(string $role): View
+    public function show(string $role, AuthorizationProfile $profile): View
     {
         Gate::authorize('admin.roles.view');
         $managedRole = Role::query()
@@ -64,11 +60,7 @@ class AdminRoleController extends Controller
 
         return view('admin.roles.show', [
             'managedRole' => $managedRole,
-            'permissions' => Permission::query()
-                ->where('guard_name', 'web')
-                ->where('is_code_owned', true)
-                ->orderBy('name')
-                ->get(),
+            'permissions' => $this->assignablePermissions($profile),
         ]);
     }
 
@@ -182,8 +174,32 @@ class AdminRoleController extends Controller
             'permissions.*' => [
                 'string',
                 'distinct',
-                Rule::in($profile->permissions()),
+                Rule::in($this->assignablePermissionNames($profile)),
             ],
         ]);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Permission>
+     */
+    private function assignablePermissions(AuthorizationProfile $profile)
+    {
+        return Permission::query()
+            ->where('guard_name', 'web')
+            ->where('is_code_owned', true)
+            ->whereIn('name', $this->assignablePermissionNames($profile))
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function assignablePermissionNames(AuthorizationProfile $profile): array
+    {
+        return array_values(array_filter(
+            $profile->permissions(),
+            fn (string $permission): bool => ! $profile->isSuperAdminOnlyPermission($permission),
+        ));
     }
 }

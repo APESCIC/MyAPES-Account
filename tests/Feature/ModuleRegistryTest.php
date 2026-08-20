@@ -286,7 +286,18 @@ class ModuleRegistryTest extends TestCase
         $this->assertTrue(
             $profile->isSuperAdminOnlyPermission('admin.modules.manage'),
         );
-        $this->assertCount(72, $profile->permissions());
+        $this->assertCount(73, $profile->permissions());
+        $this->assertTrue(
+            $profile->isSuperAdminOnlyPermission('superadmin.access'),
+        );
+        $this->assertNotContains(
+            'admin.modules.view',
+            $matrix[AuthorizationProfile::ROLE_ADMINISTRATOR],
+        );
+        $this->assertContains(
+            'superadmin.access',
+            $matrix[AuthorizationProfile::ROLE_SUPER_ADMIN],
+        );
         $this->assertFalse(
             $profile->isDirectoryRestrictedPermission(
                 'apes-cic.tickets.create',

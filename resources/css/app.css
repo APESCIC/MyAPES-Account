@@ -1174,6 +1174,13 @@ form.inline {
     margin-top: 0.65rem;
 }
 
+.module-registry__manage-title {
+    margin: 0 0 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--brand-text);
+}
+
 .module-registry__manage summary {
     width: fit-content;
     cursor: pointer;
@@ -1184,6 +1191,57 @@ form.inline {
 
 .module-registry__manage summary:hover {
     text-decoration: underline;
+}
+
+.permission-choice-group,
+.permission-catalogue-group,
+.permission-readable-group {
+    margin: 1rem 0 1.25rem;
+}
+
+.permission-choice-list,
+.permission-readable-list {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.permission-choice {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.65rem;
+    align-items: start;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+}
+
+.permission-choice__title,
+.permission-readable-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    align-items: baseline;
+}
+
+.permission-choice__description,
+.permission-readable-list p {
+    margin: 0.2rem 0;
+}
+
+.permission-choice__key {
+    font-size: 0.78rem;
+}
+
+.permission-readable-list > li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.permission-readable-list > li:last-child {
+    border-bottom: 0;
 }
 
 .module-registry__unavailable {
@@ -2274,12 +2332,23 @@ caption {
     margin-bottom: 0.35rem;
 }
 
-#analytics-trend-chart,
-#analytics-workload-chart {
-    display: block;
+/* Chart.js with maintainAspectRatio:false must size against a fixed-height
+   parent. Constraining only the canvas lets Chart.js expand the page forever. */
+.analytics-chart-frame {
+    position: relative;
     width: 100%;
     height: 16rem;
+    max-height: 16rem;
     margin: 0.75rem 0 1rem;
+    overflow: hidden;
+}
+
+.analytics-chart-frame canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

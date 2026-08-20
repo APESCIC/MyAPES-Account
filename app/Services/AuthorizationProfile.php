@@ -20,6 +20,8 @@ class AuthorizationProfile
 
     public const PERMISSION_ADMIN_ACCESS = 'admin.access';
 
+    public const PERMISSION_SUPERADMIN_ACCESS = 'superadmin.access';
+
     private const BASE_PERMISSION_MATRIX = [
         self::ROLE_SERVICE_USER => [],
         self::ROLE_STAFF => [
@@ -30,16 +32,12 @@ class AuthorizationProfile
             self::PERMISSION_ADMIN_ACCESS,
             'admin.users.view',
             'admin.users.manage',
-            'admin.groups.view',
-            'admin.roles.view',
-            'admin.permissions.view',
-            'admin.modules.view',
             'admin.analytics.view',
-            'admin.maintenance.manage',
         ],
         self::ROLE_SUPER_ADMIN => [
             self::PERMISSION_STAFF_ACCESS,
             self::PERMISSION_ADMIN_ACCESS,
+            self::PERMISSION_SUPERADMIN_ACCESS,
             'admin.users.view',
             'admin.users.manage',
             'admin.groups.view',
@@ -62,9 +60,15 @@ class AuthorizationProfile
     ];
 
     private const SUPER_ADMIN_ONLY_PERMISSIONS = [
+        self::PERMISSION_SUPERADMIN_ACCESS,
+        'admin.groups.view',
         'admin.group-mappings.manage',
+        'admin.roles.view',
         'admin.roles.manage',
+        'admin.permissions.view',
+        'admin.modules.view',
         'admin.modules.manage',
+        'admin.maintenance.manage',
     ];
 
     private const LEGACY_TO_PROTECTED = [

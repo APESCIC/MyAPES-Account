@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Modules | MyAPES Account')
+@section('title', 'Super Admin modules | MyAPES Account')
 
 @section('content')
-    @include('admin._navigation')
+    @include('superadmin._navigation')
 
     <header class="page-heading">
         <div>
             <p class="eyebrow">First-party capability registry</p>
-            <h1>Modules</h1>
+            <h1>Super Admin modules</h1>
             <p>Review shipped code, dependencies and guarded installation state across every permanent sub-core.</p>
         </div>
     </header>
@@ -92,8 +92,8 @@
                                 </div>
 
                                 @can('admin.modules.manage')
-                                    <details class="module-registry__manage">
-                                        <summary>Manage</summary>
+                                    <div class="module-registry__manage" data-module-manage>
+                                        <h3 class="module-registry__manage-title">Manage</h3>
                                         <form
                                             method="post"
                                             action="{{ route('admin.modules.transition', [$subCore->key, $module->key]) }}"
@@ -117,7 +117,7 @@
                                                 {{ str($action)->title() }}
                                             </button>
                                         </form>
-                                    </details>
+                                    </div>
                                 @endcan
                             </li>
                         @endforeach

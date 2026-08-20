@@ -42,11 +42,22 @@ class AdminAnalyticsDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.index'))
             ->assertOk()
-            ->assertSee('Admin operations')
+            ->assertSee('Admin overview')
             ->assertSee('data-kpi="open-workload"', false)
+            ->assertDontSee('data-kpi="median-closure"', false)
+            ->assertDontSee('Created versus closed')
+            ->assertDontSee('id="analytics-trend-chart"', false)
+            ->assertDontSee('cdn.jsdelivr.net');
+
+        $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
+        $this->actingAs($superAdmin)
+            ->get(route('superadmin.index'))
+            ->assertOk()
+            ->assertSee('Super Admin overview')
             ->assertSee('data-kpi="median-closure"', false)
-            ->assertSee('not available')
             ->assertSee('Created versus closed')
+            ->assertSee('data-chart-frame="trend"', false)
+            ->assertSee('data-chart-frame="workload"', false)
             ->assertSee('id="analytics-trend-chart"', false)
             ->assertSee('id="analytics-workload-chart"', false)
             ->assertSee('data-table="created-versus-closed"', false)
@@ -116,8 +127,7 @@ class AdminAnalyticsDashboardTest extends TestCase
         $instances = collect($dashboard['workload']['by_instance'])->keyBy('key');
 
         $response->assertOk()
-            ->assertSee('data-kpi="open-workload"', false)
-            ->assertSee('120.0 minutes');
+            ->assertSee('data-kpi="open-workload"', false);
         $this->assertSame(1, $dashboard['workload']['open']);
         $this->assertSame(1, $dashboard['workload']['high_or_urgent']);
         $this->assertSame(1, $dashboard['workload']['unassigned']);
@@ -128,6 +138,13 @@ class AdminAnalyticsDashboardTest extends TestCase
         $this->assertGreaterThan(0, $dashboard['accounts']['by_identity_type']['local']);
         $this->assertGreaterThan(0, $dashboard['accounts']['by_access_class']['administrator']);
         $this->assertGreaterThan(0, $dashboard['modules']['enabled']);
+
+        $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
+        $this->actingAs($superAdmin)
+            ->get(route('superadmin.index', ['range' => 7]))
+            ->assertOk()
+            ->assertSee('120.0 minutes')
+            ->assertSee('data-kpi="median-closure"', false);
     }
 
     public function test_open_workload_is_split_across_enabled_sub_cores(): void
@@ -157,7 +174,7 @@ class AdminAnalyticsDashboardTest extends TestCase
 
     public function test_disabled_modules_are_visible_on_the_dashboard_without_changing_healthz(): void
     {
-        $admin = User::factory()->accessLevel(User::ROLE_ADMIN)->create();
+        $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
         ModuleInstallation::query()
             ->where('sub_core_key', 'apes-cic')
             ->where('module_key', 'tickets')
@@ -166,7 +183,7 @@ class AdminAnalyticsDashboardTest extends TestCase
                 'disabled_at' => now(),
             ]);
 
-        $response = $this->actingAs($admin)->get(route('admin.index'));
+        $response = $this->actingAs($superAdmin)->get(route('superadmin.index'));
         $dashboard = $response->viewData('dashboard');
         $kinds = collect($dashboard['module_alerts'])->pluck('kind')->all();
 
@@ -249,11 +266,11 @@ class AdminAnalyticsDashboardTest extends TestCase
 
     public function test_privileged_events_show_actor_action_and_time_only(): void
     {
-        $admin = User::factory()->accessLevel(User::ROLE_ADMIN)->create([
+        $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create([
             'name' => 'Dashboard Operator',
         ]);
         AuditLog::query()->create([
-            'user_id' => $admin->id,
+            'user_id' => $superAdmin->id,
             'event' => 'authorization.role_updated',
             'auditable_type' => Role::class,
             'auditable_id' => 1,
@@ -262,8 +279,8 @@ class AdminAnalyticsDashboardTest extends TestCase
             'context' => ['permission' => 'admin.roles.manage'],
         ]);
 
-        $this->actingAs($admin)
-            ->get(route('admin.index'))
+        $this->actingAs($superAdmin)
+            ->get(route('superadmin.index'))
             ->assertOk()
             ->assertSee('authorization.role_updated')
             ->assertSee('Dashboard Operator')

@@ -197,7 +197,7 @@ class AdminRoleAndUserManagementTest extends TestCase
                 'name' => 'case-reviewer',
                 'permissions' => [
                     'admin.users.view',
-                    'admin.groups.view',
+                    'admin.users.manage',
                 ],
             ])
             ->assertRedirect("/admin/roles/{$role->id}");
@@ -210,7 +210,7 @@ class AdminRoleAndUserManagementTest extends TestCase
         );
         $this->assertFalse(Cache::has(config('permission.cache.key')));
         $this->assertSame(
-            ['admin.groups.view', 'admin.users.view'],
+            ['admin.users.manage', 'admin.users.view'],
             $role->fresh()->permissions()->orderBy('name')->pluck('name')->all(),
         );
 
