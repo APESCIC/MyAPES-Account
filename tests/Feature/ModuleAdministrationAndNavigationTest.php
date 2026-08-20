@@ -90,6 +90,11 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $response = $this->actingAs($administrator)->get('/admin/modules');
 
         $response->assertOk();
+        $response->assertSee('module-registry', false);
+        $response->assertSee('module-registry__subcore', false);
+        $response->assertSee('module-registry__row--shipped', false);
+        $response->assertSee('module-registry__chip', false);
+        $response->assertSeeText('Not compatible with this sub-core');
         $this->assertSame(
             12,
             substr_count($response->getContent(), 'data-module-cell='),
