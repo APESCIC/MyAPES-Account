@@ -262,6 +262,59 @@ class AdminAccessAndViewsTest extends TestCase
             ->assertSessionHasErrors('mapped');
     }
 
+    public function test_super_admin_can_toggle_directory_group_app_access_from_groups_ui(): void
+    {
+        $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
+        $group = DirectoryGroup::query()->create([
+            'name' => 'ops.contractors',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => false,
+            'member_count' => 2,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get('/admin/groups?app_enabled=0')
+            ->assertOk()
+            ->assertSee('ops.contractors')
+            ->assertSee('Disabled')
+            ->assertSee('Enable for this app');
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.groups.enable', $group))
+            ->assertRedirect(route('admin.groups.index'));
+        $this->assertTrue($group->fresh()->app_enabled);
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.groups.disable', $group))
+            ->assertRedirect(route('admin.groups.index'));
+        $this->assertFalse($group->fresh()->app_enabled);
+
+        $required = DirectoryGroup::query()
+            ->where('name', 'myapes.staff')
+            ->firstOrFail();
+        $this->actingAs($superAdmin)
+            ->from(route('admin.groups.index'))
+            ->post(route('admin.groups.disable', $required))
+            ->assertRedirect(route('admin.groups.index'))
+            ->assertSessionHasErrors('authorization');
+        $this->assertTrue($required->fresh()->app_enabled);
+    }
+
+    public function test_administrator_cannot_toggle_directory_group_app_access(): void
+    {
+        $administrator = $this->userWithAccess(User::ROLE_ADMIN);
+        $group = DirectoryGroup::query()->create([
+            'name' => 'ops.contractors',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => false,
+        ]);
+
+        $this->actingAs($administrator)
+            ->post(route('admin.groups.enable', $group))
+            ->assertForbidden();
+        $this->assertFalse($group->fresh()->app_enabled);
+    }
+
     public function test_super_admin_can_read_custom_role_permissions_and_administrators_cannot(): void
     {
         $administrator = $this->userWithAccess(User::ROLE_ADMIN);

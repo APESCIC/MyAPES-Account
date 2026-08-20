@@ -33,6 +33,7 @@ class AdminGroupController extends Controller
                 ]),
             ],
             'mapped' => ['nullable', Rule::in(['0', '1'])],
+            'app_enabled' => ['nullable', Rule::in(['0', '1'])],
         ]);
         $query = DirectoryGroup::query()->with([
             'roles' => fn ($query) => $query->orderBy('name'),
@@ -54,6 +55,12 @@ class AdminGroupController extends Controller
             $query->whereHas('roles');
         } elseif (($filters['mapped'] ?? null) === '0') {
             $query->whereDoesntHave('roles');
+        }
+
+        if (($filters['app_enabled'] ?? null) === '1') {
+            $query->where('app_enabled', true);
+        } elseif (($filters['app_enabled'] ?? null) === '0') {
+            $query->where('app_enabled', false);
         }
 
         return view('admin.groups.index', [
@@ -100,6 +107,22 @@ class AdminGroupController extends Controller
         return redirect()
             ->route('admin.groups.index')
             ->with('status', 'Directory synchronization requested.');
+    }
+
+    public function enable(
+        Request $request,
+        string $directoryGroup,
+        DirectoryGroupMappingService $mappings,
+    ): RedirectResponse {
+        return $this->setAppEnabled($request, $directoryGroup, $mappings, true);
+    }
+
+    public function disable(
+        Request $request,
+        string $directoryGroup,
+        DirectoryGroupMappingService $mappings,
+    ): RedirectResponse {
+        return $this->setAppEnabled($request, $directoryGroup, $mappings, false);
     }
 
     public function storeMapping(
@@ -154,5 +177,38 @@ class AdminGroupController extends Controller
         return redirect()
             ->route('admin.groups.index')
             ->with('status', 'Directory mapping removed.');
+    }
+
+    private function setAppEnabled(
+        Request $request,
+        string $directoryGroup,
+        DirectoryGroupMappingService $mappings,
+        bool $enabled,
+    ): RedirectResponse {
+        Gate::authorize('admin.group-mappings.manage');
+        $managedGroup = DirectoryGroup::query()->findOrFail(
+            $directoryGroup,
+        );
+
+        try {
+            $mappings->setAppEnabled(
+                $request->user(),
+                $managedGroup,
+                $enabled,
+            );
+        } catch (DomainException|InvalidArgumentException|LogicException $exception) {
+            return back()->withErrors([
+                'authorization' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.groups.index')
+            ->with(
+                'status',
+                $enabled
+                    ? 'Directory group enabled for this app.'
+                    : 'Directory group disabled for this app.',
+            );
     }
 }

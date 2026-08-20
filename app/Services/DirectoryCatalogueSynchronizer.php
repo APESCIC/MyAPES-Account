@@ -8,6 +8,7 @@ use App\Models\AuthorizationState;
 use App\Models\DirectoryGroup;
 use App\Models\DirectorySyncRun;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
@@ -99,17 +100,31 @@ class DirectoryCatalogueSynchronizer
                         $stored = new DirectoryGroup;
                         $stored->name = $group['name'];
                         $stored->first_seen_at = $synchronizedAt;
+                        if (Schema::hasColumn('directory_groups', 'app_enabled')) {
+                            $stored->app_enabled = DirectoryGroup::defaultAppEnabledForName(
+                                $group['name'],
+                            );
+                        }
                     } elseif ($stored->first_seen_at === null) {
                         $stored->first_seen_at = $synchronizedAt;
                     }
 
-                    $stored->forceFill([
+                    $payload = [
                         'external_id' => $group['external_id'],
                         'member_count' => $group['member_count'],
                         'status' => DirectoryGroup::STATUS_PRESENT,
                         'last_seen_at' => $synchronizedAt,
                         'last_synced_at' => $synchronizedAt,
-                    ])->save();
+                    ];
+
+                    if (
+                        Schema::hasColumn('directory_groups', 'app_enabled')
+                        && DirectoryGroup::isAlwaysEnabledName($group['name'])
+                    ) {
+                        $payload['app_enabled'] = true;
+                    }
+
+                    $stored->forceFill($payload)->save();
                 }
 
                 $missing = DirectoryGroup::query();

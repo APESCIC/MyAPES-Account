@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Schema;
 use LogicException;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -371,6 +372,13 @@ class User extends Authenticatable implements MustVerifyEmail
                                                             'eligible_groups.status',
                                                             DirectoryGroup::STATUS_PRESENT,
                                                         );
+
+                                                    if (Schema::hasColumn('directory_groups', 'app_enabled')) {
+                                                        $mapping->where(
+                                                            'eligible_groups.app_enabled',
+                                                            true,
+                                                        );
+                                                    }
                                                 },
                                             );
                                     },

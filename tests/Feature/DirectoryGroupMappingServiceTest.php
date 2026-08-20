@@ -550,4 +550,46 @@ class DirectoryGroupMappingServiceTest extends TestCase
                 ->all(),
         ];
     }
+
+    public function test_super_admin_can_enable_and_disable_non_required_groups(): void
+    {
+        $actor = User::factory()
+            ->accessLevel(User::ROLE_SUPERADMIN)
+            ->create();
+        $this->actingAs($actor);
+        $group = DirectoryGroup::query()->create([
+            'name' => 'ops.volunteers',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => true,
+        ]);
+        $service = app(DirectoryGroupMappingService::class);
+
+        $disabled = $service->setAppEnabled($actor, $group, false);
+        $this->assertFalse($disabled->app_enabled);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'authorization.directory_group_app_access_changed',
+        ]);
+
+        $enabled = $service->setAppEnabled($actor, $group->fresh(), true);
+        $this->assertTrue($enabled->app_enabled);
+    }
+
+    public function test_required_cloudron_groups_cannot_be_disabled(): void
+    {
+        $actor = User::factory()
+            ->accessLevel(User::ROLE_SUPERADMIN)
+            ->create();
+        $this->actingAs($actor);
+        $group = DirectoryGroup::query()
+            ->where('name', 'myapes.staff')
+            ->firstOrFail();
+
+        $this->expectException(AuthorizationMutationDenied::class);
+        $this->expectExceptionMessage(
+            'Required Cloudron MyAPES groups cannot be disabled for this app.',
+        );
+
+        app(DirectoryGroupMappingService::class)
+            ->setAppEnabled($actor, $group, false);
+    }
 }

@@ -9,6 +9,7 @@ use App\Models\RoleSource;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class DirectoryRoleSynchronizer
@@ -127,7 +128,7 @@ class DirectoryRoleSynchronizer
             return collect();
         }
 
-        return DB::table('directory_group_role_mappings')
+        $query = DB::table('directory_group_role_mappings')
             ->join(
                 'directory_groups',
                 'directory_groups.id',
@@ -141,13 +142,18 @@ class DirectoryRoleSynchronizer
                 'directory_group_role_mappings.role_id',
             )
             ->whereIn('directory_groups.name', $normalized)
-            ->where('roles.guard_name', 'web')
-            ->get([
-                'directory_groups.id as group_id',
-                'directory_groups.name as group_name',
-                'roles.id as role_id',
-                'roles.name as role_name',
-            ]);
+            ->where('roles.guard_name', 'web');
+
+        if (Schema::hasColumn('directory_groups', 'app_enabled')) {
+            $query->where('directory_groups.app_enabled', true);
+        }
+
+        return $query->get([
+            'directory_groups.id as group_id',
+            'directory_groups.name as group_name',
+            'roles.id as role_id',
+            'roles.name as role_name',
+        ]);
     }
 
     /**
