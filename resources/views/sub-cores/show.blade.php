@@ -51,14 +51,27 @@
             <h2 id="recent-activity-title">Recent activity</h2>
             <div class="attention-list">
                 @foreach($recentActivity as $item)
-                    <a href="{{ route($item->routeName, $item->recordId) }}" class="attention-item">
-                        <span class="attention-item__body">
-                            <span class="attention-item__kicker">{{ $item->label }}</span>
-                            <strong>{{ $item->title }}</strong>
-                            <span class="attention-item__detail">{{ str($item->status)->replace('_', ' ')->title() }}</span>
-                        </span>
-                        <time datetime="{{ $item->updatedAt->toAtomString() }}">{{ $item->updatedAt->diffForHumans() }}</time>
-                    </a>
+                    @php
+                        [$activityType, $activityIcon] = match ($item->moduleKey) {
+                            'tickets' => ['ticket', 'ticket'],
+                            'cases' => $subCore->key === 'apes-cic'
+                                ? ['ticket', 'briefcase-business']
+                                : ['shelter', 'house'],
+                            'consultations' => ['consultation', 'messages-square'],
+                            'pet-profiles' => ['pet', 'heart'],
+                            default => ['ticket', 'circle'],
+                        };
+                    @endphp
+                    <x-attention-item-link
+                        :href="route($item->routeName, $item->recordId)"
+                        :type="$activityType"
+                        :icon="$activityIcon"
+                        :kicker="$item->label"
+                        :title="$item->title"
+                        :status="$item->status"
+                        :priority="$item->priority"
+                        :updated-at="$item->updatedAt"
+                    />
                 @endforeach
             </div>
         </section>
