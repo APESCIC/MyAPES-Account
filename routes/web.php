@@ -22,6 +22,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
 use App\Http\Controllers\SubCoreController;
+use App\Http\Controllers\SupportAttachmentController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -103,6 +104,8 @@ Route::middleware([
     'account.ready',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/support/attachments/{attachment}', [SupportAttachmentController::class, 'download'])
+        ->name('support.attachments.download');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -337,6 +340,12 @@ Route::middleware([
             Route::get('/modules', [AdminModuleController::class, 'index'])
                 ->middleware('can:admin.modules.view')
                 ->name('modules.index');
+            Route::get('/modules/{subCoreKey}/{moduleKey}/settings', [AdminModuleController::class, 'editSettings'])
+                ->middleware('can:admin.modules.view')
+                ->name('modules.settings.edit');
+            Route::put('/modules/{subCoreKey}/{moduleKey}/settings', [AdminModuleController::class, 'updateSettings'])
+                ->middleware('can:admin.modules.manage')
+                ->name('modules.settings.update');
             Route::post('/modules/{subCoreKey}/{moduleKey}/transition', [AdminModuleController::class, 'transition'])
                 ->middleware('can:admin.modules.manage')
                 ->name('modules.transition');

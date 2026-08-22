@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\RoleSource;
 use App\Models\ShelterCase;
 use App\Models\StaffProfile;
+use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\UserProfile;
@@ -20,6 +21,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 use LogicException;
 
 class LocalQaSeeder extends Seeder
@@ -101,7 +103,8 @@ class LocalQaSeeder extends Seeder
             ],
             [
                 'assigned_to' => $staffUser->id,
-                'service_area' => 'it',
+                'service_area' => 'it_systems',
+                'sub_category' => 'email_cloudron',
                 'priority' => 'high',
                 'status' => 'in_progress',
                 'description' => 'Service user cannot access a shared mailbox from home.',
@@ -132,7 +135,8 @@ class LocalQaSeeder extends Seeder
             ],
             [
                 'assigned_to' => $staffUser->id,
-                'service_area' => 'legal',
+                'service_area' => 'governance_legal',
+                'sub_category' => 'policy_query',
                 'priority' => 'medium',
                 'status' => 'open',
                 'description' => 'Supporting documents are ready for a final service review.',
@@ -164,6 +168,7 @@ class LocalQaSeeder extends Seeder
             [
                 'assigned_to' => $adminUser->id,
                 'service_area' => 'human_resources',
+                'sub_category' => 'staff_query',
                 'priority' => 'medium',
                 'status' => 'resolved',
                 'description' => 'Clarification requested on volunteer rota policy updates.',
@@ -185,6 +190,100 @@ class LocalQaSeeder extends Seeder
             $seededAt->subDays(3)->subMinutes(10),
         );
         $this->setTimestamps($closedTicket, $seededAt->subDays(3));
+
+        $websiteIssueTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: Homepage layout broken on mobile',
+            ],
+            [
+                'assigned_to' => $staffUser->id,
+                'service_area' => 'web_development',
+                'sub_category' => 'website_issue',
+                'affected_website_key' => 'apes_org_uk',
+                'priority' => 'high',
+                'status' => 'open',
+                'description' => 'The APES main website hero and route finder overlap on narrow screens.',
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertTicketMessage(
+            $websiteIssueTicket,
+            $serviceUser,
+            'Attached screenshots from an iPhone and Android browser.',
+            false,
+            $seededAt->addMinutes(50),
+        );
+        $this->upsertTicketMessage(
+            $websiteIssueTicket,
+            $staffUser,
+            'Reproduced on mobile viewport; queued for digital team review.',
+            true,
+            $seededAt->addMinutes(55),
+        );
+        $this->setTimestamps($websiteIssueTicket, $seededAt->addHour());
+        $this->upsertDemoAttachment(
+            $websiteIssueTicket,
+            $serviceUser,
+            'screenshot',
+            'homepage-mobile-overlap.png',
+            $seededAt->addMinutes(50),
+        );
+        $this->upsertDemoAttachment(
+            $websiteIssueTicket,
+            $serviceUser,
+            'screenshot',
+            'homepage-route-finder.png',
+            $seededAt->addMinutes(51),
+        );
+
+        $loginIssueTicket = SupportTicket::query()->updateOrCreate(
+            [
+                'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'subject' => 'QA Seed: MyAPES login redirect loop',
+            ],
+            [
+                'assigned_to' => $adminUser->id,
+                'service_area' => 'web_development',
+                'sub_category' => 'login_issue',
+                'affected_website_key' => 'myapes_account',
+                'priority' => 'urgent',
+                'status' => 'in_progress',
+                'description' => 'Signing in returns to the login screen instead of the dashboard.',
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertTicketMessage(
+            $loginIssueTicket,
+            $serviceUser,
+            'Screencast shows the redirect loop after password entry.',
+            false,
+            $seededAt->addMinutes(70),
+        );
+        $this->upsertTicketMessage(
+            $loginIssueTicket,
+            $adminUser,
+            'Checking session cookie and local auth path.',
+            true,
+            $seededAt->addMinutes(80),
+        );
+        $this->setTimestamps($loginIssueTicket, $seededAt->addMinutes(85));
+        $this->upsertDemoAttachment(
+            $loginIssueTicket,
+            $serviceUser,
+            'screenshot',
+            'myapes-login-loop.png',
+            $seededAt->addMinutes(70),
+        );
+        $this->upsertDemoAttachment(
+            $loginIssueTicket,
+            $serviceUser,
+            'screencast',
+            'myapes-login-loop.webm',
+            $seededAt->addMinutes(71),
+        );
 
         $shelterOpenTicket = SupportTicket::query()->updateOrCreate(
             [
@@ -382,7 +481,8 @@ class LocalQaSeeder extends Seeder
                 'pet_profile_id' => null,
                 'assigned_to' => $staffUser->id,
                 'case_type' => null,
-                'category' => 'membership',
+                'category' => 'membership_casework',
+                'sub_category' => 'member_dispute',
                 'priority' => 'high',
                 'status' => 'in_progress',
                 'details' => 'Additional information reopened this membership support review.',
@@ -417,7 +517,8 @@ class LocalQaSeeder extends Seeder
                 'pet_profile_id' => null,
                 'assigned_to' => $staffUser->id,
                 'case_type' => null,
-                'category' => 'welfare',
+                'category' => 'welfare_concern',
+                'sub_category' => 'animal_welfare',
                 'priority' => 'urgent',
                 'status' => 'waiting_on_user',
                 'details' => 'Waiting for the service user to confirm the requested welfare information.',
@@ -438,7 +539,8 @@ class LocalQaSeeder extends Seeder
                 'pet_profile_id' => null,
                 'assigned_to' => $adminUser->id,
                 'case_type' => null,
-                'category' => 'complaint',
+                'category' => 'formal_complaint',
+                'sub_category' => 'service_complaint',
                 'priority' => 'low',
                 'status' => 'closed',
                 'details' => 'The operations complaint was reviewed and the outcome was shared.',
@@ -455,6 +557,80 @@ class LocalQaSeeder extends Seeder
             $seededAt->subDays(2),
         );
         $this->setTimestamps($closedApesCase, $seededAt->subDays(2));
+
+        $sarCase = ShelterCase::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'title' => 'QA Seed: Subject access request for MyAPES account',
+            ],
+            [
+                'pet_profile_id' => null,
+                'assigned_to' => $adminUser->id,
+                'case_type' => null,
+                'category' => 'data_access_request',
+                'sub_category' => 'copy_of_data',
+                'affected_website_key' => 'myapes_account',
+                'priority' => 'high',
+                'status' => 'in_progress',
+                'details' => 'Service user requests a copy of personal data held in MyAPES Account.',
+                'opened_at' => $seededAt->subDays(2),
+                'resolved_at' => null,
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertCaseUpdate(
+            $sarCase,
+            $serviceUser,
+            'Please include profile, ticket and case history associated with my account.',
+            CaseUpdate::VISIBILITY_PUBLIC,
+            $seededAt->subDay()->addMinutes(10),
+        );
+        $this->upsertCaseUpdate(
+            $sarCase,
+            $adminUser,
+            'Identity verified; compiling export pack.',
+            CaseUpdate::VISIBILITY_INTERNAL,
+            $seededAt->subDay()->addMinutes(25),
+        );
+        $this->setTimestamps($sarCase, $seededAt->subDay()->addMinutes(30));
+        $this->upsertDemoAttachment(
+            $sarCase,
+            $serviceUser,
+            'screenshot',
+            'sar-identity-evidence.png',
+            $seededAt->subDay()->addMinutes(10),
+        );
+
+        $privacyCase = ShelterCase::query()->updateOrCreate(
+            [
+                'sub_core_key' => ShelterCase::SUB_CORE_APES_CIC,
+                'user_id' => $serviceUser->id,
+                'title' => 'QA Seed: Privacy rectification of contact details',
+            ],
+            [
+                'pet_profile_id' => null,
+                'assigned_to' => $staffUser->id,
+                'case_type' => null,
+                'category' => 'privacy_request',
+                'sub_category' => 'rectification',
+                'affected_website_key' => null,
+                'priority' => 'medium',
+                'status' => 'open',
+                'details' => 'Please correct the stored mobile number and postal town on the member profile.',
+                'opened_at' => $seededAt->subHours(6),
+                'resolved_at' => null,
+                'closed_at' => null,
+            ],
+        );
+        $this->upsertCaseUpdate(
+            $privacyCase,
+            $serviceUser,
+            'Current number should be +44 7700 900101 and town should be St Helens.',
+            CaseUpdate::VISIBILITY_PUBLIC,
+            $seededAt->subHours(5),
+        );
+        $this->setTimestamps($privacyCase, $seededAt->subHours(4));
 
         $shelterPet = PetProfile::query()->updateOrCreate(
             [
@@ -742,6 +918,64 @@ class LocalQaSeeder extends Seeder
         );
 
         $this->setTimestamps($fixture, $updatedAt);
+    }
+
+    private function upsertDemoAttachment(
+        Model $attachable,
+        User $uploader,
+        string $kind,
+        string $originalName,
+        CarbonImmutable $updatedAt,
+    ): void {
+        $directory = sprintf(
+            'support-attachments/%s/%s/%s',
+            method_exists($attachable, 'getAttribute')
+                ? (string) ($attachable->getAttribute('sub_core_key') ?? 'apes-cic')
+                : 'apes-cic',
+            $updatedAt->format('Y'),
+            $attachable->getKey(),
+        );
+        $path = $directory.'/'.$originalName;
+
+        if ($kind === 'screencast') {
+            Storage::disk('public')->put($path, $this->minimalWebmBytes());
+            $mime = 'video/webm';
+        } else {
+            Storage::disk('public')->put($path, $this->minimalPngBytes());
+            $mime = 'image/png';
+        }
+
+        $attachment = SupportAttachment::query()->updateOrCreate(
+            [
+                'attachable_type' => $attachable->getMorphClass(),
+                'attachable_id' => $attachable->getKey(),
+                'original_name' => $originalName,
+                'kind' => $kind,
+            ],
+            [
+                'user_id' => $uploader->id,
+                'disk' => 'public',
+                'path' => $path,
+                'mime_type' => $mime,
+                'size_bytes' => Storage::disk('public')->size($path),
+            ],
+        );
+
+        $this->setTimestamps($attachment, $updatedAt);
+    }
+
+    private function minimalPngBytes(): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            true,
+        ) ?: '';
+    }
+
+    private function minimalWebmBytes(): string
+    {
+        // Tiny placeholder bytes labelled as WebM for local QA download checks only.
+        return "\x1a\x45\xdf\xa3QA Seed screencast placeholder";
     }
 
     private function setTimestamps(Model $model, CarbonImmutable $updatedAt): void
