@@ -8,6 +8,8 @@ use Illuminate\Validation\ValidationException;
 
 class SecureUploadService
 {
+    public const SCREENCAST_MAX_KB = 51200;
+
     /**
      * @param  array<int, string>  $allowedMimes
      */
@@ -27,6 +29,44 @@ class SecureUploadService
         }
 
         return $file->store($directory, $disk);
+    }
+
+    /**
+     * @param  array<int, string>  $allowedMimes
+     */
+    public function storeScreencast(
+        UploadedFile $file,
+        string $directory,
+        string $fieldName = 'screencast',
+        string $disk = 'public',
+        array $allowedMimes = ['video/mp4', 'video/webm'],
+        int $maxKilobytes = self::SCREENCAST_MAX_KB,
+    ): string {
+        $mime = $file->getMimeType();
+
+        if (! is_string($mime) || ! in_array($mime, $allowedMimes, true)) {
+            throw ValidationException::withMessages([
+                $fieldName => 'Only MP4 and WebM screencasts are allowed.',
+            ]);
+        }
+
+        if ($file->getSize() > $maxKilobytes * 1024) {
+            throw ValidationException::withMessages([
+                $fieldName => 'Screencasts must be '.$maxKilobytes.' KB or smaller.',
+            ]);
+        }
+
+        return $file->store($directory, $disk);
+    }
+
+    public function supportAttachmentDirectory(string $subCoreKey, int|string $attachableId): string
+    {
+        return sprintf(
+            'support-attachments/%s/%s/%s',
+            $subCoreKey,
+            now()->format('Y'),
+            $attachableId,
+        );
     }
 
     public function deleteIfPresent(?string $path, string $disk = 'public'): void

@@ -20,10 +20,19 @@ class ApesCicModuleFoundationTest extends TestCase
         $this->assertTrue(Schema::hasColumns('shelter_cases', [
             'sub_core_key',
             'category',
+            'sub_category',
+            'affected_website_key',
             'priority',
             'opened_at',
             'resolved_at',
         ]));
+        $this->assertTrue(Schema::hasColumns('support_tickets', [
+            'sub_core_key',
+            'sub_category',
+            'affected_website_key',
+        ]));
+        $this->assertTrue(Schema::hasTable('module_settings'));
+        $this->assertTrue(Schema::hasTable('support_attachments'));
         $this->assertTrue(Schema::hasColumns('case_updates', [
             'id',
             'shelter_case_id',

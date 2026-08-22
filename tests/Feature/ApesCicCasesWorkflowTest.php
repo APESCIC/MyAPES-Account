@@ -42,7 +42,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $otherCase = $this->caseFor($otherOwner, ['title' => 'Private membership case']);
 
         $response = $this->actingAs($owner)->post(route('apes-cic.cases.store'), [
-            'category' => 'complaint',
+            'category' => 'formal_complaint',
+                'sub_category' => 'service_complaint',
             'priority' => 'urgent',
             'title' => 'Service complaint',
             'details' => 'Please investigate this service experience.',
@@ -111,7 +112,8 @@ class ApesCicCasesWorkflowTest extends TestCase
             ->create();
         $ticket = SupportTicket::create([
             'user_id' => $staff->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
             'subject' => 'APES presentation fixture',
             'priority' => 'medium',
             'status' => 'open',
@@ -123,7 +125,7 @@ class ApesCicCasesWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('service-label apes-cic', false)
             ->assertSee('Organisational support tickets')
-            ->assertSee('Service support for legal, human resources, IT, web development and related needs.');
+            ->assertSee('General organisational support for web, IT, HR, finance, operations and related needs.');
         $this->get(route('apes-cic.tickets.show', $ticket))
             ->assertSee('for="visibility"', false)
             ->assertSee('Internal staff only')
@@ -140,7 +142,8 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->actingAs($owner)
             ->post(route('apes-cic.tickets.store'), [
-                'service_area' => 'operations',
+                'service_area' => 'operations_facilities',
+                'sub_category' => 'premises',
                 'subject' => 'Explicit APES creation status',
                 'priority' => 'high',
                 'description' => 'The synchronous payload must report an open Ticket.',
@@ -175,7 +178,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $closedAt = Carbon::parse('2026-08-01 09:00:00', 'UTC');
         $ticket = SupportTicket::query()->create([
             'user_id' => $owner->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+                'sub_category' => 'premises',
             'subject' => 'Terminal ticket',
             'priority' => 'medium',
             'status' => 'resolved',
@@ -203,7 +207,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $closedAt = Carbon::parse('2026-08-01 09:00:00', 'UTC');
         $ticket = SupportTicket::query()->create([
             'user_id' => $owner->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+                'sub_category' => 'premises',
             'subject' => 'Terminal relabel ticket',
             'priority' => 'medium',
             'status' => 'resolved',
@@ -318,7 +323,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $this->actingAs($staff)->patchJson(
             route('apes-cic.cases.update', $case),
             [
-                'category' => 'general',
+                'category' => 'general_escalated',
+                'sub_category' => 'escalated_from_ticket',
                 'priority' => 'medium',
                 'status' => 'open',
                 'assigned_to' => null,
@@ -356,7 +362,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
             'subject' => 'Assignment visibility boundary',
             'priority' => 'medium',
             'status' => 'open',
@@ -441,7 +448,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $case = $this->caseFor($owner);
 
         $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
-            'category' => 'welfare',
+            'category' => 'welfare_concern',
+                'sub_category' => 'animal_welfare',
             'priority' => 'high',
             'status' => 'resolved',
         ])->assertRedirect(route('apes-cic.cases.show', $case));
@@ -451,7 +459,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $resolvedAt = $case->fresh()->resolved_at;
 
         $this->patch(route('apes-cic.cases.update', $case), [
-            'category' => 'welfare',
+            'category' => 'welfare_concern',
+                'sub_category' => 'animal_welfare',
             'priority' => 'high',
             'status' => 'closed',
         ])->assertRedirect(route('apes-cic.cases.show', $case));
@@ -464,7 +473,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         )->assertSessionHasErrors('body');
 
         $this->patch(route('apes-cic.cases.update', $case), [
-            'category' => 'welfare',
+            'category' => 'welfare_concern',
+                'sub_category' => 'animal_welfare',
             'priority' => 'medium',
             'status' => 'in_progress',
         ])->assertRedirect(route('apes-cic.cases.show', $case));
@@ -493,7 +503,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-08-10 12:00:00', 'UTC'));
         try {
             $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
-                'category' => 'general',
+                'category' => 'general_escalated',
+                'sub_category' => 'escalated_from_ticket',
                 'priority' => 'medium',
                 'status' => 'resolved',
             ])->assertRedirect(route('apes-cic.cases.show', $case));
@@ -552,13 +563,15 @@ class ApesCicCasesWorkflowTest extends TestCase
             $this->actingAs($staff)->patch(
                 route('apes-cic.cases.update', $resolvedCase),
                 [
-                    'category' => 'membership',
+                    'category' => 'membership_casework',
+                    'sub_category' => 'member_dispute',
                     'priority' => 'high',
                     'status' => 'resolved',
                 ],
             )->assertRedirect(route('apes-cic.cases.show', $resolvedCase));
             $this->patch(route('apes-cic.cases.update', $closedCase), [
-                'category' => 'complaint',
+                'category' => 'formal_complaint',
+                'sub_category' => 'service_complaint',
                 'priority' => 'urgent',
                 'status' => 'closed',
             ])->assertRedirect(route('apes-cic.cases.show', $closedCase));
@@ -567,13 +580,13 @@ class ApesCicCasesWorkflowTest extends TestCase
         }
 
         $resolvedCase->refresh();
-        $this->assertSame('membership', $resolvedCase->category);
+        $this->assertSame('membership_casework', $resolvedCase->category);
         $this->assertSame('high', $resolvedCase->priority);
         $this->assertTrue($resolvedCase->resolved_at->equalTo($resolvedAt));
         $this->assertNull($resolvedCase->closed_at);
 
         $closedCase->refresh();
-        $this->assertSame('complaint', $closedCase->category);
+        $this->assertSame('formal_complaint', $closedCase->category);
         $this->assertSame('urgent', $closedCase->priority);
         $this->assertTrue($closedCase->resolved_at->equalTo($resolvedAt));
         $this->assertTrue($closedCase->closed_at->equalTo($closedAt));
@@ -588,7 +601,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $ticket = SupportTicket::create([
             'sub_core_key' => 'apes-cic',
             'user_id' => $owner->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
             'subject' => 'Shared reply visibility',
             'priority' => 'medium',
             'status' => 'open',
@@ -619,7 +633,8 @@ class ApesCicCasesWorkflowTest extends TestCase
             ->create();
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
             'subject' => 'Activity timestamp ticket',
             'priority' => 'medium',
             'status' => 'open',
@@ -681,7 +696,8 @@ class ApesCicCasesWorkflowTest extends TestCase
             $ticket = SupportTicket::create([
                 'user_id' => $owner->id,
                 'assigned_to' => null,
-                'service_area' => 'operations',
+                'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
                 'subject' => "Internal note with {$label} change",
                 'priority' => 'medium',
                 'status' => 'open',
@@ -731,7 +747,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $closedAt = Carbon::parse('2026-08-01 09:00:00');
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
             'subject' => 'Preserve terminal ticket timestamp',
             'priority' => 'medium',
             'status' => 'resolved',
@@ -771,7 +788,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
             'assigned_to' => null,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
             'subject' => 'Reject unchanged ticket form',
             'priority' => 'medium',
             'status' => 'open',
@@ -815,7 +833,8 @@ class ApesCicCasesWorkflowTest extends TestCase
             ->create(['suspended_at' => now()]);
         $ticket = SupportTicket::create([
             'user_id' => $owner->id,
-            'service_area' => 'operations',
+            'service_area' => 'operations_facilities',
+            'sub_category' => 'premises',
             'subject' => 'Notification privacy ticket',
             'priority' => 'medium',
             'status' => 'open',
@@ -946,16 +965,31 @@ class ApesCicCasesWorkflowTest extends TestCase
             ->protectedRole(AuthorizationProfile::ROLE_STAFF)
             ->create();
 
-        foreach (['general', 'membership', 'operations', 'complaint', 'welfare'] as $category) {
-            $this->actingAs($owner)->post(route('apes-cic.cases.store'), [
+        foreach ([
+            ['data_access_request', 'copy_of_data', 'myapes_account'],
+            ['privacy_request', 'rectification', null],
+            ['formal_complaint', 'service_complaint', null],
+            ['membership_casework', 'member_dispute', null],
+            ['welfare_concern', 'animal_welfare', null],
+            ['operations_governance', 'operational_matter', null],
+            ['general_escalated', 'escalated_from_ticket', null],
+            ['data_protection_enquiry', 'gdpr_general', null],
+        ] as [$category, $sub, $website]) {
+            $payload = [
                 'category' => $category,
+                'sub_category' => $sub,
                 'priority' => 'medium',
                 'title' => "{$category} category case",
-            ])->assertRedirect();
+            ];
+            if ($website !== null) {
+                $payload['affected_website_key'] = $website;
+            }
+            $this->actingAs($owner)->post(route('apes-cic.cases.store'), $payload)->assertRedirect();
         }
         foreach (['low', 'medium', 'high', 'urgent'] as $priority) {
             $this->post(route('apes-cic.cases.store'), [
-                'category' => 'general',
+                'category' => 'general_escalated',
+                'sub_category' => 'escalated_from_ticket',
                 'priority' => $priority,
                 'title' => "{$priority} priority case",
             ])->assertRedirect();
@@ -963,7 +997,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         foreach (['open', 'in_progress', 'waiting_on_user', 'resolved', 'closed'] as $status) {
             $case = $this->caseFor($owner, ['title' => "{$status} status case"]);
             $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
-                'category' => 'general',
+                'category' => 'general_escalated',
+                'sub_category' => 'escalated_from_ticket',
                 'priority' => 'medium',
                 'status' => $status,
             ])->assertRedirect();
@@ -977,13 +1012,14 @@ class ApesCicCasesWorkflowTest extends TestCase
         $case = $this->caseFor($owner);
 
         $this->actingAs($owner)->patch(route('apes-cic.cases.update', $case), [
-            'category' => 'welfare',
+            'category' => 'welfare_concern',
+                'sub_category' => 'animal_welfare',
             'priority' => 'urgent',
             'status' => 'in_progress',
         ])->assertForbidden();
 
         $case->refresh();
-        $this->assertSame('general', $case->category);
+        $this->assertSame('general_escalated', $case->category);
         $this->assertSame('medium', $case->priority);
         $this->assertSame('open', $case->status);
     }
@@ -1001,7 +1037,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         );
 
         $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
-            'category' => 'operations',
+            'category' => 'operations_governance',
+                'sub_category' => 'operational_matter',
             'priority' => 'high',
             'status' => 'in_progress',
         ])->assertForbidden();
@@ -1042,7 +1079,8 @@ class ApesCicCasesWorkflowTest extends TestCase
         );
 
         $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
-            'category' => 'general',
+            'category' => 'general_escalated',
+                'sub_category' => 'escalated_from_ticket',
             'priority' => 'medium',
             'status' => 'resolved',
         ])->assertForbidden();
@@ -1083,7 +1121,8 @@ class ApesCicCasesWorkflowTest extends TestCase
             'user_id' => $owner->id,
             'assigned_to' => null,
             'case_type' => null,
-            'category' => 'general',
+            'category' => 'general_escalated',
+                'sub_category' => 'escalated_from_ticket',
             'priority' => 'medium',
             'status' => 'open',
             'title' => 'General APES CIC case',

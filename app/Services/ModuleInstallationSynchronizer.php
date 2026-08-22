@@ -17,6 +17,7 @@ class ModuleInstallationSynchronizer
         private readonly AuthorizationMetadataSynchronizer $authorization,
         private readonly AuthorizationProfile $profile,
         private readonly ModuleProjectionCache $cache,
+        private readonly ModuleSettingsService $moduleSettings,
     ) {}
 
     /** @return array{created: int, existing: int} */
@@ -84,6 +85,8 @@ class ModuleInstallationSynchronizer
                             ->value('enabled');
                     }
                 }
+
+                $this->moduleSettings->seedConfigurableDefaults();
 
                 return compact('created', 'existing');
             }),

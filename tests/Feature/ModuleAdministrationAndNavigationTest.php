@@ -104,7 +104,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admins_can_view_the_complete_matrix_with_manage_controls_open(): void
+    public function test_super_admins_can_view_the_complete_matrix_with_deferred_manage_controls(): void
     {
         $superAdmin = User::factory()
             ->protectedRole(AuthorizationProfile::ROLE_SUPER_ADMIN)
@@ -116,8 +116,11 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $response->assertSee('module-registry', false);
         $response->assertSee('module-registry__subcore', false);
         $response->assertSee('module-registry__row--shipped', false);
+        $response->assertSee('module-registry__rows', false);
         $response->assertSee('module-registry__chip', false);
         $response->assertSeeText('Not compatible with this sub-core');
+        $response->assertSee(route('admin.modules.settings.edit', ['apes-cic', 'tickets']));
+        $response->assertSeeText('Settings');
         $this->assertSame(
             12,
             substr_count($response->getContent(), 'data-module-cell='),
@@ -134,7 +137,10 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $response->assertSeeText('shelter-rescue:pet-profiles (Enabled)');
         $response->assertSee('data-module-action-form', false);
         $response->assertSee('data-module-manage', false);
-        $response->assertDontSee('<details', false);
+        $response->assertSee('module-registry__status-rail', false);
+        $response->assertSee('module-registry__metric-bar', false);
+        $response->assertSeeText('Manage');
+        $response->assertSee('<details class="module-registry__manage"', false);
     }
 
     public function test_guest_and_staff_cannot_open_module_administration(): void

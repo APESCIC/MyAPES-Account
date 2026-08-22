@@ -70,55 +70,85 @@
                                 }
                                 $transitionLabel = $cell['transition_at']?->format('Y-m-d H:i') ?? 'Release default';
                                 $actorLabel = $cell['actor_id'] ?? 'System';
+                                $supportsSettings = $subCore->key === 'apes-cic'
+                                    && in_array($module->key, ['tickets', 'cases'], true);
+                                $recordCount = (int) $cell['active_record_count'];
+                                $depsLabel = $dependencySummary === 'None' ? 'None' : $dependencySummary;
                             @endphp
 
                             <li
-                                class="module-registry__row module-registry__row--shipped"
+                                class="module-registry__row module-registry__row--shipped module-registry__row--{{ $stateClass }}"
                                 data-module-cell="{{ $definition->key() }}"
                                 data-code-status="{{ $status->value }}"
                             >
-                                <div class="module-registry__row-main">
-                                    <div class="module-registry__row-title">
-                                        <span class="module-registry__module-name">{{ $module->name }}</span>
-                                        <small>v{{ $module->version }}</small>
+                                <div class="module-registry__status-rail" aria-hidden="true"></div>
+                                <div class="module-registry__card-body">
+                                    <div class="module-registry__row-main">
+                                        <div class="module-registry__row-title">
+                                            <span class="module-registry__module-name">{{ $module->name }}</span>
+                                            <small>v{{ $module->version }}</small>
+                                        </div>
+                                        <strong class="module-state module-state--{{ $stateClass }}">{{ $stateLabel }}</strong>
                                     </div>
-                                    <strong class="module-state module-state--{{ $stateClass }}">{{ $stateLabel }}</strong>
-                                    <p class="module-registry__metrics muted">
-                                        {{ $cell['active_record_count'] }} {{ \Illuminate\Support\Str::plural('record', (int) $cell['active_record_count']) }}
-                                        · {{ $dependencySummary === 'None' ? 'no deps' : $dependencySummary }}
-                                        · last {{ $transitionLabel }}
-                                        · actor {{ $actorLabel }}
-                                    </p>
-                                </div>
 
-                                @can('admin.modules.manage')
-                                    <div class="module-registry__manage" data-module-manage>
-                                        <h3 class="module-registry__manage-title">Manage</h3>
-                                        <form
-                                            method="post"
-                                            action="{{ route('admin.modules.transition', [$subCore->key, $module->key]) }}"
-                                            class="module-action-form"
-                                            data-module-action-form
-                                        >
-                                            @csrf
-                                            <input type="hidden" name="action" value="{{ $action }}">
-                                            @if($installation)
-                                                <input type="hidden" name="version" value="{{ $installation->lock_version }}">
-                                            @endif
-                                            <label>
-                                                <input type="checkbox" name="confirm_action" value="1" required>
-                                                Confirm {{ $action }}
-                                            </label>
-                                            <label>
-                                                <input type="checkbox" name="confirm_navigation" value="1" required>
-                                                Confirm the navigation change
-                                            </label>
-                                            <button type="submit" class="button button-secondary">
-                                                {{ str($action)->title() }}
-                                            </button>
-                                        </form>
+                                    <ul class="module-registry__metric-bar" aria-label="Module metrics">
+                                        <li>
+                                            <span class="module-registry__metric-label">Records</span>
+                                            <strong>{{ $recordCount }}</strong>
+                                        </li>
+                                        <li>
+                                            <span class="module-registry__metric-label">Deps</span>
+                                            <strong title="{{ $depsLabel }}">{{ $dependencySummary === 'None' ? '0' : collect($cell['dependencies'])->count() }}</strong>
+                                        </li>
+                                        <li>
+                                            <span class="module-registry__metric-label">Updated</span>
+                                            <strong title="Actor {{ $actorLabel }}">{{ $transitionLabel }}</strong>
+                                        </li>
+                                    </ul>
+                                    @if($dependencySummary !== 'None')
+                                        <p class="module-registry__deps muted">{{ $dependencySummary }}</p>
+                                    @endif
+
+                                    <div class="module-registry__row-actions">
+                                        @if($supportsSettings)
+                                            @can('admin.modules.view')
+                                                <a
+                                                    class="module-registry__settings-link"
+                                                    href="{{ route('admin.modules.settings.edit', [$subCore->key, $module->key]) }}"
+                                                >Settings</a>
+                                            @endcan
+                                        @endif
+
+                                        @can('admin.modules.manage')
+                                            <details class="module-registry__manage" data-module-manage>
+                                                <summary>Manage</summary>
+                                                <form
+                                                    method="post"
+                                                    action="{{ route('admin.modules.transition', [$subCore->key, $module->key]) }}"
+                                                    class="module-action-form"
+                                                    data-module-action-form
+                                                >
+                                                    @csrf
+                                                    <input type="hidden" name="action" value="{{ $action }}">
+                                                    @if($installation)
+                                                        <input type="hidden" name="version" value="{{ $installation->lock_version }}">
+                                                    @endif
+                                                    <label>
+                                                        <input type="checkbox" name="confirm_action" value="1" required>
+                                                        Confirm {{ $action }}
+                                                    </label>
+                                                    <label>
+                                                        <input type="checkbox" name="confirm_navigation" value="1" required>
+                                                        Confirm the navigation change
+                                                    </label>
+                                                    <button type="submit" class="button button-secondary">
+                                                        {{ str($action)->title() }}
+                                                    </button>
+                                                </form>
+                                            </details>
+                                        @endcan
                                     </div>
-                                @endcan
+                                </div>
                             </li>
                         @endforeach
                     </ul>

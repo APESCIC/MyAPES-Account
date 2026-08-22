@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable([
     'sub_core_key',
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'assigned_to',
     'case_type',
     'category',
+    'sub_category',
+    'affected_website_key',
     'priority',
     'status',
     'title',
@@ -84,5 +87,10 @@ class ShelterCase extends Model
     public function updates(): HasMany
     {
         return $this->hasMany(CaseUpdate::class);
+    }
+
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(SupportAttachment::class, 'attachable');
     }
 }
