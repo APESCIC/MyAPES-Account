@@ -40,11 +40,11 @@ final class MascotTips
             ],
             'dashboard' => [
                 'title' => 'Start with what needs you.',
-                'body' => 'Open items appear on the right. Service totals sit below when modules are available.',
+                'body' => 'Open items appear on the right. Service totals sit below when support services are available.',
             ],
             'apes-cic.index', 'shelter.index', 'petcare.index' => [
-                'title' => 'Open a module card.',
-                'body' => 'Enabled services for this sub-core appear here. If the list is empty, nothing is available to you yet.',
+                'title' => 'Pick a support tool below.',
+                'body' => 'Support tools for this service appear here. If the list is empty, nothing is available to you yet.',
             ],
             'apes-cic.tickets.index', 'shelter.tickets.index', 'petcare.tickets.index' => [
                 'title' => 'Describe the need clearly.',

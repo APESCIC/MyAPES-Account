@@ -53,4 +53,17 @@ class ModuleDashboardSummaryService
 
         return $groups;
     }
+
+    public function groupForUserInSubCore(
+        User $user,
+        string $subCoreKey,
+    ): ?ModuleSummaryGroup {
+        foreach ($this->forUser($user) as $group) {
+            if ($group->key === $subCoreKey) {
+                return $group;
+            }
+        }
+
+        return null;
+    }
 }

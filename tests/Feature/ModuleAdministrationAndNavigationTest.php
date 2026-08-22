@@ -78,7 +78,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $this->actingAs($user)
             ->get('/apes-cic')
             ->assertOk()
-            ->assertSee('No modules are currently available');
+            ->assertSee('No support services are available right now.');
     }
 
     public function test_administrators_cannot_open_module_administration(): void

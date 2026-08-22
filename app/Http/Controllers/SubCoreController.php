@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\ModuleRecentActivityProvider;
 use App\Contracts\ModuleRegistry;
+use App\Services\ModuleDashboardAttentionService;
 use App\Services\ModuleDashboardSummaryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -16,12 +17,13 @@ class SubCoreController extends Controller
         ModuleRegistry $registry,
         ModuleNavigationProvider $navigation,
         ModuleDashboardSummaryService $summaries,
+        ModuleDashboardAttentionService $attention,
         string $subCoreKey,
     ): View {
         $user = $request->user();
         $modules = $navigation->forSubCore($user, $subCoreKey);
-        $summaryByInstance = collect($summaries->forUser($user))
-            ->flatMap(static fn ($group) => $group->summaries)
+        $summaryGroup = $summaries->groupForUserInSubCore($user, $subCoreKey);
+        $summaryByInstance = collect($summaryGroup?->summaries ?? [])
             ->keyBy('instanceKey');
         $activity = collect();
 
@@ -40,7 +42,9 @@ class SubCoreController extends Controller
         return view('sub-cores.show', [
             'subCore' => $registry->subCore($subCoreKey),
             'modules' => $modules,
+            'summaryGroup' => $summaryGroup,
             'moduleSummaries' => $summaryByInstance,
+            'attentionItems' => $attention->forUserInSubCore($user, $subCoreKey),
             'recentActivity' => $activity
                 ->sortByDesc(fn ($item) => $item->updatedAt->getTimestamp())
                 ->take(5)

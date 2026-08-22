@@ -1098,6 +1098,158 @@ form.inline {
     color: var(--muted);
 }
 
+.service-dashboard {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.service-dashboard__heading {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;
+}
+
+.service-dashboard__icon {
+    width: 4rem;
+    height: 4rem;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 1.2rem;
+    background: var(--surface-subtle);
+    color: var(--brand-text);
+}
+
+.service-dashboard__icon svg {
+    width: 2rem;
+    height: 2rem;
+}
+
+.service-dashboard__top {
+    margin: 0;
+}
+
+.service-dashboard__intro {
+    min-width: 0;
+    padding: clamp(1rem, 2.5vw, 1.45rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.service-dashboard__intro h2 {
+    margin-top: 0;
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+}
+
+.service-dashboard__intro > p {
+    margin-bottom: 0.85rem;
+    color: var(--muted);
+}
+
+.service-dashboard__tools {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.35rem;
+    color: var(--ink-soft);
+}
+
+.service-dashboard__section {
+    padding: clamp(1rem, 2.5vw, 1.6rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.service-dashboard__section > h2 {
+    margin-top: 0;
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+}
+
+.service-dashboard__section.service-summary--hub.service-summary__group {
+    margin-top: 0;
+    padding: clamp(1.15rem, 2.5vw, 1.65rem);
+    padding-left: calc(clamp(1.15rem, 2.5vw, 1.65rem) + 0.35rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.service-summary--hub .service-summary__header {
+    margin-bottom: 0.85rem;
+}
+
+.service-summary--hub .service-summary__items {
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+.service-dashboard__quick-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+    gap: 0.75rem;
+}
+
+.service-dashboard__quick-link {
+    min-height: 3rem;
+    padding: 0.85rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+    color: var(--ink);
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.service-dashboard__quick-link:hover {
+    border-color: var(--brand-teal);
+    background: var(--canvas-soft);
+    color: var(--ink);
+}
+
+.service-dashboard__quick-link svg {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    color: var(--brand-text);
+}
+
+.service-dashboard__quick-link--action {
+    border-style: dashed;
+}
+
+.service-dashboard__recent .attention-list {
+    margin-top: 0.85rem;
+}
+
+.service-dashboard--apes-cic .service-dashboard__intro {
+    border-left: 0.25rem solid var(--brand-teal);
+}
+
+.service-dashboard--shelter-rescue .service-dashboard__intro {
+    border-left: 0.25rem solid var(--sage);
+}
+
+.service-dashboard--pet-care-clinic .service-dashboard__intro {
+    border-left: 0.25rem solid var(--clay);
+}
+
 .module-registry {
     display: grid;
     gap: 1.25rem;
@@ -2254,11 +2406,13 @@ caption {
         grid-template-columns: 1fr;
     }
 
-    .module-hub__heading {
+    .module-hub__heading,
+    .service-dashboard__heading {
         align-items: flex-start;
     }
 
-    .module-hub__icon {
+    .module-hub__icon,
+    .service-dashboard__icon {
         width: 3.25rem;
         height: 3.25rem;
     }
