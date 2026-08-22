@@ -15,7 +15,13 @@
             </div>
             <div>
                 <dt>Assigned staff</dt>
-                <dd>{{ $case->assignedTo?->name ?? 'Unassigned' }}</dd>
+                <dd>
+                    @if($revealAssigneeIdentity)
+                        {{ $case->assignedTo?->name ?? 'Unassigned' }}
+                    @else
+                        {{ $case->assigned_to ? 'Assigned' : 'Unassigned' }}
+                    @endif
+                </dd>
             </div>
             <div>
                 <dt>Category</dt>

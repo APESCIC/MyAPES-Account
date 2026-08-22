@@ -61,6 +61,7 @@ class TicketController extends Controller
                 : [],
             'usesHierarchicalCategories' => $isApesCic,
             'canCreateTicket' => $user->can($prefix.'create'),
+            'revealAssigneeIdentity' => $user->can($prefix.'view-all'),
             'ticketService' => $ticketService,
             'categoryResolver' => $this->categories,
         ]);
@@ -210,6 +211,7 @@ class TicketController extends Controller
             'canCommentTicket' => $canCommentTicket,
             'canChooseVisibility' => $canChooseVisibility,
             'allowsAttachments' => $allowsAttachments,
+            'revealAssigneeIdentity' => $user->can($prefix.'view-all'),
             'staffUsers' => $canChangeAssignment
                 ? User::query()
                     ->eligibleStaff()

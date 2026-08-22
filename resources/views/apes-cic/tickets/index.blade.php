@@ -117,7 +117,13 @@
                     <td><span class="status">{{ $ticket->status }}</span></td>
                     <td>{{ $ticket->priority }}</td>
                     <td>{{ $ticket->user?->name ?? '—' }}</td>
-                    <td>{{ $ticket->assignedTo?->name ?? 'Unassigned' }}</td>
+                    <td>
+                        @if($revealAssigneeIdentity)
+                            {{ $ticket->assignedTo?->name ?? 'Unassigned' }}
+                        @else
+                            {{ $ticket->assigned_to ? 'Assigned' : 'Unassigned' }}
+                        @endif
+                    </td>
                     <td><a href="{{ route($ticketService->routePrefix.'.show', $ticket) }}">Open</a></td>
                 </tr>
             @endforeach

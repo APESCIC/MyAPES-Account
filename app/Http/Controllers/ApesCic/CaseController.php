@@ -55,6 +55,7 @@ class CaseController extends Controller
             'websites' => $this->categories->websites($instance->subCore->key),
             'priorities' => self::PRIORITIES,
             'canCreateCase' => $user->can($prefix.'create'),
+            'revealAssigneeIdentity' => $user->can($prefix.'view-all'),
             'categoryResolver' => $this->categories,
         ]);
     }
@@ -179,6 +180,7 @@ class CaseController extends Controller
             'canChooseVisibility' => $canViewAll,
             'canChangeAssignment' => $canChangeAssignment,
             'allowsAttachments' => $allowsAttachments,
+            'revealAssigneeIdentity' => $canViewAll,
             'categoryResolver' => $this->categories,
             'staffUsers' => $canChangeAssignment
                 ? User::query()

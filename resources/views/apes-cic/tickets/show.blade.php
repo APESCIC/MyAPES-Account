@@ -15,7 +15,13 @@
             </div>
             <div>
                 <dt>Assigned staff</dt>
-                <dd>{{ $ticket->assignedTo?->name ?? 'Unassigned' }}</dd>
+                <dd>
+                    @if($revealAssigneeIdentity)
+                        {{ $ticket->assignedTo?->name ?? 'Unassigned' }}
+                    @else
+                        {{ $ticket->assigned_to ? 'Assigned' : 'Unassigned' }}
+                    @endif
+                </dd>
             </div>
             <div>
                 <dt>Service area</dt>

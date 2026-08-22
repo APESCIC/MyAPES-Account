@@ -101,7 +101,13 @@
                         <td><span class="status">{{ $case->status }}</span></td>
                         <td>{{ $case->priority }}</td>
                         <td>{{ $case->user?->name ?? '—' }}</td>
-                        <td>{{ $case->assignedTo?->name ?? 'Unassigned' }}</td>
+                        <td>
+                            @if($revealAssigneeIdentity)
+                                {{ $case->assignedTo?->name ?? 'Unassigned' }}
+                            @else
+                                {{ $case->assigned_to ? 'Assigned' : 'Unassigned' }}
+                            @endif
+                        </td>
                         <td><a href="{{ route('apes-cic.cases.show', $case) }}">Open</a></td>
                     </tr>
                 @endforeach

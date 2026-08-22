@@ -232,7 +232,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
                 'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
                 'user_id' => $serviceUser?->id,
                 'assigned_to' => $staffUser?->id,
-                'service_area' => 'legal',
+                'service_area' => 'governance_legal',
                 'priority' => 'medium',
                 'status' => 'open',
             ],
@@ -250,7 +250,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
                 'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
                 'user_id' => $serviceUser?->id,
                 'assigned_to' => $staffUser?->id,
-                'service_area' => 'it',
+                'service_area' => 'it_systems',
                 'priority' => 'high',
                 'status' => 'in_progress',
             ],
@@ -522,7 +522,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             );
         }
 
-        $this->assertSame(4, SupportTicket::query()
+        $this->assertSame(6, SupportTicket::query()
             ->forSubCore(SupportTicket::SUB_CORE_APES_CIC)
             ->where('user_id', $serviceUser?->id)
             ->count());
@@ -535,13 +535,13 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             ->where('user_id', $serviceUser?->id)
             ->count());
         $this->assertSame(
-            9,
+            11,
             SupportTicket::query()
                 ->whereKeyNot($collisionSentinel->id)
                 ->count(),
         );
-        $this->assertDatabaseCount('support_tickets', 10);
-        $this->assertDatabaseCount('support_ticket_messages', 18);
+        $this->assertDatabaseCount('support_tickets', 12);
+        $this->assertDatabaseCount('support_ticket_messages', 22);
 
         $cases = ShelterCase::query()
             ->forSubCore(ShelterCase::SUB_CORE_APES_CIC)
@@ -562,7 +562,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
         $this->assertNotNull($waiting);
         $this->assertNotNull($closed);
         $this->assertSame([
-            'membership',
+            'membership_casework',
             'high',
             'in_progress',
             $staffUser?->id,
@@ -577,7 +577,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             $reopened->closed_at,
         ]);
         $this->assertSame([
-            'welfare',
+            'welfare_concern',
             'urgent',
             'waiting_on_user',
             $staffUser?->id,
@@ -588,7 +588,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             $waiting->assigned_to,
         ]);
         $this->assertSame([
-            'complaint',
+            'formal_complaint',
             'low',
             'closed',
             $adminUser?->id,
@@ -708,7 +708,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             ->map->only(['user_id', 'body', 'visibility'])
             ->all());
         $this->assertTrue($rescueCase?->updated_at->equalTo($seededAt->subMinutes(5)));
-        $this->assertDatabaseCount('case_updates', 5);
+        $this->assertDatabaseCount('case_updates', 8);
     }
 
     /**
