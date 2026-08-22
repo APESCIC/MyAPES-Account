@@ -579,6 +579,7 @@ class ModuleProviderContractTest extends TestCase
             ->assertOk()
             ->assertSee('Cases')
             ->assertSee('General APES CIC case')
+            ->assertSee('Recent updates')
             ->assertDontSee('Public case progress')
             ->assertDontSee('Private internal case note');
     }
@@ -727,20 +728,70 @@ class ModuleProviderContractTest extends TestCase
         $response = $this->actingAs($owner)->get(route('apes-cic.index'));
 
         $response->assertOk()
+            ->assertSee('MyAPES support service')
+            ->assertSee('Available support services')
+            ->assertSee('What needs your attention')
+            ->assertSee('Recent updates')
+            ->assertSee('service-summary__number', false)
             ->assertSee('Ticket activity 1')
             ->assertSee('Case activity 1')
             ->assertSee('Ticket activity 2')
             ->assertSee('Case activity 2')
             ->assertSee('Case activity 3')
-            ->assertDontSee('Ticket activity 3')
             ->assertDontSee('Foreign activity title')
+            ->assertDontSee('Available modules')
+            ->assertDontSee('MyAPES Account sub-core')
             ->assertSee('attention-item__icon', false)
             ->assertSee('attention-item__meta', false)
-            ->assertSee('attention-item__chevron', false);
-        $this->assertSame(
-            5,
-            substr_count($response->getContent(), 'attention-item__icon'),
-        );
+            ->assertSee('attention-item__chevron', false)
+            ->assertViewHas(
+                'recentActivity',
+                static function ($items): bool {
+                    if ($items->count() !== 5) {
+                        return false;
+                    }
+
+                    $titles = $items->pluck('title')->all();
+
+                    return in_array('Case activity 1', $titles, true)
+                        && in_array('Ticket activity 1', $titles, true)
+                        && in_array('Case activity 2', $titles, true)
+                        && in_array('Ticket activity 2', $titles, true)
+                        && in_array('Case activity 3', $titles, true)
+                        && ! in_array('Ticket activity 3', $titles, true);
+                },
+            );
+    }
+
+    public function test_service_hub_attention_is_scoped_to_the_active_service(): void
+    {
+        $owner = User::factory()->create();
+        $apesTicket = $this->ticketFor($owner, [
+            'subject' => 'APES CIC attention item',
+        ]);
+        $shelterTicket = $this->ticketFor($owner, [
+            'sub_core_key' => 'shelter-rescue',
+            'service_area' => 'rescue',
+            'subject' => 'Shelter attention item',
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('apes-cic.index'))
+            ->assertOk()
+            ->assertSee($apesTicket->subject)
+            ->assertDontSee($shelterTicket->subject)
+            ->assertViewHas(
+                'attentionItems',
+                static function (array $items) use ($apesTicket, $shelterTicket): bool {
+                    $titles = array_map(
+                        static fn ($item): string => $item->title,
+                        $items,
+                    );
+
+                    return in_array($apesTicket->subject, $titles, true)
+                        && ! in_array($shelterTicket->subject, $titles, true);
+                },
+            );
     }
 
     public function test_hub_recent_activity_uses_full_attention_row_layout_on_all_sub_cores(): void
