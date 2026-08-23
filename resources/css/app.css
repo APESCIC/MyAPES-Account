@@ -1891,6 +1891,39 @@ form.inline {
     overflow-wrap: anywhere;
 }
 
+.admin-definition-list__groups {
+    grid-column: 1 / -1;
+}
+
+.directory-group-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.directory-group-list__chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0.28rem 0.62rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.directory-group-list__empty {
+    color: var(--muted);
+}
+
 .admin-checkbox-grid {
     margin-top: 1rem;
     padding: 1rem;

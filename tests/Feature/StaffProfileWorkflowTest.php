@@ -47,12 +47,43 @@ class StaffProfileWorkflowTest extends TestCase
             ->assertSeeText('Directory Staff')
             ->assertSeeText('staff.directory@example.com')
             ->assertSeeText('myapes.staff')
+            ->assertSee('directory-group-list__chip', false)
+            ->assertDontSee('myapes.staff</code>,', false)
             ->assertSee('name="job_title"', false)
             ->assertSee('name="team"', false)
             ->assertSee('name="work_phone"', false)
             ->assertDontSee('name="address_line_1"', false)
             ->assertDontSee('name="services[]"', false)
             ->assertDontSee('name="support_needs"', false);
+    }
+
+    public function test_staff_profile_renders_many_directory_groups_as_chips(): void
+    {
+        $groups = [
+            'board-of-directors',
+            'department.developers',
+            'department.animal.care',
+            'myapes.superadmin',
+            'position.staff',
+        ];
+
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create([
+                'ldap_groups' => $groups,
+            ]);
+
+        $response = $this->actingAs($staff)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertSee('directory-group-list', false)
+            ->assertDontSeeText('None recorded');
+
+        foreach ($groups as $group) {
+            $response->assertSeeText($group);
+        }
+
+        $response->assertDontSee('board-of-directors</code>,', false);
     }
 
     public function test_staff_can_update_staff_profile_without_changing_directory_identity(): void

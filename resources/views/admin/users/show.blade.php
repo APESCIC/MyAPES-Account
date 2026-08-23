@@ -14,14 +14,10 @@
             <div><dt>Identity source</dt><dd>{{ $identityLabel }}</dd></div>
             <div><dt>Suspension state</dt><dd>{{ $managedUser->suspended_at === null ? 'Active' : 'Suspended' }}</dd></div>
             <div><dt>Authorization epoch</dt><dd>{{ $managedUser->authorization_epoch }}</dd></div>
-            <div>
+            <div class="admin-definition-list__groups">
                 <dt>Normalized directory groups</dt>
                 <dd>
-                    @forelse(($managedUser->ldap_groups ?? []) as $group)
-                        <code>{{ $group }}</code>@if(! $loop->last), @endif
-                    @empty
-                        None recorded
-                    @endforelse
+                    <x-directory-group-list :groups="$managedUser->ldap_groups ?? []" />
                 </dd>
             </div>
         </dl>
