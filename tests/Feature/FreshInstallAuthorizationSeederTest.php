@@ -158,7 +158,33 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             $users->pluck('identity_type')->unique()->values()->all(),
         );
         $this->assertSame([null], $users->pluck('oidc_sub')->unique()->values()->all());
-        $this->assertSame([[]], $users->pluck('ldap_groups')->unique()->values()->all());
+        $this->assertSame([], $users->firstWhere('email', LocalQaSeeder::SERVICE_USER_EMAIL)?->ldap_groups);
+        $this->assertSame([
+            'board-of-directors',
+            'department.animal.care',
+            'department.client.services',
+            'department.developers',
+            'department.directors',
+            'department.finance',
+            'intranet.managers',
+            'myapes.staff',
+            'position.staff',
+        ], $users->firstWhere('email', LocalQaSeeder::STAFF_EMAIL)?->ldap_groups);
+        $this->assertSame([
+            'department.directors',
+            'intranet.managers',
+            'myapes.admin',
+            'position.staff',
+        ], $users->firstWhere('email', LocalQaSeeder::ADMIN_EMAIL)?->ldap_groups);
+        $this->assertSame([
+            'board-of-directors',
+            'department.developers',
+            'department.directors',
+            'intranet.superadmin',
+            'myapes.superadmin',
+            'newsroom.superadmin',
+            'position.staff',
+        ], $users->firstWhere('email', LocalQaSeeder::SUPERADMIN_EMAIL)?->ldap_groups);
 
         foreach ($users as $user) {
             $protectedRoles = $user->roles()
@@ -203,11 +229,9 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             $users->pluck('ldap_groups')->all(),
         ));
         foreach ([
-            'position.staff',
             'position.students',
             'position.volunteers',
             'intranet.administrator',
-            'intranet.superadmin',
         ] as $legacyAlias) {
             $this->assertStringNotContainsString($legacyAlias, $encodedGroups);
         }
