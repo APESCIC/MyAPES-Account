@@ -32,11 +32,15 @@
       "Directory group names remain as stored Cloudron identifiers; this release does not rename or humanize them."
     ],
     "rollback": "Revert this release record, VERSION, runtime manifest version, the directory group list component and styles, related blade updates, Local QA seeder group fixtures, and related tests.",
-    "provenance": "Defined by the staff profile directory groups readability fix for MyAPES Account issue #87.",
+    "provenance": "Defined by the staff profile directory groups readability fix for MyAPES Account issue #87 and pull request #88.",
     "references": [
       {
         "label": "Issue #87",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/87"
+      },
+      {
+        "label": "Pull request #88",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/88"
       }
     ]
   },
