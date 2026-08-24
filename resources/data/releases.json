@@ -34,11 +34,15 @@
       "Staff must complete Staff Login after directory sync for the new mapping to rematerialize on their account."
     ],
     "rollback": "Redeploy the previous application version. Authorization sync will restore the prior immutable catalogue on the previous release; no data migration accompanies this patch.",
-    "provenance": "Defined by the plural Cloudron superadmins group mapping fix for MyAPES Account issue #92.",
+    "provenance": "Defined by the plural Cloudron superadmins group mapping fix for MyAPES Account issue #92 and pull request #100.",
     "references": [
       {
         "label": "Issue #92",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/92"
+      },
+      {
+        "label": "Pull request #100",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/100"
       }
     ]
   },
