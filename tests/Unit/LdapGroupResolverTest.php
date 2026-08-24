@@ -180,6 +180,107 @@ class LdapGroupResolverTest extends TestCase
         );
     }
 
+    public function test_enumeration_normalizes_legacy_myapes_groups_to_canonical_names(): void
+    {
+        config([
+            'myapes.ldap.groups_base_dn' => 'ou=groups,dc=cloudron',
+        ]);
+
+        $resolver = new class extends LdapGroupResolver
+        {
+            /**
+             * @param  array<string, mixed>  $config
+             * @param  array<int, string>  $attributes
+             * @return array<string|int, mixed>
+             */
+            protected function fetchGroupEntries(
+                array $config,
+                string $baseDn,
+                string $filter,
+                array $attributes,
+            ): array {
+                return [
+                    'count' => 5,
+                    'result_code' => 0,
+                    0 => [
+                        'cn' => ['count' => 1, 0 => 'myapes.staff'],
+                        'memberuid' => ['count' => 1, 0 => 'staff-member'],
+                    ],
+                    1 => [
+                        'cn' => ['count' => 1, 0 => 'myapes.admins'],
+                        'memberuid' => ['count' => 1, 0 => 'admin-member'],
+                    ],
+                    2 => [
+                        'cn' => ['count' => 1, 0 => 'myapes.superadmins'],
+                        'memberuid' => ['count' => 1, 0 => 'super-member'],
+                    ],
+                    3 => [
+                        'cn' => ['count' => 1, 0 => 'myapes.volunteers'],
+                        'memberuid' => ['count' => 0],
+                    ],
+                    4 => [
+                        'cn' => ['count' => 1, 0 => 'myapes.students'],
+                        'memberuid' => ['count' => 0],
+                    ],
+                ];
+            }
+        };
+
+        $groups = $resolver->enumerateGroups();
+
+        $this->assertSame([
+            'myapesaccount.admin',
+            'myapesaccount.staff',
+            'myapesaccount.student',
+            'myapesaccount.superadmin',
+            'myapesaccount.volunteer',
+        ], array_column($groups, 'name'));
+        $this->assertSame(1, collect($groups)->firstWhere('name', 'myapesaccount.staff')['member_count']);
+        $this->assertSame(0, collect($groups)->firstWhere('name', 'myapesaccount.volunteer')['member_count']);
+    }
+
+    public function test_resolve_by_email_normalizes_legacy_group_memberships(): void
+    {
+        config([
+            'myapes.ldap.base_dn' => 'ou=users,dc=cloudron',
+            'myapes.ldap.groups_base_dn' => 'ou=groups,dc=cloudron',
+            'myapes.ldap.user_filter' => '(mail=%s)',
+            'myapes.ldap.group_attribute' => 'memberOf',
+        ]);
+
+        $resolver = new class extends LdapGroupResolver
+        {
+            /**
+             * @param  array<string, mixed>  $config
+             * @param  array<int, string>  $attributes
+             * @return array<string|int, mixed>
+             */
+            protected function fetchSearchEntries(
+                array $config,
+                string $baseDn,
+                string $filter,
+                array $attributes,
+            ): array {
+                return [
+                    'count' => 1,
+                    'result_code' => 0,
+                    0 => [
+                        'memberof' => [
+                            'count' => 2,
+                            0 => 'cn=myapes.superadmins,ou=groups,dc=cloudron',
+                            1 => 'cn=myapes.staff,ou=groups,dc=cloudron',
+                        ],
+                    ],
+                ];
+            }
+        };
+
+        $this->assertSame(
+            ['myapesaccount.staff', 'myapesaccount.superadmin'],
+            $resolver->resolveByEmail('legacy-person-canary@example.test'),
+        );
+    }
+
     public function test_enumeration_rejects_a_partial_ldap_result_as_directory_unavailability(): void
     {
         config([

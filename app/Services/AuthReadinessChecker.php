@@ -82,6 +82,23 @@ class AuthReadinessChecker
         return count($groups);
     }
 
+    /**
+     * @return list<string>
+     */
+    private function configuredGroups(): array
+    {
+        $groups = config('myapes.directory.required_groups', []);
+
+        if (! is_array($groups)) {
+            return [];
+        }
+
+        $filtered = DirectoryGroupPrefix::filterGroups($groups);
+        sort($filtered);
+
+        return $filtered;
+    }
+
     private function requiredString(string $key): string
     {
         $value = config("myapes.oidc.{$key}");
@@ -91,17 +108,5 @@ class AuthReadinessChecker
         }
 
         return trim($value);
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function configuredGroups(): array
-    {
-        $groups = DirectoryGroupPrefix::requiredGroups();
-        $normalized = array_values(array_unique($groups));
-        sort($normalized);
-
-        return $normalized;
     }
 }
