@@ -167,13 +167,13 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             'department.directors',
             'department.finance',
             'intranet.managers',
-            'myapes.staff',
+            'myapesaccount.staff',
             'position.staff',
         ], $users->firstWhere('email', LocalQaSeeder::STAFF_EMAIL)?->ldap_groups);
         $this->assertSame([
             'department.directors',
             'intranet.managers',
-            'myapes.admin',
+            'myapesaccount.admin',
             'position.staff',
         ], $users->firstWhere('email', LocalQaSeeder::ADMIN_EMAIL)?->ldap_groups);
         $this->assertSame([
@@ -181,8 +181,8 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             'department.developers',
             'department.directors',
             'intranet.superadmin',
-            'myapes.superadmin',
-            'myapes.superadmins',
+            'myapesaccount.superadmin',
+            'myapesaccount.superadmin',
             'newsroom.superadmin',
             'position.staff',
         ], $users->firstWhere('email', LocalQaSeeder::SUPERADMIN_EMAIL)?->ldap_groups);

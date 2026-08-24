@@ -16,6 +16,9 @@ use Illuminate\Database\Eloquent\Model;
     'finished_at',
     'groups_seen',
     'groups_missing',
+    'users_seen',
+    'users_created',
+    'users_updated',
     'error_code',
 ])]
 class DirectorySyncRun extends Model
@@ -45,6 +48,9 @@ class DirectorySyncRun extends Model
             'queue_attempt' => 'integer',
             'groups_seen' => 'integer',
             'groups_missing' => 'integer',
+            'users_seen' => 'integer',
+            'users_created' => 'integer',
+            'users_updated' => 'integer',
         ];
     }
 }

@@ -203,7 +203,7 @@ class AuthorizationCompatibilityDatabaseGuard
                     WHERE NEW.legacy_access_level IS NULL
                        OR TRIM(NEW.legacy_access_level) = ''
                        OR NEW.legacy_access_level NOT IN (
-                           'service_user', 'staff', 'admin', 'superadmin'
+                           'service_user', 'student', 'volunteer', 'staff', 'admin', 'superadmin'
                        );
                     SELECT RAISE(ABORT, 'Protected authorization role is unavailable.')
                     WHERE NOT EXISTS (
@@ -257,7 +257,7 @@ class AuthorizationCompatibilityDatabaseGuard
                     WHERE NEW.legacy_access_level IS NULL
                        OR TRIM(NEW.legacy_access_level) = ''
                        OR NEW.legacy_access_level NOT IN (
-                           'service_user', 'staff', 'admin', 'superadmin'
+                           'service_user', 'student', 'volunteer', 'staff', 'admin', 'superadmin'
                        );
                     SELECT RAISE(ABORT, 'Protected authorization role is unavailable.')
                     WHERE NOT EXISTS (
@@ -475,7 +475,7 @@ class AuthorizationCompatibilityDatabaseGuard
                     IF NEW.legacy_access_level IS NULL
                        OR TRIM(NEW.legacy_access_level) = ''
                        OR NEW.legacy_access_level NOT IN (
-                           'service_user', 'staff', 'admin', 'superadmin'
+                           'service_user', 'student', 'volunteer', 'staff', 'admin', 'superadmin'
                        )
                     THEN
                         SIGNAL SQLSTATE '45000'
@@ -538,7 +538,7 @@ class AuthorizationCompatibilityDatabaseGuard
                         IF NEW.legacy_access_level IS NULL
                            OR TRIM(NEW.legacy_access_level) = ''
                            OR NEW.legacy_access_level NOT IN (
-                               'service_user', 'staff', 'admin', 'superadmin'
+                               'service_user', 'student', 'volunteer', 'staff', 'admin', 'superadmin'
                            )
                         THEN
                             SIGNAL SQLSTATE '45000'
@@ -916,6 +916,8 @@ class AuthorizationCompatibilityDatabaseGuard
     {
         return "CASE {$column}
             WHEN 'service_user' THEN 'service-user'
+            WHEN 'student' THEN 'student'
+            WHEN 'volunteer' THEN 'volunteer'
             WHEN 'staff' THEN 'staff'
             WHEN 'admin' THEN 'administrator'
             WHEN 'superadmin' THEN 'super-admin'
@@ -926,7 +928,7 @@ class AuthorizationCompatibilityDatabaseGuard
     {
         return "{$row}.guard_name = 'web'
             AND {$row}.name IN (
-                'service-user', 'staff', 'administrator', 'super-admin'
+                'service-user', 'student', 'volunteer', 'staff', 'administrator', 'super-admin'
             )";
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\DirectoryGroupPrefix;
 use Illuminate\Database\Eloquent\Attributes\Cast;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -60,13 +61,9 @@ class DirectoryGroup extends Model
 
     public static function isAlwaysEnabledName(?string $name): bool
     {
-        if (! is_string($name) || $name === '') {
-            return false;
-        }
-
-        $required = config('myapes.directory.required_groups', []);
-
-        return in_array($name, $required, true);
+        return is_string($name)
+            && $name !== ''
+            && DirectoryGroupPrefix::isManagedGroup($name);
     }
 
     public static function defaultAppEnabledForName(string $name): bool

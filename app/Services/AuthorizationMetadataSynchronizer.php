@@ -7,26 +7,13 @@ use App\Models\DirectoryGroup;
 use App\Models\DirectoryGroupRoleMapping;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\DirectoryImmutableMappings;
+use App\Support\DirectoryLegacyGroupAliases;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class AuthorizationMetadataSynchronizer
 {
-    private const LEGACY_ALIASES = [
-        'position.staff',
-        'position.students',
-        'position.volunteers',
-        'intranet.administrator',
-        'intranet.superadmin',
-    ];
-
-    private const IMMUTABLE_MAPPINGS = [
-        'myapes.staff' => AuthorizationProfile::ROLE_STAFF,
-        'myapes.admin' => AuthorizationProfile::ROLE_ADMINISTRATOR,
-        'myapes.superadmin' => AuthorizationProfile::ROLE_SUPER_ADMIN,
-        'myapes.superadmins' => AuthorizationProfile::ROLE_SUPER_ADMIN,
-    ];
-
     public function __construct(
         private readonly AuthorizationProfile $profile,
         private readonly AuthorizationPermissionSynchronizer $permissions,
@@ -112,7 +99,7 @@ class AuthorizationMetadataSynchronizer
     {
         $expectedMappingIds = [];
 
-        foreach (self::IMMUTABLE_MAPPINGS as $groupName => $roleName) {
+        foreach (DirectoryImmutableMappings::all() as $groupName => $roleName) {
             $group = DirectoryGroup::query()
                 ->where('name', $groupName)
                 ->first();
@@ -201,7 +188,7 @@ class AuthorizationMetadataSynchronizer
                 || preg_match('/[*?%]/', $mapping->group_name) === 1
                 || in_array(
                     $mapping->group_name,
-                    self::LEGACY_ALIASES,
+                    DirectoryLegacyGroupAliases::all(),
                     true,
                 )
                 || $mapping->guard_name !== 'web') {

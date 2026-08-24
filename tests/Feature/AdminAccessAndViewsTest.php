@@ -93,7 +93,7 @@ class AdminAccessAndViewsTest extends TestCase
             ->create([
                 'name' => 'Needle Person',
                 'email' => 'needle@example.test',
-                'ldap_groups' => ['myapes.staff', 'myapes.case-reviewers'],
+                'ldap_groups' => ['myapesaccount.staff', 'myapes.case-reviewers'],
             ])
             ->refresh();
         User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create([
@@ -224,28 +224,24 @@ class AdminAccessAndViewsTest extends TestCase
     public function test_group_role_and_permission_lists_support_validated_search_and_semantic_markup(): void
     {
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
-        DirectoryGroup::query()->create([
-            'name' => 'myapes.empty-reviewers',
-            'status' => DirectoryGroup::STATUS_PRESENT,
-            'member_count' => 0,
-        ]);
-        Role::query()->create([
-            'name' => 'case-reviewer',
-            'guard_name' => 'web',
-        ]);
+        DirectoryGroup::query()
+            ->where('name', 'myapesaccount.volunteer')
+            ->update([
+                'status' => DirectoryGroup::STATUS_PRESENT,
+                'member_count' => 0,
+                'app_enabled' => true,
+            ]);
 
         $this->actingAs($superAdmin)
-            ->get('/admin/groups?q=empty&status=present&mapped=0')
+            ->get('/admin/groups?q=volunteer&status=present')
             ->assertOk()
-            ->assertSee('myapes.empty-reviewers')
-            ->assertSee('Cloudron MyAPES')
-            ->assertDontSee('myapes.staff')
+            ->assertSee('myapesaccount.volunteer')
+            ->assertSee('Cloudron MyAPES Account')
+            ->assertSee('Preset Cloudron mapping')
             ->assertSee('<table', false);
         $this->actingAs($superAdmin)
             ->get('/admin/roles?q=case')
             ->assertOk()
-            ->assertSee('case-reviewer')
-            ->assertDontSee('super-admin')
             ->assertSee('Protected roles sync from application code');
         $this->actingAs($superAdmin)
             ->get('/admin/permissions?q=users.view')
@@ -254,65 +250,30 @@ class AdminAccessAndViewsTest extends TestCase
             ->assertSee('View accounts')
             ->assertDontSee('admin.roles.manage')
             ->assertSee('Code-owned catalogue');
-
-        $this->actingAs($superAdmin)
-            ->from('/admin/groups')
-            ->get('/admin/groups?mapped=maybe')
-            ->assertRedirect('/admin/groups')
-            ->assertSessionHasErrors('mapped');
     }
 
-    public function test_super_admin_can_toggle_directory_group_app_access_from_groups_ui(): void
+    public function test_groups_ui_is_read_only_for_preset_cloudron_groups(): void
     {
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
-        $group = DirectoryGroup::query()->create([
-            'name' => 'ops.contractors',
-            'status' => DirectoryGroup::STATUS_PRESENT,
-            'app_enabled' => false,
-            'member_count' => 2,
-        ]);
-
-        $this->actingAs($superAdmin)
-            ->get('/admin/groups?app_enabled=0')
-            ->assertOk()
-            ->assertSee('ops.contractors')
-            ->assertSee('Disabled')
-            ->assertSee('Enable for this app');
-
-        $this->actingAs($superAdmin)
-            ->post(route('admin.groups.enable', $group))
-            ->assertRedirect(route('admin.groups.index'));
-        $this->assertTrue($group->fresh()->app_enabled);
-
-        $this->actingAs($superAdmin)
-            ->post(route('admin.groups.disable', $group))
-            ->assertRedirect(route('admin.groups.index'));
-        $this->assertFalse($group->fresh()->app_enabled);
-
-        $required = DirectoryGroup::query()
-            ->where('name', 'myapes.staff')
+        $group = DirectoryGroup::query()
+            ->where('name', 'myapesaccount.staff')
             ->firstOrFail();
+
         $this->actingAs($superAdmin)
-            ->from(route('admin.groups.index'))
-            ->post(route('admin.groups.disable', $required))
-            ->assertRedirect(route('admin.groups.index'))
-            ->assertSessionHasErrors('authorization');
-        $this->assertTrue($required->fresh()->app_enabled);
-    }
+            ->get('/admin/groups')
+            ->assertOk()
+            ->assertSee('myapesaccount.staff')
+            ->assertSee('Preset Cloudron mapping')
+            ->assertDontSee('Enable for this app')
+            ->assertDontSee('Disable for this app')
+            ->assertDontSee('Add role mapping');
 
-    public function test_administrator_cannot_toggle_directory_group_app_access(): void
-    {
-        $administrator = $this->userWithAccess(User::ROLE_ADMIN);
-        $group = DirectoryGroup::query()->create([
-            'name' => 'ops.contractors',
-            'status' => DirectoryGroup::STATUS_PRESENT,
-            'app_enabled' => false,
-        ]);
-
-        $this->actingAs($administrator)
-            ->post(route('admin.groups.enable', $group))
-            ->assertForbidden();
-        $this->assertFalse($group->fresh()->app_enabled);
+        $this->actingAs($superAdmin)
+            ->post('/admin/groups/999999/enable')
+            ->assertNotFound();
+        $this->actingAs($superAdmin)
+            ->post('/admin/groups/999999/disable')
+            ->assertNotFound();
     }
 
     public function test_super_admin_can_read_custom_role_permissions_and_administrators_cannot(): void
@@ -480,22 +441,13 @@ class AdminAccessAndViewsTest extends TestCase
             ->assertSee($recent->email);
     }
 
-    public function test_role_group_and_mapping_identifier_probes_are_denied_before_lookup(): void
+    public function test_role_and_group_identifier_probes_are_denied_before_lookup(): void
     {
         $administrator = $this->userWithAccess(User::ROLE_ADMIN);
         $staff = $this->userWithAccess(User::ROLE_STAFF);
         $role = Role::query()->create([
             'name' => 'oracle-test-role',
             'guard_name' => 'web',
-        ]);
-        $group = DirectoryGroup::query()->create([
-            'name' => 'myapes.oracle-test',
-            'status' => DirectoryGroup::STATUS_PRESENT,
-        ]);
-        $mapping = DirectoryGroupRoleMapping::query()->forceCreate([
-            'directory_group_id' => $group->id,
-            'role_id' => $role->id,
-            'is_immutable' => false,
         ]);
 
         $roleExisting = $this->actingAs($administrator)->put(
@@ -506,20 +458,7 @@ class AdminAccessAndViewsTest extends TestCase
             route('admin.roles.update', 999999),
             ['name' => 'ignored-role', 'permissions' => []],
         );
-        $groupExisting = $this->actingAs($administrator)->post(
-            route('admin.groups.mappings.store', $group),
-            ['role_id' => $role->id],
-        );
-        $groupMissing = $this->actingAs($administrator)->post(
-            route('admin.groups.mappings.store', 999999),
-            ['role_id' => $role->id],
-        );
-        $mappingExisting = $this->actingAs($administrator)->delete(
-            route('admin.groups.mappings.destroy', $mapping),
-        );
-        $mappingMissing = $this->actingAs($administrator)->delete(
-            route('admin.groups.mappings.destroy', 999999),
-        );
+        $groupSync = $this->actingAs($administrator)->post('/admin/groups/sync');
         $roleShowExisting = $this->actingAs($staff)->get(
             route('admin.roles.show', $role),
         );
@@ -536,10 +475,7 @@ class AdminAccessAndViewsTest extends TestCase
         foreach ([
             $roleExisting,
             $roleMissing,
-            $groupExisting,
-            $groupMissing,
-            $mappingExisting,
-            $mappingMissing,
+            $groupSync,
             $roleShowExisting,
             $roleShowMissing,
             $roleDestroyExisting,
@@ -550,14 +486,6 @@ class AdminAccessAndViewsTest extends TestCase
         $this->assertSame(
             $roleExisting->getContent(),
             $roleMissing->getContent(),
-        );
-        $this->assertSame(
-            $groupExisting->getContent(),
-            $groupMissing->getContent(),
-        );
-        $this->assertSame(
-            $mappingExisting->getContent(),
-            $mappingMissing->getContent(),
         );
         $this->assertSame(
             $roleShowExisting->getContent(),
@@ -571,13 +499,12 @@ class AdminAccessAndViewsTest extends TestCase
         $audits = AuditLog::query()
             ->where('event', 'authorization.admin_denied')
             ->get();
-        $this->assertCount(10, $audits);
+        $this->assertCount(7, $audits);
         $this->assertEqualsCanonicalizing([
             'admin.roles.update',
             'admin.roles.show',
             'admin.roles.destroy',
-            'admin.groups.mappings.store',
-            'admin.groups.mappings.destroy',
+            'admin.groups.sync',
         ], $audits
             ->pluck('context.route_name')
             ->unique()
@@ -588,10 +515,6 @@ class AdminAccessAndViewsTest extends TestCase
             $audits->pluck('context.reason_code')->unique()->values()->all(),
         );
         $this->assertDatabaseHas('roles', ['id' => $role->id]);
-        $this->assertDatabaseHas(
-            'directory_group_role_mappings',
-            ['id' => $mapping->id],
-        );
     }
 
     public function test_authorized_admin_identifier_misses_reach_explicit_not_found_responses(): void
@@ -610,12 +533,12 @@ class AdminAccessAndViewsTest extends TestCase
             ->assertNotFound();
         $this->actingAs($superAdmin)
             ->post(
-                route('admin.groups.mappings.store', 999999),
+                '/admin/groups/999999/mappings',
                 ['role_id' => $role->id],
             )
             ->assertNotFound();
         $this->actingAs($superAdmin)
-            ->delete(route('admin.groups.mappings.destroy', 999999))
+            ->delete('/admin/groups/mappings/999999')
             ->assertNotFound();
     }
 

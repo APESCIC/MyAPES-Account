@@ -41,11 +41,13 @@ return [
     ],
 
     'directory' => [
+        'group_prefix' => strtolower((string) env('DIRECTORY_GROUP_PREFIX', 'myapesaccount.')),
         'required_groups' => [
-            'myapes.staff',
-            'myapes.admin',
-            'myapes.superadmin',
-            'myapes.superadmins',
+            'myapesaccount.staff',
+            'myapesaccount.admin',
+            'myapesaccount.superadmin',
+            'myapesaccount.volunteer',
+            'myapesaccount.student',
         ],
         'revalidate_seconds' => (int) env('LDAP_SESSION_REVALIDATE_SECONDS', 300),
         'revalidate_in_local' => (bool) env('LDAP_SESSION_REVALIDATE_IN_LOCAL', false),

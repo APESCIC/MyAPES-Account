@@ -157,11 +157,19 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
     {
         $publicRoles = [
             'service-user',
+            'student',
+            'volunteer',
             'staff',
             'administrator',
             'super-admin',
         ];
-        $staffRoles = ['staff', 'administrator', 'super-admin'];
+        $staffRoles = [
+            'student',
+            'volunteer',
+            'staff',
+            'administrator',
+            'super-admin',
+        ];
         $public = static fn (string $ability, string $label): ModuleAbilityDefinition => new ModuleAbilityDefinition(
             $ability,
             $label,

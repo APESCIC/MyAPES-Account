@@ -11,9 +11,11 @@ use App\Models\AuditLog;
 use App\Models\RoleSource;
 use App\Models\User;
 use App\Services\LdapGroupResolver;
+use App\Services\LdapUserResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Fakes\FakeLdapGroupResolver;
+use Tests\Fakes\FakeLdapUserResolver;
 use Tests\Fakes\FakeOidcIdentityProvider;
 use Tests\TestCase;
 
@@ -24,6 +26,8 @@ class StaffOidcAuthenticationTest extends TestCase
     private FakeOidcIdentityProvider $identityProvider;
 
     private FakeLdapGroupResolver $directory;
+
+    private FakeLdapUserResolver $directoryUsers;
 
     protected function setUp(): void
     {
@@ -41,9 +45,17 @@ class StaffOidcAuthenticationTest extends TestCase
 
         $this->identityProvider = new FakeOidcIdentityProvider;
         $this->directory = new FakeLdapGroupResolver;
+        $this->directoryUsers = new FakeLdapUserResolver;
 
         $this->app->instance(OidcIdentityProvider::class, $this->identityProvider);
         $this->app->instance(LdapGroupResolver::class, $this->directory);
+        $this->app->instance(LdapUserResolver::class, $this->directoryUsers);
+    }
+
+    private function withDirectoryGroups(array $groups): void
+    {
+        $this->directory->groups = $groups;
+        $this->directoryUsers->groups = $groups;
     }
 
     public function test_successful_callback_creates_an_eligible_user_and_starts_the_revalidation_window(): void
@@ -53,14 +65,14 @@ class StaffOidcAuthenticationTest extends TestCase
             'STAFF@EXAMPLE.COM',
             'APES Staff Member',
         );
-        $this->directory->groups = ['MYAPES.STAFF', 'myapes.staff'];
+        $this->withDirectoryGroups(['MYAPES.STAFF', 'myapesaccount.staff']);
 
         $response = $this->get(route('staff.auth.callback'));
 
         $response->assertRedirect(route('dashboard'));
         $response->assertSessionHas(RevalidateDirectoryAccess::SESSION_KEY);
         $this->assertAuthenticated();
-        $this->assertSame(['staff@example.com'], $this->directory->resolvedEmails);
+        $this->assertSame(['staff@example.com'], $this->directoryUsers->resolvedEmails);
 
         $user = User::query()->sole();
         $this->assertSame('cloudron-subject-1', $user->oidc_sub);
@@ -68,7 +80,7 @@ class StaffOidcAuthenticationTest extends TestCase
         $this->assertSame('APES Staff Member', $user->name);
         $this->assertSame(User::IDENTITY_CLOUDRON_OIDC, $user->identity_type);
         $this->assertSame(User::ROLE_STAFF, $user->accessLevel());
-        $this->assertSame(['myapes.staff'], $user->ldap_groups);
+        $this->assertSame(['myapesaccount.staff'], $user->ldap_groups);
         $this->assertTrue($user->email_verified_at->isSameSecond(now()));
         $this->assertNotNull($user->staffProfile);
 
@@ -78,25 +90,25 @@ class StaffOidcAuthenticationTest extends TestCase
         ]);
     }
 
-    public function test_plural_superadmins_group_grants_super_admin_on_staff_login(): void
+    public function test_volunteer_group_grants_volunteer_role_on_staff_login(): void
     {
         $this->identityProvider->identity = new OidcIdentity(
-            'plural-superadmins-subject',
-            'plural.superadmins@example.com',
-            'Plural Superadmins Member',
+            'volunteer-subject',
+            'volunteer@example.com',
+            'Volunteer Member',
         );
-        $this->directory->groups = ['myapes.superadmins'];
+        $this->withDirectoryGroups(['myapesaccount.volunteer']);
 
         $response = $this->get(route('staff.auth.callback'));
 
         $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
 
-        $user = User::query()->where('email', 'plural.superadmins@example.com')->sole();
-        $this->assertSame(User::ROLE_SUPERADMIN, $user->accessLevel());
-        $this->assertSame(['myapes.superadmins'], $user->ldap_groups);
+        $user = User::query()->where('email', 'volunteer@example.com')->sole();
+        $this->assertSame(User::ROLE_VOLUNTEER, $user->accessLevel());
+        $this->assertSame(['myapesaccount.volunteer'], $user->ldap_groups);
         $this->assertTrue(
-            $user->roles()->where('name', 'super-admin')->exists(),
+            $user->roles()->where('name', 'volunteer')->exists(),
         );
     }
 
@@ -108,7 +120,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'maintenance-superadmin@example.com',
             'Maintenance Super Admin',
         );
-        $this->directory->groups = ['myapes.superadmin'];
+        $this->withDirectoryGroups(['myapesaccount.superadmin']);
 
         $this->get(route('staff.auth.callback'))
             ->assertRedirect(route('admin.maintenance.index'));
@@ -127,7 +139,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'maintenance-admin@example.com',
             'Maintenance Administrator',
         );
-        $this->directory->groups = ['myapes.admin'];
+        $this->withDirectoryGroups(['myapesaccount.admin']);
 
         $this->get(route('staff.auth.callback'))
             ->assertServiceUnavailable()
@@ -144,7 +156,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'maintenance-staff@example.com',
             'Maintenance Staff',
         );
-        $this->directory->groups = ['myapes.staff'];
+        $this->withDirectoryGroups(['myapesaccount.staff']);
 
         $this->get(route('staff.auth.callback'))
             ->assertServiceUnavailable()
@@ -165,7 +177,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'exact-mapping@example.com',
             'Exact Mapping Staff',
         );
-        $this->directory->groups = ['MYAPES.STAFF'];
+        $this->withDirectoryGroups(['myapesaccount.staff']);
 
         $response = $this->get(route('staff.auth.callback'));
 
@@ -196,7 +208,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'visitor@example.com',
             'Directory Visitor',
         );
-        $this->directory->groups = ['unrelated.group'];
+        $this->withDirectoryGroups(['unrelated.group']);
 
         $response = $this->get(route('staff.auth.callback'));
 
@@ -215,7 +227,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'mapping-race@example.com',
             'Mapping Race Staff',
         );
-        $this->directory->groups = ['myapes.staff'];
+        $this->withDirectoryGroups(['myapesaccount.staff']);
         User::creating(static function (): void {
             DB::table('directory_group_role_mappings')->delete();
         });
@@ -247,12 +259,12 @@ class StaffOidcAuthenticationTest extends TestCase
             $user->email,
             $user->name,
         );
-        $this->directory->groups = ['myapes.staff'];
+        $this->withDirectoryGroups(['myapesaccount.staff']);
 
         $this->get(route('staff.auth.callback'))->assertForbidden();
 
         $this->assertGuest();
-        $this->assertSame([], $this->directory->resolvedEmails);
+        $this->assertSame([], $this->directoryUsers->resolvedEmails);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.suspended_login_denied',
             'user_id' => $user->id,
@@ -266,6 +278,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'missing@example.com',
             'Missing User',
         );
+        $this->directoryUsers->failure = new DirectoryIdentityNotFound('not found');
         $this->directory->failure = new DirectoryIdentityNotFound('not found');
 
         $this->get(route('staff.auth.callback'))->assertForbidden();
@@ -274,6 +287,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'event' => 'auth.oidc_access_denied',
         ]);
 
+        $this->directoryUsers->failure = new DirectoryUnavailable('bind secret must not be exposed');
         $this->directory->failure = new DirectoryUnavailable('bind secret must not be exposed');
 
         $response = $this->get(route('staff.auth.callback'));
@@ -293,13 +307,14 @@ class StaffOidcAuthenticationTest extends TestCase
             ->cloudronIdentity('revoked-subject')
             ->create([
                 'email' => 'revoked@example.com',
-                'ldap_groups' => ['myapes.admin'],
+                'ldap_groups' => ['myapesaccount.admin'],
             ]);
         $this->identityProvider->identity = new OidcIdentity(
             'revoked-subject',
             'revoked@example.com',
             'Revoked User',
         );
+        $this->directoryUsers->failure = new DirectoryIdentityNotFound('not found');
         $this->directory->failure = new DirectoryIdentityNotFound('not found');
 
         $this->get(route('staff.auth.callback'))->assertForbidden();
@@ -327,7 +342,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'existing@example.com',
             'Different Identity',
         );
-        $this->directory->groups = ['myapes.staff'];
+        $this->withDirectoryGroups(['myapesaccount.staff']);
 
         $response = $this->get(route('staff.auth.callback'));
 
@@ -359,7 +374,7 @@ class StaffOidcAuthenticationTest extends TestCase
             'linked-local@example.com',
             'Linked Local Account',
         );
-        $this->directory->groups = ['myapes.staff'];
+        $this->withDirectoryGroups(['myapesaccount.staff']);
 
         $response = $this->get(route('staff.auth.callback'));
 
@@ -381,7 +396,7 @@ class StaffOidcAuthenticationTest extends TestCase
         );
 
         $this->get(route('staff.auth.callback'))->assertForbidden();
-        $this->assertSame([], $this->directory->resolvedEmails);
+        $this->assertSame([], $this->directoryUsers->resolvedEmails);
 
         $this->identityProvider->identity = new OidcIdentity(
             null,
@@ -390,7 +405,7 @@ class StaffOidcAuthenticationTest extends TestCase
         );
 
         $this->get(route('staff.auth.callback'))->assertForbidden();
-        $this->assertSame([], $this->directory->resolvedEmails);
+        $this->assertSame([], $this->directoryUsers->resolvedEmails);
         $this->assertDatabaseCount('users', 0);
     }
 }

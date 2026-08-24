@@ -84,14 +84,14 @@ class AdminProfileManagementTest extends TestCase
             ->create([
                 'name' => 'Directory Staff',
                 'email' => 'staff.managed@example.com',
-                'ldap_groups' => ['myapes.staff'],
+                'ldap_groups' => ['myapesaccount.staff'],
             ]);
 
         $this->actingAs($administrator)
             ->get(route('admin.users.show', $staff))
             ->assertOk()
             ->assertSeeText('Directory Staff')
-            ->assertSeeText('myapes.staff')
+            ->assertSeeText('myapesaccount.staff')
             ->assertSee('name="job_title"', false)
             ->assertDontSee('name="address_line_1"', false);
 

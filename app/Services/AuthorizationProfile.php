@@ -16,14 +16,28 @@ class AuthorizationProfile
 
     public const ROLE_SUPER_ADMIN = 'super-admin';
 
+    public const ROLE_VOLUNTEER = 'volunteer';
+
+    public const ROLE_STUDENT = 'student';
+
     public const PERMISSION_STAFF_ACCESS = 'staff.access';
 
     public const PERMISSION_ADMIN_ACCESS = 'admin.access';
 
     public const PERMISSION_SUPERADMIN_ACCESS = 'superadmin.access';
 
+    public const PERMISSION_VOLUNTEER_ACCESS = 'volunteer.access';
+
+    public const PERMISSION_STUDENT_ACCESS = 'student.access';
+
     private const BASE_PERMISSION_MATRIX = [
         self::ROLE_SERVICE_USER => [],
+        self::ROLE_STUDENT => [
+            self::PERMISSION_STUDENT_ACCESS,
+        ],
+        self::ROLE_VOLUNTEER => [
+            self::PERMISSION_VOLUNTEER_ACCESS,
+        ],
         self::ROLE_STAFF => [
             self::PERMISSION_STAFF_ACCESS,
         ],
@@ -56,6 +70,8 @@ class AuthorizationProfile
         self::ROLE_SUPER_ADMIN,
         self::ROLE_ADMINISTRATOR,
         self::ROLE_STAFF,
+        self::ROLE_VOLUNTEER,
+        self::ROLE_STUDENT,
         self::ROLE_SERVICE_USER,
     ];
 
@@ -73,6 +89,8 @@ class AuthorizationProfile
 
     private const LEGACY_TO_PROTECTED = [
         'service_user' => self::ROLE_SERVICE_USER,
+        'student' => self::ROLE_STUDENT,
+        'volunteer' => self::ROLE_VOLUNTEER,
         'staff' => self::ROLE_STAFF,
         'admin' => self::ROLE_ADMINISTRATOR,
         'superadmin' => self::ROLE_SUPER_ADMIN,
@@ -195,12 +213,28 @@ class AuthorizationProfile
         return in_array(
             $this->effectiveProtectedRole($user),
             [
+                self::ROLE_STUDENT,
+                self::ROLE_VOLUNTEER,
                 self::ROLE_STAFF,
                 self::ROLE_ADMINISTRATOR,
                 self::ROLE_SUPER_ADMIN,
             ],
             true,
         );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function directoryProtectedRoles(): array
+    {
+        return [
+            self::ROLE_STUDENT,
+            self::ROLE_VOLUNTEER,
+            self::ROLE_STAFF,
+            self::ROLE_ADMINISTRATOR,
+            self::ROLE_SUPER_ADMIN,
+        ];
     }
 
     public function isSuperAdmin(User $user): bool
@@ -244,7 +278,7 @@ class AuthorizationProfile
      */
     public function qaSwitchSelectors(): array
     {
-        return ['service_user', 'staff', 'admin', 'superadmin'];
+        return ['service_user', 'student', 'volunteer', 'staff', 'admin', 'superadmin'];
     }
 
     public function matchesQaSelector(User $user, string $selector): bool
@@ -264,6 +298,8 @@ class AuthorizationProfile
     {
         return match ($this->effectiveProtectedRole($user)) {
             self::ROLE_SERVICE_USER => 'Public',
+            self::ROLE_STUDENT => 'Student',
+            self::ROLE_VOLUNTEER => 'Volunteer',
             self::ROLE_STAFF => 'Staff',
             self::ROLE_ADMINISTRATOR => 'Admin',
             self::ROLE_SUPER_ADMIN => 'Super Admin',

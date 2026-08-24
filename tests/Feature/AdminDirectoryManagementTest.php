@@ -18,7 +18,7 @@ class AdminDirectoryManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_mapping_changes_resynchronize_matching_users_and_only_invalidate_changed_authorization(): void
+    public function test_custom_mapping_routes_are_not_available(): void
     {
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
         $group = DirectoryGroup::query()->create([
@@ -30,77 +30,23 @@ class AdminDirectoryManagementTest extends TestCase
             'name' => 'case-reviewer',
             'guard_name' => 'web',
         ]);
-        $matching = User::factory()
-            ->accessLevel(User::ROLE_STAFF)
-            ->cloudronIdentity('matching-subject')
-            ->create()
-            ->refresh();
-        $unrelated = User::factory()
-            ->accessLevel(User::ROLE_STAFF)
-            ->cloudronIdentity('unrelated-subject')
-            ->create()
-            ->refresh();
-        $synchronizer = app(DirectoryRoleSynchronizer::class);
-        $synchronizer->synchronize($matching, [
-            'myapes.staff',
-            'myapes.case-reviewers',
-        ]);
-        $synchronizer->synchronize($unrelated, ['myapes.staff']);
-        $matchingEpoch = $matching->fresh()->authorization_epoch;
-        $unrelatedEpoch = $unrelated->fresh()->authorization_epoch;
 
         $this->actingAs($superAdmin)
             ->post("/admin/groups/{$group->id}/mappings", [
                 'role_id' => $role->id,
             ])
-            ->assertRedirect('/admin/groups');
+            ->assertNotFound();
 
-        $mapping = DirectoryGroupRoleMapping::query()
-            ->where('directory_group_id', $group->id)
-            ->where('role_id', $role->id)
-            ->sole();
-        $this->assertTrue($matching->fresh()->roles->contains($role));
-        $this->assertSame(
-            $matchingEpoch + 1,
-            $matching->fresh()->authorization_epoch,
-        );
-        $this->assertFalse($unrelated->fresh()->roles->contains($role));
-        $this->assertSame(
-            $unrelatedEpoch,
-            $unrelated->fresh()->authorization_epoch,
-        );
+        $mapping = (new DirectoryGroupRoleMapping)->forceFill([
+            'directory_group_id' => $group->id,
+            'role_id' => $role->id,
+            'is_immutable' => false,
+        ]);
+        $mapping->save();
 
-        $createdAudit = AuditLog::query()
-            ->where('event', 'authorization.directory_mapping_changed')
-            ->latest('id')
-            ->firstOrFail();
-        $this->assertSame('created', $createdAudit->context['action']);
-        $this->assertSame($group->id, $createdAudit->context['group_id']);
-        $this->assertSame($role->id, $createdAudit->context['role_id']);
-        $this->assertSame(1, $createdAudit->context['matched_user_count']);
-        $this->assertSame(1, $createdAudit->context['changed_user_count']);
-
-        $epochAfterCreate = $matching->fresh()->authorization_epoch;
         $this->actingAs($superAdmin)
             ->delete("/admin/groups/mappings/{$mapping->id}")
-            ->assertRedirect('/admin/groups');
-
-        $this->assertFalse($matching->fresh()->roles->contains($role));
-        $this->assertSame(
-            $epochAfterCreate + 1,
-            $matching->fresh()->authorization_epoch,
-        );
-        $this->assertDatabaseMissing(
-            'directory_group_role_mappings',
-            ['id' => $mapping->id],
-        );
-
-        $removedAudit = AuditLog::query()
-            ->where('event', 'authorization.directory_mapping_changed')
-            ->latest('id')
-            ->firstOrFail();
-        $this->assertSame('removed', $removedAudit->context['action']);
-        $this->assertSame(1, $removedAudit->context['changed_user_count']);
+            ->assertNotFound();
     }
 
     public function test_manual_sync_dispatches_existing_job_and_audits_only_safe_context(): void

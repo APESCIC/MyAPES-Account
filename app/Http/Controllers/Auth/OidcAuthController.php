@@ -12,8 +12,9 @@ use App\Http\Cookies\OidcReauthenticationCookie;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DirectoryRoleSynchronizer;
-use App\Services\LdapGroupResolver;
+use App\Services\LdapUserResolver;
 use App\Services\MaintenanceResponseFactory;
+use App\Services\StaffProfileDirectorySynchronizer;
 use App\Services\SessionAuthorizationContext;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Http\RedirectResponse;
@@ -66,8 +67,9 @@ class OidcAuthController extends Controller
     public function callback(
         Request $request,
         OidcIdentityProvider $identityProvider,
-        LdapGroupResolver $ldapGroupResolver,
+        LdapUserResolver $ldapUserResolver,
         DirectoryRoleSynchronizer $roles,
+        StaffProfileDirectorySynchronizer $staffProfiles,
         SessionAuthorizationContext $authorizationContext,
         AuditLogger $auditLogger,
         OidcReauthenticationCookie $reauthenticationCookie,
@@ -98,6 +100,13 @@ class OidcAuthController extends Controller
 
         $knownUser = User::query()->where('oidc_sub', $sub)->first();
 
+        if ($knownUser === null) {
+            $knownUser = User::query()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->where('identity_type', User::IDENTITY_CLOUDRON_OIDC)
+                ->first();
+        }
+
         if ($knownUser?->suspended_at !== null) {
             $auditLogger->record(
                 'auth.suspended_login_denied',
@@ -109,7 +118,7 @@ class OidcAuthController extends Controller
         }
 
         try {
-            $groups = $ldapGroupResolver->resolveByEmail($email);
+            $directoryProfile = $ldapUserResolver->profileForEmail($email);
         } catch (DirectoryIdentityNotFound) {
             $this->revokeKnownIdentity(
                 $sub,
@@ -120,13 +129,15 @@ class OidcAuthController extends Controller
             $auditLogger->record('auth.oidc_access_denied', context: [
                 'reason' => 'identity_not_found',
             ]);
-            abort(403, 'Your Cloudron account does not have MyAPES staff access.');
+            abort(403, 'Your Cloudron account does not have a MyAPES Account directory group.');
         } catch (DirectoryUnavailable) {
             $auditLogger->record('auth.ldap_resolution_failed', null, null, [
                 'reason' => 'directory_unavailable',
             ]);
             abort(503, 'Staff access verification is temporarily unavailable.');
         }
+
+        $groups = $directoryProfile->groups;
 
         $role = $roles->protectedRoleForGroups($groups);
 
@@ -141,7 +152,7 @@ class OidcAuthController extends Controller
                 'reason' => 'no_approved_group',
                 'group_count' => count($groups),
             ]);
-            abort(403, 'Your Cloudron account does not have MyAPES staff access.');
+            abort(403, 'Your Cloudron account does not have a MyAPES Account directory group.');
         }
 
         $user = $knownUser;
@@ -171,11 +182,11 @@ class OidcAuthController extends Controller
 
         $user->oidc_sub = $sub;
         $user->identity_type = User::IDENTITY_CLOUDRON_OIDC;
-        $user->name = $identity->name ?? $email;
+        $user->name = $identity->name ?? $directoryProfile->name ?? $email;
         $user->email = $email;
         $user->email_verified_at = now();
         $user->save();
-        $user->staffProfile()->firstOrCreate([]);
+        $staffProfiles->apply($user, $directoryProfile);
         $result = $roles->synchronize($user, $groups);
 
         if (! $result->eligible) {
@@ -183,7 +194,7 @@ class OidcAuthController extends Controller
                 'reason' => 'eligibility_changed_before_reconciliation',
                 'group_count' => count($groups),
             ]);
-            abort(403, 'Your Cloudron account does not have MyAPES staff access.');
+            abort(403, 'Your Cloudron account does not have a MyAPES Account directory group.');
         }
 
         $user->refresh();

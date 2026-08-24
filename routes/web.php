@@ -304,18 +304,6 @@ Route::middleware([
             Route::post('/groups/sync', [AdminGroupController::class, 'sync'])
                 ->middleware('can:admin.group-mappings.manage')
                 ->name('groups.sync');
-            Route::post('/groups/{directoryGroup}/enable', [AdminGroupController::class, 'enable'])
-                ->middleware('can:admin.group-mappings.manage')
-                ->name('groups.enable');
-            Route::post('/groups/{directoryGroup}/disable', [AdminGroupController::class, 'disable'])
-                ->middleware('can:admin.group-mappings.manage')
-                ->name('groups.disable');
-            Route::post('/groups/{directoryGroup}/mappings', [AdminGroupController::class, 'storeMapping'])
-                ->middleware('can:admin.group-mappings.manage')
-                ->name('groups.mappings.store');
-            Route::delete('/groups/mappings/{mapping}', [AdminGroupController::class, 'destroyMapping'])
-                ->middleware('can:admin.group-mappings.manage')
-                ->name('groups.mappings.destroy');
 
             Route::get('/roles', [AdminRoleController::class, 'index'])
                 ->middleware('can:admin.roles.view')

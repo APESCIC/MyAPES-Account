@@ -85,7 +85,7 @@ class AuthorizationQueryScopeTest extends TestCase
         $malformedSourceStaff = $this->user(User::ROLE_SERVICE_USER);
         $revokedDirectoryStaff = $this->permissionOnlyUser();
         $group = DirectoryGroup::query()
-            ->where('name', 'myapes.staff')
+            ->where('name', 'myapesaccount.staff')
             ->firstOrFail();
         $group->forceFill([
             'member_count' => 4,

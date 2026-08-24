@@ -541,7 +541,7 @@ class SecurityRemediationTest extends TestCase
         Notification::fake();
         $revoked = $this->permissionOnlyUser();
         $directoryGroup = DirectoryGroup::query()
-            ->where('name', 'myapes.staff')
+            ->where('name', 'myapesaccount.staff')
             ->firstOrFail();
         $directoryGroup->forceFill([
             'member_count' => 1,

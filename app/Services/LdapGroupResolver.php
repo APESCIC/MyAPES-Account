@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
+use App\Support\DirectoryGroupPrefix;
 
 class LdapGroupResolver
 {
@@ -60,7 +61,12 @@ class LdapGroupResolver
             static fn (array $left, array $right): int => $left['name'] <=> $right['name'],
         );
 
-        return $groups;
+        return array_values(array_filter(
+            $groups,
+            static fn (array $group): bool => DirectoryGroupPrefix::isManagedGroup(
+                $group['name'],
+            ),
+        ));
     }
 
     /**
@@ -116,7 +122,9 @@ class LdapGroupResolver
             }
         }
 
-        return array_values(array_unique($groups));
+        return DirectoryGroupPrefix::filterGroups(
+            array_values(array_unique($groups)),
+        );
     }
 
     /**
@@ -245,7 +253,7 @@ class LdapGroupResolver
      * @param  array<string|int, mixed>  $result
      * @return array<string|int, mixed>
      */
-    private function successfulEntries(array $result): array
+    protected function successfulEntries(array $result): array
     {
         $resultCode = $result['result_code'] ?? null;
 
@@ -274,7 +282,7 @@ class LdapGroupResolver
     /**
      * @return array<string, mixed>
      */
-    private function configuration(): array
+    protected function configuration(): array
     {
         if (! function_exists('ldap_connect')) {
             throw new DirectoryUnavailable('LDAP PHP extension is not installed.');
@@ -362,7 +370,7 @@ class LdapGroupResolver
     /**
      * @param  array<string, mixed>  $config
      */
-    private function requiredString(array $config, string $key): string
+    protected function requiredString(array $config, string $key): string
     {
         $value = $config[$key] ?? null;
 

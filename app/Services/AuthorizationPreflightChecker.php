@@ -125,8 +125,7 @@ class AuthorizationPreflightChecker
                 );
             }
 
-            if (in_array('myapes.superadmin', $groups, true)
-                || in_array('myapes.superadmins', $groups, true)) {
+            if (in_array('myapesaccount.superadmin', $groups, true)) {
                 $eligible += 1;
             }
         }

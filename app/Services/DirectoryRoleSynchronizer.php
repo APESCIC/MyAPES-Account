@@ -7,9 +7,9 @@ use App\Models\DirectoryGroup;
 use App\Models\Role;
 use App\Models\RoleSource;
 use App\Models\User;
+use App\Support\DirectoryGroupPrefix;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class DirectoryRoleSynchronizer
@@ -144,10 +144,6 @@ class DirectoryRoleSynchronizer
             ->whereIn('directory_groups.name', $normalized)
             ->where('roles.guard_name', 'web');
 
-        if (Schema::hasColumn('directory_groups', 'app_enabled')) {
-            $query->where('directory_groups.app_enabled', true);
-        }
-
         return $query->get([
             'directory_groups.id as group_id',
             'directory_groups.name as group_name',
@@ -279,12 +275,12 @@ class DirectoryRoleSynchronizer
      */
     private function normalizeGroups(array $groups): array
     {
-        $normalized = array_values(array_unique(array_filter(array_map(
+        $normalized = DirectoryGroupPrefix::filterGroups(array_values(array_unique(array_filter(array_map(
             static fn (mixed $group): string => is_string($group)
                 ? strtolower(trim($group))
                 : '',
             $groups,
-        ))));
+        )))));
         sort($normalized);
 
         return $normalized;

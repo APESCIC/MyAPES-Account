@@ -781,7 +781,7 @@ class LocalQaSeeder extends Seeder
                 'department.directors',
                 'department.finance',
                 'intranet.managers',
-                'myapes.staff',
+                'myapesaccount.staff',
                 'position.staff',
             ],
         ])->save();
@@ -790,7 +790,7 @@ class LocalQaSeeder extends Seeder
             'ldap_groups' => [
                 'department.directors',
                 'intranet.managers',
-                'myapes.admin',
+                'myapesaccount.admin',
                 'position.staff',
             ],
         ])->save();
@@ -801,8 +801,8 @@ class LocalQaSeeder extends Seeder
                 'department.developers',
                 'department.directors',
                 'intranet.superadmin',
-                'myapes.superadmin',
-                'myapes.superadmins',
+                'myapesaccount.superadmin',
+                'myapesaccount.superadmin',
                 'newsroom.superadmin',
                 'position.staff',
             ],

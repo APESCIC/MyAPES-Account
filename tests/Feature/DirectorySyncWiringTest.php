@@ -9,6 +9,7 @@ use App\Models\AuthorizationState;
 use App\Models\DirectorySyncRun;
 use App\Models\User;
 use App\Services\DirectoryCatalogueSynchronizer;
+use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;
 use App\Services\ManualDirectorySyncQueueResolver;
 use App\Services\SessionAuthorizationContext;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
 use RuntimeException;
+use Tests\Fakes\FakeDirectoryUserSynchronizer;
 use Tests\TestCase;
 use Throwable;
 
@@ -29,10 +31,20 @@ class DirectorySyncWiringTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app->instance(
+            DirectoryUserSynchronizer::class,
+            new FakeDirectoryUserSynchronizer,
+        );
+    }
+
     public function test_directory_sync_command_reports_only_counts_and_missing_warning(): void
     {
         $this->installResolver([[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => 'member-identifier-canary-must-not-print',
             'member_count' => 4,
         ]]);
@@ -46,14 +58,14 @@ class DirectorySyncWiringTest extends TestCase
 
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString(
-            'Directory catalogue: ok (1 seen, 3 missing)',
+            'Directory catalogue: ok (1 seen, 4 missing)',
             $output,
         );
         $this->assertStringContainsString(
-            'Directory groups: warning (3 missing)',
+            'Directory groups: warning (4 missing)',
             $output,
         );
-        $this->assertStringNotContainsString('myapes.staff', $output);
+        $this->assertStringNotContainsString('myapesaccount.staff', $output);
         $this->assertStringNotContainsString('member-identifier-canary', $output);
     }
 
@@ -173,7 +185,7 @@ class DirectorySyncWiringTest extends TestCase
         );
 
         $this->installResolver([[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => null,
             'member_count' => 1,
         ]]);

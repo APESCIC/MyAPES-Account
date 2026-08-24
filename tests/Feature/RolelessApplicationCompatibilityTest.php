@@ -6,12 +6,14 @@ use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
 use App\Models\User;
 use App\Services\LdapGroupResolver;
+use App\Services\LdapUserResolver;
 use App\Support\AccessCompatibilityDatabaseGuard;
 use Database\Seeders\LocalQaSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\Fakes\FakeLdapGroupResolver;
+use Tests\Fakes\FakeLdapUserResolver;
 use Tests\Fakes\FakeOidcIdentityProvider;
 use Tests\TestCase;
 
@@ -63,9 +65,12 @@ class RolelessApplicationCompatibilityTest extends TestCase
             'Roleless Staff',
         );
         $directory = new FakeLdapGroupResolver;
-        $directory->groups = ['myapes.staff'];
+        $directoryUsers = new FakeLdapUserResolver;
+        $directory->groups = ['myapesaccount.staff'];
+        $directoryUsers->groups = ['myapesaccount.staff'];
         $this->app->instance(OidcIdentityProvider::class, $identityProvider);
         $this->app->instance(LdapGroupResolver::class, $directory);
+        $this->app->instance(LdapUserResolver::class, $directoryUsers);
 
         $this->dropRoleColumn();
 

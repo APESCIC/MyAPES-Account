@@ -170,7 +170,7 @@ class AuthorizationMutationServiceTest extends TestCase
     public function test_user_mutations_revalidate_directory_eligibility_inside_the_transaction(): void
     {
         $group = DirectoryGroup::query()
-            ->where('name', 'myapes.admin')
+            ->where('name', 'myapesaccount.admin')
             ->firstOrFail();
         $group->forceFill([
             'status' => DirectoryGroup::STATUS_PRESENT,
