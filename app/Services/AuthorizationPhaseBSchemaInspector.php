@@ -327,12 +327,36 @@ class AuthorizationPhaseBSchemaInspector
 
     private function hasVerifiedPhaseBState(): bool
     {
-        return $this->phaseBGuard->isInstalled()
+        return $this->phaseBGuardSatisfied()
             && DB::table('authorization_states')->count() === 1
             && DB::table('authorization_states')
                 ->where('id', 1)
                 ->whereNotNull('cutover_completed_at')
                 ->count() === 1;
+    }
+
+    private function phaseBGuardSatisfied(): bool
+    {
+        if ($this->phaseBGuard->isInstalled()) {
+            return true;
+        }
+
+        return $this->phaseBGuard->isLegacyInstalled()
+            && $this->hasPendingMigration(
+                '2026_08_24_000003_extend_directory_authorization_roles',
+            );
+    }
+
+    private function hasPendingMigration(string $migration): bool
+    {
+        if (! Schema::hasTable('migrations')) {
+            return false;
+        }
+
+        return ! DB::table('migrations')
+            ->where('migration', $migration)
+            ->exists()
+            && file_exists(database_path("migrations/{$migration}.php"));
     }
 
     /**

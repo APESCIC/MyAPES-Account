@@ -94,6 +94,60 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertCanariesAreAbsent($output);
     }
 
+    public function test_preflight_accepts_legacy_phase_b_guard_when_upgrade_migration_is_pending(): void
+    {
+        $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
+        DB::table('migrations')
+            ->where(
+                'migration',
+                '2026_08_24_000003_extend_directory_authorization_roles',
+            )
+            ->delete();
+
+        try {
+            $guard->upgrade();
+            $this->downgradeAuthorizationGuardToPreviousGeneration();
+
+            $superAdmin = User::factory()
+                ->accessLevel(User::ROLE_SUPERADMIN)
+                ->cloudronIdentity('oidc-subject-canary-preflight-legacy-guard')
+                ->create([
+                    'email' => 'preflight-legacy-guard-person-canary@example.test',
+                ]);
+            $this->directory()->groupsByEmail = [
+                $superAdmin->email => ['myapesaccount.superadmin'],
+            ];
+
+            $exitCode = $this->callCommand('myapes:authorization-preflight');
+            $output = Artisan::output();
+
+            $this->assertSame(0, $exitCode);
+            $this->assertStringContainsString(
+                'Authorization schema: ok (phase_b)',
+                $output,
+            );
+            $this->assertStringContainsString(
+                'Authorization preflight: ok (1 users)',
+                $output,
+            );
+            $this->assertCanariesAreAbsent($output);
+        } finally {
+            $guard->upgrade();
+
+            if (! DB::table('migrations')
+                ->where(
+                    'migration',
+                    '2026_08_24_000003_extend_directory_authorization_roles',
+                )
+                ->exists()) {
+                DB::table('migrations')->insert([
+                    'migration' => '2026_08_24_000003_extend_directory_authorization_roles',
+                    'batch' => 1,
+                ]);
+            }
+        }
+    }
+
     public function test_preflight_is_safe_before_phase_b_migrations_and_checks_phase_a_parity(): void
     {
         $superAdmin = User::factory()
@@ -1441,6 +1495,45 @@ class AuthorizationLifecycleCommandTest extends TestCase
             'directory-identity-canary',
         ] as $canary) {
             $this->assertStringNotContainsString($canary, $output);
+        }
+    }
+
+    private function downgradeAuthorizationGuardToPreviousGeneration(): void
+    {
+        $driver = DB::connection()->getDriverName();
+        $legacyLevels = "'service_user', 'staff', 'admin', 'superadmin'";
+        $currentLevels = "'service_user', 'student', 'volunteer', 'staff', 'admin', 'superadmin'";
+
+        foreach ([
+            'users_authorization_compatibility_insert',
+            'users_authorization_compatibility_update',
+        ] as $trigger) {
+            if ($driver === 'sqlite') {
+                $definition = (string) DB::scalar(
+                    "SELECT sql FROM sqlite_master
+                     WHERE type = 'trigger'
+                       AND name = ?",
+                    [$trigger],
+                );
+                DB::unprepared("DROP TRIGGER {$trigger}");
+                DB::unprepared(str_replace($currentLevels, $legacyLevels, $definition));
+
+                continue;
+            }
+
+            $definition = (string) DB::table('information_schema.triggers')
+                ->where('trigger_schema', DB::connection()->getDatabaseName())
+                ->where('trigger_name', $trigger)
+                ->value('action_statement');
+            $event = $trigger === 'users_authorization_compatibility_insert'
+                ? 'INSERT'
+                : 'UPDATE';
+            DB::unprepared("DROP TRIGGER {$trigger}");
+            DB::unprepared(
+                "CREATE TRIGGER {$trigger}
+                 AFTER {$event} ON users
+                 FOR EACH ROW ".str_replace($currentLevels, $legacyLevels, $definition),
+            );
         }
     }
 }

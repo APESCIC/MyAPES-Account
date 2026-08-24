@@ -34,7 +34,7 @@ class AuthorizationCompatibilityDatabaseGuard
 
     private const USER_MODEL_EXPRESSION = 'CHAR(65, 112, 112, 92, 77, 111, 100, 101, 108, 115, 92, 85, 115, 101, 114)';
 
-    public function install(): void
+    public function install(bool $force = false): void
     {
         $driver = $this->driverName();
 
@@ -44,7 +44,7 @@ class AuthorizationCompatibilityDatabaseGuard
             );
         }
 
-        if ($this->isInstalled()) {
+        if (! $force && $this->isInstalled()) {
             return;
         }
 
@@ -93,6 +93,71 @@ class AuthorizationCompatibilityDatabaseGuard
         foreach ($this->triggerNames() as $trigger) {
             DB::unprepared("DROP TRIGGER IF EXISTS {$trigger}");
         }
+    }
+
+    public function upgrade(): void
+    {
+        $this->install(force: true);
+    }
+
+    public function isLegacyInstalled(): bool
+    {
+        if ($this->isInstalled()) {
+            return false;
+        }
+
+        $driver = $this->driverName();
+
+        if ($driver === 'sqlite') {
+            $insertDefinition = DB::table('sqlite_master')
+                ->where('type', 'trigger')
+                ->where('name', self::INSERT_TRIGGER)
+                ->value('sql');
+
+            if (! is_string($insertDefinition)) {
+                return false;
+            }
+
+            $normalized = $this->compactDefinition($insertDefinition);
+
+            return str_contains(
+                $normalized,
+                "new.legacy_access_levelnotin('service_user','staff','admin','superadmin')",
+            )
+                && ! str_contains(
+                    $normalized,
+                    "new.legacy_access_levelnotin('service_user','student','volunteer'",
+                )
+                && $this->legacyTriggerInventoryComplete();
+        }
+
+        if ($driver === 'mysql') {
+            $insertDefinition = collect(DB::select(
+                'SELECT action_statement AS definition
+                 FROM information_schema.triggers
+                 WHERE trigger_schema = DATABASE()
+                   AND trigger_name = ?',
+                [self::INSERT_TRIGGER],
+            ))->value('definition');
+
+            if (! is_string($insertDefinition)) {
+                return false;
+            }
+
+            $normalized = $this->compactDefinition($insertDefinition);
+
+            return str_contains(
+                $normalized,
+                "new.legacy_access_levelnotin('service_user','staff','admin','superadmin')",
+            )
+                && ! str_contains(
+                    $normalized,
+                    "new.legacy_access_levelnotin('service_user','student','volunteer'",
+                )
+                && $this->legacyTriggerInventoryComplete();
+        }
+
+        return false;
     }
 
     public function isInstalled(): bool
@@ -932,6 +997,36 @@ class AuthorizationCompatibilityDatabaseGuard
             )";
     }
 
+    private function legacyTriggerInventoryComplete(): bool
+    {
+        $expected = $this->triggerNames();
+
+        if ($this->driverName() === 'sqlite') {
+            return DB::table('sqlite_master')
+                ->where('type', 'trigger')
+                ->whereIn('name', $expected)
+                ->count() === count($expected);
+        }
+
+        if ($this->driverName() === 'mysql') {
+            return collect(DB::select(
+                'SELECT trigger_name AS name
+                 FROM information_schema.triggers
+                 WHERE trigger_schema = DATABASE()',
+            ))
+                ->filter(
+                    static fn (object $trigger): bool => in_array(
+                        (string) $trigger->name,
+                        $expected,
+                        true,
+                    ),
+                )
+                ->count() === count($expected);
+        }
+
+        return false;
+    }
+
     /**
      * @return array<int, string>
      */
@@ -958,5 +1053,10 @@ class AuthorizationCompatibilityDatabaseGuard
         $normalized = strtolower(str_replace('`', '', trim($definition)));
 
         return preg_replace('/\s+/', ' ', $normalized) ?? '';
+    }
+
+    private function compactDefinition(string $definition): string
+    {
+        return str_replace(' ', '', $this->normalizeDefinition($definition));
     }
 }
