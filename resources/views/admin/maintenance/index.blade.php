@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Super Admin maintenance | MyAPES Account')
+@section('title', 'Super Admin maintenance | MyAPES Core')
 
 @section('content')
     @include('superadmin._navigation')

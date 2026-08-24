@@ -16,7 +16,7 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.23.1',
+                'version' => '0.24.0',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -50,7 +50,7 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.23.1',
+                'version' => '0.24.0',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -135,7 +135,7 @@ class HealthAndThemeTest extends TestCase
 
         $this->get('/')
             ->assertSee(
-                'content="MyAPES Account service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic."',
+                'content="MyAPES Core service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic."',
                 false,
             );
     }

@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Welcome | MyAPES Account')
+@section('title', 'Welcome | MyAPES Core')
 
 @section('content')
     <div class="panel">
         <h1 class="welcome-heading">
-            Welcome to MyAPES Account
+            Welcome to MyAPES Core
             <img src="{{ asset('mascot/spike-welcome.png') }}" alt="" class="welcome-heading__mascot" width="1024" height="1024">
         </h1>
         <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.</p>

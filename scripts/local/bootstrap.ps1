@@ -116,4 +116,4 @@ if ($Fresh) {
 Assert-SelectiveMediaBoundary -RootDir $RootDir -CreateAvatarLink
 Invoke-CheckedCommand npm run build
 
-Write-Host "Local bootstrap complete. Run 'composer run dev' to start MyAPES Account."
+Write-Host "Local bootstrap complete. Run 'composer run dev' to start MyAPES Core."

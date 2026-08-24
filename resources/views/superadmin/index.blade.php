@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Super Admin | MyAPES Account')
+@section('title', 'Super Admin | MyAPES Core')
 
 @push('head')
     @vite('resources/js/admin-analytics.js')
@@ -40,7 +40,7 @@
     <div class="panel">
         <p class="eyebrow">Technical operations</p>
         <h1>Super Admin overview</h1>
-        <p class="muted">Directory, module, and privileged diagnostics for Cloudron super-admins. Day-to-day account work stays in Admin.</p>
+        <p class="muted">Directory, plugin, and privileged diagnostics for Cloudron super-admins. Day-to-day account work stays in Admin.</p>
 
         <form method="get" action="{{ route('superadmin.index') }}" class="analytics-range" aria-label="Reporting range">
             <fieldset>
@@ -81,7 +81,7 @@
                 <div data-kpi="unassigned">{{ $workload['unassigned'] }}</div>
             </div>
             <div class="panel panel-flat" role="listitem">
-                <h3>Enabled modules</h3>
+                <h3>Enabled plugins</h3>
                 <div data-kpi="enabled-modules">{{ $dashboard['modules']['enabled'] }} / {{ $dashboard['modules']['installed'] }}</div>
             </div>
             <div class="panel panel-flat" role="listitem">
@@ -156,12 +156,12 @@
 
     <div class="panel">
         <h2>Open workload by service</h2>
-        <p class="muted">Currently open tickets, cases, and consultations by installed module.</p>
+        <p class="muted">Currently open tickets, cases, and consultations by installed plugin.</p>
         <div class="analytics-chart-frame" data-chart-frame="workload">
             <canvas id="analytics-workload-chart" role="img" aria-labelledby="analytics-workload-caption"></canvas>
         </div>
         <table id="analytics-workload-table" data-table="workload-by-service">
-            <caption id="analytics-workload-caption">Open workload by sub-core and module</caption>
+            <caption id="analytics-workload-caption">Open workload by service and plugin</caption>
             <thead>
                 <tr>
                     <th scope="col">Service</th>
@@ -180,7 +180,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4">No module analytics are available.</td>
+                    <td colspan="4">No plugin analytics are available.</td>
                 </tr>
             @endforelse
             </tbody>
@@ -197,8 +197,8 @@
             @endif
         </p>
         <table data-table="module-alerts">
-            <caption>Disabled, blocked, or active-record module warnings</caption>
-            <thead><tr><th scope="col">Module</th><th scope="col">Status</th></tr></thead>
+            <caption>Disabled, blocked, or active-record plugin warnings</caption>
+            <thead><tr><th scope="col">Plugin</th><th scope="col">Status</th></tr></thead>
             <tbody>
             @forelse($dashboard['module_alerts'] as $alert)
                 <tr data-alert-kind="{{ $alert['kind'] }}">
@@ -207,7 +207,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="2">No module warnings.</td>
+                    <td colspan="2">No plugin warnings.</td>
                 </tr>
             @endforelse
             </tbody>

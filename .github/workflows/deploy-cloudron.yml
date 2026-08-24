@@ -1,4 +1,4 @@
-name: Test and deploy MyAPES Account
+name: Test and deploy MyAPES Core
 
 on:
   pull_request:

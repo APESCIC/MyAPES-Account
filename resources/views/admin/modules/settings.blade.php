@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Module settings | MyAPES Account')
+@section('title', 'Plugin settings | MyAPES Core')
 
 @section('content')
     @include('superadmin._navigation')
@@ -13,11 +13,11 @@
     <header class="page-heading module-settings-heading">
         <div>
             <p class="eyebrow">{{ strtoupper(str_replace('-', ' ', $subCoreKey)) }} · {{ strtoupper($moduleKey) }}</p>
-            <h1>Module settings</h1>
+            <h1>Plugin settings</h1>
             <p>Edit websites, {{ strtolower($groupLabel) }} and subcategory options used by forms.</p>
         </div>
         <div class="module-settings-toolbar actions">
-            <a class="button button-secondary" href="{{ route('admin.modules.index') }}">Back to modules</a>
+            <a class="button button-secondary" href="{{ route('admin.modules.index') }}">Back to plugins</a>
             @if($canManage)
                 <button type="submit" form="module-settings-form">Save settings</button>
             @endif
@@ -210,7 +210,7 @@
             method="post"
             action="{{ route('admin.modules.settings.update', [$subCoreKey, $moduleKey]) }}"
             class="module-settings-reset"
-            onsubmit="return confirm('Reset all settings for this module to defaults?')"
+            onsubmit="return confirm('Reset all settings for this plugin to defaults?')"
         >
             @csrf
             @method('put')

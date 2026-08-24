@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Change Log Hub | MyAPES Account')
+@section('title', 'Change Log Hub | MyAPES Core')
 
 @section('content')
 <div class="change-log" data-change-log>
     <section class="change-log__hero" aria-labelledby="change-log-title">
         <p class="eyebrow">Release records</p>
         <h1 id="change-log-title">Change Log Hub</h1>
-        <p>Track MyAPES Account releases, fixes, compliance work, accessibility improvements, and user-facing changes.</p>
+        <p>Track MyAPES Core releases, fixes, compliance work, accessibility improvements, and user-facing changes.</p>
 
         <div class="change-log__current">
             <div>

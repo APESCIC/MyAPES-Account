@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Admin users | MyAPES Account')
+@section('title', 'Admin users | MyAPES Core')
 
 @section('content')
     @include('admin._navigation')

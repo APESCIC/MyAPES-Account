@@ -3,17 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'MyAPES Account')</title>
-    <meta name="description" content="MyAPES Account service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.">
+    <title>@yield('title', 'MyAPES Core')</title>
+    <meta name="description" content="MyAPES Core service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="@yield('title', 'MyAPES Account')">
-    <meta property="og:description" content="MyAPES Account service portal for APES CIC service users and staff.">
+    <meta property="og:title" content="@yield('title', 'MyAPES Core')">
+    <meta property="og:description" content="MyAPES Core service portal for APES CIC service users and staff.">
     <meta property="og:image" content="{{ asset('social/og-image-1200x630.jpg') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="@yield('title', 'MyAPES Account')">
-    <meta name="twitter:description" content="MyAPES Account service portal for APES CIC service users and staff.">
+    <meta name="twitter:title" content="@yield('title', 'MyAPES Core')">
+    <meta name="twitter:description" content="MyAPES Core service portal for APES CIC service users and staff.">
     <meta name="twitter:image" content="{{ asset('social/og-image-1200x630.jpg') }}">
     <meta name="theme-color" content="#f3e4c4">
     <meta name="msapplication-config" content="{{ asset('browserconfig.xml') }}">
@@ -42,7 +42,7 @@
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
 <header class="mobile-header">
-    <a href="{{ route('home') }}" class="mobile-brand" aria-label="MyAPES Account home">
+    <a href="{{ route('home') }}" class="mobile-brand" aria-label="MyAPES Core home">
         <img
             src="{{ asset('branding/logo-myapes-account.png') }}"
             srcset="{{ asset('logos/myapes-mark-256x256.png') }} 256w, {{ asset('branding/logo-myapes-account.png') }} 1024w"
@@ -51,7 +51,7 @@
             height="1024"
             alt=""
         >
-        <span><strong>MyAPES</strong> Account</span>
+        <span><strong>MyAPES</strong> Core</span>
     </a>
     <button
         type="button"
@@ -72,14 +72,14 @@
                 <i data-lucide="x" aria-hidden="true"></i>
             </button>
 
-            <a href="{{ route('home') }}" class="sidebar-brand" aria-label="MyAPES Account home">
+            <a href="{{ route('home') }}" class="sidebar-brand" aria-label="MyAPES Core home">
                 <img
                     src="{{ asset('branding/logo-myapes-account.png') }}"
                     srcset="{{ asset('logos/myapes-mark-256x256.png') }} 256w, {{ asset('branding/logo-myapes-account.png') }} 1024w"
                     sizes="(max-width: 64rem) 8.5rem, 10.75rem"
                     width="1024"
                     height="1024"
-                    alt="MyAPES Account"
+                    alt="MyAPES Core"
                 >
             </a>
 
@@ -162,8 +162,8 @@
     <button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="Close navigation menu" tabindex="-1"></button>
 
     <div class="app-frame">
-        <header class="content-brand" aria-label="MyAPES Account">
-            <strong>My<span>APES</span></strong> Account
+        <header class="content-brand" aria-label="MyAPES Core">
+            <strong>My<span>APES</span></strong> Core
             <small>Association of Protecting Exotic Species CIC</small>
         </header>
 
@@ -225,12 +225,12 @@
 </main>
 
 <footer class="site-footer">
-    <span><strong>MyAPES</strong> Account</span>
+    <span><strong>MyAPES</strong> Core</span>
     <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
     <a
         class="site-footer__version"
         href="{{ route('change-log.index') }}"
-        aria-label="View the MyAPES Account change log for version v{{ $appVersion }}"
+        aria-label="View the MyAPES Core change log for version v{{ $appVersion }}"
     >v{{ $appVersion }}</a>
 </footer>
     </div>

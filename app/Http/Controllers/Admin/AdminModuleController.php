@@ -83,7 +83,7 @@ class AdminModuleController extends Controller
 
             return redirect()
                 ->route('admin.modules.settings.edit', [$subCoreKey, $moduleKey])
-                ->with('status', 'Module settings reset to defaults.');
+                ->with('status', 'Plugin settings reset to defaults.');
         }
 
         $groupKey = $moduleKey === 'tickets' ? 'service_areas' : 'categories';
@@ -152,7 +152,7 @@ class AdminModuleController extends Controller
 
         return redirect()
             ->route('admin.modules.settings.edit', [$subCoreKey, $moduleKey])
-            ->with('status', 'Module settings saved.');
+            ->with('status', 'Plugin settings saved.');
     }
 
     public function transition(
@@ -218,13 +218,13 @@ class AdminModuleController extends Controller
             };
         } catch (ModuleLifecycleException) {
             return back()->withErrors([
-                'module' => 'The module transition could not be completed. Refresh the page and try again.',
+                'module' => 'The plugin transition could not be completed. Refresh the page and try again.',
             ]);
         }
 
         return redirect()
             ->route('admin.modules.index')
-            ->with('status', 'Module state updated.');
+            ->with('status', 'Plugin state updated.');
     }
 
     private function safeKey(string $value): string
