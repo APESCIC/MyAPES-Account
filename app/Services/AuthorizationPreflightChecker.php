@@ -51,7 +51,10 @@ class AuthorizationPreflightChecker
                 ? 'oidc_readiness'
                 : 'directory_readiness';
 
-            throw new AuthorizationLifecycleException($check);
+            throw new AuthorizationLifecycleException(
+                $check,
+                "{$exception->check}:{$exception->reason}",
+            );
         }
 
         $superAdmins = $this->eligibleOidcSuperAdmins();
@@ -122,6 +125,7 @@ class AuthorizationPreflightChecker
             } catch (DirectoryUnavailable) {
                 throw new AuthorizationLifecycleException(
                     'directory_readiness',
+                    'ldap_directory:unavailable',
                 );
             }
 
