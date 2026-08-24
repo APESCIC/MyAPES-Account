@@ -88,6 +88,7 @@ class LocalQaSeeder extends Seeder
             User::ROLE_SUPERADMIN,
             $seededAt
         );
+        $this->seedDirectoryGroupsForQaStaff($staffUser, $adminUser, $superAdminUser);
         $this->upsertCustomRole($superAdminUser, $staffUser);
 
         $this->upsertProfile($serviceUser, 'Service User', '+44 7700 900101', 'APES CIC Service User');
@@ -767,6 +768,44 @@ class LocalQaSeeder extends Seeder
             ]
         );
         $this->setTimestamps($closedConsultation, $seededAt->subDays(3));
+    }
+
+    private function seedDirectoryGroupsForQaStaff(User $staffUser, User $adminUser, User $superAdminUser): void
+    {
+        $staffUser->forceFill([
+            'ldap_groups' => [
+                'board-of-directors',
+                'department.animal.care',
+                'department.client.services',
+                'department.developers',
+                'department.directors',
+                'department.finance',
+                'intranet.managers',
+                'myapes.staff',
+                'position.staff',
+            ],
+        ])->save();
+
+        $adminUser->forceFill([
+            'ldap_groups' => [
+                'department.directors',
+                'intranet.managers',
+                'myapes.admin',
+                'position.staff',
+            ],
+        ])->save();
+
+        $superAdminUser->forceFill([
+            'ldap_groups' => [
+                'board-of-directors',
+                'department.developers',
+                'department.directors',
+                'intranet.superadmin',
+                'myapes.superadmin',
+                'newsroom.superadmin',
+                'position.staff',
+            ],
+        ])->save();
     }
 
     private function upsertUser(

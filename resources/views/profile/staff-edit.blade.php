@@ -9,14 +9,10 @@
         <dl class="admin-definition-list">
             <div><dt>Name</dt><dd>{{ auth()->user()->name }}</dd></div>
             <div><dt>Email</dt><dd>{{ auth()->user()->email }}</dd></div>
-            <div>
+            <div class="admin-definition-list__groups">
                 <dt>Directory groups</dt>
                 <dd>
-                    @forelse((auth()->user()->ldap_groups ?? []) as $group)
-                        <code>{{ $group }}</code>@if(! $loop->last), @endif
-                    @empty
-                        None recorded
-                    @endforelse
+                    <x-directory-group-list :groups="auth()->user()->ldap_groups ?? []" />
                 </dd>
             </div>
         </dl>
