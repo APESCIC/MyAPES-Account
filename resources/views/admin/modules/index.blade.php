@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Super Admin modules | MyAPES Account')
+@section('title', 'Super Admin plugins | MyAPES Core')
 
 @section('content')
     @include('superadmin._navigation')
@@ -8,12 +8,12 @@
     <header class="page-heading">
         <div>
             <p class="eyebrow">First-party capability registry</p>
-            <h1>Super Admin modules</h1>
-            <p>Review shipped code, dependencies and guarded installation state across every permanent sub-core.</p>
+            <h1>Super Admin plugins</h1>
+            <p>Review shipped code, dependencies and guarded installation state across every permanent Service.</p>
         </div>
     </header>
 
-    <div class="module-registry" role="region" aria-label="Module compatibility and lifecycle registry">
+    <div class="module-registry" role="region" aria-label="Plugin compatibility and lifecycle registry">
         @foreach($subCores as $subCore)
             @php
                 $shippedRows = [];
@@ -91,7 +91,7 @@
                                         <strong class="module-state module-state--{{ $stateClass }}">{{ $stateLabel }}</strong>
                                     </div>
 
-                                    <ul class="module-registry__metric-bar" aria-label="Module metrics">
+                                    <ul class="module-registry__metric-bar" aria-label="Plugin metrics">
                                         <li>
                                             <span class="module-registry__metric-label">Records</span>
                                             <strong>{{ $recordCount }}</strong>
@@ -156,8 +156,8 @@
 
                 @if($unavailableChips !== [])
                     <div class="module-registry__unavailable">
-                        <p class="module-registry__unavailable-label muted">Not compatible with this sub-core</p>
-                        <ul class="module-registry__chips" aria-label="Unavailable module types for {{ $subCore->name }}">
+                        <p class="module-registry__unavailable-label muted">Not compatible with this Service</p>
+                        <ul class="module-registry__chips" aria-label="Unavailable plugin types for {{ $subCore->name }}">
                             @foreach($unavailableChips as $chip)
                                 @php
                                     $module = $chip['module'];

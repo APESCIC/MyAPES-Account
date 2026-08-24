@@ -728,8 +728,8 @@ class ModuleProviderContractTest extends TestCase
         $response = $this->actingAs($owner)->get(route('apes-cic.index'));
 
         $response->assertOk()
-            ->assertSee('MyAPES support service')
-            ->assertSee('Available support services')
+            ->assertSee('MyAPES Core service')
+            ->assertSee('Available plugins')
             ->assertSee('What needs your attention')
             ->assertSee('Recent updates')
             ->assertSee('service-summary__number', false)
@@ -741,6 +741,8 @@ class ModuleProviderContractTest extends TestCase
             ->assertDontSee('Foreign activity title')
             ->assertDontSee('Available modules')
             ->assertDontSee('MyAPES Account sub-core')
+            ->assertDontSee('Available support services')
+            ->assertDontSee('MyAPES support service')
             ->assertSee('attention-item__icon', false)
             ->assertSee('attention-item__meta', false)
             ->assertSee('attention-item__chevron', false)

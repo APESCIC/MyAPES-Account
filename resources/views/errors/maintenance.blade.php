@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="60">
     <meta name="robots" content="noindex, nofollow">
-    <title>Maintenance | MyAPES Account</title>
+    <title>Maintenance | MyAPES Core</title>
     <style>
         :root { color-scheme: light dark; font-family: "Segoe UI", sans-serif; }
         body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #062f35; color: #f4fbfa; }
@@ -17,7 +17,7 @@
 </head>
 <body>
 <main>
-    <p>MyAPES Account</p>
+    <p>MyAPES Core</p>
     <h1>Temporarily unavailable</h1>
     <p class="message">{{ $message }}</p>
     @if($plannedEndAt)

@@ -78,7 +78,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $this->actingAs($user)
             ->get('/apes-cic')
             ->assertOk()
-            ->assertSee('No support services are available right now.');
+            ->assertSee('No plugins are currently available.');
     }
 
     public function test_administrators_cannot_open_module_administration(): void
@@ -118,7 +118,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $response->assertSee('module-registry__row--shipped', false);
         $response->assertSee('module-registry__rows', false);
         $response->assertSee('module-registry__chip', false);
-        $response->assertSeeText('Not compatible with this sub-core');
+        $response->assertSeeText('Not compatible with this Service');
         $response->assertSee(route('admin.modules.settings.edit', ['apes-cic', 'tickets']));
         $response->assertSeeText('Settings');
         $this->assertSame(

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Admin | MyAPES Account')
+@section('title', 'Admin | MyAPES Core')
 
 @section('content')
     @include('admin._navigation')
@@ -23,7 +23,7 @@
 
     <div class="panel">
         <h1>Admin overview</h1>
-        <p class="muted">Day-to-day account health for administrators. Technical charts, directory controls, and module lifecycle live in Super Admin.</p>
+        <p class="muted">Day-to-day account health for administrators. Technical charts, directory controls, and plugin lifecycle live in Super Admin.</p>
 
         <form method="get" action="{{ route('admin.index') }}" class="analytics-range" aria-label="Reporting range">
             <fieldset>

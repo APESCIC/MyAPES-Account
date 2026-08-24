@@ -65,13 +65,13 @@ final class PermissionDescriptions
             'group' => 'Authorization',
         ],
         'admin.modules.view' => [
-            'title' => 'View modules',
-            'description' => 'Review first-party module registry status across sub-cores.',
+            'title' => 'View plugins',
+            'description' => 'Review first-party plugin registry status across Services.',
             'group' => 'Platform',
         ],
         'admin.modules.manage' => [
-            'title' => 'Manage modules',
-            'description' => 'Install, enable, or disable first-party modules and their navigation.',
+            'title' => 'Manage plugins',
+            'description' => 'Install, enable, or disable first-party plugins and their navigation.',
             'group' => 'Platform',
         ],
         'admin.maintenance.manage' => [

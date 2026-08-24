@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', $subCore->name.' | MyAPES Account')
+@section('title', $subCore->name.' | MyAPES Core')
 
 @section('content')
     <div class="service-dashboard service-dashboard--{{ $subCore->key }}">
         <header class="page-heading service-dashboard__heading">
             <div>
-                <p class="eyebrow">MyAPES support service</p>
+                <p class="eyebrow">MyAPES Core service</p>
                 <h1>{{ $subCore->name }}</h1>
                 <p>{{ $subCore->description }}</p>
             </div>
@@ -73,7 +73,7 @@
             >
                 <header class="service-summary__header">
                     <h2 class="service-summary__heading" id="support-services-title">
-                        Available support services
+                        Available plugins
                     </h2>
                 </header>
                 <div
@@ -98,12 +98,12 @@
             </section>
         @elseif($modules === [])
             <section class="service-dashboard__section service-dashboard__empty" aria-labelledby="support-services-title">
-                <h2 id="support-services-title">Available support services</h2>
+                <h2 id="support-services-title">Available plugins</h2>
                 <div class="attention-empty">
                     <x-mascot-tip
                         variant="empty"
-                        title="No support services are available right now."
-                        body="Support tools will appear here when they are enabled for you."
+                        title="No plugins are currently available."
+                        body="Plugins will appear here when they are enabled for you."
                     />
                 </div>
             </section>
