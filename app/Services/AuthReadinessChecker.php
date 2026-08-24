@@ -11,6 +11,17 @@ class AuthReadinessChecker
         'myapes.admin',
         'myapes.staff',
         'myapes.superadmin',
+        'myapes.superadmins',
+    ];
+
+    private const ALWAYS_MEMBERED_GROUPS = [
+        'myapes.admin',
+        'myapes.staff',
+    ];
+
+    private const SUPERADMIN_GROUPS = [
+        'myapes.superadmin',
+        'myapes.superadmins',
     ];
 
     public function __construct(
@@ -42,7 +53,7 @@ class AuthReadinessChecker
         $groups = $this->configuredGroups();
 
         if ($groups !== self::REQUIRED_GROUPS) {
-            throw new AuthReadinessException('ldap_groups', 'expected_three_groups');
+            throw new AuthReadinessException('ldap_groups', 'expected_required_groups');
         }
 
         try {
@@ -53,7 +64,7 @@ class AuthReadinessChecker
 
         $catalogue = collect($catalogue)->keyBy('name');
 
-        foreach ($groups as $group) {
+        foreach (self::ALWAYS_MEMBERED_GROUPS as $group) {
             $entry = $catalogue->get($group);
 
             if (! is_array($entry)) {
@@ -69,6 +80,25 @@ class AuthReadinessChecker
                     'required_group_empty',
                 );
             }
+        }
+
+        $superAdminMembers = 0;
+
+        foreach (self::SUPERADMIN_GROUPS as $group) {
+            $entry = $catalogue->get($group);
+
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $superAdminMembers += max(0, (int) ($entry['member_count'] ?? 0));
+        }
+
+        if ($superAdminMembers < 1) {
+            throw new AuthReadinessException(
+                'ldap_groups',
+                'required_group_empty',
+            );
         }
 
         return count($groups);

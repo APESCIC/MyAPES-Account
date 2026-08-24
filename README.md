@@ -45,7 +45,7 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Staff assignment and notification eligibility requires an unsuspended protected staff-class pivot and a qualifying source for that same role. Production accepts directory provenance only; local/testing may also accept the approved system and legacy compatibility fixtures. A custom role containing `staff.access` never qualifies by itself.
   - Privileged role, mapping, and user mutations lock the singleton authorization state before users or directory records, then revalidate the session method, user and global epochs, directory generation, suspension, exact-role provenance, and effective protected role. Final-super-admin safeguards use this same present-group-backed predicate; an unprovenanced or stale pivot cannot satisfy them.
 - **Directory catalogue and mappings**:
-  - The only immutable mappings are `myapes.staff` → `staff`, `myapes.admin` → `administrator`, and `myapes.superadmin` → `super-admin`.
+  - The only immutable mappings are `myapes.staff` → `staff`, `myapes.admin` → `administrator`, and both `myapes.superadmin` and `myapes.superadmins` → `super-admin`.
   - Matching is normalized and exact. Wildcards and legacy aliases are rejected.
   - The catalogue stores normalized group identity, optional external ID, aggregate member count, presence state, and synchronization timestamps; individual directory members are never persisted.
   - Manual and scheduled catalogue requests share one unique, coalesced job and the same database lease. Attempts, backoff, execution, queue reservation, and LDAP connection/search times are bounded; the queue reservation always exceeds one job attempt.
@@ -386,12 +386,13 @@ Use the issuer `https://my.cloudron.apes.org.uk/openid` and the
 environment. The generated credentials must not be copied into GitHub,
 the repository, release archives, logs, or chat.
 
-Before the v0.8.0 production migration, create and populate all three exact
+Before the v0.8.0 production migration, create and populate the exact
 Cloudron directory groups and configure app access for them:
 
 - `myapes.staff`
 - `myapes.admin`
 - `myapes.superadmin`
+- `myapes.superadmins` (also maps to `super-admin`; either superadmin group may hold members)
 
 The LAMP package injects rotating `CLOUDRON_LDAP_*` credentials. MyAPES uses
 OIDC for authentication and LDAP membership for authorization; LDAP credentials

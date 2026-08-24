@@ -802,6 +802,7 @@ class LocalQaSeeder extends Seeder
                 'department.directors',
                 'intranet.superadmin',
                 'myapes.superadmin',
+                'myapes.superadmins',
                 'newsroom.superadmin',
                 'position.staff',
             ],

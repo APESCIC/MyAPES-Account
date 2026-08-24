@@ -182,6 +182,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             'department.directors',
             'intranet.superadmin',
             'myapes.superadmin',
+            'myapes.superadmins',
             'newsroom.superadmin',
             'position.staff',
         ], $users->firstWhere('email', LocalQaSeeder::SUPERADMIN_EMAIL)?->ldap_groups);

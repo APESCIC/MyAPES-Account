@@ -45,6 +45,7 @@ return [
             'myapes.staff',
             'myapes.admin',
             'myapes.superadmin',
+            'myapes.superadmins',
         ],
         'revalidate_seconds' => (int) env('LDAP_SESSION_REVALIDATE_SECONDS', 300),
         'revalidate_in_local' => (bool) env('LDAP_SESSION_REVALIDATE_IN_LOCAL', false),
