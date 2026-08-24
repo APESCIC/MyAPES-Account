@@ -161,6 +161,7 @@ class AuthorizationSchemaTest extends TestCase
             ['group_name' => 'myapes.admin', 'role_name' => 'administrator', 'is_immutable' => 1],
             ['group_name' => 'myapes.staff', 'role_name' => 'staff', 'is_immutable' => 1],
             ['group_name' => 'myapes.superadmin', 'role_name' => 'super-admin', 'is_immutable' => 1],
+            ['group_name' => 'myapes.superadmins', 'role_name' => 'super-admin', 'is_immutable' => 1],
         ], DB::table('directory_group_role_mappings')
             ->join('directory_groups', 'directory_groups.id', '=', 'directory_group_role_mappings.directory_group_id')
             ->join('roles', 'roles.id', '=', 'directory_group_role_mappings.role_id')

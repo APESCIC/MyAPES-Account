@@ -35,6 +35,7 @@ class AuthReadinessCommandTest extends TestCase
                 'myapes.staff',
                 'myapes.admin',
                 'myapes.superadmin',
+                'myapes.superadmins',
             ],
         ]);
 
@@ -62,7 +63,7 @@ class AuthReadinessCommandTest extends TestCase
         $this->assertStringContainsString('OIDC configuration: ok', $output);
         $this->assertStringContainsString('OIDC discovery: ok', $output);
         $this->assertStringContainsString('LDAP bind: ok', $output);
-        $this->assertStringContainsString('LDAP groups: ok (3 required)', $output);
+        $this->assertStringContainsString('LDAP groups: ok (4 required)', $output);
         $this->assertStringContainsString('Authentication readiness: ok', $output);
         $this->assertCanariesAreAbsent($output);
         Http::assertSentCount(1);
@@ -356,7 +357,7 @@ class AuthReadinessCommandTest extends TestCase
         $this->assertCanariesAreAbsent($output);
     }
 
-    public function test_command_requires_exactly_three_unique_groups_before_contacting_ldap(): void
+    public function test_command_requires_exact_required_groups_before_contacting_ldap(): void
     {
         config(['myapes.directory.required_groups' => [
             'myapes.staff',
@@ -375,7 +376,59 @@ class AuthReadinessCommandTest extends TestCase
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString(
-            'Authentication readiness: failed (ldap_groups/expected_three_groups)',
+            'Authentication readiness: failed (ldap_groups/expected_required_groups)',
+            $output,
+        );
+        $this->assertCanariesAreAbsent($output);
+    }
+
+    public function test_command_passes_when_only_plural_superadmin_group_has_members(): void
+    {
+        Http::fake([
+            self::DISCOVERY => Http::response($this->validMetadata()),
+        ]);
+
+        $this->mock(LdapGroupResolver::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('enumerateGroups')
+                ->once()
+                ->andReturn([
+                    ['name' => 'myapes.admin', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapes.staff', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapes.superadmins', 'external_id' => null, 'member_count' => 1],
+                ]);
+        });
+
+        $exitCode = $this->callCommand();
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('LDAP groups: ok (4 required)', $output);
+        $this->assertStringContainsString('Authentication readiness: ok', $output);
+        $this->assertCanariesAreAbsent($output);
+    }
+
+    public function test_command_fails_when_both_superadmin_groups_are_empty_or_missing(): void
+    {
+        Http::fake([
+            self::DISCOVERY => Http::response($this->validMetadata()),
+        ]);
+
+        $this->mock(LdapGroupResolver::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('enumerateGroups')
+                ->once()
+                ->andReturn([
+                    ['name' => 'myapes.admin', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapes.staff', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapes.superadmin', 'external_id' => null, 'member_count' => 0],
+                ]);
+        });
+
+        $exitCode = $this->callCommand();
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString(
+            'Authentication readiness: failed (ldap_groups/required_group_empty)',
             $output,
         );
         $this->assertCanariesAreAbsent($output);
@@ -410,6 +463,7 @@ class AuthReadinessCommandTest extends TestCase
             'myapes.admin',
             'myapes.staff',
             'myapes.superadmin',
+            'myapes.superadmins',
         ];
     }
 

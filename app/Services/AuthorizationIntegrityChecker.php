@@ -24,6 +24,7 @@ class AuthorizationIntegrityChecker
         'myapes.admin' => AuthorizationProfile::ROLE_ADMINISTRATOR,
         'myapes.staff' => AuthorizationProfile::ROLE_STAFF,
         'myapes.superadmin' => AuthorizationProfile::ROLE_SUPER_ADMIN,
+        'myapes.superadmins' => AuthorizationProfile::ROLE_SUPER_ADMIN,
     ];
 
     public function __construct(

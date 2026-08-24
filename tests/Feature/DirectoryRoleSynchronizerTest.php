@@ -64,6 +64,34 @@ class DirectoryRoleSynchronizerTest extends TestCase
         ]);
     }
 
+    public function test_plural_superadmins_group_grants_super_admin(): void
+    {
+        $user = User::factory()
+            ->accessLevel(User::ROLE_STAFF)
+            ->cloudronIdentity('plural-superadmins-subject')
+            ->create()
+            ->refresh();
+
+        $result = app(DirectoryRoleSynchronizer::class)->synchronize($user, [
+            'myapes.staff',
+            'myapes.superadmins',
+        ]);
+
+        $this->assertTrue($result->eligible);
+        $this->assertSame('super-admin', $result->protectedRole);
+        $this->assertSame(
+            ['super-admin'],
+            $user->fresh()->roles()->orderBy('name')->pluck('name')->all(),
+        );
+        $this->assertDatabaseHas('role_sources', [
+            'user_id' => $user->id,
+            'source' => RoleSource::SOURCE_DIRECTORY,
+            'directory_group_id' => DirectoryGroup::query()
+                ->where('name', 'myapes.superadmins')
+                ->value('id'),
+        ]);
+    }
+
     public function test_loss_of_protected_eligibility_removes_directory_sources_only(): void
     {
         $user = User::factory()

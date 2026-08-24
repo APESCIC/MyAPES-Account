@@ -47,6 +47,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
                 'myapes.staff',
                 'myapes.admin',
                 'myapes.superadmin',
+                'myapes.superadmins',
             ],
         ]);
         Http::preventStrayRequests();
@@ -77,7 +78,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertStringContainsString('Database driver: ok', $output);
         $this->assertStringContainsString('Authorization schema: ok (phase_b)', $output);
         $this->assertStringContainsString('OIDC readiness: ok', $output);
-        $this->assertStringContainsString('Directory groups: ok (3 groups)', $output);
+        $this->assertStringContainsString('Directory groups: ok (4 groups)', $output);
         $this->assertStringContainsString(
             'Eligible OIDC super-admins: ok (1 users)',
             $output,
@@ -107,7 +108,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('Authorization schema: ok (phase_a)', $output);
         $this->assertStringContainsString('Legacy parity: ok (1 users)', $output);
-        $this->assertStringContainsString('Directory groups: ok (3 groups)', $output);
+        $this->assertStringContainsString('Directory groups: ok (4 groups)', $output);
         $this->assertStringContainsString(
             'Eligible OIDC super-admins: ok (1 users)',
             $output,
@@ -836,7 +837,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('Authorization schema: ok', $output);
         $this->assertStringContainsString('Permission matrix: ok (73 permissions)', $output);
-        $this->assertStringContainsString('Directory mappings: ok (3 immutable)', $output);
+        $this->assertStringContainsString('Directory mappings: ok (4 immutable)', $output);
         $this->assertStringContainsString('Role provenance: ok (3 users)', $output);
         $this->assertStringContainsString('Session cutover: ok', $output);
         $this->assertStringContainsString('Effective super-admins: ok (1 users)', $output);
@@ -1165,7 +1166,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertCanariesAreAbsent($output);
     }
 
-    public function test_authorization_check_requires_exactly_three_immutable_mapping_tuples(): void
+    public function test_authorization_check_rejects_extra_immutable_mapping_tuples(): void
     {
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
@@ -1343,6 +1344,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
                     ['name' => 'myapes.admin', 'external_id' => '4102', 'member_count' => 1],
                     ['name' => 'myapes.staff', 'external_id' => '4101', 'member_count' => 1],
                     ['name' => 'myapes.superadmin', 'external_id' => '4103', 'member_count' => 1],
+                    ['name' => 'myapes.superadmins', 'external_id' => '4104', 'member_count' => 1],
                 ];
             }
 

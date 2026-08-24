@@ -78,6 +78,28 @@ class StaffOidcAuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_plural_superadmins_group_grants_super_admin_on_staff_login(): void
+    {
+        $this->identityProvider->identity = new OidcIdentity(
+            'plural-superadmins-subject',
+            'plural.superadmins@example.com',
+            'Plural Superadmins Member',
+        );
+        $this->directory->groups = ['myapes.superadmins'];
+
+        $response = $this->get(route('staff.auth.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticated();
+
+        $user = User::query()->where('email', 'plural.superadmins@example.com')->sole();
+        $this->assertSame(User::ROLE_SUPERADMIN, $user->accessLevel());
+        $this->assertSame(['myapes.superadmins'], $user->ldap_groups);
+        $this->assertTrue(
+            $user->roles()->where('name', 'super-admin')->exists(),
+        );
+    }
+
     public function test_super_admin_callback_redirects_to_recovery_while_maintenance_is_active(): void
     {
         $this->fakeMaintenanceMode(true);
