@@ -23,7 +23,7 @@ class ChangeLogPageTest extends TestCase
             ->assertSee('data-change-log-controls hidden', false)
             ->assertSee('href="#release-v0-25-2"', false)
             ->assertSee('<details', false)
-            ->assertSeeText('Merge and deploy reliability improvements')
+            ->assertSeeText('Accept legacy myapes LDAP groups during deploy readiness')
             ->assertSeeText('Fix deploy preflight for authorization guard upgrade')
             ->assertSeeText('Migrate LDAP groups to myapesaccount prefix with volunteer and student roles')
             ->assertSeeText('Accept plural Cloudron superadmins group')
