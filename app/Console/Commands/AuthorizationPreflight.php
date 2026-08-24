@@ -19,7 +19,7 @@ class AuthorizationPreflight extends Command
             $result = $checker->check();
         } catch (AuthorizationLifecycleException $exception) {
             $this->components->error(
-                "Authorization preflight: failed ({$exception->check})",
+                "Authorization preflight: failed ({$exception->label()})",
             );
 
             return self::FAILURE;

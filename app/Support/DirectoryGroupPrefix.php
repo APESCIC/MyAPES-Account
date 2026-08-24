@@ -27,11 +27,21 @@ final class DirectoryGroupPrefix
      */
     public static function filterGroups(array $groups): array
     {
-        $filtered = array_values(array_unique(array_filter(
-            $groups,
-            static fn (mixed $group): bool => is_string($group)
-                && self::isManagedGroup($group),
-        )));
+        $filtered = [];
+
+        foreach ($groups as $group) {
+            if (! is_string($group)) {
+                continue;
+            }
+
+            $canonical = DirectoryLegacyGroupAliases::canonicalFor($group);
+
+            if ($canonical !== null) {
+                $filtered[] = $canonical;
+            }
+        }
+
+        $filtered = array_values(array_unique($filtered));
         sort($filtered);
 
         return $filtered;

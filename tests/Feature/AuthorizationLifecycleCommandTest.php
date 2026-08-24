@@ -15,6 +15,7 @@ use App\Services\AuthorizationRoleMaterializer;
 use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;
 use App\Support\AuthorizationCompatibilityDatabaseGuard;
+use App\Support\DirectoryGroupPrefix;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -146,6 +147,30 @@ class AuthorizationLifecycleCommandTest extends TestCase
                 ]);
             }
         }
+    }
+
+    public function test_preflight_accepts_legacy_myapes_superadmin_group_membership(): void
+    {
+        $superAdmin = User::factory()
+            ->accessLevel(User::ROLE_SUPERADMIN)
+            ->cloudronIdentity('oidc-subject-canary-preflight-legacy-groups')
+            ->create([
+                'email' => 'preflight-legacy-groups-person-canary@example.test',
+            ]);
+        $this->directory()->groupsByEmail = [
+            $superAdmin->email => ['myapes.superadmins'],
+        ];
+
+        $exitCode = $this->callCommand('myapes:authorization-preflight');
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Directory groups: ok (5 groups)', $output);
+        $this->assertStringContainsString(
+            'Eligible OIDC super-admins: ok (1 users)',
+            $output,
+        );
+        $this->assertCanariesAreAbsent($output);
     }
 
     public function test_preflight_is_safe_before_phase_b_migrations_and_checks_phase_a_parity(): void
@@ -283,7 +308,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString(
-            'Authorization preflight: failed (directory_readiness)',
+            'Authorization preflight: failed (directory_readiness/ldap_directory:unavailable)',
             $output,
         );
         $this->assertCanariesAreAbsent($output);
@@ -1431,7 +1456,9 @@ class AuthorizationLifecycleCommandTest extends TestCase
                     $callback($email);
                 }
 
-                return $this->groupsByEmail[$email] ?? [];
+                return DirectoryGroupPrefix::filterGroups(
+                    $this->groupsByEmail[$email] ?? [],
+                );
             }
         };
         $this->app->instance(LdapGroupResolver::class, $directory);

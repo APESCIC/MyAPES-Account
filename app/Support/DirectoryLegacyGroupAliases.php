@@ -25,4 +25,26 @@ final class DirectoryLegacyGroupAliases
             'myapes.vounteers',
         ];
     }
+
+    public static function canonicalFor(string $group): ?string
+    {
+        $normalized = strtolower(trim($group));
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (DirectoryGroupPrefix::isManagedGroup($normalized)) {
+            return $normalized;
+        }
+
+        return match ($normalized) {
+            'myapes.staff' => 'myapesaccount.staff',
+            'myapes.admin', 'myapes.admins' => 'myapesaccount.admin',
+            'myapes.superadmin', 'myapes.superadmins' => 'myapesaccount.superadmin',
+            'myapes.volunteers', 'myapes.vounteers' => 'myapesaccount.volunteer',
+            'myapes.students' => 'myapesaccount.student',
+            default => null,
+        };
+    }
 }

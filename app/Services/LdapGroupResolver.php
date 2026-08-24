@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
 use App\Support\DirectoryGroupPrefix;
+use App\Support\DirectoryLegacyGroupAliases;
 
 class LdapGroupResolver
 {
@@ -56,17 +57,55 @@ class LdapGroupResolver
             ];
         }
 
+        return $this->normalizeCatalogueGroups($groups);
+    }
+
+    /**
+     * @param  array<int, array{
+     *     name: string,
+     *     external_id: ?string,
+     *     member_count: int
+     * }>  $groups
+     * @return array<int, array{
+     *     name: string,
+     *     external_id: ?string,
+     *     member_count: int
+     * }>
+     */
+    private function normalizeCatalogueGroups(array $groups): array
+    {
+        $normalized = [];
+
+        foreach ($groups as $group) {
+            $canonical = DirectoryLegacyGroupAliases::canonicalFor($group['name']);
+
+            if ($canonical === null) {
+                continue;
+            }
+
+            if (isset($normalized[$canonical])) {
+                $normalized[$canonical]['member_count'] = max(
+                    $normalized[$canonical]['member_count'],
+                    $group['member_count'],
+                );
+
+                continue;
+            }
+
+            $normalized[$canonical] = [
+                'name' => $canonical,
+                'external_id' => $group['external_id'],
+                'member_count' => $group['member_count'],
+            ];
+        }
+
+        $catalogue = array_values($normalized);
         usort(
-            $groups,
+            $catalogue,
             static fn (array $left, array $right): int => $left['name'] <=> $right['name'],
         );
 
-        return array_values(array_filter(
-            $groups,
-            static fn (array $group): bool => DirectoryGroupPrefix::isManagedGroup(
-                $group['name'],
-            ),
-        ));
+        return $catalogue;
     }
 
     /**
