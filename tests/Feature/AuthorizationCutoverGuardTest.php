@@ -503,6 +503,28 @@ class AuthorizationCutoverGuardTest extends TestCase
         }
     }
 
+    public function test_guard_detects_the_previous_generation_installation(): void
+    {
+        $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
+        $guard->upgrade();
+        $this->downgradeAuthorizationGuardToPreviousGeneration();
+
+        $this->assertTrue($guard->isLegacyInstalled());
+        $this->assertFalse($guard->isInstalled());
+    }
+
+    public function test_guard_upgrade_refreshes_a_previous_generation_installation(): void
+    {
+        $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
+        $guard->upgrade();
+        $this->downgradeAuthorizationGuardToPreviousGeneration();
+
+        $guard->upgrade();
+
+        $this->assertTrue($guard->isInstalled());
+        $this->assertFalse($guard->isLegacyInstalled());
+    }
+
     public function test_guard_model_type_is_independent_of_mysql_backslash_mode(): void
     {
         if (DB::connection()->getDriverName() !== 'mysql') {
@@ -627,7 +649,7 @@ class AuthorizationCutoverGuardTest extends TestCase
             AuthorizationCompatibilityDatabaseGuard::class,
             static fn (): AuthorizationCompatibilityDatabaseGuard => new class extends AuthorizationCompatibilityDatabaseGuard
             {
-                public function install(): void
+                public function install(bool $force = false): void
                 {
                     throw new RuntimeException('Simulated Phase B guard failure.');
                 }
@@ -1012,7 +1034,7 @@ class AuthorizationCutoverGuardTest extends TestCase
             {
                 private bool $suppressRecovery = false;
 
-                public function install(): void
+                public function install(bool $force = false): void
                 {
                     if ($this->suppressRecovery) {
                         return;
@@ -1307,6 +1329,45 @@ class AuthorizationCutoverGuardTest extends TestCase
                 $definition,
             ),
         );
+    }
+
+    private function downgradeAuthorizationGuardToPreviousGeneration(): void
+    {
+        $driver = DB::connection()->getDriverName();
+        $legacyLevels = "'service_user', 'staff', 'admin', 'superadmin'";
+        $currentLevels = "'service_user', 'student', 'volunteer', 'staff', 'admin', 'superadmin'";
+
+        foreach ([
+            'users_authorization_compatibility_insert',
+            'users_authorization_compatibility_update',
+        ] as $trigger) {
+            if ($driver === 'sqlite') {
+                $definition = (string) DB::scalar(
+                    "SELECT sql FROM sqlite_master
+                     WHERE type = 'trigger'
+                       AND name = ?",
+                    [$trigger],
+                );
+                DB::unprepared("DROP TRIGGER {$trigger}");
+                DB::unprepared(str_replace($currentLevels, $legacyLevels, $definition));
+
+                continue;
+            }
+
+            $definition = (string) DB::table('information_schema.triggers')
+                ->where('trigger_schema', DB::connection()->getDatabaseName())
+                ->where('trigger_name', $trigger)
+                ->value('action_statement');
+            $event = $trigger === 'users_authorization_compatibility_insert'
+                ? 'INSERT'
+                : 'UPDATE';
+            DB::unprepared("DROP TRIGGER {$trigger}");
+            DB::unprepared(
+                "CREATE TRIGGER {$trigger}
+                 AFTER {$event} ON users
+                 FOR EACH ROW ".str_replace($currentLevels, $legacyLevels, $definition),
+            );
+        }
     }
 
     private function restoreAuthorizationGuardBinding(): void

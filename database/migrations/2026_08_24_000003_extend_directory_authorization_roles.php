@@ -51,7 +51,7 @@ return new class extends Migration
         }
 
         if (class_exists(\App\Support\AuthorizationCompatibilityDatabaseGuard::class)) {
-            app(\App\Support\AuthorizationCompatibilityDatabaseGuard::class)->install();
+            app(\App\Support\AuthorizationCompatibilityDatabaseGuard::class)->upgrade();
         }
     }
 
