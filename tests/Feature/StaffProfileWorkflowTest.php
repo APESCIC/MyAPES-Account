@@ -34,7 +34,7 @@ class StaffProfileWorkflowTest extends TestCase
             ->create([
                 'name' => 'Directory Staff',
                 'email' => 'staff.directory@example.com',
-                'ldap_groups' => ['myapes.staff'],
+                'ldap_groups' => ['myapesaccount.staff'],
             ]);
         $staff->staffProfile()->create([
             'job_title' => 'Coordinator',
@@ -46,9 +46,9 @@ class StaffProfileWorkflowTest extends TestCase
             ->assertOk()
             ->assertSeeText('Directory Staff')
             ->assertSeeText('staff.directory@example.com')
-            ->assertSeeText('myapes.staff')
+            ->assertSeeText('myapesaccount.staff')
             ->assertSee('directory-group-list__chip', false)
-            ->assertDontSee('myapes.staff</code>,', false)
+            ->assertDontSee('myapesaccount.staff</code>,', false)
             ->assertSee('name="job_title"', false)
             ->assertSee('name="team"', false)
             ->assertSee('name="work_phone"', false)
@@ -63,7 +63,7 @@ class StaffProfileWorkflowTest extends TestCase
             'board-of-directors',
             'department.developers',
             'department.animal.care',
-            'myapes.superadmin',
+            'myapesaccount.superadmin',
             'position.staff',
         ];
 

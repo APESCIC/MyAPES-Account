@@ -106,7 +106,7 @@ class AccessCompatibilityDatabaseGuard
                  SELECT RAISE(ABORT, \'Unsupported legacy access level.\')
                  WHERE NEW.role IS NULL
                     OR TRIM(NEW.role) = \'\'
-                    OR NEW.role NOT IN (\'service_user\', \'staff\', \'admin\', \'superadmin\');
+                    OR NEW.role NOT IN (\'service_user\', \'student\', \'volunteer\', \'staff\', \'admin\', \'superadmin\');
                  UPDATE users
                  SET identity_type = CASE
                          WHEN NEW.oidc_sub IS NOT NULL AND TRIM(NEW.oidc_sub) <> \'\'
@@ -126,7 +126,7 @@ class AccessCompatibilityDatabaseGuard
                  SELECT RAISE(ABORT, \'Unsupported legacy access level.\')
                  WHERE NEW.role IS NULL
                     OR TRIM(NEW.role) = \'\'
-                    OR NEW.role NOT IN (\'service_user\', \'staff\', \'admin\', \'superadmin\');
+                    OR NEW.role NOT IN (\'service_user\', \'student\', \'volunteer\', \'staff\', \'admin\', \'superadmin\');
                  UPDATE users
                  SET identity_type = CASE
                          WHEN NEW.oidc_sub IS NOT NULL AND TRIM(NEW.oidc_sub) <> \'\'
@@ -160,7 +160,7 @@ class AccessCompatibilityDatabaseGuard
         return 'BEGIN
                  IF NEW.role IS NULL
                     OR TRIM(NEW.role) = \'\'
-                    OR NEW.role NOT IN (\'service_user\', \'staff\', \'admin\', \'superadmin\')
+                    OR NEW.role NOT IN (\'service_user\', \'student\', \'volunteer\', \'staff\', \'admin\', \'superadmin\')
                  THEN
                      SIGNAL SQLSTATE \'45000\'
                          SET MESSAGE_TEXT = \'Unsupported legacy access level.\';
@@ -179,7 +179,7 @@ class AccessCompatibilityDatabaseGuard
         return 'BEGIN
                  IF NEW.role IS NULL
                     OR TRIM(NEW.role) = \'\'
-                    OR NEW.role NOT IN (\'service_user\', \'staff\', \'admin\', \'superadmin\')
+                    OR NEW.role NOT IN (\'service_user\', \'student\', \'volunteer\', \'staff\', \'admin\', \'superadmin\')
                  THEN
                      SIGNAL SQLSTATE \'45000\'
                          SET MESSAGE_TEXT = \'Unsupported legacy access level.\';

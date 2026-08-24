@@ -7,16 +7,29 @@ use App\Models\AuthorizationState;
 use App\Models\DirectoryGroup;
 use App\Models\DirectorySyncRun;
 use App\Services\DirectoryCatalogueSynchronizer;
+use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;
+use App\Support\DirectoryGroupPrefix;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Tests\Fakes\FakeDirectoryUserSynchronizer;
 use Tests\TestCase;
 use Throwable;
 
 class DirectoryCatalogueSynchronizerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app->instance(
+            DirectoryUserSynchronizer::class,
+            new FakeDirectoryUserSynchronizer,
+        );
+    }
 
     protected function tearDown(): void
     {
@@ -30,7 +43,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         Carbon::setTestNow('2026-07-28 09:00:00');
         $resolver = $this->catalogueResolver([
             [
-                'name' => 'myapes.staff',
+                'name' => 'myapesaccount.staff',
                 'external_id' => '4101',
                 'member_count' => 7,
             ],
@@ -52,10 +65,10 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
             $resolver->transactionLevelDuringFetch,
         );
         $this->assertSame(DirectorySyncRun::STATUS_SUCCEEDED, $run->status);
-        $this->assertSame(2, $run->groups_seen);
-        $this->assertSame(3, $run->groups_missing);
+        $this->assertSame(1, $run->groups_seen);
+        $this->assertSame(4, $run->groups_missing);
         $this->assertDatabaseHas('directory_groups', [
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => '4101',
             'member_count' => 7,
             'status' => DirectoryGroup::STATUS_PRESENT,
@@ -64,20 +77,17 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
             'last_seen_at' => '2026-07-28 09:00:00',
             'last_synced_at' => '2026-07-28 09:00:00',
         ]);
-        $this->assertDatabaseHas('directory_groups', [
+        $this->assertDatabaseMissing('directory_groups', [
             'name' => 'myapes.empty',
-            'member_count' => 0,
-            'status' => DirectoryGroup::STATUS_PRESENT,
-            'app_enabled' => false,
         ]);
         $this->assertDatabaseHas('directory_groups', [
-            'name' => 'myapes.superadmin',
+            'name' => 'myapesaccount.superadmin',
             'status' => DirectoryGroup::STATUS_MISSING,
             'app_enabled' => true,
             'last_synced_at' => '2026-07-28 09:00:00',
         ]);
         $this->assertDatabaseHas('directory_groups', [
-            'name' => 'myapes.superadmins',
+            'name' => 'myapesaccount.admin',
             'status' => DirectoryGroup::STATUS_MISSING,
             'app_enabled' => true,
             'last_synced_at' => '2026-07-28 09:00:00',
@@ -89,7 +99,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
 
         Carbon::setTestNow('2026-07-28 10:00:00');
         $resolver->catalogue = [[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => '4101',
             'member_count' => 8,
         ]];
@@ -102,16 +112,13 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         $this->assertSame(4, $repeated->groups_missing);
         $this->assertSame(5, DirectoryGroup::query()->count());
         $staff = DirectoryGroup::query()
-            ->where('name', 'myapes.staff')
+            ->where('name', 'myapesaccount.staff')
             ->firstOrFail();
         $this->assertSame('2026-07-28 09:00:00', $staff->first_seen_at?->format('Y-m-d H:i:s'));
         $this->assertSame('2026-07-28 10:00:00', $staff->last_seen_at?->format('Y-m-d H:i:s'));
         $this->assertSame(8, $staff->member_count);
-        $this->assertDatabaseHas('directory_groups', [
+        $this->assertDatabaseMissing('directory_groups', [
             'name' => 'myapes.empty',
-            'status' => DirectoryGroup::STATUS_MISSING,
-            'last_seen_at' => '2026-07-28 09:00:00',
-            'last_synced_at' => '2026-07-28 10:00:00',
         ]);
         $this->assertSame(
             $mappingCount,
@@ -123,7 +130,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
     {
         Carbon::setTestNow('2026-07-28 09:00:00');
         DirectoryGroup::query()
-            ->where('name', 'myapes.staff')
+            ->where('name', 'myapesaccount.staff')
             ->update([
                 'external_id' => '4101',
                 'member_count' => 7,
@@ -180,7 +187,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
 
         $resolver->failure = null;
         $resolver->catalogue = [[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => '4101',
             'member_count' => 7,
         ]];
@@ -199,12 +206,12 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         $groupsBefore = DB::table('directory_groups')->orderBy('id')->get();
         $resolver = $this->catalogueResolver([
             [
-                'name' => 'myapes.staff',
+                'name' => 'myapesaccount.staff',
                 'external_id' => '4101',
                 'member_count' => 7,
             ],
             [
-                'name' => 'myapes.staff',
+                'name' => 'myapesaccount.staff',
                 'external_id' => '4102',
                 'member_count' => 1,
             ],
@@ -245,7 +252,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
             'myapes.directory.sync_lock_store' => 'array',
         ]);
         $this->catalogueResolver([[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => '4101',
             'member_count' => 7,
         ]]);
@@ -256,7 +263,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
 
         $this->assertSame(DirectorySyncRun::STATUS_SUCCEEDED, $run->status);
         $this->assertDatabaseHas('directory_groups', [
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'status' => DirectoryGroup::STATUS_PRESENT,
         ]);
     }
@@ -267,7 +274,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         config(['myapes.directory.sync_lock_seconds' => 30]);
         $groupsBefore = DB::table('directory_groups')->orderBy('id')->get();
         $resolver = $this->catalogueResolver([[
-            'name' => 'myapes.stale-worker',
+            'name' => 'myapesaccount.staff',
             'external_id' => 'stale-external-canary',
             'member_count' => 11,
         ]]);
@@ -307,9 +314,10 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
     {
         Carbon::setTestNow('2026-07-28 09:00:00');
         config(['myapes.directory.sync_lock_seconds' => 30]);
+        DirectoryGroup::query()->where('name', 'myapesaccount.staff')->delete();
         $groupsBefore = DB::table('directory_groups')->orderBy('id')->get();
         $resolver = $this->catalogueResolver([[
-            'name' => 'myapes.transaction-expiry',
+            'name' => 'myapesaccount.staff',
             'external_id' => 'transaction-expiry-canary',
             'member_count' => 5,
         ]]);
@@ -354,7 +362,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         Carbon::setTestNow('2026-07-28 09:00:00');
         config(['myapes.directory.sync_lock_seconds' => 30]);
         $resolver = $this->catalogueResolver([[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => 'stale-external-canary',
             'member_count' => 11,
         ]]);
@@ -365,7 +373,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         ): void {
             Carbon::setTestNow('2026-07-28 09:00:31');
             $resolver->catalogue = [[
-                'name' => 'myapes.admin',
+                'name' => 'myapesaccount.admin',
                 'external_id' => '4202',
                 'member_count' => 4,
             ]];
@@ -391,13 +399,13 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
             $takeoverRun?->status,
         );
         $this->assertDatabaseHas('directory_groups', [
-            'name' => 'myapes.admin',
+            'name' => 'myapesaccount.admin',
             'external_id' => '4202',
             'member_count' => 4,
             'status' => DirectoryGroup::STATUS_PRESENT,
         ]);
         $this->assertDatabaseHas('directory_groups', [
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'status' => DirectoryGroup::STATUS_MISSING,
         ]);
         $this->assertDatabaseMissing('directory_groups', [
@@ -425,7 +433,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         Carbon::setTestNow('2026-07-28 09:00:00');
         config(['myapes.directory.sync_lock_seconds' => 30]);
         $resolver = $this->catalogueResolver([[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => 'stale-external-canary',
             'member_count' => 11,
         ]]);
@@ -468,7 +476,7 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         config(['myapes.directory.sync_lock_seconds' => 9999]);
         $groupsBefore = DB::table('directory_groups')->orderBy('id')->get();
         $resolver = $this->catalogueResolver([[
-            'name' => 'myapes.staff',
+            'name' => 'myapesaccount.staff',
             'external_id' => '4101',
             'member_count' => 7,
         ]]);
@@ -576,7 +584,12 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
                     throw $this->failure;
                 }
 
-                return $catalogue;
+                return array_values(array_filter(
+                    $catalogue,
+                    static fn (array $group): bool => DirectoryGroupPrefix::isManagedGroup(
+                        $group['name'],
+                    ),
+                ));
             }
         };
         $resolver->catalogue = $catalogue;

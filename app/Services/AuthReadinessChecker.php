@@ -4,24 +4,15 @@ namespace App\Services;
 
 use App\Exceptions\AuthReadinessException;
 use App\Exceptions\DirectoryUnavailable;
+use App\Support\DirectoryGroupPrefix;
+use App\Support\DirectoryImmutableMappings;
 
 class AuthReadinessChecker
 {
-    private const REQUIRED_GROUPS = [
-        'myapes.admin',
-        'myapes.staff',
-        'myapes.superadmin',
-        'myapes.superadmins',
-    ];
-
     private const ALWAYS_MEMBERED_GROUPS = [
-        'myapes.admin',
-        'myapes.staff',
-    ];
-
-    private const SUPERADMIN_GROUPS = [
-        'myapes.superadmin',
-        'myapes.superadmins',
+        'myapesaccount.admin',
+        'myapesaccount.staff',
+        'myapesaccount.superadmin',
     ];
 
     public function __construct(
@@ -51,8 +42,10 @@ class AuthReadinessChecker
         $this->discovery->validate($issuer);
 
         $groups = $this->configuredGroups();
+        $required = array_keys(DirectoryImmutableMappings::all());
+        sort($required);
 
-        if ($groups !== self::REQUIRED_GROUPS) {
+        if ($groups !== $required) {
             throw new AuthReadinessException('ldap_groups', 'expected_required_groups');
         }
 
@@ -64,7 +57,7 @@ class AuthReadinessChecker
 
         $catalogue = collect($catalogue)->keyBy('name');
 
-        foreach (self::ALWAYS_MEMBERED_GROUPS as $group) {
+        foreach ($required as $group) {
             $entry = $catalogue->get($group);
 
             if (! is_array($entry)) {
@@ -73,32 +66,17 @@ class AuthReadinessChecker
                     'required_group_missing',
                 );
             }
+        }
 
-            if (($entry['member_count'] ?? 0) < 1) {
+        foreach (self::ALWAYS_MEMBERED_GROUPS as $group) {
+            $entry = $catalogue->get($group);
+
+            if (! is_array($entry) || ($entry['member_count'] ?? 0) < 1) {
                 throw new AuthReadinessException(
                     'ldap_groups',
                     'required_group_empty',
                 );
             }
-        }
-
-        $superAdminMembers = 0;
-
-        foreach (self::SUPERADMIN_GROUPS as $group) {
-            $entry = $catalogue->get($group);
-
-            if (! is_array($entry)) {
-                continue;
-            }
-
-            $superAdminMembers += max(0, (int) ($entry['member_count'] ?? 0));
-        }
-
-        if ($superAdminMembers < 1) {
-            throw new AuthReadinessException(
-                'ldap_groups',
-                'required_group_empty',
-            );
         }
 
         return count($groups);
@@ -120,11 +98,8 @@ class AuthReadinessChecker
      */
     private function configuredGroups(): array
     {
-        $groups = (array) config('myapes.directory.required_groups', []);
-        $normalized = array_values(array_unique(array_filter(array_map(
-            static fn (mixed $group): string => is_string($group) ? strtolower(trim($group)) : '',
-            $groups,
-        ))));
+        $groups = DirectoryGroupPrefix::requiredGroups();
+        $normalized = array_values(array_unique($groups));
         sort($normalized);
 
         return $normalized;

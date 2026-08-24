@@ -65,11 +65,7 @@ class AdminUserController extends Controller
             $query->where('identity_type', $filters['identity_type']);
         }
 
-        $staffRoles = [
-            AuthorizationProfile::ROLE_STAFF,
-            AuthorizationProfile::ROLE_ADMINISTRATOR,
-            AuthorizationProfile::ROLE_SUPER_ADMIN,
-        ];
+        $staffRoles = $profile->directoryProtectedRoles();
         if (($filters['account_type'] ?? null) === 'staff') {
             $query->whereHas(
                 'roles',

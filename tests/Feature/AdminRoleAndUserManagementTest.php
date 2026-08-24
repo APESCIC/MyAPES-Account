@@ -318,7 +318,7 @@ class AdminRoleAndUserManagementTest extends TestCase
     public function test_role_management_revalidates_directory_eligibility_inside_the_transaction(): void
     {
         $group = DirectoryGroup::query()
-            ->where('name', 'myapes.superadmin')
+            ->where('name', 'myapesaccount.superadmin')
             ->firstOrFail();
         $group->forceFill([
             'status' => DirectoryGroup::STATUS_PRESENT,

@@ -24,12 +24,16 @@ return new class extends Migration
 
     private const PROTECTED_ROLES = [
         'service-user',
+        'student',
+        'volunteer',
         'staff',
         'administrator',
         'super-admin',
     ];
 
     private const PERMISSIONS = [
+        'student.access',
+        'volunteer.access',
         'staff.access',
         'admin.access',
         'superadmin.access',
@@ -47,9 +51,11 @@ return new class extends Migration
     ];
 
     private const DIRECTORY_MAPPINGS = [
-        'myapes.staff' => 'staff',
-        'myapes.admin' => 'administrator',
-        'myapes.superadmin' => 'super-admin',
+        'myapesaccount.staff' => 'staff',
+        'myapesaccount.admin' => 'administrator',
+        'myapesaccount.superadmin' => 'super-admin',
+        'myapesaccount.volunteer' => 'volunteer',
+        'myapesaccount.student' => 'student',
     ];
 
     public function up(): void

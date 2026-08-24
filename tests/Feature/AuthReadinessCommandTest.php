@@ -32,10 +32,11 @@ class AuthReadinessCommandTest extends TestCase
             'myapes.ldap.bind_dn' => 'cn=ldap-bind-dn-canary,dc=cloudron',
             'myapes.ldap.bind_password' => 'ldap-bind-password-canary',
             'myapes.directory.required_groups' => [
-                'myapes.staff',
-                'myapes.admin',
-                'myapes.superadmin',
-                'myapes.superadmins',
+                'myapesaccount.staff',
+                'myapesaccount.admin',
+                'myapesaccount.superadmin',
+                'myapesaccount.volunteer',
+                'myapesaccount.student',
             ],
         ]);
 
@@ -63,7 +64,7 @@ class AuthReadinessCommandTest extends TestCase
         $this->assertStringContainsString('OIDC configuration: ok', $output);
         $this->assertStringContainsString('OIDC discovery: ok', $output);
         $this->assertStringContainsString('LDAP bind: ok', $output);
-        $this->assertStringContainsString('LDAP groups: ok (4 required)', $output);
+        $this->assertStringContainsString('LDAP groups: ok (5 required)', $output);
         $this->assertStringContainsString('Authentication readiness: ok', $output);
         $this->assertCanariesAreAbsent($output);
         Http::assertSentCount(1);
@@ -312,7 +313,7 @@ class AuthReadinessCommandTest extends TestCase
 
         $catalogue = array_values(array_filter(
             $this->configuredCatalogue(),
-            static fn (array $group): bool => $group['name'] !== 'myapes.staff',
+            static fn (array $group): bool => $group['name'] !== 'myapesaccount.staff',
         ));
         $this->mock(LdapGroupResolver::class, function (MockInterface $mock) use ($catalogue): void {
             $mock->shouldReceive('enumerateGroups')
@@ -328,7 +329,7 @@ class AuthReadinessCommandTest extends TestCase
             'Authentication readiness: failed (ldap_groups/required_group_missing)',
             $output,
         );
-        $this->assertStringNotContainsString('myapes.staff', $output);
+        $this->assertStringNotContainsString('myapesaccount.staff', $output);
         $this->assertCanariesAreAbsent($output);
     }
 
@@ -360,8 +361,8 @@ class AuthReadinessCommandTest extends TestCase
     public function test_command_requires_exact_required_groups_before_contacting_ldap(): void
     {
         config(['myapes.directory.required_groups' => [
-            'myapes.staff',
-            'myapes.admin',
+            'myapesaccount.staff',
+            'myapesaccount.admin',
         ]]);
         Http::fake([
             self::DISCOVERY => Http::response($this->validMetadata()),
@@ -382,7 +383,7 @@ class AuthReadinessCommandTest extends TestCase
         $this->assertCanariesAreAbsent($output);
     }
 
-    public function test_command_passes_when_only_plural_superadmin_group_has_members(): void
+    public function test_command_passes_when_volunteer_and_student_groups_are_empty(): void
     {
         Http::fake([
             self::DISCOVERY => Http::response($this->validMetadata()),
@@ -392,9 +393,11 @@ class AuthReadinessCommandTest extends TestCase
             $mock->shouldReceive('enumerateGroups')
                 ->once()
                 ->andReturn([
-                    ['name' => 'myapes.admin', 'external_id' => null, 'member_count' => 1],
-                    ['name' => 'myapes.staff', 'external_id' => null, 'member_count' => 1],
-                    ['name' => 'myapes.superadmins', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapesaccount.admin', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapesaccount.staff', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapesaccount.superadmin', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapesaccount.volunteer', 'external_id' => null, 'member_count' => 0],
+                    ['name' => 'myapesaccount.student', 'external_id' => null, 'member_count' => 0],
                 ]);
         });
 
@@ -402,12 +405,12 @@ class AuthReadinessCommandTest extends TestCase
         $output = Artisan::output();
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('LDAP groups: ok (4 required)', $output);
+        $this->assertStringContainsString('LDAP groups: ok (5 required)', $output);
         $this->assertStringContainsString('Authentication readiness: ok', $output);
         $this->assertCanariesAreAbsent($output);
     }
 
-    public function test_command_fails_when_both_superadmin_groups_are_empty_or_missing(): void
+    public function test_command_fails_when_superadmin_group_is_empty(): void
     {
         Http::fake([
             self::DISCOVERY => Http::response($this->validMetadata()),
@@ -417,9 +420,11 @@ class AuthReadinessCommandTest extends TestCase
             $mock->shouldReceive('enumerateGroups')
                 ->once()
                 ->andReturn([
-                    ['name' => 'myapes.admin', 'external_id' => null, 'member_count' => 1],
-                    ['name' => 'myapes.staff', 'external_id' => null, 'member_count' => 1],
-                    ['name' => 'myapes.superadmin', 'external_id' => null, 'member_count' => 0],
+                    ['name' => 'myapesaccount.admin', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapesaccount.staff', 'external_id' => null, 'member_count' => 1],
+                    ['name' => 'myapesaccount.superadmin', 'external_id' => null, 'member_count' => 0],
+                    ['name' => 'myapesaccount.volunteer', 'external_id' => null, 'member_count' => 0],
+                    ['name' => 'myapesaccount.student', 'external_id' => null, 'member_count' => 0],
                 ]);
         });
 
@@ -460,10 +465,11 @@ class AuthReadinessCommandTest extends TestCase
     private function configuredGroups(): array
     {
         return [
-            'myapes.admin',
-            'myapes.staff',
-            'myapes.superadmin',
-            'myapes.superadmins',
+            'myapesaccount.admin',
+            'myapesaccount.staff',
+            'myapesaccount.superadmin',
+            'myapesaccount.volunteer',
+            'myapesaccount.student',
         ];
     }
 

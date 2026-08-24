@@ -8,25 +8,12 @@ use App\Models\Permission;
 use App\Models\PermissionSource;
 use App\Models\RoleSource;
 use App\Models\User;
+use App\Support\DirectoryImmutableMappings;
+use App\Support\DirectoryLegacyGroupAliases;
 use Illuminate\Support\Facades\DB;
 
 class AuthorizationIntegrityChecker
 {
-    private const LEGACY_ALIASES = [
-        'position.staff',
-        'position.students',
-        'position.volunteers',
-        'intranet.administrator',
-        'intranet.superadmin',
-    ];
-
-    private const IMMUTABLE_MAPPINGS = [
-        'myapes.admin' => AuthorizationProfile::ROLE_ADMINISTRATOR,
-        'myapes.staff' => AuthorizationProfile::ROLE_STAFF,
-        'myapes.superadmin' => AuthorizationProfile::ROLE_SUPER_ADMIN,
-        'myapes.superadmins' => AuthorizationProfile::ROLE_SUPER_ADMIN,
-    ];
-
     public function __construct(
         private readonly AuthorizationProfile $profile,
         private readonly AuthorizationPhaseBSchemaInspector $schema,
@@ -70,7 +57,7 @@ class AuthorizationIntegrityChecker
             return [
                 'users' => $users,
                 'permissions' => count($this->profile->permissions()),
-                'immutable_mappings' => count(self::IMMUTABLE_MAPPINGS),
+                'immutable_mappings' => count(DirectoryImmutableMappings::all()),
                 'super_admins' => $superAdmins,
             ];
         });
@@ -273,7 +260,7 @@ class AuthorizationIntegrityChecker
                 || preg_match('/[*?%]/', $mapping->group_name) === 1
                 || in_array(
                     $mapping->group_name,
-                    self::LEGACY_ALIASES,
+                    DirectoryLegacyGroupAliases::all(),
                     true,
                 )
                 || ! is_string($mapping->role_name)
@@ -304,7 +291,7 @@ class AuthorizationIntegrityChecker
         );
         $expected = [];
 
-        foreach (self::IMMUTABLE_MAPPINGS as $groupName => $roleName) {
+        foreach (DirectoryImmutableMappings::all() as $groupName => $roleName) {
             $expected[] = [
                 'group_name' => $groupName,
                 'role_name' => $roleName,
@@ -322,7 +309,7 @@ class AuthorizationIntegrityChecker
             ],
         );
 
-        if (count($immutable) !== count(self::IMMUTABLE_MAPPINGS)
+        if (count($immutable) !== count(DirectoryImmutableMappings::all())
             || $immutable !== $expected) {
             throw new AuthorizationLifecycleException('mapping_integrity');
         }

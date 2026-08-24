@@ -196,14 +196,14 @@ class AuthorizationCutoverConcurrencyTest extends TestCase
             ->accessLevel(User::ROLE_SUPERADMIN)
             ->cloudronIdentity('cutover-integrity-subject')
             ->create([
-                'ldap_groups' => ['myapes.superadmin'],
+                'ldap_groups' => ['myapesaccount.superadmin'],
             ]);
         $superAdmin = Role::query()
             ->where('guard_name', 'web')
             ->where('name', 'super-admin')
             ->firstOrFail();
         $directoryGroupId = (int) DB::table('directory_groups')
-            ->where('name', 'myapes.superadmin')
+            ->where('name', 'myapesaccount.superadmin')
             ->value('id');
         DB::table('role_sources')->insert([
             'user_id' => $user->id,

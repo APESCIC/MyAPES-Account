@@ -7,6 +7,7 @@ use App\Exceptions\DirectoryUnavailable;
 use App\Models\AuthorizationState;
 use App\Models\DirectoryGroup;
 use App\Models\DirectorySyncRun;
+use App\Support\DirectoryGroupPrefix;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -17,6 +18,7 @@ class DirectoryCatalogueSynchronizer
 {
     public function __construct(
         private readonly LdapGroupResolver $directory,
+        private readonly DirectoryUserSynchronizer $users,
     ) {}
 
     public function synchronize(
@@ -127,7 +129,8 @@ class DirectoryCatalogueSynchronizer
                     $stored->forceFill($payload)->save();
                 }
 
-                $missing = DirectoryGroup::query();
+                $missing = DirectoryGroup::query()
+                    ->whereIn('name', DirectoryGroupPrefix::requiredGroups());
 
                 if ($names !== []) {
                     $missing->whereNotIn('name', $names);
@@ -150,6 +153,20 @@ class DirectoryCatalogueSynchronizer
                     'error_code' => null,
                 ])->save();
                 $this->assertCurrentLease($ownerToken);
+
+                $userStats = $this->users->synchronize();
+
+                if (Schema::hasColumns('directory_sync_runs', [
+                    'users_seen',
+                    'users_created',
+                    'users_updated',
+                ])) {
+                    $run->forceFill([
+                        'users_seen' => $userStats['seen'],
+                        'users_created' => $userStats['created'],
+                        'users_updated' => $userStats['updated'],
+                    ])->save();
+                }
 
                 return $run->refresh();
             });

@@ -8,10 +8,12 @@ use App\Exceptions\DirectoryUnavailable;
 use App\Http\Cookies\OidcReauthenticationCookie;
 use App\Models\User;
 use App\Services\LdapGroupResolver;
+use App\Services\LdapUserResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\HttpFoundation\Cookie;
 use Tests\Fakes\FakeLdapGroupResolver;
+use Tests\Fakes\FakeLdapUserResolver;
 use Tests\Fakes\FakeOidcIdentityProvider;
 use Tests\TestCase;
 
@@ -22,6 +24,8 @@ class ForceReauthenticationCookieTest extends TestCase
     private FakeOidcIdentityProvider $identityProvider;
 
     private FakeLdapGroupResolver $directory;
+
+    private FakeLdapUserResolver $directoryUsers;
 
     protected function setUp(): void
     {
@@ -37,9 +41,11 @@ class ForceReauthenticationCookieTest extends TestCase
 
         $this->identityProvider = new FakeOidcIdentityProvider;
         $this->directory = new FakeLdapGroupResolver;
+        $this->directoryUsers = new FakeLdapUserResolver;
 
         $this->app->instance(OidcIdentityProvider::class, $this->identityProvider);
         $this->app->instance(LdapGroupResolver::class, $this->directory);
+        $this->app->instance(LdapUserResolver::class, $this->directoryUsers);
     }
 
     public function test_explicit_oidc_logout_sets_an_encrypted_year_long_secure_marker(): void
@@ -114,7 +120,8 @@ class ForceReauthenticationCookieTest extends TestCase
             'staff@example.com',
             'Staff Member',
         );
-        $this->directory->groups = ['myapes.staff'];
+        $this->directory->groups = ['myapesaccount.staff'];
+        $this->directoryUsers->groups = ['myapesaccount.staff'];
 
         $response = $this
             ->withCookie(OidcReauthenticationCookie::NAME, '1')
@@ -136,6 +143,7 @@ class ForceReauthenticationCookieTest extends TestCase
             'Staff Member',
         );
         $this->directory->failure = new DirectoryUnavailable('directory unavailable');
+        $this->directoryUsers->failure = new DirectoryUnavailable('directory unavailable');
 
         $response = $this
             ->withCookie(OidcReauthenticationCookie::NAME, '1')

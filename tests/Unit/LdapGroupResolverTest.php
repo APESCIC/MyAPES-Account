@@ -143,7 +143,7 @@ class LdapGroupResolverTest extends TestCase
                     'count' => 2,
                     'result_code' => 0,
                     0 => [
-                        'cn' => ['count' => 1, 0 => '  MyAPES.Staff  '],
+                        'cn' => ['count' => 1, 0 => '  myapesaccount.staff  '],
                         'gidnumber' => ['count' => 1, 0 => '4101'],
                         'memberuid' => [
                             'count' => 2,
@@ -152,7 +152,7 @@ class LdapGroupResolverTest extends TestCase
                         ],
                     ],
                     1 => [
-                        'cn' => ['count' => 1, 0 => 'MyAPES.Empty'],
+                        'cn' => ['count' => 1, 0 => 'myapes.empty'],
                         'memberuid' => ['count' => 0],
                     ],
                 ];
@@ -163,12 +163,7 @@ class LdapGroupResolverTest extends TestCase
 
         $this->assertSame([
             [
-                'name' => 'myapes.empty',
-                'external_id' => null,
-                'member_count' => 0,
-            ],
-            [
-                'name' => 'myapes.staff',
+                'name' => 'myapesaccount.staff',
                 'external_id' => '4101',
                 'member_count' => 2,
             ],
@@ -253,7 +248,7 @@ class LdapGroupResolverTest extends TestCase
                 'identity-canary@example.test',
             ),
             static fn (): array => $resolver->existingGroups([
-                'myapes.staff',
+                'myapesaccount.staff',
             ]),
         ];
 

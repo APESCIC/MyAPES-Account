@@ -45,6 +45,10 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public const ROLE_STAFF = 'staff';
 
+    public const ROLE_VOLUNTEER = 'volunteer';
+
+    public const ROLE_STUDENT = 'student';
+
     public const ROLE_ADMIN = 'admin';
 
     public const ROLE_SUPERADMIN = 'superadmin';
@@ -195,6 +199,8 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             self::ROLE_SERVICE_USER,
+            self::ROLE_STUDENT,
+            self::ROLE_VOLUNTEER,
             self::ROLE_STAFF,
             self::ROLE_ADMIN,
             self::ROLE_SUPERADMIN,
@@ -206,7 +212,13 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public static function staffAccessLevels(): array
     {
-        return [self::ROLE_STAFF, self::ROLE_ADMIN, self::ROLE_SUPERADMIN];
+        return [
+            self::ROLE_STUDENT,
+            self::ROLE_VOLUNTEER,
+            self::ROLE_STAFF,
+            self::ROLE_ADMIN,
+            self::ROLE_SUPERADMIN,
+        ];
     }
 
     /**
@@ -249,6 +261,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public function scopeEligibleStaff(Builder $query): Builder
     {
         return $this->scopeEligibleForProtectedRoles($query, [
+            AuthorizationProfile::ROLE_STUDENT,
+            AuthorizationProfile::ROLE_VOLUNTEER,
             AuthorizationProfile::ROLE_STAFF,
             AuthorizationProfile::ROLE_ADMINISTRATOR,
             AuthorizationProfile::ROLE_SUPER_ADMIN,

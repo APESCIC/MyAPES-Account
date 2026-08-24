@@ -47,7 +47,7 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_directory_is_not_queried_before_five_minutes_have_elapsed(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapesaccount.staff']);
 
         $response = $this
             ->actingAs($user)
@@ -63,7 +63,7 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_completed_catalogue_failure_immediately_stales_a_current_oidc_session(): void
     {
-        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapes.admin']);
+        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapesaccount.admin']);
         $context = $this->oidcContext(
             $user,
             $this->now->subSeconds(299)->timestamp,
@@ -96,7 +96,7 @@ class DirectoryRevalidationTest extends TestCase
         $this->assertAuthenticatedAs($user);
 
         $this->directory->failure = null;
-        $this->directory->groups = ['myapes.admin'];
+        $this->directory->groups = ['myapesaccount.admin'];
         $recovered = $this
             ->actingAs($user)
             ->withSession($context)
@@ -111,8 +111,8 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_role_is_demoted_before_authorization_on_the_due_request(): void
     {
-        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapes.admin']);
-        $this->directory->groups = ['myapes.staff'];
+        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapesaccount.admin']);
+        $this->directory->groups = ['myapesaccount.staff'];
 
         $response = $this
             ->actingAs($user)
@@ -127,7 +127,7 @@ class DirectoryRevalidationTest extends TestCase
 
         $user->refresh();
         $this->assertSame(User::ROLE_STAFF, $user->accessLevel());
-        $this->assertSame(['myapes.staff'], $user->ldap_groups);
+        $this->assertSame(['myapesaccount.staff'], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_role_changed',
             'user_id' => $user->id,
@@ -136,8 +136,8 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_role_promotion_applies_to_the_same_request(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
-        $this->directory->groups = ['myapes.admin'];
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapesaccount.staff']);
+        $this->directory->groups = ['myapesaccount.admin'];
 
         $response = $this
             ->actingAs($user)
@@ -157,10 +157,10 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_due_revalidation_uses_persisted_mappings_and_rotates_the_epoch(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapesaccount.staff']);
         $user->refresh();
         $originalRememberToken = $user->remember_token;
-        $this->directory->groups = ['myapes.admin'];
+        $this->directory->groups = ['myapesaccount.admin'];
 
         $response = $this
             ->actingAs($user)
@@ -187,7 +187,7 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_directory_revocation_downgrades_and_logs_out_the_user(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapesaccount.staff']);
         $this->directory->failure = new DirectoryIdentityNotFound('not found');
 
         $response = $this
@@ -213,7 +213,7 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_directory_revocation_returns_unauthorized_for_json_requests(): void
     {
-        $user = $this->directoryUser(User::ROLE_STAFF, ['myapes.staff']);
+        $user = $this->directoryUser(User::ROLE_STAFF, ['myapesaccount.staff']);
         $this->directory->failure = new DirectoryIdentityNotFound('not found');
 
         $response = $this
@@ -235,7 +235,7 @@ class DirectoryRevalidationTest extends TestCase
 
     public function test_directory_outage_fails_closed_without_changing_stored_access(): void
     {
-        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapes.admin']);
+        $user = $this->directoryUser(User::ROLE_ADMIN, ['myapesaccount.admin']);
         $validatedAt = $this->now->subSeconds(300)->timestamp;
         $this->directory->failure = new DirectoryUnavailable('sensitive connection details');
 
@@ -251,7 +251,7 @@ class DirectoryRevalidationTest extends TestCase
 
         $user->refresh();
         $this->assertSame(User::ROLE_ADMIN, $user->accessLevel());
-        $this->assertSame(['myapes.admin'], $user->ldap_groups);
+        $this->assertSame(['myapesaccount.admin'], $user->ldap_groups);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'auth.directory_unavailable',
             'user_id' => $user->id,

@@ -45,13 +45,13 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Staff assignment and notification eligibility requires an unsuspended protected staff-class pivot and a qualifying source for that same role. Production accepts directory provenance only; local/testing may also accept the approved system and legacy compatibility fixtures. A custom role containing `staff.access` never qualifies by itself.
   - Privileged role, mapping, and user mutations lock the singleton authorization state before users or directory records, then revalidate the session method, user and global epochs, directory generation, suspension, exact-role provenance, and effective protected role. Final-super-admin safeguards use this same present-group-backed predicate; an unprovenanced or stale pivot cannot satisfy them.
 - **Directory catalogue and mappings**:
-  - The only immutable mappings are `myapes.staff` → `staff`, `myapes.admin` → `administrator`, and both `myapes.superadmin` and `myapes.superadmins` → `super-admin`.
-  - Matching is normalized and exact. Wildcards and legacy aliases are rejected.
-  - The catalogue stores normalized group identity, optional external ID, aggregate member count, presence state, and synchronization timestamps; individual directory members are never persisted.
+  - The only immutable mappings are the five preset `myapesaccount.*` groups: `staff`, `admin`, `superadmin`, `volunteer`, and `student` to their matching protected roles.
+  - Matching is normalized and exact. Only groups with the configured `myapesaccount.` prefix are synchronized; wildcards and legacy aliases are rejected.
+  - The catalogue stores normalized group identity, optional external ID, aggregate member count, presence state, and synchronization timestamps; individual directory members are never persisted in the catalogue, but directory sync can pre-provision Cloudron OIDC users and staff profiles before first login.
   - Manual and scheduled catalogue requests share one unique, coalesced job and the same database lease. Attempts, backoff, execution, queue reservation, and LDAP connection/search times are bounded; the queue reservation always exceeds one job attempt.
 - **Administration**:
   - Admin Users supports safe identity detail, search/filtering, custom local-role assignment, suspension/reactivation, effective permissions, provenance, and audit history within target-aware authorization boundaries. Target lookup occurs only after authorization, so missing and existing identifiers produce the same sanitized denial for unauthorized actors.
-  - Admin Groups shows present/missing directory groups and aggregate counts; super-admins can enable or disable groups for this app, manage mutable exact mappings, and request asynchronous synchronization. Required Cloudron MyAPES groups stay always enabled.
+  - Admin Groups shows the preset Cloudron directory groups, aggregate counts, and synchronization status; super-admins can request asynchronous synchronization only. Enable/disable and custom mapping controls are not available.
   - Admin Roles lets authorized administrators inspect custom roles while only super-admins can create, update permissions for, or delete unassigned custom roles.
   - Admin Permissions is a read-only view of the core and shipped-module code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
 - **First-party plugin registry** (internal module contracts):
@@ -386,13 +386,19 @@ Use the issuer `https://my.cloudron.apes.org.uk/openid` and the
 environment. The generated credentials must not be copied into GitHub,
 the repository, release archives, logs, or chat.
 
-Before the v0.8.0 production migration, create and populate the exact
-Cloudron directory groups and configure app access for them:
+Before deploy, create or rename Cloudron directory groups to these exact
+`myapesaccount.*` names and move members off legacy `myapes.*` duplicates:
 
-- `myapes.staff`
-- `myapes.admin`
-- `myapes.superadmin`
-- `myapes.superadmins` (also maps to `super-admin`; either superadmin group may hold members)
+- `myapesaccount.staff` → staff role
+- `myapesaccount.admin` → administrator role
+- `myapesaccount.superadmin` → super-admin role
+- `myapesaccount.volunteer` → volunteer role (optional membership; group must exist)
+- `myapesaccount.student` → student role (optional membership; group must exist)
+
+Delete obsolete legacy groups after migration, including `myapes.staff`,
+`myapes.admins`, `myapes.superadmins`, plural variants, and misspellings such as
+`myapes.vounteers`. Only the five preset groups above are synchronized and
+mapped; custom group mappings and enable/disable controls are not supported.
 
 The LAMP package injects rotating `CLOUDRON_LDAP_*` credentials. MyAPES uses
 OIDC for authentication and LDAP membership for authorization; LDAP credentials
@@ -456,7 +462,7 @@ projection TTL remains the bounded recovery path.
 
 `myapes:authorization-preflight` runs before migration and validates the
 supported Phase A or retry-safe Phase B database state, OIDC discovery/PKCE,
-LDAP connectivity, and the three populated immutable groups without printing
+LDAP connectivity, and the five preset immutable groups without printing
 client, bind, member, or user data. `myapes:authorization-sync` repairs
 code-owned metadata, exact mappings, provenanced grants, compatibility mirrors,
 and the one-time session cutover. `myapes:authorization-check` performs the

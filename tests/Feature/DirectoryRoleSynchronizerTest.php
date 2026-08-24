@@ -32,8 +32,8 @@ class DirectoryRoleSynchronizerTest extends TestCase
         );
 
         $result = app(DirectoryRoleSynchronizer::class)->synchronize($user, [
-            'myapes.staff',
-            'myapes.admin',
+            'myapesaccount.staff',
+            'myapesaccount.admin',
             $customGroup->name,
         ]);
 
@@ -49,17 +49,16 @@ class DirectoryRoleSynchronizerTest extends TestCase
             'source' => RoleSource::SOURCE_LOCAL,
             'directory_group_id' => null,
         ]);
-        $this->assertDatabaseHas('role_sources', [
+        $this->assertDatabaseMissing('role_sources', [
             'user_id' => $user->id,
             'role_id' => $customRole->id,
             'source' => RoleSource::SOURCE_DIRECTORY,
-            'directory_group_id' => $customGroup->id,
         ]);
         $this->assertDatabaseMissing('role_sources', [
             'user_id' => $user->id,
             'source' => RoleSource::SOURCE_DIRECTORY,
             'directory_group_id' => DirectoryGroup::query()
-                ->where('name', 'myapes.staff')
+                ->where('name', 'myapesaccount.staff')
                 ->value('id'),
         ]);
     }
@@ -73,8 +72,8 @@ class DirectoryRoleSynchronizerTest extends TestCase
             ->refresh();
 
         $result = app(DirectoryRoleSynchronizer::class)->synchronize($user, [
-            'myapes.staff',
-            'myapes.superadmins',
+            'myapesaccount.staff',
+            'myapesaccount.superadmin',
         ]);
 
         $this->assertTrue($result->eligible);
@@ -87,7 +86,7 @@ class DirectoryRoleSynchronizerTest extends TestCase
             'user_id' => $user->id,
             'source' => RoleSource::SOURCE_DIRECTORY,
             'directory_group_id' => DirectoryGroup::query()
-                ->where('name', 'myapes.superadmins')
+                ->where('name', 'myapesaccount.superadmin')
                 ->value('id'),
         ]);
     }
@@ -108,7 +107,7 @@ class DirectoryRoleSynchronizerTest extends TestCase
             actor: $user,
         );
         app(DirectoryRoleSynchronizer::class)->synchronize($user, [
-            'myapes.staff',
+            'myapesaccount.staff',
             $customGroup->name,
         ]);
         $epoch = $user->fresh()->authorization_epoch;
@@ -161,7 +160,7 @@ class DirectoryRoleSynchronizerTest extends TestCase
         );
 
         $synchronizer = app(DirectoryRoleSynchronizer::class);
-        $synchronizer->synchronize($user, ['myapes.staff']);
+        $synchronizer->synchronize($user, ['myapesaccount.staff']);
         $user->refresh()->forceFill([
             'remember_token' => 'remember-before-directory-loss',
         ])->save();
@@ -202,7 +201,7 @@ class DirectoryRoleSynchronizerTest extends TestCase
 
         $result = app(DirectoryRoleSynchronizer::class)->synchronize(
             $user,
-            ['myapes.admin'],
+            ['myapesaccount.admin'],
             false,
         );
 
@@ -219,24 +218,23 @@ class DirectoryRoleSynchronizerTest extends TestCase
         );
     }
 
-    public function test_disabled_app_group_mappings_are_ignored_until_reenabled(): void
+    public function test_non_managed_prefix_groups_are_ignored_during_role_sync(): void
     {
         $user = User::factory()
             ->accessLevel(User::ROLE_SERVICE_USER)
-            ->cloudronIdentity('disabled-group-subject')
+            ->cloudronIdentity('custom-group-subject')
             ->create()
             ->refresh();
         [$customRole, $customGroup] = $this->customMapping();
-        $customGroup->forceFill(['app_enabled' => false])->save();
 
         $synchronizer = app(DirectoryRoleSynchronizer::class);
-        $disabled = $synchronizer->synchronize($user, [
+        $result = $synchronizer->synchronize($user, [
             $customGroup->name,
-            'myapes.staff',
+            'myapesaccount.staff',
         ]);
 
-        $this->assertTrue($disabled->eligible);
-        $this->assertSame('staff', $disabled->protectedRole);
+        $this->assertTrue($result->eligible);
+        $this->assertSame('staff', $result->protectedRole);
         $this->assertTrue(
             $user->fresh()->roles()->where('name', 'staff')->exists(),
         );
@@ -247,26 +245,6 @@ class DirectoryRoleSynchronizerTest extends TestCase
             'user_id' => $user->id,
             'role_id' => $customRole->id,
             'source' => RoleSource::SOURCE_DIRECTORY,
-        ]);
-
-        $customGroup->forceFill(['app_enabled' => true])->save();
-        $enabled = $synchronizer->synchronize($user->fresh(), [
-            $customGroup->name,
-            'myapes.staff',
-        ]);
-
-        $this->assertTrue($enabled->eligible);
-        $this->assertTrue(
-            $user->fresh()->roles()->where('name', 'custom-reviewer')->exists(),
-        );
-        $this->assertTrue(
-            $user->fresh()->roles()->where('name', 'staff')->exists(),
-        );
-        $this->assertDatabaseHas('role_sources', [
-            'user_id' => $user->id,
-            'role_id' => $customRole->id,
-            'source' => RoleSource::SOURCE_DIRECTORY,
-            'directory_group_id' => $customGroup->id,
         ]);
     }
 

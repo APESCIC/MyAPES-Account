@@ -6,7 +6,6 @@ use App\Models\DirectoryGroup;
 
 /**
  * Labels Cloudron directory catalogue entries for admin UI clarity.
- * Groups are always directory-sourced; “custom” applies to mappings, not group membership.
  */
 final class DirectoryGroupLabels
 {
@@ -15,7 +14,7 @@ final class DirectoryGroupLabels
         $name = $group instanceof DirectoryGroup ? $group->name : $group;
 
         if (self::isMyApesCloudronGroup($name)) {
-            return 'Cloudron MyAPES';
+            return 'Cloudron MyAPES Account';
         }
 
         return 'Cloudron directory';
@@ -26,25 +25,23 @@ final class DirectoryGroupLabels
         $name = $group instanceof DirectoryGroup ? $group->name : $group;
 
         if (self::isMyApesCloudronGroup($name)) {
-            return 'Required or recognized MyAPES Cloudron group.';
+            return 'Preset MyAPES Account Cloudron group.';
         }
 
-        return 'Other group from the Cloudron directory catalogue. Not an app-owned custom group.';
+        return 'Other group from the Cloudron directory catalogue.';
     }
 
     public static function isMyApesCloudronGroup(string $name): bool
     {
-        $required = config('myapes.directory.required_groups', []);
-
-        if (in_array($name, $required, true)) {
+        if (in_array(strtolower(trim($name)), DirectoryGroupPrefix::requiredGroups(), true)) {
             return true;
         }
 
-        return str_starts_with(strtolower($name), 'myapes.');
+        return DirectoryGroupPrefix::isManagedGroup($name);
     }
 
     public static function mappingLabel(bool $immutable): string
     {
-        return $immutable ? 'Protected Cloudron mapping' : 'Custom mapping';
+        return $immutable ? 'Preset Cloudron mapping' : 'Custom mapping';
     }
 }

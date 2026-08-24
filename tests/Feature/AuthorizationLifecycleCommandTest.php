@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AuthorizationActivationSynchronizer;
 use App\Services\AuthorizationPreflightChecker;
 use App\Services\AuthorizationRoleMaterializer;
+use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;
 use App\Support\AuthorizationCompatibilityDatabaseGuard;
 use Illuminate\Database\Migrations\Migration;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Mockery\MockInterface;
 use RuntimeException;
+use Tests\Fakes\FakeDirectoryUserSynchronizer;
 use Tests\TestCase;
 use Throwable;
 
@@ -44,12 +46,17 @@ class AuthorizationLifecycleCommandTest extends TestCase
             'myapes.oidc.redirect_uri' => 'https://myaccount.myapes.me.uk/staff/auth/callback',
             'myapes.oidc.scopes' => ['openid', 'profile', 'email'],
             'myapes.directory.required_groups' => [
-                'myapes.staff',
-                'myapes.admin',
-                'myapes.superadmin',
-                'myapes.superadmins',
+                'myapesaccount.staff',
+                'myapesaccount.admin',
+                'myapesaccount.superadmin',
+                'myapesaccount.volunteer',
+                'myapesaccount.student',
             ],
         ]);
+        $this->app->instance(
+            DirectoryUserSynchronizer::class,
+            new FakeDirectoryUserSynchronizer,
+        );
         Http::preventStrayRequests();
         Http::fake([
             'https://my.cloudron.apes.org.uk/.well-known/openid-configuration' => Http::response(
@@ -68,7 +75,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
                 'email' => 'preflight-super-person-canary@example.test',
             ]);
         $this->directory()->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
 
         $exitCode = $this->callCommand('myapes:authorization-preflight');
@@ -78,7 +85,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertStringContainsString('Database driver: ok', $output);
         $this->assertStringContainsString('Authorization schema: ok (phase_b)', $output);
         $this->assertStringContainsString('OIDC readiness: ok', $output);
-        $this->assertStringContainsString('Directory groups: ok (4 groups)', $output);
+        $this->assertStringContainsString('Directory groups: ok (5 groups)', $output);
         $this->assertStringContainsString(
             'Eligible OIDC super-admins: ok (1 users)',
             $output,
@@ -96,7 +103,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
                 'email' => 'preflight-phase-a-super-person-canary@example.test',
             ]);
         $this->directory()->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $this->runInMaintenanceMode(
             fn () => $this->phaseBMigration()->down(),
@@ -108,7 +115,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('Authorization schema: ok (phase_a)', $output);
         $this->assertStringContainsString('Legacy parity: ok (1 users)', $output);
-        $this->assertStringContainsString('Directory groups: ok (4 groups)', $output);
+        $this->assertStringContainsString('Directory groups: ok (5 groups)', $output);
         $this->assertStringContainsString(
             'Eligible OIDC super-admins: ok (1 users)',
             $output,
@@ -163,7 +170,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
                 'email' => 'wrong-group-preflight-person-canary@example.test',
             ]);
         $this->directory()->groupsByEmail = [
-            $candidate->email => ['myapes.superadmin.legacy'],
+            $candidate->email => ['myapesaccount.superadmin.legacy'],
         ];
 
         $exitCode = $this->callCommand('myapes:authorization-preflight');
@@ -175,7 +182,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
             $output,
         );
         $this->assertStringNotContainsString(
-            'myapes.superadmin.legacy',
+            'myapesaccount.superadmin.legacy',
             $output,
         );
         $this->assertCanariesAreAbsent($output);
@@ -191,7 +198,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
                 'suspended_at' => now(),
             ]);
         $this->directory()->groupsByEmail = [
-            $candidate->email => ['myapes.superadmin'],
+            $candidate->email => ['myapesaccount.superadmin'],
         ];
 
         $exitCode = $this->callCommand('myapes:authorization-preflight');
@@ -339,7 +346,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [$local, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $before = collect([$local, $superAdmin, $missing])->mapWithKeys(
@@ -368,7 +375,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         ]);
         $this->assertDatabaseHas('directory_group_role_mappings', [
             'directory_group_id' => DirectoryGroup::query()
-                ->where('name', 'myapes.superadmin')
+                ->where('name', 'myapesaccount.superadmin')
                 ->value('id'),
             'role_id' => Role::query()->where('name', 'super-admin')->value('id'),
             'is_immutable' => true,
@@ -423,7 +430,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [$local, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -461,7 +468,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [$local, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -498,7 +505,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -617,7 +624,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [$local, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $sourcesBefore = DB::table('role_sources')->orderBy('id')->get();
@@ -683,7 +690,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [$local, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $originalUserIds = collect([$local, $superAdmin, $missing])
@@ -780,7 +787,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $wildcard = DirectoryGroup::query()->create([
@@ -821,7 +828,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [$local, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -836,8 +843,8 @@ class AuthorizationLifecycleCommandTest extends TestCase
 
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('Authorization schema: ok', $output);
-        $this->assertStringContainsString('Permission matrix: ok (73 permissions)', $output);
-        $this->assertStringContainsString('Directory mappings: ok (4 immutable)', $output);
+        $this->assertStringContainsString('Permission matrix: ok (75 permissions)', $output);
+        $this->assertStringContainsString('Directory mappings: ok (5 immutable)', $output);
         $this->assertStringContainsString('Role provenance: ok (3 users)', $output);
         $this->assertStringContainsString('Session cutover: ok', $output);
         $this->assertStringContainsString('Effective super-admins: ok (1 users)', $output);
@@ -856,7 +863,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [$local, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -896,7 +903,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -921,14 +928,14 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
         $this->assertSame(
             DirectoryGroup::STATUS_MISSING,
             DirectoryGroup::query()
-                ->where('name', 'myapes.superadmin')
+                ->where('name', 'myapesaccount.superadmin')
                 ->value('status'),
         );
         $this->app->detectEnvironment(fn (): string => 'production');
@@ -953,13 +960,13 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->phaseBMigration()->up();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(
             DirectoryGroup::STATUS_MISSING,
             DirectoryGroup::query()
-                ->where('name', 'myapes.superadmin')
+                ->where('name', 'myapesaccount.superadmin')
                 ->value('status'),
         );
 
@@ -967,7 +974,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertSame(
             DirectoryGroup::STATUS_PRESENT,
             DirectoryGroup::query()
-                ->where('name', 'myapes.superadmin')
+                ->where('name', 'myapesaccount.superadmin')
                 ->value('status'),
         );
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -989,7 +996,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $directory->enumerationFailure = new DirectoryUnavailable(
@@ -1011,7 +1018,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertSame(
             DirectoryGroup::STATUS_MISSING,
             DirectoryGroup::query()
-                ->where('name', 'myapes.superadmin')
+                ->where('name', 'myapesaccount.superadmin')
                 ->value('status'),
         );
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -1033,7 +1040,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -1084,7 +1091,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -1108,7 +1115,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -1132,7 +1139,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -1171,7 +1178,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -1210,7 +1217,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         [, $superAdmin, $missing] = $this->activationUsers();
         $directory = $this->directory();
         $directory->groupsByEmail = [
-            $superAdmin->email => ['myapes.superadmin'],
+            $superAdmin->email => ['myapesaccount.superadmin'],
         ];
         $directory->missingEmails = [$missing->email];
         $this->assertSame(0, $this->callCommand('myapes:authorization-sync'));
@@ -1299,7 +1306,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
             ->delete();
         DB::table('directory_group_role_mappings')
             ->where('directory_group_id', DirectoryGroup::query()
-                ->where('name', 'myapes.superadmin')
+                ->where('name', 'myapesaccount.superadmin')
                 ->value('id'))
             ->delete();
     }
@@ -1341,10 +1348,11 @@ class AuthorizationLifecycleCommandTest extends TestCase
                 }
 
                 return [
-                    ['name' => 'myapes.admin', 'external_id' => '4102', 'member_count' => 1],
-                    ['name' => 'myapes.staff', 'external_id' => '4101', 'member_count' => 1],
-                    ['name' => 'myapes.superadmin', 'external_id' => '4103', 'member_count' => 1],
-                    ['name' => 'myapes.superadmins', 'external_id' => '4104', 'member_count' => 1],
+                    ['name' => 'myapesaccount.admin', 'external_id' => '4102', 'member_count' => 1],
+                    ['name' => 'myapesaccount.staff', 'external_id' => '4101', 'member_count' => 1],
+                    ['name' => 'myapesaccount.superadmin', 'external_id' => '4103', 'member_count' => 1],
+                    ['name' => 'myapesaccount.volunteer', 'external_id' => '4104', 'member_count' => 0],
+                    ['name' => 'myapesaccount.student', 'external_id' => '4105', 'member_count' => 0],
                 ];
             }
 
