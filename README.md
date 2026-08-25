@@ -35,7 +35,8 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - One Laravel `web` guard carries explicit `password`, `cloudron_oidc`, or local/testing-only `qa` session provenance.
   - Durable authorization epochs, recent directory-validation timestamps, suspension checks, remember-token rotation, and the Phase B session-cutover marker force reauthentication whenever authorization changes.
 - **Protected authorization**:
-  - The exact protected roles are `service-user`, `staff`, `administrator`, and `super-admin`.
+  - The exact protected roles are `service-user`, `student`, `volunteer`, `staff`, `administrator`, and `super-admin`.
+  - Students and volunteers receive staff-class service and plugin access for all enabled modules, but do not receive module `*.delete` abilities. Staff, administrators, and super-admins retain delete where the registry grants it.
   - The core code-owned permission catalogue contains `staff.access`, `admin.access`, `superadmin.access`, `admin.users.view`, `admin.users.manage`, `admin.groups.view`, `admin.group-mappings.manage`, `admin.roles.view`, `admin.roles.manage`, `admin.permissions.view`, `admin.modules.view`, `admin.modules.manage`, `admin.analytics.view`, and `admin.maintenance.manage`.
   - The first-party registry contributes 59 namespaced permissions for shipped instances. All 73 permissions are synchronized from immutable code definitions and enforced by the application-owned Gate and policies.
   - Administrators retain `admin.modules.view`; `admin.modules.manage` is super-admin-only.
@@ -74,7 +75,7 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 - `/login` and `/register` - public account authentication (in local/testing, `/login` auto-signs in to the seeded public user)
 - `/staff/login` - dedicated staff login page that starts Cloudron OIDC
 - `/change-log` - public, searchable MyAPES Core release history for guests, public users, and staff
-- local/testing only: QA role switcher (Public/Staff/Admin) available in the app layout for one-click identity switching
+- local/testing only: QA role switcher (Public/Student/Volunteer/Staff/Admin/Super Admin) available in the app layout for one-click identity switching
 
 ### APES CIC route and permission contract
 
@@ -268,12 +269,14 @@ All seeded users use this password:
 
 - `MyAPES-Local-QA-2026!`
 
-In local/testing, opening `/login` immediately signs into the seeded public account. Use the in-app QA role switcher to move between Public, Staff, Admin, and Super Admin without re-entering credentials. These are local identities with `qa` session provenance and system-provenanced protected baselines; they do not contain OIDC subjects, directory memberships, production group aliases, or direct user permissions. The Staff fixture also has the deterministic local custom role `local-qa-reviewer`. If a seeded account is missing, re-run `php artisan db:seed` in the local environment.
+In local/testing, opening `/login` immediately signs into the seeded public account. Use the in-app QA role switcher to move between Public, Student, Volunteer, Staff, Admin, and Super Admin without re-entering credentials. These are local identities with `qa` session provenance and system-provenanced protected baselines; they do not contain OIDC subjects, directory memberships, production group aliases, or direct user permissions. The Staff fixture also has the deterministic local custom role `local-qa-reviewer`. If a seeded account is missing, re-run `php artisan db:seed` in the local environment.
 
 | Role | Login email | Login route | Primary QA coverage |
 | --- | --- | --- | --- |
 | Public service user | `qa.service.user@myapes.local` | `/login` (auto-login) or QA switcher | Public dashboard, profile/settings, APES CIC Tickets/Cases, Shelter Pet Profiles/Tickets/Cases, and APES Pet Care Clinic Pet Profiles/Tickets/Consultations (owner-scoped views) |
-| Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Exact-namespace staff visibility, assignment updates, internal Ticket messages and Case updates, status workflows, and the local custom-role fixture |
+| Student | `qa.student@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff-class service workflows without module delete abilities |
+| Volunteer | `qa.volunteer@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff-class service workflows without module delete abilities |
+| Staff | `qa.staff@myapes.local` | QA switcher or `/staff/login` (local direct form) | Exact-namespace staff visibility, assignment updates, internal Ticket messages and Case updates, status workflows, delete abilities, and the local custom-role fixture |
 | Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus Admin Users and the simplified Admin overview KPIs |
 | Super Admin | `qa.superadmin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Super Admin panel (`/superadmin`): directory groups, roles, permissions, modules, maintenance, and technical analytics charts |
 
@@ -282,7 +285,8 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 | Role | Key flows to validate quickly |
 | --- | --- |
 | Public | Create/view/comment on own APES CIC and Shelter Tickets/Cases; create/view/comment on own APES Pet Care Clinic Tickets; update own Shelter and APES Pet Care Clinic Pet Profiles and Clinic Consultations; edit profile/settings; and verify owner-only/public-update visibility |
-| Staff | Use exact instance permissions to see all users' Tickets/Cases/Consultations, assign eligible staff/admin accounts, update statuses, and verify internal-note privacy |
+| Student / Volunteer | Use staff-class visibility and updates across services; confirm delete actions are denied |
+| Staff | Use exact instance permissions to see all users' Tickets/Cases/Consultations, assign eligible staff/admin accounts, update statuses, delete where permitted, and verify internal-note privacy |
 | Admin | Run full staff workflows plus inspect Admin Users and the simplified Admin overview |
 | Super Admin | Open `/superadmin`, exercise Groups/Roles/Permissions/Modules/Maintenance, and confirm overview charts stay fixed-height |
 
@@ -293,7 +297,7 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 - Shelter Tickets: an open unassigned adoption enquiry, an in-progress staff-assigned rescue request, and a closed admin-assigned animal-welfare follow-up, each with deterministic public and internal messages
 - Shelter Cases: the existing Mango Pet Profile with two open/in-review cases plus a closed example; the rescue Case has deterministic public and internal updates without changing its parent identity or timestamp
 - APES Pet Care Clinic: a seeded Pet Profile with two open/in-progress Consultations plus a closed example, and three deterministic Tickets covering appointment/open/unassigned/low, prescription/in-progress/staff/high, and billing/closed/admin/medium states with one public and one internal message each
-- Profiles: the public QA account has a `UserProfile`; staff, admin, and superadmin QA accounts have `StaffProfile` workplace details. Repeated non-destructive seeding preserves Ticket/Case parent and child IDs, owners, pets, assignees, values, and timestamps without cross-sub-core overwrite
+- Profiles: the public QA account has a `UserProfile`; student, volunteer, staff, admin, and superadmin QA accounts have `StaffProfile` workplace details. Repeated non-destructive seeding preserves Ticket/Case parent and child IDs, owners, pets, assignees, values, and timestamps without cross-sub-core overwrite
 
 Start Laravel, the queue listener, application logs, and Vite together with the cross-platform Composer script:
 

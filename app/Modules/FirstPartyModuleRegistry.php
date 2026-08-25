@@ -163,9 +163,14 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
             'administrator',
             'super-admin',
         ];
-        $staffRoles = [
+        $staffWorkRoles = [
             'student',
             'volunteer',
+            'staff',
+            'administrator',
+            'super-admin',
+        ];
+        $staffDeleteRoles = [
             'staff',
             'administrator',
             'super-admin',
@@ -180,7 +185,13 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
             $ability,
             $label,
             true,
-            $staffRoles,
+            $staffWorkRoles,
+        );
+        $staffDelete = static fn (string $ability, string $label): ModuleAbilityDefinition => new ModuleAbilityDefinition(
+            $ability,
+            $label,
+            true,
+            $staffDeleteRoles,
         );
 
         $definitions = [
@@ -199,7 +210,7 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                     $staff('update-all', 'Update all tickets'),
                     $staff('assign', 'Assign tickets'),
                     $staff('close', 'Close tickets'),
-                    $staff('delete', 'Delete tickets'),
+                    $staffDelete('delete', 'Delete tickets'),
                 ],
                 [
                     'apes-cic' => new ModuleNavigationDefinition(
@@ -243,7 +254,7 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                     $staff('update-all', 'Update all cases'),
                     $staff('assign', 'Assign cases'),
                     $staff('close', 'Close cases'),
-                    $staff('delete', 'Delete cases'),
+                    $staffDelete('delete', 'Delete cases'),
                 ],
                 [
                     'apes-cic' => new ModuleNavigationDefinition(

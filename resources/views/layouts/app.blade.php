@@ -190,6 +190,8 @@
             <div class="qa-switcher__forms" aria-label="Switch active role">
                 @foreach([
                     'service_user' => 'Public',
+                    'student' => 'Student',
+                    'volunteer' => 'Volunteer',
                     'staff' => 'Staff',
                     'admin' => 'Admin',
                     'superadmin' => 'Super Admin',

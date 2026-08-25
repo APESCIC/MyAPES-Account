@@ -67,6 +67,34 @@ class LocalQaAuthTest extends TestCase
         $this->assertSame(LocalQaSeeder::ADMIN_EMAIL, auth()->user()?->email);
     }
 
+    public function test_role_switcher_can_switch_to_seeded_student_user(): void
+    {
+        $this->seed(LocalQaSeeder::class);
+
+        $response = $this->post(route('qa.switch-role'), [
+            'role' => User::ROLE_STUDENT,
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticated();
+        $this->assertSame(User::ROLE_STUDENT, auth()->user()?->accessLevel());
+        $this->assertSame(LocalQaSeeder::STUDENT_EMAIL, auth()->user()?->email);
+    }
+
+    public function test_role_switcher_can_switch_to_seeded_volunteer_user(): void
+    {
+        $this->seed(LocalQaSeeder::class);
+
+        $response = $this->post(route('qa.switch-role'), [
+            'role' => User::ROLE_VOLUNTEER,
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticated();
+        $this->assertSame(User::ROLE_VOLUNTEER, auth()->user()?->accessLevel());
+        $this->assertSame(LocalQaSeeder::VOLUNTEER_EMAIL, auth()->user()?->email);
+    }
+
     public function test_public_qa_auto_login_does_not_create_remembered_authentication(): void
     {
         $this->seed(LocalQaSeeder::class);
