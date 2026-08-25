@@ -23,6 +23,11 @@ final class FakeLdapUserResolver extends LdapUserResolver
      */
     public array $resolvedEmails = [];
 
+    /**
+     * @var array<string, array<int, DirectoryUserProfile>>
+     */
+    public array $membersByGroup = [];
+
     public function profileForEmail(string $email): DirectoryUserProfile
     {
         $normalizedEmail = Str::lower(trim($email));
@@ -54,6 +59,8 @@ final class FakeLdapUserResolver extends LdapUserResolver
      */
     public function membersOfGroup(string $groupName): array
     {
-        return [];
+        $normalizedGroup = strtolower(trim($groupName));
+
+        return $this->membersByGroup[$normalizedGroup] ?? [];
     }
 }
