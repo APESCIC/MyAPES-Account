@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\DirectoryGroupPrefix;
 use Illuminate\Database\Eloquent\Attributes\Cast;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -47,6 +48,22 @@ class DirectoryGroup extends Model
     public function roleSources(): HasMany
     {
         return $this->hasMany(RoleSource::class);
+    }
+
+    /**
+     * Working Admin catalogue: managed myapesaccount.* only.
+     * Historical non-prefix rows remain in the table for audits but stay hidden.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeManagedMyApesGroups(Builder $query): Builder
+    {
+        return $query->where(
+            'name',
+            'like',
+            DirectoryGroupPrefix::prefix().'%',
+        );
     }
 
     public function isAppEnabled(): bool

@@ -209,6 +209,40 @@ class AdminDirectoryManagementTest extends TestCase
         ];
     }
 
+    public function test_admin_groups_index_lists_managed_prefix_groups_and_hides_historical_noise(): void
+    {
+        $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
+        DirectoryGroup::query()->create([
+            'name' => 'intranet.managers',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'member_count' => 9,
+            'app_enabled' => false,
+        ]);
+        DirectoryGroup::query()->create([
+            'name' => 'myapesaccount.ops-review',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'member_count' => 2,
+            'app_enabled' => true,
+        ]);
+
+        $response = $this->actingAs($superAdmin)
+            ->get('/admin/groups')
+            ->assertOk()
+            ->assertSee('myapesaccount.staff')
+            ->assertSee('myapesaccount.ops-review')
+            ->assertSee('Historical non-prefix catalogue rows')
+            ->assertDontSee('intranet.managers');
+
+        $this->assertDatabaseHas('directory_groups', [
+            'name' => 'intranet.managers',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+        ]);
+        $this->assertStringNotContainsString(
+            'intranet.managers',
+            $response->getContent(),
+        );
+    }
+
     private function userWithAccess(string $accessLevel): User
     {
         return User::factory()

@@ -47,12 +47,13 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
   - Privileged role, mapping, and user mutations lock the singleton authorization state before users or directory records, then revalidate the session method, user and global epochs, directory generation, suspension, exact-role provenance, and effective protected role. Final-super-admin safeguards use this same present-group-backed predicate; an unprovenanced or stale pivot cannot satisfy them.
 - **Directory catalogue and mappings**:
   - The only immutable mappings are the five preset `myapesaccount.*` groups: `staff`, `admin`, `superadmin`, `volunteer`, and `student` to their matching protected roles.
-  - Matching is normalized and exact. Only groups with the configured `myapesaccount.` prefix are synchronized; wildcards and legacy aliases are rejected.
+  - Matching is normalized and exact. Only groups with the configured `myapesaccount.` prefix are synchronized into the working catalogue; wildcards are rejected, and known legacy or misspelled aliases map to the canonical names.
+  - Historical non-prefix catalogue rows remain in the database for audit continuity but are hidden from Admin Groups and are not marked missing by sync.
   - The catalogue stores normalized group identity, optional external ID, aggregate member count, presence state, and synchronization timestamps; individual directory members are never persisted in the catalogue, but directory sync can pre-provision Cloudron OIDC users and staff profiles before first login.
   - Manual and scheduled catalogue requests share one unique, coalesced job and the same database lease. Attempts, backoff, execution, queue reservation, and LDAP connection/search times are bounded; the queue reservation always exceeds one job attempt.
 - **Administration**:
   - Admin Users supports safe identity detail, search/filtering, custom local-role assignment, suspension/reactivation, effective permissions, provenance, and audit history within target-aware authorization boundaries. Target lookup occurs only after authorization, so missing and existing identifiers produce the same sanitized denial for unauthorized actors.
-  - Admin Groups shows the preset Cloudron directory groups, aggregate counts, and synchronization status; super-admins can request asynchronous synchronization only. Enable/disable and custom mapping controls are not available.
+  - Admin Groups shows managed Cloudron `myapesaccount.*` directory groups, aggregate counts, and synchronization status; super-admins can request asynchronous synchronization only. Enable/disable and custom mapping controls are not available.
   - Admin Roles lets authorized administrators inspect custom roles while only super-admins can create, update permissions for, or delete unassigned custom roles.
   - Admin Permissions is a read-only view of the core and shipped-module code-owned permissions and protected-role matrix. Recent-account identities require `admin.users.view`; `admin.access` alone exposes aggregates only.
 - **First-party plugin registry** (internal module contracts):

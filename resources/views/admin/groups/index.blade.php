@@ -7,7 +7,7 @@
 
     <section class="panel" aria-labelledby="admin-groups-title">
         <h1 id="admin-groups-title">Super Admin groups</h1>
-        <p class="muted">Preset Cloudron <code>myapesaccount.*</code> groups used for MyAPES Account authorization. Directory sync imports only these groups and provisions staff profiles from LDAP membership.</p>
+        <p class="muted">Managed Cloudron <code>myapesaccount.*</code> groups used for MyAPES Account authorization. Directory sync imports only these groups (legacy aliases map to the canonical names). Historical non-prefix catalogue rows stay in the database for audits but are hidden here.</p>
 
         <form method="get" action="{{ route('admin.groups.index') }}">
             <div class="row">

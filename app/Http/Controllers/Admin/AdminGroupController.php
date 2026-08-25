@@ -7,7 +7,6 @@ use App\Jobs\RunDirectorySync;
 use App\Models\DirectoryGroup;
 use App\Services\AuditLogger;
 use App\Services\ManualDirectorySyncQueueResolver;
-use App\Support\DirectoryGroupPrefix;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -31,7 +30,7 @@ class AdminGroupController extends Controller
             ->with([
                 'roles' => fn ($query) => $query->orderBy('name'),
             ])
-            ->whereIn('name', DirectoryGroupPrefix::requiredGroups());
+            ->managedMyApesGroups();
 
         if (isset($filters['q'])) {
             $query->where(
