@@ -397,8 +397,11 @@ Before deploy, create or rename Cloudron directory groups to these exact
 
 Delete obsolete legacy groups after migration, including `myapes.staff`,
 `myapes.admins`, `myapes.superadmins`, plural variants, and misspellings such as
-`myapes.vounteers`. Only the five preset groups above are synchronized and
-mapped; custom group mappings and enable/disable controls are not supported.
+`myapes.vounteers`, `myapesaccount.vounteer`, and `myapesaccont.*`. The app
+temporarily normalizes those misspellings to the canonical `myapesaccount.*`
+names so deploy readiness can succeed while operators rename Cloudron groups.
+Only the five preset groups above are synchronized and mapped; custom group
+mappings and enable/disable controls are not supported.
 
 The LAMP package injects rotating `CLOUDRON_LDAP_*` credentials. MyAPES uses
 OIDC for authentication and LDAP membership for authorization; LDAP credentials

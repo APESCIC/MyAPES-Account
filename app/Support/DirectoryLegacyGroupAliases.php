@@ -23,6 +23,19 @@ final class DirectoryLegacyGroupAliases
             'myapes.students',
             'myapes.volunteers',
             'myapes.vounteers',
+            'myapesaccount.vounteer',
+            'myapesaccount.vounteers',
+            'myapesaccont.staff',
+            'myapesaccont.admin',
+            'myapesaccont.admins',
+            'myapesaccont.superadmin',
+            'myapesaccont.superadmins',
+            'myapesaccont.student',
+            'myapesaccont.students',
+            'myapesaccont.volunteer',
+            'myapesaccont.volunteers',
+            'myapesaccont.vounteer',
+            'myapesaccont.vounteers',
         ];
     }
 
@@ -34,17 +47,23 @@ final class DirectoryLegacyGroupAliases
             return null;
         }
 
+        $aliased = match ($normalized) {
+            'myapes.staff', 'myapesaccont.staff' => 'myapesaccount.staff',
+            'myapes.admin', 'myapes.admins', 'myapesaccont.admin', 'myapesaccont.admins' => 'myapesaccount.admin',
+            'myapes.superadmin', 'myapes.superadmins', 'myapesaccont.superadmin', 'myapesaccont.superadmins' => 'myapesaccount.superadmin',
+            'myapes.volunteers', 'myapes.vounteers', 'myapesaccount.vounteer', 'myapesaccount.vounteers', 'myapesaccont.volunteer', 'myapesaccont.volunteers', 'myapesaccont.vounteer', 'myapesaccont.vounteers' => 'myapesaccount.volunteer',
+            'myapes.students', 'myapesaccont.student', 'myapesaccont.students' => 'myapesaccount.student',
+            default => null,
+        };
+
+        if ($aliased !== null) {
+            return $aliased;
+        }
+
         if (DirectoryGroupPrefix::isManagedGroup($normalized)) {
             return $normalized;
         }
 
-        return match ($normalized) {
-            'myapes.staff' => 'myapesaccount.staff',
-            'myapes.admin', 'myapes.admins' => 'myapesaccount.admin',
-            'myapes.superadmin', 'myapes.superadmins' => 'myapesaccount.superadmin',
-            'myapes.volunteers', 'myapes.vounteers' => 'myapesaccount.volunteer',
-            'myapes.students' => 'myapesaccount.student',
-            default => null,
-        };
+        return null;
     }
 }
