@@ -548,6 +548,85 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
         ]);
     }
 
+    public function test_synchronizer_drops_directory_noise_and_keeps_required_groups_enabled(): void
+    {
+        Carbon::setTestNow('2026-08-25 09:00:00');
+        DirectoryGroup::query()->create([
+            'name' => 'intranet.managers',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'member_count' => 3,
+            'app_enabled' => false,
+            'first_seen_at' => now()->subDay(),
+            'last_seen_at' => now()->subDay(),
+            'last_synced_at' => now()->subDay(),
+        ]);
+
+        $this->rawCatalogueResolver([
+            [
+                'name' => 'myapesaccount.staff',
+                'external_id' => '5101',
+                'member_count' => 4,
+            ],
+            [
+                'name' => 'intranet.managers',
+                'external_id' => '99',
+                'member_count' => 12,
+            ],
+            [
+                'name' => 'users',
+                'external_id' => null,
+                'member_count' => 100,
+            ],
+            [
+                'name' => 'myapesaccount.ops-review',
+                'external_id' => '5102',
+                'member_count' => 2,
+            ],
+        ]);
+
+        $run = app(DirectoryCatalogueSynchronizer::class)->synchronize(
+            DirectorySyncRun::SOURCE_MANUAL,
+        );
+
+        $this->assertSame(DirectorySyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertSame(2, $run->groups_seen);
+        $this->assertDatabaseHas('directory_groups', [
+            'name' => 'myapesaccount.staff',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => true,
+            'member_count' => 4,
+        ]);
+        $this->assertDatabaseHas('directory_groups', [
+            'name' => 'myapesaccount.ops-review',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => true,
+            'member_count' => 2,
+        ]);
+        $this->assertDatabaseMissing('directory_groups', [
+            'name' => 'users',
+        ]);
+        $this->assertDatabaseHas('directory_groups', [
+            'name' => 'intranet.managers',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'member_count' => 3,
+        ]);
+        $this->assertDatabaseHas('directory_groups', [
+            'name' => 'myapesaccount.admin',
+            'status' => DirectoryGroup::STATUS_MISSING,
+            'app_enabled' => true,
+        ]);
+        $this->assertDatabaseHas('directory_groups', [
+            'name' => 'myapesaccount.volunteer',
+            'status' => DirectoryGroup::STATUS_MISSING,
+            'app_enabled' => true,
+        ]);
+        $this->assertDatabaseHas('directory_groups', [
+            'name' => 'myapesaccount.student',
+            'status' => DirectoryGroup::STATUS_MISSING,
+            'app_enabled' => true,
+        ]);
+    }
+
     /**
      * @param  array<int, array{name: string, external_id: ?string, member_count: int}>  $catalogue
      */
@@ -590,6 +669,32 @@ class DirectoryCatalogueSynchronizerTest extends TestCase
                         $group['name'],
                     ),
                 ));
+            }
+        };
+        $resolver->catalogue = $catalogue;
+        $this->app->instance(LdapGroupResolver::class, $resolver);
+
+        return $resolver;
+    }
+
+    /**
+     * @param  array<int, array{name: string, external_id: ?string, member_count: int}>  $catalogue
+     */
+    private function rawCatalogueResolver(array $catalogue): LdapGroupResolver
+    {
+        $resolver = new class extends LdapGroupResolver
+        {
+            /**
+             * @var array<int, array{name: string, external_id: ?string, member_count: int}>
+             */
+            public array $catalogue = [];
+
+            /**
+             * @return array<int, array{name: string, external_id: ?string, member_count: int}>
+             */
+            public function enumerateGroups(): array
+            {
+                return $this->catalogue;
             }
         };
         $resolver->catalogue = $catalogue;

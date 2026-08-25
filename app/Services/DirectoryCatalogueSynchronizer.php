@@ -8,6 +8,7 @@ use App\Models\AuthorizationState;
 use App\Models\DirectoryGroup;
 use App\Models\DirectorySyncRun;
 use App\Support\DirectoryGroupPrefix;
+use App\Support\DirectoryLegacyGroupAliases;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -72,7 +73,9 @@ class DirectoryCatalogueSynchronizer
         }
 
         try {
-            $groups = $this->validatedCatalogue($groups);
+            $groups = $this->managedCatalogueOnly(
+                $this->validatedCatalogue($groups),
+            );
         } catch (Throwable) {
             $this->markFailed($run, 'invalid_catalogue');
 
@@ -367,6 +370,57 @@ class DirectoryCatalogueSynchronizer
         }
 
         return $validated;
+    }
+
+    /**
+     * Keep only managed MyAPES Account Cloudron groups (canonical myapesaccount.*).
+     * Legacy/typo aliases are rewritten; unrelated directory noise is dropped.
+     *
+     * @param  array<int, array{name: string, external_id: ?string, member_count: int}>  $groups
+     * @return array<int, array{name: string, external_id: ?string, member_count: int}>
+     */
+    private function managedCatalogueOnly(array $groups): array
+    {
+        $managed = [];
+
+        foreach ($groups as $group) {
+            $canonical = DirectoryLegacyGroupAliases::canonicalFor($group['name']);
+
+            if ($canonical === null) {
+                continue;
+            }
+
+            if (isset($managed[$canonical])) {
+                $existing = $managed[$canonical];
+                $managed[$canonical] = [
+                    'name' => $canonical,
+                    'external_id' => $existing['external_id'] ?? $group['external_id'],
+                    'member_count' => max(
+                        $existing['member_count'],
+                        $group['member_count'],
+                    ),
+                ];
+
+                continue;
+            }
+
+            $managed[$canonical] = [
+                'name' => $canonical,
+                'external_id' => $group['external_id'],
+                'member_count' => $group['member_count'],
+            ];
+        }
+
+        $managed = array_values($managed);
+        usort(
+            $managed,
+            static fn (array $left, array $right): int => strcmp(
+                $left['name'],
+                $right['name'],
+            ),
+        );
+
+        return $managed;
     }
 
     private function markFailed(DirectorySyncRun $run, string $code): void
