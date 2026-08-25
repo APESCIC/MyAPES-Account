@@ -109,7 +109,7 @@ class ReleaseHistoryPreparer
         $this->writeVersion($plan['next_version']);
         $this->writeReleases($releases);
         $this->writeManifestVersion($plan['next_version']);
-        $this->patchTestFiles($plan['previous_version'], $plan['next_version']);
+        $this->patchTestFiles($plan['previous_version'], $plan['next_version'], $date);
 
         return $plan;
     }
@@ -312,7 +312,7 @@ class ReleaseHistoryPreparer
         }
     }
 
-    private function patchTestFiles(string $previousVersion, string $nextVersion): void
+    private function patchTestFiles(string $previousVersion, string $nextVersion, string $date): void
     {
         foreach (self::TEST_FILES as $relativePath) {
             $path = $this->path($relativePath);
@@ -327,7 +327,13 @@ class ReleaseHistoryPreparer
                 throw new RuntimeException("Unable to read test file [{$path}].");
             }
 
-            $updated = $this->patchTestFileContent($content, $previousVersion, $nextVersion);
+            $updated = $this->patchTestFileContent(
+                $content,
+                $previousVersion,
+                $nextVersion,
+                $date,
+                $relativePath,
+            );
 
             if (file_put_contents($path, $updated) === false) {
                 throw new RuntimeException("Unable to write test file [{$path}].");
@@ -335,8 +341,13 @@ class ReleaseHistoryPreparer
         }
     }
 
-    private function patchTestFileContent(string $content, string $previousVersion, string $nextVersion): string
-    {
+    private function patchTestFileContent(
+        string $content,
+        string $previousVersion,
+        string $nextVersion,
+        string $date,
+        string $relativePath,
+    ): string {
         $content = preg_replace(
             '/\[\''.preg_quote($previousVersion, '/').'\',/',
             "['{$nextVersion}', '{$previousVersion}',",
@@ -367,7 +378,52 @@ class ReleaseHistoryPreparer
             $content,
         ) ?? $content;
 
+        if ($relativePath === 'tests/Feature/ReleaseHistoryCommandTest.php') {
+            $content = $this->patchReleaseHistoryDateAssertions($content, $date);
+        }
+
         return $content;
+    }
+
+    private function patchReleaseHistoryDateAssertions(string $content, string $date): string
+    {
+        if (! preg_match_all(
+            '/\$this->assertSame\(\'[^\']+\', \$releases\[(\d+)\]\[\'date\'\]\);/',
+            $content,
+            $matches,
+        )) {
+            return $content;
+        }
+
+        $indices = array_map('intval', $matches[1]);
+        rsort($indices, SORT_NUMERIC);
+
+        foreach ($indices as $index) {
+            $content = str_replace(
+                "\$releases[{$index}]['date']",
+                '$releases['.($index + 1)."]['date']",
+                $content,
+            );
+        }
+
+        $insertion = "        \$this->assertSame('{$date}', \$releases[0]['date']);\n";
+        $lowestShifted = ($indices === [] ? 0 : min($indices)) + 1;
+        $anchor = "\$releases[{$lowestShifted}]['date']";
+        $position = strpos($content, $anchor);
+
+        if ($position === false) {
+            return $content;
+        }
+
+        $lineStart = strrpos(substr($content, 0, $position), "\n");
+
+        if ($lineStart === false) {
+            return $insertion.$content;
+        }
+
+        return substr($content, 0, $lineStart + 1)
+            .$insertion
+            .substr($content, $lineStart + 1);
     }
 
     /**

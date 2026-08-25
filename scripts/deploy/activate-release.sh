@@ -1101,8 +1101,40 @@ restore_current_authorization_after_failure() {
   exit "$exit_code"
 }
 
+run_artisan_with_retry_for_directory_readiness() {
+  local attempt=1
+  local max_attempts=3
+  local delay_seconds=5
+  local output=""
+  local status=0
+
+  while (( attempt <= max_attempts )); do
+    set +e
+    output="$(run_artisan myapes:authorization-preflight --no-interaction --no-ansi 2>&1)"
+    status=$?
+    set -e
+    printf '%s\n' "$output"
+
+    if (( status == 0 )); then
+      return 0
+    fi
+
+    if [[ "$output" != *"failed (directory_readiness"* ]]; then
+      return "$status"
+    fi
+
+    if (( attempt == max_attempts )); then
+      return "$status"
+    fi
+
+    echo "Authorization preflight reported directory_readiness; retrying (${attempt}/${max_attempts})..."
+    sleep "$delay_seconds"
+    attempt=$((attempt + 1))
+  done
+}
+
 run_artisan optimize:clear
-run_artisan myapes:authorization-preflight --no-interaction --no-ansi
+run_artisan_with_retry_for_directory_readiness
 run_artisan myapes:modules:preflight --no-interaction --no-ansi
 run_artisan myapes:accounts:preflight --no-interaction --no-ansi
 trap restore_current_authorization_after_failure EXIT

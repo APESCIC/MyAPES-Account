@@ -165,6 +165,83 @@ class ReleaseHistoryValidator
     }
 
     /**
+     * @return list<string>
+     */
+    public function validateVersionPinnedTests(string $version, string $rootPath = ''): array
+    {
+        $errors = [];
+        $root = $rootPath !== '' ? rtrim($rootPath, DIRECTORY_SEPARATOR) : base_path();
+        $testFiles = [
+            'tests/Feature/HealthAndThemeTest.php',
+            'tests/Feature/ModuleRollbackCompatibilityTest.php',
+            'tests/Feature/ReleaseHistoryCommandTest.php',
+            'tests/Feature/ChangeLogPageTest.php',
+        ];
+
+        foreach ($testFiles as $relativePath) {
+            $path = $root.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+
+            if (! is_file($path)) {
+                $errors[] = "Version-pinned test file is missing [{$relativePath}].";
+
+                continue;
+            }
+
+            $content = file_get_contents($path);
+
+            if (! is_string($content) || ! str_contains($content, $version)) {
+                $errors[] = "Version-pinned test [{$relativePath}] does not reference v{$version}.";
+            }
+        }
+
+        $releaseHistoryPath = $root.DIRECTORY_SEPARATOR.'tests'
+            .DIRECTORY_SEPARATOR.'Feature'
+            .DIRECTORY_SEPARATOR.'ReleaseHistoryCommandTest.php';
+        $releasesPath = $root.DIRECTORY_SEPARATOR.'resources'
+            .DIRECTORY_SEPARATOR.'data'
+            .DIRECTORY_SEPARATOR.'releases.json';
+        $headDate = $this->readHeadReleaseDate($releasesPath);
+
+        if ($headDate !== null && is_file($releaseHistoryPath)) {
+            $releaseHistory = file_get_contents($releaseHistoryPath);
+
+            if (is_string($releaseHistory)
+                && ! str_contains($releaseHistory, "'{$headDate}', \$releases[0]['date']")) {
+                $errors[] = "ReleaseHistoryCommandTest head date must match releases.json [{$headDate}].";
+            }
+        }
+
+        return array_values(array_unique($errors));
+    }
+
+    private function readHeadReleaseDate(string $releasesPath): ?string
+    {
+        if (! is_file($releasesPath)) {
+            return null;
+        }
+
+        $contents = file_get_contents($releasesPath);
+
+        if (! is_string($contents)) {
+            return null;
+        }
+
+        try {
+            $releases = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        if (! is_array($releases) || ! isset($releases[0]['date']) || ! is_string($releases[0]['date'])) {
+            return null;
+        }
+
+        $date = trim($releases[0]['date']);
+
+        return $this->isIsoDate($date) ? $date : null;
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $releases
      * @param  list<array<string, mixed>>  $baseReleases
      * @return list<string>

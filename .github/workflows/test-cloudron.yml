@@ -1,0 +1,312 @@
+name: Test MyAPES Core
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('test-pr-{0}', github.event.pull_request.number) || format('test-main-{0}', github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  deployment-control-authentication:
+    name: Authenticate deployment controls from Git
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deployment_controls_sha256: ${{ steps.authenticate.outputs.deployment_controls_sha256 }}
+    steps:
+      - name: Derive deployment-control digest from exact revision
+        id: authenticate
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REQUESTED_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          requested_ref="$REQUESTED_REVISION"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            requested_ref="refs/heads/main"
+          fi
+
+          authentication_root="$(mktemp -d)"
+          trap 'rm -rf -- "$authentication_root"' EXIT
+          repository_root="$authentication_root/repository"
+          controls_root="$authentication_root/controls"
+          git init --quiet "$repository_root"
+          git -C "$repository_root" remote add origin \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          authorization="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\r\n')"
+          git -C "$repository_root" \
+            -c "http.extraHeader=AUTHORIZATION: basic $authorization" \
+            fetch --quiet --depth=1 origin "$requested_ref"
+          unset authorization GITHUB_TOKEN
+          release_sha="$(git -C "$repository_root" rev-parse FETCH_HEAD)"
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then
+            [[ "$release_sha" == "$REQUESTED_REVISION" ]]
+          fi
+
+          deployment_control_paths=(
+            scripts/deploy/activate-release.sh
+            scripts/deploy/rollback-release.sh
+            scripts/deploy/cloudron-app.conf
+            scripts/deploy/cloudron-run.sh
+          )
+          install -d -m 0700 "$controls_root"
+          : > "$controls_root/DEPLOYMENT-CONTROLS.sha256"
+          for control_path in "${deployment_control_paths[@]}"; do
+            install -d -m 0700 "$controls_root/$(dirname "$control_path")"
+            git -C "$repository_root" show \
+              "$release_sha:$control_path" > "$controls_root/$control_path"
+            test -s "$controls_root/$control_path"
+            control_digest="$(sha256sum "$controls_root/$control_path" | awk '{print $1}')"
+            printf '%s  %s\n' "$control_digest" "$control_path" \
+              >> "$controls_root/DEPLOYMENT-CONTROLS.sha256"
+          done
+          deployment_controls_sha256="$(sha256sum "$controls_root/DEPLOYMENT-CONTROLS.sha256" | awk '{print $1}')"
+          [[ "$deployment_controls_sha256" =~ ^[0-9a-f]{64}$ ]]
+          (
+            cd "$controls_root"
+            sha256sum --check --strict DEPLOYMENT-CONTROLS.sha256
+          )
+          echo "deployment_controls_sha256=$deployment_controls_sha256" \
+            >> "$GITHUB_OUTPUT"
+
+  quality:
+    name: SQLite test and package
+    needs: deployment-control-authentication
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      release_sha: ${{ steps.release.outputs.sha }}
+      app_version: ${{ steps.release.outputs.app_version }}
+    steps:
+      - name: Checkout exact main revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
+          fetch-depth: 0
+
+      - name: Resolve release identity
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_sha="$(git rev-parse HEAD)"
+          app_version="$(tr -d '\r\n' < VERSION)"
+          if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Unable to resolve a full Git commit SHA."
+            exit 1
+          fi
+          if [[ ! "$app_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Unable to resolve a valid semantic app version."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            git fetch origin main
+            test "$release_sha" = "$(git rev-parse origin/main)"
+          fi
+
+          {
+            echo "sha=$release_sha"
+            echo "app_version=$app_version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_mysql, redis, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install application dependencies
+        run: |
+          composer install --no-interaction --prefer-dist
+          npm ci --no-audit --no-fund
+
+      - name: Validate source-controlled release history
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          base_ref=""
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="$PR_BASE_SHA"
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" && -n "$PUSH_BASE_SHA" && ! "$PUSH_BASE_SHA" =~ ^0+$ ]]; then
+            base_ref="$PUSH_BASE_SHA"
+          fi
+
+          if [[ -n "$base_ref" ]]; then
+            php artisan myapes:changelog-validate --base-ref="$base_ref" --no-interaction
+          else
+            php artisan myapes:changelog-validate --no-interaction
+          fi
+
+      - name: Validate deployment scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in scripts/deploy/*.sh scripts/local/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Run frontend tests
+        run: |
+          node --check scripts/local/dev-runner.mjs
+          npm run test:frontend
+
+      - name: Validate local PowerShell scripts
+        shell: pwsh
+        run: |
+          $parseErrors = @()
+          Get-ChildItem -LiteralPath scripts/local -Filter *.ps1 | ForEach-Object {
+              $tokens = $null
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  $_.FullName,
+                  [ref] $tokens,
+                  [ref] $errors
+              ) | Out-Null
+              $parseErrors += $errors
+          }
+
+          if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+          }
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run test suite
+        run: composer test
+
+      - name: Install production PHP dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --classmap-authoritative
+
+      - name: Package exact release
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          TRUSTED_CONTROLS_SHA256: ${{ needs.deployment-control-authentication.outputs.deployment_controls_sha256 }}
+        run: bash scripts/deploy/package-release.sh
+
+  database-compatibility:
+    name: Authorization and module database contract (MySQL 8.4)
+    runs-on: ubuntu-latest
+    # Hosted MySQL fsync dominates this job. tmpfs datadir is the GHA equivalent of
+    # innodb_flush_log_at_trx_commit=0 / sync_binlog=0 (service containers cannot pass mysqld argv).
+    timeout-minutes: 30
+    services:
+      database:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: myapes_test
+          MYSQL_INITDB_SKIP_TZINFO: '1'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --tmpfs /var/lib/mysql:rw,noexec,nosuid,size=1g
+          --tmpfs /tmp
+          --shm-size=1g
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
+          fetch-depth: 1
+
+      - name: Set up PHP 8.4 with MySQL support
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pcntl, pdo_mysql, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run authorization and module database contract
+        env:
+          APP_MAINTENANCE_DRIVER: file
+          APP_MAINTENANCE_STORE: file
+          CACHE_STORE: array
+          LOG_CHANNEL: 'null'
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: myapes_test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+          DB_URL: ''
+        run: |
+          php artisan test tests/Feature/ApesCicFoundationMigrationTest.php
+
+          php artisan db:wipe --force --no-interaction
+
+          php artisan test \
+            tests/Feature/AuthorizationSchemaTest.php \
+            tests/Feature/AuthorizationRoleMaterializerTest.php \
+            tests/Feature/ForwardOnlyDatabaseMigrationsTest.php \
+            tests/Feature/AuthorizationCutoverGuardTest.php \
+            tests/Feature/AuthorizationCutoverConcurrencyTest.php \
+            tests/Feature/PermissionSchemaMigrationTest.php \
+            tests/Feature/AccessCompatibilityMigrationTest.php \
+            tests/Feature/AccessCompatibilityCommandTest.php \
+            tests/Feature/RolelessApplicationCompatibilityTest.php \
+            tests/Feature/UserAccessCompatibilityTest.php \
+            tests/Feature/AuthorizationLifecycleCommandTest.php \
+            tests/Feature/DirectoryCatalogueSynchronizerTest.php \
+            tests/Feature/DirectorySyncWiringTest.php \
+            tests/Feature/Auth/DirectoryRevalidationTest.php \
+            tests/Feature/DirectoryGroupMappingServiceTest.php \
+            tests/Feature/DirectoryRoleSynchronizerTest.php \
+            tests/Feature/ModuleRegistryTest.php \
+            tests/Feature/ModulePermissionMigrationTest.php \
+            tests/Feature/ModuleInstallationSynchronizationTest.php \
+            tests/Feature/ModuleLifecycleTest.php \
+            tests/Feature/ModuleLifecycleConcurrencyTest.php \
+            tests/Feature/ModuleRollbackCompatibilityTest.php
+
+          php artisan test tests/Feature/ProductionUpgradePreflightTest.php
+
+          php artisan migrate:fresh --seed --force --no-interaction
+          php tests/Support/directory-sync-timeout-probe.php prepare
+          set +e
+          php artisan queue:work database \
+            --stop-when-empty \
+            --queue=security-timeout \
+            --sleep=1 \
+            --timeout=2 \
+            --tries=1
+          worker_status=$?
+          set -e
+          echo "Timeout probe worker exit status: $worker_status"
+          php tests/Support/directory-sync-timeout-probe.php assert
+
