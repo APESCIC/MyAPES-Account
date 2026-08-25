@@ -57,3 +57,47 @@ powershell -ExecutionPolicy Bypass -File .\scripts\local\pre-merge.ps1
 ```
 
 This validates release history against `origin/main`, version-pinned tests, frontend tests, and a production build.
+
+## Local preview
+
+Before planning or editing UI-facing files, ensure a local preview is running and open the app in Cursor's built-in browser.
+
+### Start the stack
+
+Prefer the cross-platform Composer script from the repository root:
+
+```powershell
+composer run dev
+```
+
+On Windows you may also use:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\local\dev.ps1
+```
+
+On macOS / Linux:
+
+```bash
+bash scripts/local/dev.sh
+```
+
+These start Laravel, the queue listener, application logs, and Vite together. Default app URL: **http://127.0.0.1:8000/** (override with `APP_PORT`). Vite HMR typically listens on **http://127.0.0.1:5173/**.
+
+### Bootstrap when `.env` is missing
+
+If local env is not set up yet, run bootstrap first (installs dependencies, creates `.env` from `.env.local.example`, migrates/seeds, builds frontend):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1 -Fresh
+```
+
+```bash
+bash scripts/local/bootstrap.sh --fresh
+```
+
+Use `--seed` / `-Seed` for non-destructive seeding. See README “Local environment setup” for details.
+
+### Agent requirement
+
+Reuse an already-running preview; do not start duplicate servers. Open **http://127.0.0.1:8000/** in Cursor's built-in browser (side pane preferred) before UI edits, confirm the page loads, and note the preview URL (and Vite HMR port when relevant) in your reply. Skip preview startup for non-UI tasks.
