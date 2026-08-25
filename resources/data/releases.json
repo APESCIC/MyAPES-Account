@@ -33,11 +33,15 @@
       "The Access workspace UX in issue #97 is not included; job-role mapping uses the existing Groups and Roles pages."
     ],
     "rollback": "Redeploy the previous application version. Seeded job roles and mutable mappings remain in the database until an administrator removes them.",
-    "provenance": "Defined by the seed default job roles story for MyAPES Account issue #96 under epic #91.",
+    "provenance": "Defined by the seed default job roles story for MyAPES Account issue #96 under epic #91 and pull request #119.",
     "references": [
       {
         "label": "Issue #96",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/96"
+      },
+      {
+        "label": "Pull request #119",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/119"
       }
     ]
   },
