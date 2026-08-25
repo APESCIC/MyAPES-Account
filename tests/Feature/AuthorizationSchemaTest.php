@@ -10,6 +10,7 @@ use App\Models\Role;
 use App\Models\RoleSource;
 use App\Models\User;
 use App\Services\AuthorizationProfile;
+use App\Support\DefaultJobRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -134,6 +135,10 @@ class AuthorizationSchemaTest extends TestCase
 
         $this->assertSame([
             ['name' => 'administrator', 'guard_name' => 'web', 'is_protected' => 1],
+            ['name' => 'board-of-directors', 'guard_name' => 'web', 'is_protected' => 0],
+            ['name' => 'client-services-advisor', 'guard_name' => 'web', 'is_protected' => 0],
+            ['name' => 'management', 'guard_name' => 'web', 'is_protected' => 0],
+            ['name' => 'receptionist', 'guard_name' => 'web', 'is_protected' => 0],
             ['name' => 'service-user', 'guard_name' => 'web', 'is_protected' => 1],
             ['name' => 'staff', 'guard_name' => 'web', 'is_protected' => 1],
             ['name' => 'student', 'guard_name' => 'web', 'is_protected' => 1],
@@ -217,6 +222,9 @@ class AuthorizationSchemaTest extends TestCase
             ->all();
 
         $expected = app(AuthorizationProfile::class)->permissionMatrix();
+        foreach (DefaultJobRoles::names() as $jobRole) {
+            $expected[$jobRole] = DefaultJobRoles::defaultPermissions($jobRole);
+        }
         ksort($expected);
         foreach ($expected as &$permissions) {
             sort($permissions);

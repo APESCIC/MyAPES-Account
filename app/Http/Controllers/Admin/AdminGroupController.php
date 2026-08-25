@@ -5,12 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\RunDirectorySync;
 use App\Models\DirectoryGroup;
+use App\Models\DirectoryGroupRoleMapping;
+use App\Models\Role;
 use App\Services\AuditLogger;
+use App\Services\DirectoryGroupMappingService;
 use App\Services\ManualDirectorySyncQueueResolver;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use InvalidArgumentException;
+use LogicException;
 
 class AdminGroupController extends Controller
 {
@@ -20,7 +27,7 @@ class AdminGroupController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'status' => [
                 'nullable',
-                \Illuminate\Validation\Rule::in([
+                Rule::in([
                     DirectoryGroup::STATUS_PRESENT,
                     DirectoryGroup::STATUS_MISSING,
                 ]),
@@ -50,6 +57,11 @@ class AdminGroupController extends Controller
                 ->orderBy('id')
                 ->paginate(25)
                 ->withQueryString(),
+            'jobRoles' => Role::query()
+                ->where('guard_name', 'web')
+                ->where('is_protected', false)
+                ->orderBy('name')
+                ->get(),
             'filters' => $filters,
         ]);
     }
@@ -83,5 +95,63 @@ class AdminGroupController extends Controller
         return redirect()
             ->route('admin.groups.index')
             ->with('status', 'Directory synchronization requested.');
+    }
+
+    public function storeMapping(
+        Request $request,
+        string $directoryGroup,
+        DirectoryGroupMappingService $mappings,
+    ): RedirectResponse {
+        Gate::authorize('admin.group-mappings.manage');
+        $managedGroup = DirectoryGroup::query()->findOrFail(
+            $directoryGroup,
+        );
+        $validated = $request->validate([
+            'role_id' => [
+                'required',
+                'integer',
+                Rule::exists('roles', 'id')->where(
+                    fn ($query) => $query
+                        ->where('guard_name', 'web')
+                        ->where('is_protected', false),
+                ),
+            ],
+        ]);
+        $role = Role::query()->findOrFail($validated['role_id']);
+
+        try {
+            $mappings->map($request->user(), $managedGroup, $role);
+        } catch (DomainException|InvalidArgumentException|LogicException $exception) {
+            return back()->withErrors([
+                'authorization' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.groups.index')
+            ->with('status', 'Job role mapping updated.');
+    }
+
+    public function destroyMapping(
+        Request $request,
+        string $mapping,
+        DirectoryGroupMappingService $mappings,
+    ): RedirectResponse {
+        Gate::authorize('admin.group-mappings.manage');
+        $managedMapping = DirectoryGroupRoleMapping::query()->findOrFail(
+            $mapping,
+        );
+
+        try {
+            $mappings->remove($request->user(), $managedMapping);
+        } catch (DomainException|LogicException $exception) {
+            return back()->withErrors([
+                'authorization' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.groups.index')
+            ->with('status', 'Job role mapping removed.');
     }
 }

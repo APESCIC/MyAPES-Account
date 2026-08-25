@@ -7,10 +7,12 @@ use App\Models\DirectoryGroup;
 use App\Models\DirectoryGroupRoleMapping;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\DefaultJobRoles;
 use App\Support\DirectoryImmutableMappings;
 use App\Support\DirectoryLegacyGroupAliases;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\PermissionRegistrar;
 
 class AuthorizationMetadataSynchronizer
 {
@@ -23,6 +25,7 @@ class AuthorizationMetadataSynchronizer
     {
         $this->synchronizeRoles();
         $this->synchronizePermissions();
+        $this->synchronizeDefaultJobRoles();
         $this->synchronizeMappings();
     }
 
@@ -93,6 +96,56 @@ class AuthorizationMetadataSynchronizer
                 'updated_at' => now(),
             ]);
         $this->permissions->synchronize();
+    }
+
+    private function synchronizeDefaultJobRoles(): void
+    {
+        $permissionIds = DB::table('permissions')
+            ->where('guard_name', 'web')
+            ->whereIn('name', $this->profile->permissions())
+            ->pluck('id', 'name');
+
+        foreach (DefaultJobRoles::names() as $name) {
+            $role = Role::query()
+                ->where('guard_name', 'web')
+                ->where('name', $name)
+                ->first();
+
+            if ($role === null) {
+                $role = new Role;
+                $role->forceFill([
+                    'name' => $name,
+                    'guard_name' => 'web',
+                    'is_protected' => false,
+                ])->save();
+
+                $rows = [];
+
+                foreach (DefaultJobRoles::defaultPermissions($name) as $permission) {
+                    if ($this->profile->isSuperAdminOnlyPermission($permission)
+                        || ! $permissionIds->has($permission)) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'role_id' => $role->getKey(),
+                        'permission_id' => $permissionIds->get($permission),
+                    ];
+                }
+
+                if ($rows !== []) {
+                    DB::table('role_has_permissions')->insert($rows);
+                }
+
+                continue;
+            }
+
+            if ($role->is_protected) {
+                throw new AuthorizationLifecycleException('protected_roles');
+            }
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function synchronizeMappings(): void

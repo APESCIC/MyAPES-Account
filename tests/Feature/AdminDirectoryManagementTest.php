@@ -8,7 +8,7 @@ use App\Models\DirectoryGroup;
 use App\Models\DirectoryGroupRoleMapping;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\DirectoryRoleSynchronizer;
+use App\Support\DefaultJobRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,35 +18,58 @@ class AdminDirectoryManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_custom_mapping_routes_are_not_available(): void
+    public function test_job_role_mappings_can_be_added_on_managed_groups(): void
     {
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
-        $group = DirectoryGroup::query()->create([
+        $group = DirectoryGroup::query()
+            ->where('name', 'myapesaccount.staff')
+            ->firstOrFail();
+        $jobRole = Role::query()
+            ->where('name', DefaultJobRoles::RECEPTIONIST)
+            ->firstOrFail();
+        $unmanaged = DirectoryGroup::query()->create([
             'name' => 'myapes.case-reviewers',
             'status' => DirectoryGroup::STATUS_PRESENT,
             'member_count' => 1,
         ]);
-        $role = Role::query()->create([
-            'name' => 'case-reviewer',
-            'guard_name' => 'web',
-        ]);
 
         $this->actingAs($superAdmin)
             ->post("/admin/groups/{$group->id}/mappings", [
-                'role_id' => $role->id,
+                'role_id' => $jobRole->id,
             ])
-            ->assertNotFound();
+            ->assertRedirect('/admin/groups');
 
-        $mapping = (new DirectoryGroupRoleMapping)->forceFill([
+        $this->assertDatabaseHas('directory_group_role_mappings', [
             'directory_group_id' => $group->id,
-            'role_id' => $role->id,
+            'role_id' => $jobRole->id,
             'is_immutable' => false,
         ]);
-        $mapping->save();
+        $this->assertDatabaseHas('directory_group_role_mappings', [
+            'directory_group_id' => $group->id,
+            'role_id' => Role::query()->where('name', 'staff')->value('id'),
+            'is_immutable' => true,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->from('/admin/groups')
+            ->post("/admin/groups/{$unmanaged->id}/mappings", [
+                'role_id' => $jobRole->id,
+            ])
+            ->assertRedirect('/admin/groups')
+            ->assertSessionHasErrors('authorization');
+
+        $mapping = DirectoryGroupRoleMapping::query()
+            ->where('directory_group_id', $group->id)
+            ->where('role_id', $jobRole->id)
+            ->firstOrFail();
 
         $this->actingAs($superAdmin)
             ->delete("/admin/groups/mappings/{$mapping->id}")
-            ->assertNotFound();
+            ->assertRedirect('/admin/groups');
+
+        $this->assertDatabaseMissing('directory_group_role_mappings', [
+            'id' => $mapping->id,
+        ]);
     }
 
     public function test_manual_sync_dispatches_existing_job_and_audits_only_safe_context(): void

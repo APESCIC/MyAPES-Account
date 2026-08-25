@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\DirectoryGroup;
-use App\Models\DirectoryGroupRoleMapping;
 use App\Models\Permission;
 use App\Models\PermissionSource;
 use App\Models\Role;
@@ -266,7 +265,7 @@ class AdminAccessAndViewsTest extends TestCase
             ->assertSee('Preset Cloudron mapping')
             ->assertDontSee('Enable for this app')
             ->assertDontSee('Disable for this app')
-            ->assertDontSee('Add role mapping');
+            ->assertSee('Add job role mapping');
 
         $this->actingAs($superAdmin)
             ->post('/admin/groups/999999/enable')

@@ -7,7 +7,7 @@
 
     <section class="panel" aria-labelledby="admin-groups-title">
         <h1 id="admin-groups-title">Super Admin groups</h1>
-        <p class="muted">Managed Cloudron <code>myapesaccount.*</code> groups used for MyAPES Account authorization. Directory sync imports only these groups (legacy aliases map to the canonical names). Historical non-prefix catalogue rows stay in the database for audits but are hidden here.</p>
+        <p class="muted">Managed Cloudron <code>myapesaccount.*</code> groups used for MyAPES Account authorization. Directory sync imports only these groups (legacy aliases map to the canonical names). Historical non-prefix catalogue rows stay in the database for audits but are hidden here. Protected access-tier mappings stay preset; Super Admins can attach an optional job role.</p>
 
         <form method="get" action="{{ route('admin.groups.index') }}">
             <div class="row">
@@ -65,12 +65,34 @@
                     <td>
                         @forelse($group->roles as $role)
                             <div>
-                                <a href="{{ route('admin.roles.show', $role) }}">{{ $role->name }}</a>
+                                <a href="{{ route('admin.roles.show', $role) }}">{{ \App\Support\DefaultJobRoles::isDefault($role->name) ? \App\Support\DefaultJobRoles::title($role->name) : $role->name }}</a>
                                 <span class="status">{{ \App\Support\DirectoryGroupLabels::mappingLabel((bool) $role->pivot->is_immutable) }}</span>
+                                @can('admin.group-mappings.manage')
+                                    @if(! $role->pivot->is_immutable)
+                                        <form class="inline" method="post" action="{{ route('admin.groups.mappings.destroy', $role->pivot->id) }}">
+                                            @csrf
+                                            @method('delete')
+                                            <button class="danger-btn" type="submit">Remove job role</button>
+                                        </form>
+                                    @endif
+                                @endcan
                             </div>
                         @empty
                             None
                         @endforelse
+                        @can('admin.group-mappings.manage')
+                            <form method="post" action="{{ route('admin.groups.mappings.store', $group) }}">
+                                @csrf
+                                <label for="mapping-role-{{ $group->id }}">Add job role mapping</label>
+                                <select id="mapping-role-{{ $group->id }}" name="role_id" required>
+                                    <option value="">Choose a job role</option>
+                                    @foreach($jobRoles as $jobRole)
+                                        <option value="{{ $jobRole->id }}">{{ \App\Support\DefaultJobRoles::title($jobRole->name) }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit">Add mapping</button>
+                            </form>
+                        @endcan
                     </td>
                 </tr>
             @empty

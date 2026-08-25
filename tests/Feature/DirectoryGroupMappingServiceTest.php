@@ -9,6 +9,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\DirectoryGroupMappingService;
+use App\Services\DirectoryRoleSynchronizer;
+use App\Support\DefaultJobRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,10 +33,11 @@ class DirectoryGroupMappingServiceTest extends TestCase
         $service = app(DirectoryGroupMappingService::class);
 
         try {
+            $this->actingAs($actor);
             $service->map($actor, $group, $role);
             $this->fail('Preset directory mappings should not be mutable.');
         } catch (AuthorizationMutationDenied $exception) {
-            $this->assertSame('preset_groups_only', $exception->reasonCode);
+            $this->assertSame('protected_role', $exception->reasonCode);
         }
 
         try {
@@ -77,11 +80,112 @@ class DirectoryGroupMappingServiceTest extends TestCase
             ->where('role_id', $role->id)
             ->firstOrFail();
 
+        $this->actingAs($actor);
+
         try {
             app(DirectoryGroupMappingService::class)->remove($actor, $mapping);
             $this->fail('Immutable preset mappings should not be removable.');
         } catch (AuthorizationMutationDenied $exception) {
-            $this->assertSame('preset_groups_only', $exception->reasonCode);
+            $this->assertSame('immutable_mapping', $exception->reasonCode);
         }
+    }
+
+    public function test_job_role_mapping_is_mutable_without_replacing_protected_mappings(): void
+    {
+        $actor = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SUPER_ADMIN)
+            ->create();
+        $this->actingAs($actor);
+        $group = DirectoryGroup::query()
+            ->where('name', 'myapesaccount.staff')
+            ->firstOrFail();
+        $jobRole = Role::query()
+            ->where('name', DefaultJobRoles::RECEPTIONIST)
+            ->firstOrFail();
+        $staffRole = Role::query()
+            ->where('name', AuthorizationProfile::ROLE_STAFF)
+            ->firstOrFail();
+        $user = User::factory()
+            ->accessLevel(User::ROLE_STAFF)
+            ->cloudronIdentity('job-role-mapping-subject')
+            ->create()
+            ->refresh();
+
+        $mapping = app(DirectoryGroupMappingService::class)->map(
+            $actor,
+            $group,
+            $jobRole,
+        );
+
+        $this->assertFalse($mapping->is_immutable);
+        $this->assertDatabaseHas('directory_group_role_mappings', [
+            'directory_group_id' => $group->id,
+            'role_id' => $staffRole->id,
+            'is_immutable' => true,
+        ]);
+        $this->assertDatabaseHas('directory_group_role_mappings', [
+            'directory_group_id' => $group->id,
+            'role_id' => $jobRole->id,
+            'is_immutable' => false,
+        ]);
+
+        $result = app(DirectoryRoleSynchronizer::class)->synchronize($user, [
+            'myapesaccount.staff',
+        ]);
+
+        $this->assertTrue($result->eligible);
+        $this->assertSame('staff', $result->protectedRole);
+        $this->assertEqualsCanonicalizing(
+            ['receptionist', 'staff'],
+            $user->fresh()->roles()->pluck('name')->all(),
+        );
+
+        app(DirectoryGroupMappingService::class)->remove($actor, $mapping);
+
+        $this->assertDatabaseMissing('directory_group_role_mappings', [
+            'id' => $mapping->id,
+        ]);
+        $this->assertDatabaseHas('directory_group_role_mappings', [
+            'directory_group_id' => $group->id,
+            'role_id' => $staffRole->id,
+            'is_immutable' => true,
+        ]);
+    }
+
+    public function test_job_role_mapping_does_not_replace_missing_directory_eligibility(): void
+    {
+        $actor = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SUPER_ADMIN)
+            ->create();
+        $this->actingAs($actor);
+        $group = DirectoryGroup::query()->create([
+            'name' => 'myapesaccount.reception',
+            'status' => DirectoryGroup::STATUS_PRESENT,
+            'app_enabled' => true,
+        ]);
+        $jobRole = Role::query()
+            ->where('name', DefaultJobRoles::RECEPTIONIST)
+            ->firstOrFail();
+        $user = User::factory()
+            ->accessLevel(User::ROLE_SERVICE_USER)
+            ->cloudronIdentity('job-role-only-subject')
+            ->create()
+            ->refresh();
+
+        app(DirectoryGroupMappingService::class)->map($actor, $group, $jobRole);
+
+        $result = app(DirectoryRoleSynchronizer::class)->synchronize($user, [
+            'myapesaccount.reception',
+        ]);
+
+        $this->assertFalse($result->eligible);
+        $this->assertSame(
+            ['service-user'],
+            $user->fresh()->roles()->pluck('name')->all(),
+        );
+        $this->assertDatabaseMissing('role_sources', [
+            'user_id' => $user->id,
+            'role_id' => $jobRole->id,
+        ]);
     }
 }
