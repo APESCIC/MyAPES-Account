@@ -272,6 +272,26 @@ class ModuleRegistryTest extends TestCase
             $matrix[AuthorizationProfile::ROLE_STAFF],
         );
         $this->assertContains(
+            'apes-cic.tickets.assign',
+            $matrix[AuthorizationProfile::ROLE_VOLUNTEER],
+        );
+        $this->assertContains(
+            'apes-cic.tickets.assign',
+            $matrix[AuthorizationProfile::ROLE_STUDENT],
+        );
+        $this->assertNotContains(
+            'apes-cic.tickets.delete',
+            $matrix[AuthorizationProfile::ROLE_VOLUNTEER],
+        );
+        $this->assertNotContains(
+            'apes-cic.tickets.delete',
+            $matrix[AuthorizationProfile::ROLE_STUDENT],
+        );
+        $this->assertContains(
+            'apes-cic.tickets.delete',
+            $matrix[AuthorizationProfile::ROLE_STAFF],
+        );
+        $this->assertContains(
             'pet-care-clinic.consultations.close',
             $matrix[AuthorizationProfile::ROLE_ADMINISTRATOR],
         );

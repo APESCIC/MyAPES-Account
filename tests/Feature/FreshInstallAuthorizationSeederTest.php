@@ -152,13 +152,19 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             ->orderBy('email')
             ->get();
 
-        $this->assertCount(4, $users);
+        $this->assertCount(6, $users);
         $this->assertSame(
             [User::IDENTITY_LOCAL],
             $users->pluck('identity_type')->unique()->values()->all(),
         );
         $this->assertSame([null], $users->pluck('oidc_sub')->unique()->values()->all());
         $this->assertSame([], $users->firstWhere('email', LocalQaSeeder::SERVICE_USER_EMAIL)?->ldap_groups);
+        $this->assertSame([
+            'myapesaccount.student',
+        ], $users->firstWhere('email', LocalQaSeeder::STUDENT_EMAIL)?->ldap_groups);
+        $this->assertSame([
+            'myapesaccount.volunteer',
+        ], $users->firstWhere('email', LocalQaSeeder::VOLUNTEER_EMAIL)?->ldap_groups);
         $this->assertSame([
             'board-of-directors',
             'department.animal.care',
@@ -774,6 +780,8 @@ class FreshInstallAuthorizationSeederTest extends TestCase
 
         $expectedProtectedRoles = [
             LocalQaSeeder::SERVICE_USER_EMAIL => AuthorizationProfile::ROLE_SERVICE_USER,
+            LocalQaSeeder::STUDENT_EMAIL => AuthorizationProfile::ROLE_STUDENT,
+            LocalQaSeeder::VOLUNTEER_EMAIL => AuthorizationProfile::ROLE_VOLUNTEER,
             LocalQaSeeder::STAFF_EMAIL => AuthorizationProfile::ROLE_STAFF,
             LocalQaSeeder::ADMIN_EMAIL => AuthorizationProfile::ROLE_ADMINISTRATOR,
             LocalQaSeeder::SUPERADMIN_EMAIL => AuthorizationProfile::ROLE_SUPER_ADMIN,

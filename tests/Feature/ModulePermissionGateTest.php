@@ -106,4 +106,37 @@ class ModulePermissionGateTest extends TestCase
         $this->assertFalse($staff->can('apes-cic.tickets.create'));
         $this->assertFalse($staff->can('apes-cic.tickets.assign'));
     }
+
+    /**
+     * @return array<string, array{0: string, 1: bool}>
+     */
+    public static function moduleDeleteAbilityProvider(): array
+    {
+        return [
+            'student denies delete' => [AuthorizationProfile::ROLE_STUDENT, false],
+            'volunteer denies delete' => [AuthorizationProfile::ROLE_VOLUNTEER, false],
+            'staff allows delete' => [AuthorizationProfile::ROLE_STAFF, true],
+            'administrator allows delete' => [AuthorizationProfile::ROLE_ADMINISTRATOR, true],
+            'super-admin allows delete' => [AuthorizationProfile::ROLE_SUPER_ADMIN, true],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('moduleDeleteAbilityProvider')]
+    public function test_volunteer_and_student_lack_module_delete_abilities(
+        string $protectedRole,
+        bool $canDelete,
+    ): void {
+        $user = User::factory()
+            ->protectedRole($protectedRole)
+            ->create();
+        $this->actingAs($user);
+
+        $this->assertTrue($user->can('apes-cic.tickets.view-all'));
+        $this->assertTrue($user->can('apes-cic.cases.view-all'));
+        $this->assertSame($canDelete, $user->can('apes-cic.tickets.delete'));
+        $this->assertSame($canDelete, $user->can('apes-cic.cases.delete'));
+        $this->assertSame($canDelete, $user->can('shelter-rescue.tickets.delete'));
+        $this->assertSame($canDelete, $user->can('shelter-rescue.cases.delete'));
+        $this->assertSame($canDelete, $user->can('pet-care-clinic.tickets.delete'));
+    }
 }

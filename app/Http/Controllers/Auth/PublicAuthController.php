@@ -312,6 +312,8 @@ class PublicAuthController extends Controller
     {
         $email = match ($role) {
             'service_user' => LocalQaSeeder::SERVICE_USER_EMAIL,
+            'student' => LocalQaSeeder::STUDENT_EMAIL,
+            'volunteer' => LocalQaSeeder::VOLUNTEER_EMAIL,
             'staff' => LocalQaSeeder::STAFF_EMAIL,
             'admin' => LocalQaSeeder::ADMIN_EMAIL,
             'superadmin' => LocalQaSeeder::SUPERADMIN_EMAIL,

@@ -30,6 +30,10 @@ class LocalQaSeeder extends Seeder
 
     public const SERVICE_USER_EMAIL = 'qa.service.user@myapes.local';
 
+    public const STUDENT_EMAIL = 'qa.student@myapes.local';
+
+    public const VOLUNTEER_EMAIL = 'qa.volunteer@myapes.local';
+
     public const STAFF_EMAIL = 'qa.staff@myapes.local';
 
     public const ADMIN_EMAIL = 'qa.admin@myapes.local';
@@ -47,6 +51,8 @@ class LocalQaSeeder extends Seeder
     {
         return [
             self::SERVICE_USER_EMAIL,
+            self::STUDENT_EMAIL,
+            self::VOLUNTEER_EMAIL,
             self::STAFF_EMAIL,
             self::ADMIN_EMAIL,
             self::SUPERADMIN_EMAIL,
@@ -70,6 +76,18 @@ class LocalQaSeeder extends Seeder
             User::ROLE_SERVICE_USER,
             $seededAt
         );
+        $studentUser = $this->upsertUser(
+            self::STUDENT_EMAIL,
+            'QA Student User',
+            User::ROLE_STUDENT,
+            $seededAt
+        );
+        $volunteerUser = $this->upsertUser(
+            self::VOLUNTEER_EMAIL,
+            'QA Volunteer User',
+            User::ROLE_VOLUNTEER,
+            $seededAt
+        );
         $staffUser = $this->upsertUser(
             self::STAFF_EMAIL,
             'QA Staff User',
@@ -88,10 +106,18 @@ class LocalQaSeeder extends Seeder
             User::ROLE_SUPERADMIN,
             $seededAt
         );
-        $this->seedDirectoryGroupsForQaStaff($staffUser, $adminUser, $superAdminUser);
+        $this->seedDirectoryGroupsForQaStaff(
+            $studentUser,
+            $volunteerUser,
+            $staffUser,
+            $adminUser,
+            $superAdminUser,
+        );
         $this->upsertCustomRole($superAdminUser, $staffUser);
 
         $this->upsertProfile($serviceUser, 'Service User', '+44 7700 900101', 'APES CIC Service User');
+        $this->upsertStaffProfile($studentUser, 'Placement student', StaffProfile::TEAM_SHELTER_RESCUE, '+447700900105');
+        $this->upsertStaffProfile($volunteerUser, 'Shelter volunteer', StaffProfile::TEAM_SHELTER_RESCUE, '+447700900106');
         $this->upsertStaffProfile($staffUser, 'Rescue coordinator', StaffProfile::TEAM_SHELTER_RESCUE, '+447700900102');
         $this->upsertStaffProfile($adminUser, 'Operations manager', StaffProfile::TEAM_OPERATIONS, '+447700900103');
         $this->upsertStaffProfile($superAdminUser, 'Director', StaffProfile::TEAM_OPERATIONS, '+447700900104');
@@ -770,8 +796,25 @@ class LocalQaSeeder extends Seeder
         $this->setTimestamps($closedConsultation, $seededAt->subDays(3));
     }
 
-    private function seedDirectoryGroupsForQaStaff(User $staffUser, User $adminUser, User $superAdminUser): void
-    {
+    private function seedDirectoryGroupsForQaStaff(
+        User $studentUser,
+        User $volunteerUser,
+        User $staffUser,
+        User $adminUser,
+        User $superAdminUser,
+    ): void {
+        $studentUser->forceFill([
+            'ldap_groups' => [
+                'myapesaccount.student',
+            ],
+        ])->save();
+
+        $volunteerUser->forceFill([
+            'ldap_groups' => [
+                'myapesaccount.volunteer',
+            ],
+        ])->save();
+
         $staffUser->forceFill([
             'ldap_groups' => [
                 'board-of-directors',
