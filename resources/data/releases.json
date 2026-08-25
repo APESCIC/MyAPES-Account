@@ -28,11 +28,15 @@
       "None. Preview ports remain configurable via APP_PORT and Vite defaults."
     ],
     "rollback": "Redeploy the previous application version. Agent documentation reverts to the prior AGENTS.md content.",
-    "provenance": "Defined by the local preview documentation chore for MyAPES Account issue #103.",
+    "provenance": "Defined by the local preview documentation chore for MyAPES Account issue #103 under pull request #115.",
     "references": [
       {
         "label": "Issue #103",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/103"
+      },
+      {
+        "label": "Pull request #115",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/115"
       }
     ]
   },
