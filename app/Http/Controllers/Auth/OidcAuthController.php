@@ -12,6 +12,7 @@ use App\Http\Cookies\OidcReauthenticationCookie;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DirectoryRoleSynchronizer;
+use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapUserResolver;
 use App\Services\MaintenanceResponseFactory;
 use App\Services\StaffProfileDirectorySynchronizer;
@@ -108,19 +109,25 @@ class OidcAuthController extends Controller
         }
 
         if ($knownUser?->suspended_at !== null) {
-            $auditLogger->record(
-                'auth.suspended_login_denied',
-                $knownUser,
-                $knownUser,
-                ['method' => SessionAuthorizationContext::METHOD_CLOUDRON_OIDC],
-            );
-            abort(403, 'This account is suspended.');
+            $directoryDisabled = $knownUser->suspension_reason
+                === DirectoryUserSynchronizer::SUSPENSION_REASON_DIRECTORY_DISABLED;
+
+            if (! $directoryDisabled) {
+                $auditLogger->record(
+                    'auth.suspended_login_denied',
+                    $knownUser,
+                    $knownUser,
+                    ['method' => SessionAuthorizationContext::METHOD_CLOUDRON_OIDC],
+                );
+                abort(403, 'This account is suspended.');
+            }
         }
 
         try {
             $directoryProfile = $ldapUserResolver->profileForEmail($email);
         } catch (DirectoryIdentityNotFound) {
-            $this->revokeKnownIdentity(
+            $this->disableKnownDirectoryIdentity(
+                $knownUser,
                 $sub,
                 $roles,
                 $auditLogger,
@@ -142,7 +149,8 @@ class OidcAuthController extends Controller
         $role = $roles->protectedRoleForGroups($groups);
 
         if ($role === null) {
-            $this->revokeKnownIdentity(
+            $this->disableKnownDirectoryIdentity(
+                $knownUser,
                 $sub,
                 $roles,
                 $auditLogger,
@@ -185,6 +193,19 @@ class OidcAuthController extends Controller
         $user->name = $identity->name ?? $directoryProfile->name ?? $email;
         $user->email = $email;
         $user->email_verified_at = now();
+
+        if ($user->suspended_at !== null
+            && $user->suspension_reason
+                === DirectoryUserSynchronizer::SUSPENSION_REASON_DIRECTORY_DISABLED) {
+            $user->forceFill([
+                'suspended_at' => null,
+                'suspended_by' => null,
+                'suspension_reason' => null,
+                'authorization_epoch' => (int) $user->authorization_epoch + 1,
+            ]);
+            $user->setRememberToken(Str::random(60));
+        }
+
         $user->save();
         $staffProfiles->apply($user, $directoryProfile);
         $result = $roles->synchronize($user, $groups);
@@ -244,19 +265,32 @@ class OidcAuthController extends Controller
             : $response;
     }
 
-    private function revokeKnownIdentity(
+    private function disableKnownDirectoryIdentity(
+        ?User $knownUser,
         string $subject,
         DirectoryRoleSynchronizer $roles,
         AuditLogger $auditLogger,
         string $reason,
     ): void {
-        $user = User::query()->where('oidc_sub', $subject)->first();
+        $user = $knownUser
+            ?? User::query()->where('oidc_sub', $subject)->first();
 
         if ($user === null) {
             return;
         }
 
         $result = $roles->revoke($user);
+
+        if ($user->suspended_at === null) {
+            $user->forceFill([
+                'suspended_at' => now(),
+                'suspended_by' => null,
+                'suspension_reason' => DirectoryUserSynchronizer::SUSPENSION_REASON_DIRECTORY_DISABLED,
+                'authorization_epoch' => (int) $user->authorization_epoch + 1,
+            ]);
+            $user->setRememberToken(Str::random(60));
+            $user->save();
+        }
 
         $auditLogger->record('auth.directory_access_revoked', $user, $user, [
             'from_role' => $result->previousProtectedRole,

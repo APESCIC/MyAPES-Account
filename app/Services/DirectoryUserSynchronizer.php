@@ -10,6 +10,8 @@ use Illuminate\Support\Str;
 
 class DirectoryUserSynchronizer
 {
+    public const SUSPENSION_REASON_DIRECTORY_DISABLED = 'directory-disabled';
+
     public function __construct(
         private readonly LdapUserResolver $directory,
         private readonly DirectoryRoleSynchronizer $roles,
@@ -17,31 +19,44 @@ class DirectoryUserSynchronizer
     ) {}
 
     /**
-     * @return array{seen: int, created: int, updated: int}
+     * @return array{
+     *     seen: int,
+     *     created: int,
+     *     updated: int,
+     *     suspended: int,
+     *     unsuspended: int
+     * }
      */
     public function synchronize(): array
     {
         $profiles = $this->collectProfiles();
+        $seenEmails = array_keys($profiles);
         $seen = count($profiles);
         $created = 0;
         $updated = 0;
+        $unsuspended = 0;
 
         foreach ($profiles as $profile) {
-            $wasCreated = DB::transaction(function () use ($profile): bool {
+            $outcome = DB::transaction(function () use ($profile): string {
                 return $this->synchronizeProfile($profile);
             });
 
-            if ($wasCreated) {
-                $created++;
-            } else {
-                $updated++;
-            }
+            match ($outcome) {
+                'created' => $created++,
+                'updated' => $updated++,
+                'unsuspended' => $unsuspended++,
+                default => null,
+            };
         }
+
+        $suspended = $this->suspendMissingDirectoryUsers($seenEmails);
 
         return [
             'seen' => $seen,
             'created' => $created,
             'updated' => $updated,
+            'suspended' => $suspended,
+            'unsuspended' => $unsuspended,
         ];
     }
 
@@ -86,15 +101,19 @@ class DirectoryUserSynchronizer
         return $profiles;
     }
 
-    private function synchronizeProfile(DirectoryUserProfile $profile): bool
+    /**
+     * @return 'created'|'updated'|'unsuspended'|'skipped'
+     */
+    private function synchronizeProfile(DirectoryUserProfile $profile): string
     {
         $email = Str::lower(trim($profile->email));
         $user = User::query()
             ->whereRaw('LOWER(email) = ?', [$email])
+            ->lockForUpdate()
             ->first();
 
         if ($user !== null && $user->identity_type === User::IDENTITY_LOCAL) {
-            return false;
+            return 'skipped';
         }
 
         $created = false;
@@ -107,12 +126,103 @@ class DirectoryUserSynchronizer
             $created = true;
         }
 
+        $clearedDirectorySuspension = $this->clearDirectoryDisabledSuspension($user);
+
         $user->name = $profile->name !== '' ? $profile->name : $email;
         $user->save();
 
         $this->staffProfiles->apply($user, $profile);
         $this->roles->synchronize($user, $profile->groups, false);
 
-        return $created;
+        if ($created) {
+            return 'created';
+        }
+
+        return $clearedDirectorySuspension ? 'unsuspended' : 'updated';
+    }
+
+    /**
+     * @param  array<int, string>  $seenEmails
+     */
+    private function suspendMissingDirectoryUsers(array $seenEmails): int
+    {
+        $seenLookup = [];
+
+        foreach ($seenEmails as $email) {
+            $seenLookup[Str::lower(trim($email))] = true;
+        }
+
+        $candidates = User::query()
+            ->where('identity_type', User::IDENTITY_CLOUDRON_OIDC)
+            ->orderBy('id')
+            ->get();
+
+        $suspended = 0;
+
+        foreach ($candidates as $candidate) {
+            $email = Str::lower(trim((string) $candidate->email));
+
+            if ($email === '' || isset($seenLookup[$email])) {
+                continue;
+            }
+
+            $didSuspend = DB::transaction(function () use ($candidate): bool {
+                $user = User::query()
+                    ->whereKey($candidate->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($user === null
+                    || $user->identity_type !== User::IDENTITY_CLOUDRON_OIDC) {
+                    return false;
+                }
+
+                return $this->markDirectoryDisabled($user);
+            });
+
+            if ($didSuspend) {
+                $suspended++;
+            }
+        }
+
+        return $suspended;
+    }
+
+    private function clearDirectoryDisabledSuspension(User $user): bool
+    {
+        if ($user->suspended_at === null
+            || $user->suspension_reason !== self::SUSPENSION_REASON_DIRECTORY_DISABLED) {
+            return false;
+        }
+
+        $user->forceFill([
+            'suspended_at' => null,
+            'suspended_by' => null,
+            'suspension_reason' => null,
+            'authorization_epoch' => (int) $user->authorization_epoch + 1,
+        ]);
+        $user->setRememberToken(Str::random(60));
+
+        return true;
+    }
+
+    private function markDirectoryDisabled(User $user): bool
+    {
+        $this->roles->revoke($user);
+
+        if ($user->suspended_at !== null) {
+            return false;
+        }
+
+        $user->forceFill([
+            'suspended_at' => now(),
+            'suspended_by' => null,
+            'suspension_reason' => self::SUSPENSION_REASON_DIRECTORY_DISABLED,
+            'authorization_epoch' => (int) $user->authorization_epoch + 1,
+        ]);
+        $user->setRememberToken(Str::random(60));
+        $user->save();
+
+        return true;
     }
 }

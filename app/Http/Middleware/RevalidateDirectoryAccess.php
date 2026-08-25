@@ -7,11 +7,13 @@ use App\Exceptions\DirectoryUnavailable;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DirectoryRoleSynchronizer;
+use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;
 use App\Services\SessionAuthorizationContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class RevalidateDirectoryAccess
@@ -59,6 +61,17 @@ class RevalidateDirectoryAccess
         $result = $this->roles->synchronize($user, $groups);
 
         if (! $result->eligible) {
+            if ($user->suspended_at === null) {
+                $user->forceFill([
+                    'suspended_at' => now(),
+                    'suspended_by' => null,
+                    'suspension_reason' => DirectoryUserSynchronizer::SUSPENSION_REASON_DIRECTORY_DISABLED,
+                    'authorization_epoch' => (int) $user->authorization_epoch + 1,
+                ]);
+                $user->setRememberToken(Str::random(60));
+                $user->save();
+            }
+
             return $this->logoutAfterRevocation(
                 $request,
                 $user,
@@ -101,6 +114,17 @@ class RevalidateDirectoryAccess
     private function revoke(Request $request, User $user, string $reason): Response
     {
         $result = $this->roles->revoke($user);
+
+        if ($user->suspended_at === null) {
+            $user->forceFill([
+                'suspended_at' => now(),
+                'suspended_by' => null,
+                'suspension_reason' => DirectoryUserSynchronizer::SUSPENSION_REASON_DIRECTORY_DISABLED,
+                'authorization_epoch' => (int) $user->authorization_epoch + 1,
+            ]);
+            $user->setRememberToken(Str::random(60));
+            $user->save();
+        }
 
         return $this->logoutAfterRevocation(
             $request,
