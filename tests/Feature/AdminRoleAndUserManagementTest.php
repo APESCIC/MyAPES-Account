@@ -16,6 +16,7 @@ use App\Services\AuthorizationRoleManagementService;
 use App\Services\AuthorizationRoleMaterializer;
 use App\Services\DirectoryRoleSynchronizer;
 use App\Services\SessionAuthorizationContext;
+use App\Support\DefaultJobRoles;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -263,6 +264,44 @@ class AdminRoleAndUserManagementTest extends TestCase
             'name' => 'staff',
             'is_protected' => true,
         ]);
+    }
+
+    public function test_super_admin_can_update_default_job_role_permissions_within_catalogue_rules(): void
+    {
+        $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
+        $role = Role::query()
+            ->where('name', DefaultJobRoles::RECEPTIONIST)
+            ->firstOrFail();
+
+        $this->actingAs($superAdmin)
+            ->get('/admin/roles')
+            ->assertOk()
+            ->assertSee('Default job role')
+            ->assertSee('Receptionist');
+
+        $this->actingAs($superAdmin)
+            ->put("/admin/roles/{$role->id}", [
+                'name' => DefaultJobRoles::RECEPTIONIST,
+                'permissions' => [
+                    'admin.users.view',
+                    'admin.analytics.view',
+                ],
+            ])
+            ->assertRedirect("/admin/roles/{$role->id}");
+
+        $this->assertEqualsCanonicalizing(
+            ['admin.analytics.view', 'admin.users.view'],
+            $role->fresh()->permissions()->pluck('name')->all(),
+        );
+
+        $this->actingAs($superAdmin)
+            ->from("/admin/roles/{$role->id}")
+            ->put("/admin/roles/{$role->id}", [
+                'name' => DefaultJobRoles::RECEPTIONIST,
+                'permissions' => ['admin.roles.manage'],
+            ])
+            ->assertRedirect("/admin/roles/{$role->id}")
+            ->assertSessionHasErrors('permissions.0');
     }
 
     public function test_custom_role_deletion_rejects_mappings_and_unsafe_permissions(): void

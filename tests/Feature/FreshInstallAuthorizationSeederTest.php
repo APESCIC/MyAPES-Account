@@ -9,7 +9,9 @@ use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\AuthorizationAccountSynchronizer;
+use App\Services\AuthorizationMetadataSynchronizer;
 use App\Services\AuthorizationProfile;
+use App\Support\DefaultJobRoles;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Database\Seeders\LocalQaSeeder;
@@ -864,5 +866,41 @@ class FreshInstallAuthorizationSeederTest extends TestCase
         );
 
         (new LocalQaSeeder)->run();
+    }
+
+    public function test_fresh_install_seeds_default_job_roles_with_reviewed_permission_packs(): void
+    {
+        $profile = app(AuthorizationProfile::class);
+
+        foreach (DefaultJobRoles::catalogue() as $name => $definition) {
+            $role = Role::query()
+                ->where('guard_name', 'web')
+                ->where('name', $name)
+                ->firstOrFail();
+
+            $this->assertFalse($role->is_protected);
+            $this->assertEqualsCanonicalizing(
+                $definition['permissions'],
+                $role->permissions()->pluck('name')->all(),
+            );
+
+            foreach ($role->permissions()->pluck('name') as $permission) {
+                $this->assertFalse(
+                    $profile->isSuperAdminOnlyPermission($permission),
+                    "Default job role [{$name}] must not include Super Admin-only permission [{$permission}].",
+                );
+            }
+        }
+
+        $board = Role::query()
+            ->where('name', DefaultJobRoles::BOARD_OF_DIRECTORS)
+            ->firstOrFail();
+        $board->permissions()->sync([]);
+        app(AuthorizationMetadataSynchronizer::class)->synchronize();
+
+        $this->assertSame(
+            [],
+            $board->fresh()->permissions()->pluck('name')->all(),
+        );
     }
 }

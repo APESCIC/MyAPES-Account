@@ -64,8 +64,15 @@
             <tbody>
             @forelse($roles as $role)
                 <tr>
-                    <td><code>{{ $role->name }}</code></td>
-                    <td>{{ $role->is_protected ? 'Protected by application code' : 'Custom' }}</td>
+                    <td>
+                        @if(\App\Support\DefaultJobRoles::isDefault($role->name))
+                            {{ \App\Support\DefaultJobRoles::title($role->name) }}
+                            <code>{{ $role->name }}</code>
+                        @else
+                            <code>{{ $role->name }}</code>
+                        @endif
+                    </td>
+                    <td>{{ $role->is_protected ? 'Protected by application code' : (\App\Support\DefaultJobRoles::isDefault($role->name) ? 'Default job role' : 'Custom') }}</td>
                     <td>{{ $role->permissions_count }}</td>
                     <td>{{ $role->users_count }}</td>
                     <td><a href="{{ route('admin.roles.show', $role) }}">View role</a></td>
