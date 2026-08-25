@@ -25,6 +25,10 @@ class ValidateChangeLog extends Command
             $releases = $repository->readReleaseFile(resource_path('data/releases.json'));
             $manifestVersion = $this->readManifestVersion();
             $errors = $validator->validate($releases, $version, $manifestVersion);
+            $errors = [
+                ...$errors,
+                ...$validator->validateVersionPinnedTests($version),
+            ];
 
             $baseRef = trim((string) $this->option('base-ref'));
 

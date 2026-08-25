@@ -85,9 +85,17 @@ Structural-only check (no append comparison):
 php artisan myapes:changelog-validate
 ```
 
+## Pre-merge
+
+Before pushing, run the full release and contract gate:
+
+```powershell
+composer pre-merge
+```
+
 ## Deploy timing
 
-Release metadata belongs in the PR **before merge**. After merge to `main`, `.github/workflows/deploy-cloudron.yml` validates release history, runs tests, packages the archive, and deploys to Cloudron automatically. Do not expect a separate manual deploy step for normal merges.
+Release metadata belongs in the PR **before merge**. After merge to `main`, `.github/workflows/test-cloudron.yml` validates release history and runs tests; `.github/workflows/deploy-cloudron.yml` deploys to Cloudron automatically when tests pass. Do not expect a separate manual deploy step for normal merges.
 
 ## Do not
 

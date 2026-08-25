@@ -357,7 +357,7 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 
 ### Deployment triggers
 
-1. Push to `main` automatically deploys only after the SQLite/package job and both database-matrix jobs succeed.
+1. Push to `main` automatically deploys only after the SQLite/package job and the MySQL database-compatibility job succeed in `test-cloudron.yml`; `deploy-cloudron.yml` then deploys via `workflow_run`.
 2. Pull requests and manual workflow runs execute structural verification but cannot deploy.
 
 ### Target app
@@ -684,7 +684,7 @@ backends fail closed.
 ### Deployment flow (every deployment request)
 
 GitHub-authored Actions are pinned to reviewed full commit SHAs. The current
-checkout, Node setup, and artifact transfer pins use their supported Node 24
+checkout, Node setup, and artifact transfer pins use Node 22
 runtimes; version comments beside each pin make deliberate upgrades auditable.
 
 1. A dependency-independent job fetches the exact Git revision with the built-in runner tools, reads the four deployment-control blobs directly from Git, and exports their fixed-path manifest digest before any action or package dependency can influence it.

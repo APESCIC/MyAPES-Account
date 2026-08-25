@@ -41,3 +41,19 @@ Every change merged to `main` must include release metadata in the **same pull r
 6. Cloudron deploy runs automatically after a successful merge to `main`; do not deploy manually for normal releases.
 
 The prepare command syncs `VERSION`, prepends one release record, updates `module-runtime-contract.json` → `application_version`, and patches version-pinned tests. Do not edit or reorder published release records. See `.cursor/skills/release-metadata/SKILL.md` for full guidance.
+
+### Pre-merge validation
+
+Before pushing a release branch, run:
+
+```powershell
+composer pre-merge
+```
+
+Or:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\local\pre-merge.ps1
+```
+
+This validates release history against `origin/main`, version-pinned tests, frontend tests, and a production build.

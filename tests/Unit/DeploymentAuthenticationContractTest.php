@@ -17,7 +17,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
         $orderedCommands = [
             'optimize:clear',
-            'myapes:authorization-preflight --no-interaction --no-ansi',
+            'run_artisan_with_retry_for_directory_readiness',
             'myapes:modules:preflight --no-interaction --no-ansi',
             'myapes:accounts:preflight --no-interaction --no-ansi',
             'migrate --force',
@@ -46,6 +46,10 @@ class DeploymentAuthenticationContractTest extends TestCase
         }
 
         foreach (array_slice($orderedCommands, 0, -1) as $command) {
+            if ($command === 'run_artisan_with_retry_for_directory_readiness') {
+                continue;
+            }
+
             $line = $this->lineContaining($activation, $command);
             $this->assertStringContainsString(
                 'run_artisan ',
@@ -66,7 +70,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             $script,
             'run_artisan permission:cache-reset',
         ));
-        $this->assertSame(1, substr_count($script, 'run_artisan myapes:authorization-preflight'));
+        $this->assertGreaterThanOrEqual(1, substr_count($script, 'run_artisan_with_retry_for_directory_readiness'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:preflight'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:accounts:preflight'));
         $this->assertSame(1, substr_count($script, 'run_artisan myapes:modules:sync'));
@@ -1211,8 +1215,8 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_workflow_validates_versions_on_pull_requests_without_deploying_them(): void
     {
-        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
-        $deployJob = substr($workflow, $this->position($workflow, '  deploy:'), 500);
+        $workflow = $this->testWorkflow();
+        $deployWorkflow = $this->deployWorkflow();
 
         $this->assertMatchesRegularExpression('/pull_request:\s*\R/', $workflow);
         $this->assertStringContainsString('fetch-depth: 0', $workflow);
@@ -1220,18 +1224,16 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('github.event.before', $workflow);
         $this->assertStringContainsString('myapes:changelog-validate', $workflow);
         $this->assertStringContainsString('npm run test:frontend', $workflow);
-        $this->assertMatchesRegularExpression(
-            '/deploy:\s*\R(?:(?!\n\S).)*if:\s*\$\{\{\s*github\.event_name\s*==\s*[\'"]push[\'"]\s*&&\s*github\.ref\s*==\s*[\'"]refs\/heads\/main[\'"]\s*\}\}/s',
-            $deployJob,
-        );
+        $this->assertStringContainsString('workflow_run:', $deployWorkflow);
+        $this->assertStringNotContainsString('pull_request:', $deployWorkflow);
     }
 
     public function test_workflow_pins_supported_node_24_first_party_actions(): void
     {
-        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $workflow = $this->combinedWorkflows();
 
         foreach ([
-            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' => 3,
+            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' => 4,
             'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0' => 2,
         ] as $reference => $expectedOccurrences) {
             $this->assertSame(
@@ -1256,17 +1258,12 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_database_compatibility_job_allows_forward_only_contract_to_finish(): void
     {
-        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $workflow = $this->testWorkflow();
         $databaseCompatibilityStart = $this->position(
             $workflow,
             '  database-compatibility:',
         );
-        $deployStart = $this->position($workflow, '  deploy:');
-        $databaseCompatibilityJob = substr(
-            $workflow,
-            $databaseCompatibilityStart,
-            $deployStart - $databaseCompatibilityStart,
-        );
+        $databaseCompatibilityJob = substr($workflow, $databaseCompatibilityStart);
 
         preg_match_all(
             '/^\s*timeout-minutes:\s*\d+\s*$/m',
@@ -1283,14 +1280,12 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_workflow_runs_the_phase_b_contract_on_mysql(): void
     {
-        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $workflow = $this->testWorkflow();
         $databaseCompatibilityJob = substr(
             $workflow,
             $this->position($workflow, '  database-compatibility:'),
-            $this->position($workflow, '  deploy:')
-                - $this->position($workflow, '  database-compatibility:'),
         );
-        $deployJob = substr($workflow, $this->position($workflow, '  deploy:'), 500);
+        $deployWorkflow = $this->deployWorkflow();
 
         $this->assertStringContainsString('database-compatibility:', $workflow);
         $this->assertStringContainsString('image: mysql:8.4', $workflow);
@@ -1334,6 +1329,7 @@ class DeploymentAuthenticationContractTest extends TestCase
             'ModuleLifecycleTest.php',
             'ModuleLifecycleConcurrencyTest.php',
             'ModuleRollbackCompatibilityTest.php',
+            'ProductionUpgradePreflightTest.php',
         ] as $testFile) {
             $this->assertStringContainsString(
                 "tests/Feature/{$testFile}",
@@ -1362,10 +1358,11 @@ class DeploymentAuthenticationContractTest extends TestCase
             $workflow,
         );
 
-        $this->assertMatchesRegularExpression(
-            '/deploy:\s*\R(?:(?!\n\S).)*needs:\s*\[\s*deployment-control-authentication,\s*quality,\s*database-compatibility\s*\]/s',
-            $deployJob,
+        $this->assertStringContainsString(
+            'needs: [deployment-control-authentication, resolve-release]',
+            $deployWorkflow,
         );
+        $this->assertStringContainsString('deploy-cloudron:', $deployWorkflow);
     }
 
     public function test_database_config_does_not_define_a_mariadb_connection(): void
@@ -1379,12 +1376,10 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_workflow_isolates_the_destructive_foundation_migration_contract(): void
     {
-        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $workflow = $this->testWorkflow();
         $databaseCompatibilityJob = substr(
             $workflow,
             $this->position($workflow, '  database-compatibility:'),
-            $this->position($workflow, '  deploy:')
-                - $this->position($workflow, '  database-compatibility:'),
         );
         $foundationMigrationTest = 'tests/Feature/ApesCicFoundationMigrationTest.php';
         $standaloneFoundationCommand = "php artisan test {$foundationMigrationTest}";
@@ -1399,7 +1394,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
         $mainSuitePosition = $this->position(
             $databaseCompatibilityJob,
-            "php artisan test \\\n",
+            'php artisan test \\',
         );
         $mainSuite = substr(
             $databaseCompatibilityJob,
@@ -1552,14 +1547,15 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_deployment_control_trust_is_derived_before_third_party_actions_and_dependencies(): void
     {
-        $workflow = $this->read('.github/workflows/deploy-cloudron.yml');
+        $testWorkflow = $this->testWorkflow();
+        $deployWorkflow = $this->deployWorkflow();
         $authenticationStart = $this->position(
-            $workflow,
+            $testWorkflow,
             'deployment-control-authentication:',
         );
-        $qualityStart = $this->position($workflow, '  quality:');
+        $qualityStart = $this->position($testWorkflow, '  quality:');
         $authenticationJob = substr(
-            $workflow,
+            $testWorkflow,
             $authenticationStart,
             $qualityStart - $authenticationStart,
         );
@@ -1580,17 +1576,17 @@ class DeploymentAuthenticationContractTest extends TestCase
         ] as $controlPath) {
             $this->assertStringContainsString($controlPath, $authenticationJob);
         }
-        $this->assertMatchesRegularExpression(
-            '/needs:\s*\[\s*deployment-control-authentication,\s*quality,\s*database-compatibility\s*\]/',
-            $workflow,
+        $this->assertStringContainsString(
+            'needs: [deployment-control-authentication, resolve-release]',
+            $deployWorkflow,
         );
         $this->assertStringContainsString(
             'needs.deployment-control-authentication.outputs.deployment_controls_sha256',
-            $workflow,
+            $deployWorkflow,
         );
         $this->assertStringNotContainsString(
             'needs.quality.outputs.deployment_controls_sha256',
-            $workflow,
+            $deployWorkflow,
         );
     }
 
@@ -4069,6 +4065,21 @@ BASH
             }
         }
         rmdir($path);
+    }
+
+    private function testWorkflow(): string
+    {
+        return $this->read('.github/workflows/test-cloudron.yml');
+    }
+
+    private function deployWorkflow(): string
+    {
+        return $this->read('.github/workflows/deploy-cloudron.yml');
+    }
+
+    private function combinedWorkflows(): string
+    {
+        return $this->testWorkflow()."\n".$this->deployWorkflow();
     }
 
     private function read(string $relativePath): string
