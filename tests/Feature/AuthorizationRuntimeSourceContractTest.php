@@ -92,6 +92,7 @@ class AuthorizationRuntimeSourceContractTest extends TestCase
             if (str_contains($contents, 'role_has_permissions')
                 && ! in_array($path, [
                     'app/Services/AuthorizationIntegrityChecker.php',
+                    'app/Services/AuthorizationMetadataSynchronizer.php',
                     'app/Services/AuthorizationPhaseBSchemaInspector.php',
                     'app/Services/AuthorizationPreflightChecker.php',
                     'app/Services/AuthorizationPermissionSynchronizer.php',
