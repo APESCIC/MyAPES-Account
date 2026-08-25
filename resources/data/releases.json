@@ -32,11 +32,15 @@
       "Operators must run authorization metadata sync after upgrade so existing volunteer and student role permission pivots drop delete abilities."
     ],
     "rollback": "Redeploy the previous application version and re-run authorization metadata sync so volunteer and student roles regain the prior delete defaults.",
-    "provenance": "Defined by the volunteer and student no-delete story for MyAPES Account issue #93 under epic #91.",
+    "provenance": "Defined by the volunteer and student no-delete story for MyAPES Account issue #93 under epic #91 and pull request #116.",
     "references": [
       {
         "label": "Issue #93",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/93"
+      },
+      {
+        "label": "Pull request #116",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/116"
       }
     ]
   },
