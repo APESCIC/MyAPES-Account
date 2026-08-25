@@ -112,7 +112,7 @@
                         </a>
                     @endcan
                     @can('superadmin.access')
-                        <a href="{{ route('superadmin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('superadmin.*', 'admin.groups.*', 'admin.roles.*', 'admin.permissions.*', 'admin.modules.*', 'admin.maintenance.*')]) @if(request()->routeIs('superadmin.*', 'admin.groups.*', 'admin.roles.*', 'admin.permissions.*', 'admin.modules.*', 'admin.maintenance.*')) aria-current="page" @endif>
+                        <a href="{{ route('superadmin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('superadmin.*', 'admin.access.*', 'admin.modules.*', 'admin.maintenance.*')]) @if(request()->routeIs('superadmin.*', 'admin.access.*', 'admin.modules.*', 'admin.maintenance.*')) aria-current="page" @endif>
                             <i data-lucide="shield-check" aria-hidden="true"></i>
                             <span>Super Admin</span>
                         </a>

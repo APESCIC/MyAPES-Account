@@ -27,9 +27,7 @@ class AdminAccessAndViewsTest extends TestCase
         $this->actingAs($administrator)->get('/admin/users')->assertOk();
 
         foreach ([
-            '/admin/groups',
-            '/admin/roles',
-            '/admin/permissions',
+            '/admin/access',
             '/admin/modules',
             '/superadmin',
         ] as $path) {
@@ -37,13 +35,13 @@ class AdminAccessAndViewsTest extends TestCase
         }
 
         $this->actingAs($administrator)
-            ->post('/admin/roles', [
+            ->post(route('admin.access.job-roles.store'), [
                 'name' => 'case-reviewer',
                 'permissions' => [],
             ])
             ->assertForbidden();
         $this->actingAs($administrator)
-            ->post('/admin/groups/sync')
+            ->post(route('admin.access.sync'))
             ->assertForbidden();
 
         $denials = AuditLog::query()
@@ -53,10 +51,10 @@ class AdminAccessAndViewsTest extends TestCase
 
         $this->assertGreaterThanOrEqual(2, $denials->count());
         $this->assertTrue(
-            $denials->pluck('context.route_name')->contains('admin.roles.store'),
+            $denials->pluck('context.route_name')->contains('admin.access.job-roles.store'),
         );
         $this->assertTrue(
-            $denials->pluck('context.route_name')->contains('admin.groups.sync'),
+            $denials->pluck('context.route_name')->contains('admin.access.sync'),
         );
         $this->assertSame(
             ['permission_denied'],
@@ -232,18 +230,17 @@ class AdminAccessAndViewsTest extends TestCase
             ]);
 
         $this->actingAs($superAdmin)
-            ->get('/admin/groups?q=volunteer&status=present')
+            ->get('/admin/access?tab=groups&q=volunteer&status=present')
             ->assertOk()
             ->assertSee('myapesaccount.volunteer')
-            ->assertSee('Cloudron MyAPES Account')
             ->assertSee('Preset Cloudron mapping')
             ->assertSee('<table', false);
         $this->actingAs($superAdmin)
-            ->get('/admin/roles?q=case')
+            ->get('/admin/access?tab=job-roles&q=case')
             ->assertOk()
-            ->assertSee('Protected roles sync from application code');
+            ->assertSee('Job role results');
         $this->actingAs($superAdmin)
-            ->get('/admin/permissions?q=users.view')
+            ->get('/admin/access?tab=permissions&q=users.view')
             ->assertOk()
             ->assertSee('admin.users.view')
             ->assertSee('View accounts')
@@ -259,6 +256,7 @@ class AdminAccessAndViewsTest extends TestCase
             ->firstOrFail();
 
         $this->actingAs($superAdmin)
+            ->followingRedirects()
             ->get('/admin/groups')
             ->assertOk()
             ->assertSee('myapesaccount.staff')
@@ -290,11 +288,11 @@ class AdminAccessAndViewsTest extends TestCase
         $role->permissions()->attach($permission->id);
 
         $this->actingAs($administrator)
-            ->get("/admin/roles/{$role->id}")
+            ->get(route('admin.access.job-roles.show', $role))
             ->assertForbidden();
 
         $this->actingAs($superAdmin)
-            ->get("/admin/roles/{$role->id}")
+            ->get(route('admin.access.job-roles.show', $role))
             ->assertOk()
             ->assertSee('View accounts')
             ->assertSee('admin.users.view')
@@ -308,7 +306,7 @@ class AdminAccessAndViewsTest extends TestCase
 
         $this->withMiddleware(ValidateCsrfToken::class)
             ->actingAs($superAdmin)
-            ->post('/admin/groups/sync')
+            ->post(route('admin.access.sync'))
             ->assertStatus(419);
     }
 
@@ -450,25 +448,25 @@ class AdminAccessAndViewsTest extends TestCase
         ]);
 
         $roleExisting = $this->actingAs($administrator)->put(
-            route('admin.roles.update', $role),
+            route('admin.access.job-roles.update', $role),
             ['name' => 'ignored-role', 'permissions' => []],
         );
         $roleMissing = $this->actingAs($administrator)->put(
-            route('admin.roles.update', 999999),
+            route('admin.access.job-roles.update', 999999),
             ['name' => 'ignored-role', 'permissions' => []],
         );
-        $groupSync = $this->actingAs($administrator)->post('/admin/groups/sync');
+        $groupSync = $this->actingAs($administrator)->post(route('admin.access.sync'));
         $roleShowExisting = $this->actingAs($staff)->get(
-            route('admin.roles.show', $role),
+            route('admin.access.job-roles.show', $role),
         );
         $roleShowMissing = $this->actingAs($staff)->get(
-            route('admin.roles.show', 999999),
+            route('admin.access.job-roles.show', 999999),
         );
         $roleDestroyExisting = $this->actingAs($staff)->delete(
-            route('admin.roles.destroy', $role),
+            route('admin.access.job-roles.destroy', $role),
         );
         $roleDestroyMissing = $this->actingAs($staff)->delete(
-            route('admin.roles.destroy', 999999),
+            route('admin.access.job-roles.destroy', 999999),
         );
 
         foreach ([
@@ -500,10 +498,10 @@ class AdminAccessAndViewsTest extends TestCase
             ->get();
         $this->assertCount(7, $audits);
         $this->assertEqualsCanonicalizing([
-            'admin.roles.update',
-            'admin.roles.show',
-            'admin.roles.destroy',
-            'admin.groups.sync',
+            'admin.access.job-roles.update',
+            'admin.access.job-roles.show',
+            'admin.access.job-roles.destroy',
+            'admin.access.sync',
         ], $audits
             ->pluck('context.route_name')
             ->unique()
@@ -528,16 +526,16 @@ class AdminAccessAndViewsTest extends TestCase
             ->get(route('admin.users.show', 999999))
             ->assertNotFound();
         $this->actingAs($superAdmin)
-            ->get(route('admin.roles.show', 999999))
+            ->get(route('admin.access.job-roles.show', 999999))
             ->assertNotFound();
         $this->actingAs($superAdmin)
             ->post(
-                '/admin/groups/999999/mappings',
+                '/admin/access/groups/999999/mappings',
                 ['role_id' => $role->id],
             )
             ->assertNotFound();
         $this->actingAs($superAdmin)
-            ->delete('/admin/groups/mappings/999999')
+            ->delete('/admin/access/mappings/999999')
             ->assertNotFound();
     }
 

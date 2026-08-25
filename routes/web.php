@@ -1,10 +1,8 @@
 <?php
 
-use App\Http\Controllers\Admin\AdminGroupController;
+use App\Http\Controllers\Admin\AdminAccessController;
 use App\Http\Controllers\Admin\AdminMaintenanceController;
 use App\Http\Controllers\Admin\AdminModuleController;
-use App\Http\Controllers\Admin\AdminPermissionController;
-use App\Http\Controllers\Admin\AdminRoleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\Admin\SuperAdminDashboardController;
@@ -298,36 +296,40 @@ Route::middleware([
                 ->middleware('can:admin.users.manage')
                 ->name('users.suspension.destroy');
 
-            Route::get('/groups', [AdminGroupController::class, 'index'])
+            Route::get('/access', [AdminAccessController::class, 'index'])
+                ->name('access.index');
+            Route::post('/access/sync', [AdminAccessController::class, 'sync'])
+                ->middleware('can:admin.group-mappings.manage')
+                ->name('access.sync');
+            Route::post('/access/groups/{directoryGroup}/mappings', [AdminAccessController::class, 'storeMapping'])
+                ->middleware('can:admin.group-mappings.manage')
+                ->name('access.mappings.store');
+            Route::delete('/access/mappings/{mapping}', [AdminAccessController::class, 'destroyMapping'])
+                ->middleware('can:admin.group-mappings.manage')
+                ->name('access.mappings.destroy');
+            Route::post('/access/job-roles', [AdminAccessController::class, 'storeJobRole'])
+                ->middleware('can:admin.roles.manage')
+                ->name('access.job-roles.store');
+            Route::get('/access/job-roles/{role}', [AdminAccessController::class, 'showJobRole'])
+                ->middleware('can:admin.roles.view')
+                ->name('access.job-roles.show');
+            Route::put('/access/job-roles/{role}', [AdminAccessController::class, 'updateJobRole'])
+                ->middleware('can:admin.roles.manage')
+                ->name('access.job-roles.update');
+            Route::delete('/access/job-roles/{role}', [AdminAccessController::class, 'destroyJobRole'])
+                ->middleware('can:admin.roles.manage')
+                ->name('access.job-roles.destroy');
+
+            Route::get('/groups', fn () => redirect()->route('admin.access.index', ['tab' => 'groups']))
                 ->middleware('can:admin.groups.view')
                 ->name('groups.index');
-            Route::post('/groups/sync', [AdminGroupController::class, 'sync'])
-                ->middleware('can:admin.group-mappings.manage')
-                ->name('groups.sync');
-            Route::post('/groups/{directoryGroup}/mappings', [AdminGroupController::class, 'storeMapping'])
-                ->middleware('can:admin.group-mappings.manage')
-                ->name('groups.mappings.store');
-            Route::delete('/groups/mappings/{mapping}', [AdminGroupController::class, 'destroyMapping'])
-                ->middleware('can:admin.group-mappings.manage')
-                ->name('groups.mappings.destroy');
-
-            Route::get('/roles', [AdminRoleController::class, 'index'])
+            Route::get('/roles', fn () => redirect()->route('admin.access.index', ['tab' => 'job-roles']))
                 ->middleware('can:admin.roles.view')
                 ->name('roles.index');
-            Route::post('/roles', [AdminRoleController::class, 'store'])
-                ->middleware('can:admin.roles.manage')
-                ->name('roles.store');
-            Route::get('/roles/{role}', [AdminRoleController::class, 'show'])
+            Route::get('/roles/{role}', fn (string $role) => redirect()->route('admin.access.job-roles.show', $role))
                 ->middleware('can:admin.roles.view')
                 ->name('roles.show');
-            Route::put('/roles/{role}', [AdminRoleController::class, 'update'])
-                ->middleware('can:admin.roles.manage')
-                ->name('roles.update');
-            Route::delete('/roles/{role}', [AdminRoleController::class, 'destroy'])
-                ->middleware('can:admin.roles.manage')
-                ->name('roles.destroy');
-
-            Route::get('/permissions', [AdminPermissionController::class, 'index'])
+            Route::get('/permissions', fn () => redirect()->route('admin.access.index', ['tab' => 'permissions']))
                 ->middleware('can:admin.permissions.view')
                 ->name('permissions.index');
 
