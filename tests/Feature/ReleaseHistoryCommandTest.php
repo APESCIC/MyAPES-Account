@@ -71,11 +71,11 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-07-27', $releases[45]['date']);
         $this->assertSame('2026-07-27', $releases[46]['date']);
 
-        foreach (array_slice($releases, 46) as $release) {
+        foreach (array_slice($releases, 47) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 45) as $release) {
+        foreach (array_slice($releases, 46) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
 
@@ -85,30 +85,26 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame(
             [
                 [
-                    'label' => 'Issue #113',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/113',
+                    'label' => 'Issue #103',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/103',
                 ],
                 [
-                    'label' => 'Issue #108',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/108',
-                ],
-                [
-                    'label' => 'Pull request #114',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/114',
+                    'label' => 'Pull request #115',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/115',
                 ],
             ],
             $current['references'],
         );
         $currentText = strtolower(json_encode($current, JSON_THROW_ON_ERROR));
         foreach ([
-            'vounteer',
-            'myapesaccount.volunteer',
-            'issue #113',
+            'local preview',
+            'agents.md',
+            'issue #103',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }
 
-        $desertRelease = $releases[25];
+        $desertRelease = $releases[26];
         $this->assertSame('minor', $desertRelease['type']);
         $desertText = strtolower(json_encode($desertRelease, JSON_THROW_ON_ERROR));
         foreach ([
@@ -125,7 +121,7 @@ class ReleaseHistoryCommandTest extends TestCase
         }
         $this->assertStringNotContainsString('pull request', $desertText);
 
-        $apesCicRelease = $releases[29];
+        $apesCicRelease = $releases[30];
         $this->assertSame('minor', $apesCicRelease['type']);
         $this->assertSame(
             [[
@@ -139,7 +135,7 @@ class ReleaseHistoryCommandTest extends TestCase
             strtolower(implode(' ', $apesCicRelease['known_limitations'])),
         );
 
-        $phaseB = $releases[40];
+        $phaseB = $releases[41];
         $this->assertStringContainsString(
             'issue #11',
             strtolower(implode(' ', $phaseB['known_limitations'])),
