@@ -276,6 +276,17 @@ Route::middleware([
             Route::get('/', SuperAdminDashboardController::class)
                 ->middleware('can:superadmin.access')
                 ->name('index');
+
+            // Stale Super Admin URLs from early chrome / live walks (issue #133).
+            Route::get('/groups', fn () => redirect()->route('admin.groups.index'))
+                ->middleware('can:admin.groups.view')
+                ->name('groups');
+            Route::get('/plugins', fn () => redirect()->route('admin.modules.index'))
+                ->middleware('can:admin.modules.view')
+                ->name('plugins');
+            Route::get('/modules', fn () => redirect()->route('admin.modules.index'))
+                ->middleware('can:admin.modules.view')
+                ->name('modules');
         });
 
     Route::prefix('admin')
