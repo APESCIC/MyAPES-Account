@@ -30,8 +30,8 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 ## Core architecture
 
 - **Authentication and session context**:
-  - Public service users authenticate with local email/password.
-  - Staff and administrators authenticate through APES Cloudron OIDC with exact LDAP group eligibility.
+  - Public service users authenticate with local email/password. Directory identities cannot use `/login` or public remember-me restoration.
+  - Staff, volunteers, students, and administrators authenticate through APES Cloudron OIDC on Staff Login (`/staff/login`) with exact LDAP group eligibility. Local staff password login is local/testing only.
   - One Laravel `web` guard carries explicit `password`, `cloudron_oidc`, or local/testing-only `qa` session provenance.
   - Durable authorization epochs, recent directory-validation timestamps, suspension checks, remember-token rotation, and the Phase B session-cutover marker force reauthentication whenever authorization changes.
 - **Protected authorization**:
@@ -73,10 +73,12 @@ Do not disclose suspected security vulnerabilities in a public issue. This repos
 ### Login entry points
 
 - `/` - landing page with Public Login, Register, and Staff Login choices
-- `/login` and `/register` - public account authentication (in local/testing, `/login` auto-signs in to the seeded public user)
-- `/staff/login` - dedicated staff login page that starts Cloudron OIDC
+- `/login` and `/register` - public local password accounts only. Directory (`cloudron_oidc`) users are redirected to Staff Login and cannot use public password authentication.
+- `/staff/login` - the only production sign-in path for Cloudron directory users; it starts Cloudron OIDC. The local staff password form exists only in local/testing.
 - `/change-log` - public, searchable MyAPES Core release history for guests, public users, and staff
 - local/testing only: QA role switcher (Public/Student/Volunteer/Staff/Admin/Super Admin) available in the app layout for one-click identity switching
+
+Public service-user accounts stay separate from Cloudron staff accounts: directory sync creates `identity_type=cloudron_oidc` users only, never `identity_type=local` public users, and does not convert an existing local public account. Public users receive own-record module abilities plus selected services; they cannot open Staff, Admin, or Super Admin routes. Volunteers and students share staff-class service access without delete. Admins can open Admin Users; Super Admins can open Access, Modules, and Maintenance.
 
 ### APES CIC route and permission contract
 
