@@ -30,11 +30,15 @@
       "Walkthrough account credentials are stored only in the operator secret store; public password reset remains tracked separately in issue #121."
     ],
     "rollback": "Revert README and release metadata; the live walkthrough account row in production is unaffected by this documentation-only release.",
-    "provenance": "Issue #129; pull request to be linked on merge.",
+    "provenance": "Issue #129; pull request #146.",
     "references": [
       {
         "label": "Issue #129",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/129"
+      },
+      {
+        "label": "Pull request #146",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/146"
       }
     ]
   },
