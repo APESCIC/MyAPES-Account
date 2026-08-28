@@ -32,11 +32,15 @@
       "Unknown URLs still show the default Laravel 404. Branded unknown-URL pages remain a separate change. Hub Create/View addresses are a separate change."
     ],
     "rollback": "Redeploy the previous application version. Stale Super Admin Plugins and Groups addresses would 404 again.",
-    "provenance": "Defined by the stale Super Admin route fix for MyAPES Account issue #133, stacked on pull request #164.",
+    "provenance": "Defined by the stale Super Admin route fix for MyAPES Account issue #133, stacked on pull request #164, and pull request #165.",
     "references": [
       {
         "label": "Issue #133",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/133"
+      },
+      {
+        "label": "Pull request #165",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/165"
       }
     ]
   },

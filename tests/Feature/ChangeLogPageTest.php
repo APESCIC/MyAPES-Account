@@ -101,6 +101,7 @@ class ChangeLogPageTest extends TestCase
                 ->assertSeeText('Document live public walkthrough account')
                 ->assertSeeText('Deployment and local setup foundation')
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/133', false)
+                ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/165', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/122', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/164', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/148', false)
