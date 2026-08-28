@@ -92,7 +92,12 @@
                     </td>
                     <td>{{ $user->suspended_at === null ? 'Active' : 'Suspended' }}</td>
                     <td>{{ $authorizationProfile->effectiveProtectedRole($user) ?? 'None' }}</td>
-                    <td><a href="{{ route('admin.users.show', $user) }}">View user</a></td>
+                    <td>
+                        <a href="{{ route('admin.users.show', $user) }}">View user</a>
+                        @if(in_array($user->id, $resettableUserIds, true))
+                            · <a href="{{ route('admin.users.show', $user) }}#local-password">Reset password</a>
+                        @endif
+                    </td>
                 </tr>
             @empty
                 <tr><td colspan="5">No users match these filters.</td></tr>

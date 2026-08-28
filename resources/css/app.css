@@ -1960,6 +1960,11 @@ form.inline {
     color: var(--muted);
 }
 
+.temporary-password {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.02em;
+}
+
 .service-label,
 .status {
     display: inline-flex;

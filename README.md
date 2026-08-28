@@ -300,7 +300,7 @@ Separation rules:
 - Use `/login` only. Staff Login, Cloudron OIDC, and directory sync must never own or convert this account.
 - The account can reach public modules and owner-scoped records only; Admin, Super Admin, and staff-only routes remain forbidden.
 - Local QA seeds such as `qa.service.user@myapes.local` stay local/testing-only fixtures and do not substitute for this live account.
-- Public password reset is tracked separately in issue #121; until that ships, recover the password from the operator secret store or reset it through an operator Cloudron exec.
+- An Admin or Super Admin can issue a one-time temporary password from Admin → Public users for this local account. Guest forgot-password remains tracked in issue #121. Directory / Cloudron / pending first-login accounts stay on Cloudron.
 
 ### Feature test matrix by seeded role
 

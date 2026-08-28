@@ -11,7 +11,15 @@
         <p class="muted">{{ $managedUser->email }}</p>
         <dl class="admin-definition-list">
             <div><dt>Account ID</dt><dd>{{ $managedUser->id }}</dd></div>
-            <div><dt>Identity source</dt><dd>{{ $identityLabel }}</dd></div>
+            <div>
+                <dt>Identity source</dt>
+                <dd>
+                    {{ $identityLabel }}
+                    @if($managedUser->isPendingFirstLogin())
+                        <span class="status">Pending first login</span>
+                    @endif
+                </dd>
+            </div>
             <div><dt>Suspension state</dt><dd>{{ $managedUser->suspended_at === null ? 'Active' : 'Suspended' }}</dd></div>
             <div><dt>Authorization epoch</dt><dd>{{ $managedUser->authorization_epoch }}</dd></div>
             <div class="admin-definition-list__groups">
@@ -22,6 +30,23 @@
             </div>
         </dl>
     </section>
+
+    @if(session('temporary_password'))
+        <section class="panel" aria-labelledby="temporary-password-title">
+            <h2 id="temporary-password-title">One-time temporary password</h2>
+            <p>Copy this password now and share it with the account holder out of band. It will not be shown again, and it is not stored in audit history.</p>
+            <label for="temporary-password">Temporary password</label>
+            <input
+                id="temporary-password"
+                class="temporary-password"
+                type="text"
+                readonly
+                value="{{ session('temporary_password') }}"
+                autocomplete="off"
+                spellcheck="false"
+            >
+        </section>
+    @endif
 
     @if($isStaffAccount)
         <section class="panel" aria-labelledby="staff-profile-title">
@@ -88,6 +113,35 @@
             @endcan
         </section>
     @endif
+
+    @can('admin.users.manage')
+        @if($canResetLocalPassword)
+            <section class="panel" id="local-password" aria-labelledby="local-password-title">
+                <h2 id="local-password-title">Local password</h2>
+                <p class="muted">Generate a one-time temporary password for this local public account. Share it with the account holder out of band. Directory, Cloudron, and pending first-login accounts cannot be reset here.</p>
+                <form method="post" action="{{ route('admin.users.password-reset', $managedUser) }}">
+                    @csrf
+                    <label class="inline-check">
+                        <input type="checkbox" name="confirm" value="1" required>
+                        <span>Replace the current password with a one-time temporary password</span>
+                    </label>
+                    <div class="actions">
+                        <button type="submit">Reset local password</button>
+                    </div>
+                </form>
+            </section>
+        @elseif($managedUser->isPendingFirstLogin())
+            <section class="panel" id="local-password" aria-labelledby="local-password-title">
+                <h2 id="local-password-title">Local password</h2>
+                <p class="muted">Pending first-login directory accounts stay on Cloudron. This password cannot be reset here.</p>
+            </section>
+        @elseif(! $isStaffAccount && ! $managedUser->isLocalPasswordIdentity())
+            <section class="panel" id="local-password" aria-labelledby="local-password-title">
+                <h2 id="local-password-title">Local password</h2>
+                <p class="muted">This account uses Cloudron directory sign-in. Reset the password in Cloudron.</p>
+            </section>
+        @endif
+    @endcan
 
     <section class="panel" aria-labelledby="role-provenance-title">
         <h2 id="role-provenance-title">Provenanced roles</h2>
