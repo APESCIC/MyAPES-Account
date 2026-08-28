@@ -2,26 +2,28 @@
 
 ## Implement order
 
-Live app is still 0.26.1. Finish **v1.0.0 Beta** in this order, then stop. Do not start v1.1.0 until the password pack (#142, #121, #147, #148) is on live.
+Live app is still 0.26.1. Finish **v1.0.0 Beta** in this order, then stop. Do not start v1.1.0 until **#159 is closed on live** — not merely when the password PRs merge.
 
-Do not start from or touch PR #120 / the Access RBAC branch — App Developer owns that. Do not open a second Access PR.
+Do not start from or touch PR #120 / the Access RBAC branch — App Developer owns PR #120 and #97–#99. Do not open a second Access PR.
 
 ### v1.0.0 Beta (`milestone: 1`)
 
 1. #91 RBAC epic (in flight, PR #120 on #97) — App Developer owns this; do not open a second Access PR
-2. #97 Access admin UX
-3. #98 PHPUnit auth matrix
-4. #99 Public vs Cloudron separation
-5. #142 Admin reset of local public password
-6. #121 Public local forgot-password
-7. #147 Signed-in local change-password
-8. #148 Read-only profile email
-9. #122 Changelog Internal-only leak
-10. #133 Stale `/superadmin/*` 404s
+2. #97 Access admin UX — App Developer (PR #120)
+3. #98 PHPUnit auth matrix — App Developer
+4. #99 Public vs Cloudron separation — App Developer
+5. #158 Local public password pack (epic; children are #142, #121, #147, #148, #159 — not under closed #129)
+6. #142 Admin reset of local public password
+7. #121 Public local forgot-password
+8. #147 Signed-in local change-password
+9. #148 Read-only profile email
+10. #159 Live-verify on production (pack is not done until this is closed on live)
+11. #122 Changelog Internal-only leak
+12. #133 Stale `/superadmin/*` 404s
 
 ### v1.1.0 Beta: Public UX & compliance (`milestone: 2`)
 
-Only after the password pack is live:
+Only after #159 is closed on live:
 
 1. #128 Branded 404 and 403
 2. #130 Signed-in home still shows login doors
