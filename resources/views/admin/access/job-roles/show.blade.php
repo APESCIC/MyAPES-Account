@@ -82,7 +82,7 @@
                     </ul>
                 </fieldset>
 
-                <details class="permission-advanced" open>
+                <details class="permission-advanced">
                     <summary>Advanced permissions</summary>
                     @php
                         $editGroups = $permissions

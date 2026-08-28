@@ -105,7 +105,9 @@ class AdminAccessWorkspaceTest extends TestCase
             ->assertSee('Admin overview')
             ->assertSee('View accounts')
             ->assertSee('Advanced permissions')
-            ->assertSee('Update role');
+            ->assertSee('Update role')
+            ->assertSee('<details class="permission-advanced">', false)
+            ->assertDontSee('<details class="permission-advanced" open>', false);
     }
 
     public function test_protected_role_show_returns_not_found(): void
