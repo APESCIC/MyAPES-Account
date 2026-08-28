@@ -33,11 +33,15 @@
       "Signed-in profile change-password remains a separate change. Directory and Cloudron passwords continue to be managed in Cloudron."
     ],
     "rollback": "Redeploy the previous application version. Passwords already changed through this flow remain in effect until the account holder or an administrator sets a new password.",
-    "provenance": "Defined by the public local forgot-password task for MyAPES Account issue #121 under epic #158.",
+    "provenance": "Defined by the public local forgot-password task for MyAPES Account issue #121 under epic #158 and pull request #161.",
     "references": [
       {
         "label": "Issue #121",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/121"
+      },
+      {
+        "label": "Pull request #161",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/161"
       }
     ]
   },

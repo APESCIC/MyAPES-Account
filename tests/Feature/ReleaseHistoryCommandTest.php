@@ -98,6 +98,10 @@ class ReleaseHistoryCommandTest extends TestCase
                     'label' => 'Issue #121',
                     'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/121',
                 ],
+                [
+                    'label' => 'Pull request #161',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/161',
+                ],
             ],
             $current['references'],
         );
