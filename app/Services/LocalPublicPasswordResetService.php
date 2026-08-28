@@ -20,6 +20,48 @@ class LocalPublicPasswordResetService
         return $this->refusalMessage($actor, $target) === null;
     }
 
+    public function isEligibleForGuestReset(?User $user): bool
+    {
+        if ($user === null || $user->suspended_at !== null) {
+            return false;
+        }
+
+        if ($user->isPendingFirstLogin()) {
+            return false;
+        }
+
+        return $user->isLocalPasswordIdentity()
+            && ! $this->profile->hasDirectoryProtectedEligibility($user);
+    }
+
+    public function completeGuestReset(User $user, string $password): void
+    {
+        if (! $this->isEligibleForGuestReset($user)) {
+            throw new DomainException(
+                'Only local public accounts can reset a password here. Directory and Cloudron accounts stay on Cloudron.',
+            );
+        }
+
+        DB::transaction(function () use ($user, $password): void {
+            $user->forceFill([
+                'password' => $password,
+                'authorization_epoch' => (int) $user->authorization_epoch + 1,
+            ]);
+            $user->setRememberToken(Str::random(60));
+            $user->save();
+
+            $this->auditLogger->record(
+                'auth.public_local_password_reset',
+                $user,
+                $user,
+                [
+                    'target_user_id' => $user->id,
+                    'action' => 'guest_reset_local_public_password',
+                ],
+            );
+        });
+    }
+
     public function reset(User $actor, User $target): string
     {
         $refusal = $this->refusalMessage($actor, $target);

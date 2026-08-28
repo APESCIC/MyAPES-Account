@@ -10,19 +10,19 @@
         <form method="post" action="{{ route('public.register.submit') }}">
             @csrf
             <label for="name">Full name</label>
-            <input id="name" type="text" name="name" value="{{ old('name') }}" required>
+            <input id="name" type="text" name="name" value="{{ old('name') }}" autocomplete="name" required>
 
             <label for="email">Email</label>
-            <input id="email" type="email" name="email" value="{{ old('email') }}" required>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required>
 
             <label for="username">Username</label>
-            <input id="username" type="text" name="username" value="{{ old('username') }}" minlength="3" maxlength="30" required>
+            <input id="username" type="text" name="username" value="{{ old('username') }}" autocomplete="username" minlength="3" maxlength="30" required>
 
             <label for="password">Password</label>
-            <input id="password" type="password" name="password" required>
+            <input id="password" type="password" name="password" autocomplete="new-password" required>
 
             <label for="password_confirmation">Confirm password</label>
-            <input id="password_confirmation" type="password" name="password_confirmation" required>
+            <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" required>
 
             <fieldset>
                 <legend>Select at least one MyAPES service</legend>

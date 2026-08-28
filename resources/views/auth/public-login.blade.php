@@ -10,10 +10,10 @@
         <form method="post" action="{{ route('public.login.submit') }}">
             @csrf
             <label for="login">Username or email</label>
-            <input id="login" type="text" name="login" value="{{ old('login') }}" required>
+            <input id="login" type="text" name="login" value="{{ old('login') }}" autocomplete="username" required>
 
             <label for="password">Password</label>
-            <input id="password" type="password" name="password" required>
+            <input id="password" type="password" name="password" autocomplete="current-password" required>
 
             <label class="inline-check">
                 <input type="checkbox" name="remember" value="1"> Remember me
@@ -21,6 +21,7 @@
 
             <div class="actions">
                 <button type="submit">Login</button>
+                <a href="{{ route('password.request') }}">Forgot password?</a>
                 <a href="{{ route('public.register') }}">Create account</a>
                 <a href="{{ route('staff.login') }}">Staff Login</a>
             </div>

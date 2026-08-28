@@ -11,6 +11,7 @@ use App\Http\Controllers\ApesCic\CaseUpdateController as ApesCicCaseUpdateContro
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
+use App\Http\Controllers\Auth\PublicPasswordResetController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OnboardingController;
@@ -35,6 +36,13 @@ Route::middleware('guest')->controller(PublicAuthController::class)->group(funct
     Route::post('/login', 'login')->middleware('throttle:public-login')->name('public.login.submit');
     Route::get('/register', 'showRegister')->name('public.register');
     Route::post('/register', 'register')->name('public.register.submit');
+});
+
+Route::middleware('guest')->controller(PublicPasswordResetController::class)->group(function (): void {
+    Route::get('/forgot-password', 'create')->name('password.request');
+    Route::post('/forgot-password', 'store')->middleware('throttle:public-password-reset')->name('password.email');
+    Route::get('/reset-password/{token}', 'edit')->name('password.reset');
+    Route::post('/reset-password', 'update')->middleware('throttle:public-password-reset')->name('password.update');
 });
 
 Route::middleware('guest')->group(function (): void {

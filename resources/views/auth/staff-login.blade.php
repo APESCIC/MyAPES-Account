@@ -12,10 +12,10 @@
             <form method="post" action="{{ route('staff.local-login.submit') }}">
                 @csrf
                 <label for="email">Email</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required>
+                <input id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="username" required>
 
                 <label for="password">Password</label>
-                <input id="password" type="password" name="password" required>
+                <input id="password" type="password" name="password" autocomplete="current-password" required>
 
                 <div class="actions">
                     <button type="submit">Local Staff Login</button>
