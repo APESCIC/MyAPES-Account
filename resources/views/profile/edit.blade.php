@@ -33,4 +33,32 @@
             </div>
         </form>
     </div>
+
+    @if($canChangeLocalPassword)
+        <div class="panel" id="change-password">
+            <h2>Change password</h2>
+            <p class="muted">Enter your current password, then choose a new one for this local public account.</p>
+            <form method="post" action="{{ route('profile.password.update') }}">
+                @csrf
+                @method('put')
+                <label for="current_password">Current password</label>
+                <input id="current_password" type="password" name="current_password" autocomplete="current-password" required>
+
+                <label for="password">New password</label>
+                <input id="password" type="password" name="password" autocomplete="new-password" required>
+
+                <label for="password_confirmation">Confirm new password</label>
+                <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" required>
+
+                <div class="actions">
+                    <button type="submit">Update password</button>
+                </div>
+            </form>
+        </div>
+    @else
+        <div class="panel">
+            <h2>Password</h2>
+            <p class="muted">This account uses Cloudron directory sign-in. Change your password in Cloudron, not here.</p>
+        </div>
+    @endif
 @endsection

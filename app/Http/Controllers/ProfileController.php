@@ -6,13 +6,17 @@ use App\Models\StaffProfile;
 use App\Services\AuditLogger;
 use App\Services\AuthorizationProfile;
 use App\Services\ContactPreferenceUpdater;
+use App\Services\LocalPublicPasswordResetService;
 use App\Services\SecureUploadService;
+use App\Services\SessionAuthorizationContext;
 use App\Services\StaffProfilePhotoResponder;
 use App\Services\UkPhoneNumber;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
@@ -22,8 +26,10 @@ class ProfileController extends Controller
         private readonly StaffProfilePhotoResponder $staffPhotos,
     ) {}
 
-    public function edit(Request $request): View
-    {
+    public function edit(
+        Request $request,
+        LocalPublicPasswordResetService $passwordResets,
+    ): View {
         $user = $request->user();
 
         if ($this->authorization->hasDirectoryProtectedEligibility($user)) {
@@ -37,7 +43,36 @@ class ProfileController extends Controller
             'profile' => $user->profile,
             'preference' => $user->contactPreference,
             'selectedServices' => $user->serviceSelections()->pluck('sub_core_key')->all(),
+            'canChangeLocalPassword' => $passwordResets->canChangeOwnPassword($user),
         ]);
+    }
+
+    public function updatePassword(
+        Request $request,
+        LocalPublicPasswordResetService $passwordResets,
+        SessionAuthorizationContext $authorizationContext,
+    ): RedirectResponse {
+        $user = $request->user();
+
+        if (! $passwordResets->canChangeOwnPassword($user)) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', PasswordRule::defaults()],
+        ]);
+
+        try {
+            $passwordResets->changeOwnPassword($user, $validated['password']);
+        } catch (DomainException $exception) {
+            abort(403, $exception->getMessage());
+        }
+
+        $request->session()->regenerate();
+        $authorizationContext->recordPassword($request, $user);
+
+        return redirect()->route('profile.edit')->with('status', 'Password updated.');
     }
 
     public function update(
