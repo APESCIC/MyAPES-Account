@@ -32,11 +32,15 @@
       "The matrix uses local/testing QA session provenance for HTTP actors; production Staff Login remains Cloudron OIDC."
     ],
     "rollback": "Redeploy the previous application version. Runtime authorization behaviour is unchanged; only tests and release metadata are removed.",
-    "provenance": "Defined by the authorization access matrix task for MyAPES Account issue #98 under epic #91.",
+    "provenance": "Defined by the authorization access matrix task for MyAPES Account issue #98 under epic #91 and pull request #156.",
     "references": [
       {
         "label": "Issue #98",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/98"
+      },
+      {
+        "label": "Pull request #156",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/156"
       }
     ]
   },
