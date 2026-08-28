@@ -51,6 +51,9 @@
                 'public-facing' => 'Public-facing',
                 'internal-only' => 'Internal-only',
             ] as $filter => $label)
+                @if($filter === 'internal-only' && ! $showInternalAudienceFilter)
+                    @continue
+                @endif
                 <button
                     type="button"
                     data-change-log-filter="{{ $filter }}"
@@ -129,38 +132,40 @@
                             <p>{{ $release['version_rationale'] }}</p>
                         </section>
 
-                        <section>
-                            <h2>Validation</h2>
-                            <ul>
-                                @foreach($release['validation'] as $check)
-                                    <li>{{ $check }}</li>
-                                @endforeach
-                            </ul>
-                        </section>
+                        @if($showInternalNotes)
+                            <section>
+                                <h2>Validation</h2>
+                                <ul>
+                                    @foreach($release['validation'] as $check)
+                                        <li>{{ $check }}</li>
+                                    @endforeach
+                                </ul>
+                            </section>
 
-                        <section>
-                            <h2>Known limitations</h2>
-                            <ul>
-                                @foreach($release['known_limitations'] as $limitation)
-                                    <li>{{ $limitation }}</li>
-                                @endforeach
-                            </ul>
-                        </section>
+                            <section>
+                                <h2>Known limitations</h2>
+                                <ul>
+                                    @foreach($release['known_limitations'] as $limitation)
+                                        <li>{{ $limitation }}</li>
+                                    @endforeach
+                                </ul>
+                            </section>
 
-                        <section>
-                            <h2>Rollback notes</h2>
-                            <p>{{ $release['rollback'] }}</p>
-                        </section>
+                            <section>
+                                <h2>Rollback notes</h2>
+                                <p>{{ $release['rollback'] }}</p>
+                            </section>
 
-                        <section>
-                            <h2>Source</h2>
-                            <p>{{ $release['provenance'] }}</p>
-                            <ul class="change-log__references">
-                                @foreach($release['references'] as $reference)
-                                    <li><a href="{{ $reference['url'] }}">{{ $reference['label'] }}</a></li>
-                                @endforeach
-                            </ul>
-                        </section>
+                            <section>
+                                <h2>Source</h2>
+                                <p>{{ $release['provenance'] }}</p>
+                                <ul class="change-log__references">
+                                    @foreach($release['references'] as $reference)
+                                        <li><a href="{{ $reference['url'] }}">{{ $reference['label'] }}</a></li>
+                                    @endforeach
+                                </ul>
+                            </section>
+                        @endif
                     </div>
                 </details>
             </article>
