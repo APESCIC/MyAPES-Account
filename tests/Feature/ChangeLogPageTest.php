@@ -22,11 +22,12 @@ class ChangeLogPageTest extends TestCase
         $response
             ->assertOk()
             ->assertSeeText('Change Log Hub')
-            ->assertSeeText('Current version v0.31.0')
+            ->assertSeeText('Current version v0.31.1')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
-            ->assertSee('href="#release-v0-31-0"', false)
+            ->assertSee('href="#release-v0-31-1"', false)
             ->assertSee('<details', false)
+            ->assertSeeText('Hide Internal-only changelog notes from guests and public')
             ->assertSeeText('Read-only account email on profile')
             ->assertSeeText('Signed-in local public password change')
             ->assertSeeText('Public local forgot-password')
@@ -73,7 +74,7 @@ class ChangeLogPageTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSeeText('Current version v0.31.0');
+            ->assertSeeText('Current version v0.31.1');
 
         $this->assertGuestOrPublicAudience($response, $publicVersions);
     }
@@ -89,7 +90,7 @@ class ChangeLogPageTest extends TestCase
 
             $response
                 ->assertOk()
-                ->assertSeeText('Current version v0.31.0')
+                ->assertSeeText('Current version v0.31.1')
                 ->assertSee('data-change-log-filter="internal-only"', false)
                 ->assertSeeText('Internal-only')
                 ->assertSeeText('Rollback notes')
@@ -98,6 +99,8 @@ class ChangeLogPageTest extends TestCase
                 ->assertSeeText('Authorization access matrix for Cloudron groups')
                 ->assertSeeText('Document live public walkthrough account')
                 ->assertSeeText('Deployment and local setup foundation')
+                ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/122', false)
+                ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/164', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/148', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/163', false);
 
@@ -122,7 +125,7 @@ class ChangeLogPageTest extends TestCase
             $this->actingAs($user)
                 ->get('/change-log')
                 ->assertOk()
-                ->assertSeeText('Current version v0.31.0');
+                ->assertSeeText('Current version v0.31.1');
 
             $this->post(route('auth.logout'));
         }
@@ -134,13 +137,13 @@ class ChangeLogPageTest extends TestCase
             $this->get($path)
                 ->assertOk()
                 ->assertSee('href="'.route('change-log.index').'"', false)
-                ->assertSee('aria-label="View the MyAPES Core change log for version v0.31.0"', false)
-                ->assertSeeText('v0.31.0');
+                ->assertSee('aria-label="View the MyAPES Core change log for version v0.31.1"', false)
+                ->assertSeeText('v0.31.1');
         }
 
         $this->view('auth.public-login')
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.31.0');
+            ->assertSeeText('v0.31.1');
 
         $user = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
 
@@ -148,7 +151,7 @@ class ChangeLogPageTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.31.0');
+            ->assertSeeText('v0.31.1');
     }
 
     /**
