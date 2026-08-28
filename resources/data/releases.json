@@ -33,11 +33,15 @@
       "Read-only account email on Profile remains a separate change. Directory and Cloudron passwords continue to be managed in Cloudron."
     ],
     "rollback": "Redeploy the previous application version. Passwords already changed through this flow remain in effect until the account holder or an administrator sets a new password.",
-    "provenance": "Defined by the signed-in local public password-change task for MyAPES Account issue #147 under parent #121 and epic #158.",
+    "provenance": "Defined by the signed-in local public password-change task for MyAPES Account issue #147 under parent #121 and epic #158 and pull request #162.",
     "references": [
       {
         "label": "Issue #147",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/147"
+      },
+      {
+        "label": "Pull request #162",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/162"
       }
     ]
   },
