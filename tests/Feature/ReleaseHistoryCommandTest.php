@@ -83,11 +83,11 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-07-27', $releases[57]['date']);
         $this->assertSame('2026-07-27', $releases[58]['date']);
 
-        foreach (array_slice($releases, 58) as $release) {
+        foreach (array_slice($releases, 59) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 57) as $release) {
+        foreach (array_slice($releases, 58) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
 
@@ -97,12 +97,12 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame(
             [
                 [
-                    'label' => 'Issue #147',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/147',
+                    'label' => 'Issue #148',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/148',
                 ],
                 [
-                    'label' => 'Pull request #162',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/162',
+                    'label' => 'Pull request #163',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/163',
                 ],
             ],
             $current['references'],
@@ -111,13 +111,13 @@ class ReleaseHistoryCommandTest extends TestCase
         foreach ([
             'public',
             'profile',
-            'password',
-            'issue #147',
+            'email',
+            'issue #148',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }
 
-        $desertRelease = $releases[37];
+        $desertRelease = $releases[38];
         $this->assertSame('minor', $desertRelease['type']);
         $desertText = strtolower(json_encode($desertRelease, JSON_THROW_ON_ERROR));
         foreach ([
@@ -134,7 +134,7 @@ class ReleaseHistoryCommandTest extends TestCase
         }
         $this->assertStringNotContainsString('pull request', $desertText);
 
-        $apesCicRelease = $releases[41];
+        $apesCicRelease = $releases[42];
         $this->assertSame('minor', $apesCicRelease['type']);
         $this->assertSame(
             [[
@@ -148,7 +148,7 @@ class ReleaseHistoryCommandTest extends TestCase
             strtolower(implode(' ', $apesCicRelease['known_limitations'])),
         );
 
-        $phaseB = $releases[52];
+        $phaseB = $releases[53];
         $this->assertStringContainsString(
             'issue #11',
             strtolower(implode(' ', $phaseB['known_limitations'])),

@@ -31,11 +31,15 @@
       "Account email cannot be changed in MyAPES Account. Live production verification remains a separate change. Directory and Cloudron passwords continue to be managed in Cloudron."
     ],
     "rollback": "Redeploy the previous application version. Account email addresses are unchanged by this release.",
-    "provenance": "Defined by the read-only profile email task for MyAPES Account issue #148 under parent #147 and epic #158.",
+    "provenance": "Defined by the read-only profile email task for MyAPES Account issue #148 under parent #147 and epic #158 and pull request #163.",
     "references": [
       {
         "label": "Issue #148",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/148"
+      },
+      {
+        "label": "Pull request #163",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/163"
       }
     ]
   },
