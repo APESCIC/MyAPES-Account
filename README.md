@@ -283,6 +283,25 @@ In local/testing, opening `/login` immediately signs into the seeded public acco
 | Admin | `qa.admin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Staff workflows plus Admin Users and the simplified Admin overview KPIs |
 | Super Admin | `qa.superadmin@myapes.local` | QA switcher or `/staff/login` (local direct form) | Super Admin panel (`/superadmin`): directory groups, roles, permissions, modules, maintenance, and technical analytics charts |
 
+### Live public walkthrough account (production)
+
+Production walkthroughs and public-surface QA should use the dedicated local public account below instead of a superadmin session. Credentials live in the APES operator secret store (Vaultwarden); they are not stored in this repository, GitHub issues, or release notes.
+
+| Field | Value |
+| --- | --- |
+| Email | `developer@apes.org.uk` |
+| Username | `walkthrough-public` |
+| Sign-in route | `/login` (public local password auth) |
+| Protected role | `service-user` only (`identity_type=local`, no OIDC subject) |
+| Services | APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic |
+
+Separation rules:
+
+- Use `/login` only. Staff Login, Cloudron OIDC, and directory sync must never own or convert this account.
+- The account can reach public modules and owner-scoped records only; Admin, Super Admin, and staff-only routes remain forbidden.
+- Local QA seeds such as `qa.service.user@myapes.local` stay local/testing-only fixtures and do not substitute for this live account.
+- Public password reset is tracked separately in issue #121; until that ships, recover the password from the operator secret store or reset it through an operator Cloudron exec.
+
 ### Feature test matrix by seeded role
 
 | Role | Key flows to validate quickly |
