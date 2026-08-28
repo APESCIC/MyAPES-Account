@@ -26,6 +26,7 @@
     "validation": [
       "PHPUnit AdminAccessWorkspaceTest covers guest login redirects, administrator 403s, Super Admin redirects from /superadmin/plugins and /superadmin/groups, and follow-through to the live Admin pages.",
       "AdminAccessAndViewsTest covers administrator, public, and volunteer denials of the stale Super Admin addresses.",
+      "AuthorizationRuntimeSourceContractTest covers changelog internal-note visibility using staff, volunteer, and student permission gates rather than a scalar staff helper.",
       "Ran php artisan myapes:changelog-validate against the changelog guest-filter parent branch for this stacked change."
     ],
     "known_limitations": [

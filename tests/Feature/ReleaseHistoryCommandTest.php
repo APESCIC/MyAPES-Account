@@ -115,6 +115,7 @@ class ReleaseHistoryCommandTest extends TestCase
             'plugins',
             'groups',
             'issue #133',
+            'permission gates',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }
