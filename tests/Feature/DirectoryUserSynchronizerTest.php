@@ -196,6 +196,71 @@ class DirectoryUserSynchronizerTest extends TestCase
         $this->assertSame('Security review', $user->suspension_reason);
     }
 
+    public function test_sync_from_legacy_alias_membership_creates_canonical_directory_users(): void
+    {
+        $this->directory->membersByGroup = [
+            'myapesaccount.superadmin' => [
+                $this->profile(
+                    'alias.superadmin@example.test',
+                    'Alias Superadmin',
+                    ['myapes.superadmins'],
+                ),
+            ],
+        ];
+
+        $stats = app(DirectoryUserSynchronizer::class)->synchronize();
+
+        $this->assertSame(1, $stats['created']);
+        $user = User::query()
+            ->where('email', 'alias.superadmin@example.test')
+            ->firstOrFail();
+
+        $this->assertSame(User::IDENTITY_CLOUDRON_OIDC, $user->identity_type);
+        $this->assertNotSame(User::IDENTITY_LOCAL, $user->identity_type);
+        $this->assertSame(
+            AuthorizationProfile::ROLE_SUPER_ADMIN,
+            app(AuthorizationProfile::class)->effectiveProtectedRole($user),
+        );
+        $this->assertSame(['myapesaccount.superadmin'], $user->ldap_groups);
+        $this->assertDatabaseMissing('directory_groups', [
+            'name' => 'myapes.superadmins',
+        ]);
+        $this->assertDatabaseMissing('users', [
+            'email' => 'alias.superadmin@example.test',
+            'identity_type' => User::IDENTITY_LOCAL,
+        ]);
+    }
+
+    public function test_sync_never_creates_identity_type_local_public_users(): void
+    {
+        $this->directory->membersByGroup = [
+            'myapesaccount.staff' => [
+                $this->profile(
+                    'new.directory@example.test',
+                    'New Directory',
+                    ['myapesaccount.staff'],
+                ),
+            ],
+        ];
+
+        app(DirectoryUserSynchronizer::class)->synchronize();
+
+        $this->assertSame(
+            [User::IDENTITY_CLOUDRON_OIDC],
+            User::query()
+                ->where('email', 'new.directory@example.test')
+                ->pluck('identity_type')
+                ->all(),
+        );
+        $this->assertSame(
+            0,
+            User::query()
+                ->where('identity_type', User::IDENTITY_LOCAL)
+                ->where('email', 'new.directory@example.test')
+                ->count(),
+        );
+    }
+
     public function test_suspended_directory_users_cannot_staff_login_via_oidc_session_gate(): void
     {
         $user = User::factory()
