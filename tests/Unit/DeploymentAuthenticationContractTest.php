@@ -1247,7 +1247,10 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('scripts/deploy/github-release-notes.sh', $workflow);
         $this->assertStringContainsString('tag_name: v${{ env.APP_VERSION }}', $workflow);
         $this->assertStringContainsString('name: ${{ env.RELEASE_DISPLAY_TITLE }}', $workflow);
-        $this->assertStringNotContainsString('name: v${{ env.APP_VERSION }}', $workflow);
+        $this->assertDoesNotMatchRegularExpression(
+            '/^\s*name:\s*v\$\{\{\s*env\.APP_VERSION\s*\}\}/m',
+            $workflow,
+        );
         $this->assertStringContainsString('target_commitish: ${{ env.RELEASE_SHA }}', $workflow);
         $this->assertStringContainsString('softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631', $workflow);
 
@@ -1266,7 +1269,7 @@ class DeploymentAuthenticationContractTest extends TestCase
         $workflow = $this->combinedWorkflows();
 
         foreach ([
-            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' => 4,
+            'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' => 5,
             'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0' => 2,
         ] as $reference => $expectedOccurrences) {
             $this->assertSame(

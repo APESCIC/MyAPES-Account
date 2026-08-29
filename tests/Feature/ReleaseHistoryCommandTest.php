@@ -30,7 +30,7 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-29', $releases[4]['date']);
         $this->assertSame('2026-08-29', $releases[5]['date']);
         $this->assertSame('2026-08-29', $releases[6]['date']);
-        $this->assertSame('2026-08-28', $releases[7]['date']);
+        $this->assertSame('2026-08-29', $releases[7]['date']);
         $this->assertSame('2026-08-28', $releases[8]['date']);
         $this->assertSame('2026-08-28', $releases[9]['date']);
         $this->assertSame('2026-08-28', $releases[10]['date']);
@@ -106,12 +106,12 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame(
             [
                 [
-                    'label' => 'Issue #178',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/178',
+                    'label' => 'Issue #183',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/183',
                 ],
                 [
-                    'label' => 'Pull request #181',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/181',
+                    'label' => 'Pull request #184',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/184',
                 ],
             ],
             $current['references'],
@@ -119,8 +119,8 @@ class ReleaseHistoryCommandTest extends TestCase
         $currentText = strtolower(json_encode($current, JSON_THROW_ON_ERROR));
         foreach ([
             'github release',
-            'backfill',
-            'issue #178',
+            'deployment',
+            'issue #183',
             'changelog-prepare',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
