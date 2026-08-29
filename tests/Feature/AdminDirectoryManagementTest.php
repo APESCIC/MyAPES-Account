@@ -34,10 +34,10 @@ class AdminDirectoryManagementTest extends TestCase
         ]);
 
         $this->actingAs($superAdmin)
-            ->post("/admin/groups/{$group->id}/mappings", [
+            ->post("/admin/access/groups/{$group->id}/mappings", [
                 'role_id' => $jobRole->id,
             ])
-            ->assertRedirect('/admin/groups');
+            ->assertRedirect('/admin/access?tab=groups');
 
         $this->assertDatabaseHas('directory_group_role_mappings', [
             'directory_group_id' => $group->id,
@@ -51,11 +51,11 @@ class AdminDirectoryManagementTest extends TestCase
         ]);
 
         $this->actingAs($superAdmin)
-            ->from('/admin/groups')
-            ->post("/admin/groups/{$unmanaged->id}/mappings", [
+            ->from('/admin/access?tab=groups')
+            ->post("/admin/access/groups/{$unmanaged->id}/mappings", [
                 'role_id' => $jobRole->id,
             ])
-            ->assertRedirect('/admin/groups')
+            ->assertRedirect('/admin/access?tab=groups')
             ->assertSessionHasErrors('authorization');
 
         $mapping = DirectoryGroupRoleMapping::query()
@@ -64,8 +64,8 @@ class AdminDirectoryManagementTest extends TestCase
             ->firstOrFail();
 
         $this->actingAs($superAdmin)
-            ->delete("/admin/groups/mappings/{$mapping->id}")
-            ->assertRedirect('/admin/groups');
+            ->delete("/admin/access/mappings/{$mapping->id}")
+            ->assertRedirect('/admin/access?tab=groups');
 
         $this->assertDatabaseMissing('directory_group_role_mappings', [
             'id' => $mapping->id,
@@ -79,8 +79,8 @@ class AdminDirectoryManagementTest extends TestCase
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
 
         $this->actingAs($superAdmin)
-            ->post('/admin/groups/sync')
-            ->assertRedirect('/admin/groups');
+            ->post('/admin/access/sync')
+            ->assertRedirect('/admin/access?tab=groups');
 
         Queue::assertPushed(RunDirectorySync::class, 1);
         $audit = AuditLog::query()
@@ -105,8 +105,8 @@ class AdminDirectoryManagementTest extends TestCase
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
 
         $this->actingAs($superAdmin)
-            ->post('/admin/groups/sync')
-            ->assertRedirect('/admin/groups');
+            ->post('/admin/access/sync')
+            ->assertRedirect('/admin/access?tab=groups');
 
         Queue::assertPushed(
             RunDirectorySync::class,
@@ -128,8 +128,8 @@ class AdminDirectoryManagementTest extends TestCase
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
 
         $this->actingAs($superAdmin)
-            ->post('/admin/groups/sync')
-            ->assertRedirect('/admin/groups');
+            ->post('/admin/access/sync')
+            ->assertRedirect('/admin/access?tab=groups');
 
         Queue::assertPushed(
             RunDirectorySync::class,
@@ -155,9 +155,9 @@ class AdminDirectoryManagementTest extends TestCase
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
 
         $this->actingAs($superAdmin)
-            ->from('/admin/groups')
-            ->post('/admin/groups/sync')
-            ->assertRedirect('/admin/groups')
+            ->from('/admin/access?tab=groups')
+            ->post('/admin/access/sync')
+            ->assertRedirect('/admin/access?tab=groups')
             ->assertSessionHasErrors('authorization');
 
         Queue::assertNothingPushed();
@@ -178,9 +178,9 @@ class AdminDirectoryManagementTest extends TestCase
         $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
 
         $this->actingAs($superAdmin)
-            ->from('/admin/groups')
-            ->post('/admin/groups/sync')
-            ->assertRedirect('/admin/groups')
+            ->from('/admin/access?tab=groups')
+            ->post('/admin/access/sync')
+            ->assertRedirect('/admin/access?tab=groups')
             ->assertSessionHasErrors('authorization');
 
         Queue::assertNothingPushed();
@@ -249,6 +249,7 @@ class AdminDirectoryManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($superAdmin)
+            ->followingRedirects()
             ->get('/admin/groups')
             ->assertOk()
             ->assertSee('myapesaccount.staff')

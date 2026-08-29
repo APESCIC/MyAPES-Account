@@ -139,7 +139,7 @@ class AdminRoleAndUserManagementTest extends TestCase
         $target = $this->userWithAccess(User::ROLE_SERVICE_USER);
 
         $this->actingAs($superAdmin)
-            ->post('/admin/roles', [
+            ->post(route('admin.access.job-roles.store'), [
                 'name' => 'case-reviewer',
                 'permissions' => ['admin.users.view'],
             ])
@@ -151,12 +151,12 @@ class AdminRoleAndUserManagementTest extends TestCase
             $role->permissions()->pluck('name')->all(),
         );
         $this->actingAs($superAdmin)
-            ->from('/admin/roles')
-            ->post('/admin/roles', [
+            ->from(route('admin.access.index', ['tab' => 'job-roles']))
+            ->post(route('admin.access.job-roles.store'), [
                 'name' => 'case-reviewer',
                 'permissions' => [],
             ])
-            ->assertRedirect('/admin/roles')
+            ->assertRedirect(route('admin.access.index', ['tab' => 'job-roles']))
             ->assertSessionHasErrors('name');
 
         foreach ([
@@ -165,21 +165,21 @@ class AdminRoleAndUserManagementTest extends TestCase
             'ab',
         ] as $invalidName) {
             $this->actingAs($superAdmin)
-                ->from('/admin/roles')
-                ->post('/admin/roles', [
+                ->from(route('admin.access.index', ['tab' => 'job-roles']))
+                ->post(route('admin.access.job-roles.store'), [
                     'name' => $invalidName,
                     'permissions' => [],
                 ])
-                ->assertRedirect('/admin/roles')
+                ->assertRedirect(route('admin.access.index', ['tab' => 'job-roles']))
                 ->assertSessionHasErrors('name');
         }
         $this->actingAs($superAdmin)
-            ->from('/admin/roles')
-            ->post('/admin/roles', [
+            ->from(route('admin.access.index', ['tab' => 'job-roles']))
+            ->post(route('admin.access.job-roles.store'), [
                 'name' => 'unknown-permission-role',
                 'permissions' => ['not.in.catalogue'],
             ])
-            ->assertRedirect('/admin/roles')
+            ->assertRedirect(route('admin.access.index', ['tab' => 'job-roles']))
             ->assertSessionHasErrors('permissions.0');
 
         app(AuthorizationRoleMaterializer::class)->grant(
@@ -194,14 +194,14 @@ class AdminRoleAndUserManagementTest extends TestCase
         Cache::put(config('permission.cache.key'), 'stale');
 
         $this->actingAs($superAdmin)
-            ->put("/admin/roles/{$role->id}", [
+            ->put("/admin/access/job-roles/{$role->id}", [
                 'name' => 'case-reviewer',
                 'permissions' => [
                     'admin.users.view',
                     'admin.users.manage',
                 ],
             ])
-            ->assertRedirect("/admin/roles/{$role->id}");
+            ->assertRedirect("/admin/access/job-roles/{$role->id}");
 
         $target->refresh();
         $this->assertSame($epoch + 1, $target->authorization_epoch);
@@ -216,9 +216,9 @@ class AdminRoleAndUserManagementTest extends TestCase
         );
 
         $this->actingAs($superAdmin)
-            ->from("/admin/roles/{$role->id}")
-            ->delete("/admin/roles/{$role->id}")
-            ->assertRedirect("/admin/roles/{$role->id}")
+            ->from("/admin/access/job-roles/{$role->id}")
+            ->delete("/admin/access/job-roles/{$role->id}")
+            ->assertRedirect("/admin/access/job-roles/{$role->id}")
             ->assertSessionHasErrors('authorization');
         $this->assertDatabaseHas('roles', ['id' => $role->id]);
 
@@ -228,8 +228,8 @@ class AdminRoleAndUserManagementTest extends TestCase
             RoleSource::SOURCE_LOCAL,
         );
         $this->actingAs($superAdmin)
-            ->delete("/admin/roles/{$role->id}")
-            ->assertRedirect('/admin/roles');
+            ->delete("/admin/access/job-roles/{$role->id}")
+            ->assertRedirect(route('admin.access.index', ['tab' => 'job-roles']));
         $this->assertDatabaseMissing('roles', ['id' => $role->id]);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'authorization.role_deleted',
@@ -246,18 +246,14 @@ class AdminRoleAndUserManagementTest extends TestCase
             ->firstOrFail();
 
         $this->actingAs($superAdmin)
-            ->from("/admin/roles/{$protected->id}")
-            ->put("/admin/roles/{$protected->id}", [
+            ->put("/admin/access/job-roles/{$protected->id}", [
                 'name' => 'renamed-staff',
                 'permissions' => [$permission->name],
             ])
-            ->assertRedirect("/admin/roles/{$protected->id}")
-            ->assertSessionHasErrors('authorization');
+            ->assertNotFound();
         $this->actingAs($superAdmin)
-            ->from("/admin/roles/{$protected->id}")
-            ->delete("/admin/roles/{$protected->id}")
-            ->assertRedirect("/admin/roles/{$protected->id}")
-            ->assertSessionHasErrors('authorization');
+            ->delete("/admin/access/job-roles/{$protected->id}")
+            ->assertNotFound();
 
         $this->assertDatabaseHas('roles', [
             'id' => $protected->id,
@@ -274,20 +270,20 @@ class AdminRoleAndUserManagementTest extends TestCase
             ->firstOrFail();
 
         $this->actingAs($superAdmin)
-            ->get('/admin/roles')
+            ->get(route('admin.access.index', ['tab' => 'job-roles']))
             ->assertOk()
             ->assertSee('Default job role')
             ->assertSee('Receptionist');
 
         $this->actingAs($superAdmin)
-            ->put("/admin/roles/{$role->id}", [
+            ->put("/admin/access/job-roles/{$role->id}", [
                 'name' => DefaultJobRoles::RECEPTIONIST,
                 'permissions' => [
                     'admin.users.view',
                     'admin.analytics.view',
                 ],
             ])
-            ->assertRedirect("/admin/roles/{$role->id}");
+            ->assertRedirect("/admin/access/job-roles/{$role->id}");
 
         $this->assertEqualsCanonicalizing(
             ['admin.analytics.view', 'admin.users.view'],
@@ -295,12 +291,12 @@ class AdminRoleAndUserManagementTest extends TestCase
         );
 
         $this->actingAs($superAdmin)
-            ->from("/admin/roles/{$role->id}")
-            ->put("/admin/roles/{$role->id}", [
+            ->from("/admin/access/job-roles/{$role->id}")
+            ->put("/admin/access/job-roles/{$role->id}", [
                 'name' => DefaultJobRoles::RECEPTIONIST,
                 'permissions' => ['admin.roles.manage'],
             ])
-            ->assertRedirect("/admin/roles/{$role->id}")
+            ->assertRedirect("/admin/access/job-roles/{$role->id}")
             ->assertSessionHasErrors('permissions.0');
     }
 
@@ -323,9 +319,9 @@ class AdminRoleAndUserManagementTest extends TestCase
         ])->save();
 
         $this->actingAs($superAdmin)
-            ->from("/admin/roles/{$role->id}")
-            ->delete("/admin/roles/{$role->id}")
-            ->assertRedirect("/admin/roles/{$role->id}")
+            ->from("/admin/access/job-roles/{$role->id}")
+            ->delete("/admin/access/job-roles/{$role->id}")
+            ->assertRedirect("/admin/access/job-roles/{$role->id}")
             ->assertSessionHasErrors('authorization');
         $this->assertDatabaseHas('roles', ['id' => $role->id]);
 
@@ -337,9 +333,9 @@ class AdminRoleAndUserManagementTest extends TestCase
         $role->permissions()->attach($unsafePermission);
 
         $this->actingAs($superAdmin)
-            ->from("/admin/roles/{$role->id}")
-            ->delete("/admin/roles/{$role->id}")
-            ->assertRedirect("/admin/roles/{$role->id}")
+            ->from("/admin/access/job-roles/{$role->id}")
+            ->delete("/admin/access/job-roles/{$role->id}")
+            ->assertRedirect("/admin/access/job-roles/{$role->id}")
             ->assertSessionHasErrors('authorization');
         $this->assertDatabaseHas('roles', ['id' => $role->id]);
 

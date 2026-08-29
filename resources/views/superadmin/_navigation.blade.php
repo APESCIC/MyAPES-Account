@@ -2,15 +2,9 @@
     @can('superadmin.access')
         <a href="{{ route('superadmin.index') }}" @if(request()->routeIs('superadmin.index')) aria-current="page" @endif>Overview</a>
     @endcan
-    @can('admin.groups.view')
-        <a href="{{ route('admin.groups.index') }}" @if(request()->routeIs('admin.groups.*')) aria-current="page" @endif>Groups</a>
-    @endcan
-    @can('admin.roles.view')
-        <a href="{{ route('admin.roles.index') }}" @if(request()->routeIs('admin.roles.*')) aria-current="page" @endif>Roles</a>
-    @endcan
-    @can('admin.permissions.view')
-        <a href="{{ route('admin.permissions.index') }}" @if(request()->routeIs('admin.permissions.*')) aria-current="page" @endif>Permissions</a>
-    @endcan
+    @canany(['admin.groups.view', 'admin.roles.view', 'admin.permissions.view'])
+        <a href="{{ route('admin.access.index') }}" @if(request()->routeIs('admin.access.*')) aria-current="page" @endif>Access</a>
+    @endcanany
     @can('admin.modules.view')
         <a href="{{ route('admin.modules.index') }}" @if(request()->routeIs('admin.modules.*')) aria-current="page" @endif>Plugins</a>
     @endcan
