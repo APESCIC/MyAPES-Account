@@ -1,10 +1,6 @@
 name: Deploy MyAPES Core to Cloudron
 
 on:
-  workflow_run:
-    workflows: ["Test MyAPES Core"]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -18,7 +14,6 @@ permissions:
 jobs:
   deployment-control-authentication:
     name: Authenticate deployment controls from Git
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -29,7 +24,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          REQUESTED_REVISION: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          REQUESTED_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
           authentication_root="$(mktemp -d)"
@@ -61,7 +56,6 @@ jobs:
 
   resolve-release:
     name: Resolve release identity
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -70,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
       - id: release
         shell: bash
@@ -83,7 +77,6 @@ jobs:
           echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
           echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
   deploy-cloudron:
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
     name: Deploy to Cloudron
     needs: [deployment-control-authentication, resolve-release]
     runs-on: ubuntu-latest

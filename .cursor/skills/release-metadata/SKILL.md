@@ -95,7 +95,7 @@ composer pre-merge
 
 ## Deploy timing
 
-Release metadata belongs in the PR **before merge**. After merge to `main`, `.github/workflows/test-cloudron.yml` validates release history and runs tests; `.github/workflows/deploy-cloudron.yml` deploys to Cloudron automatically when tests pass. Do not expect a separate manual deploy step for normal merges.
+Release metadata belongs in the PR **before merge**. After merge to `main`, `.github/workflows/test-cloudron.yml` validates release history and runs tests. Cloudron deploy is **manual** (`workflow_dispatch` on `.github/workflows/deploy-cloudron.yml`). After a successful deploy, verify the live Change Log Hub, ask before touching sibling website changelogs, then optionally create a GitHub Release. See `.cursor/skills/ship-gate/SKILL.md`.
 
 ## Do not
 

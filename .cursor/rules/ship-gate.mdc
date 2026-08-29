@@ -1,0 +1,56 @@
+---
+description: Gated ship lifecycle — post-CI next actions, ask deploy after merge, verify changelog hubs, ask GitHub Release after deploy
+alwaysApply: true
+---
+
+# Ship-gate workflow
+
+Start and finish product work from a Cursor agent request. Do not auto-merge, auto-deploy, create a GitHub Release, or edit sibling website changelogs without an explicit user choice at each gate.
+
+## Gates
+
+At each gate, end the turn with a numbered list of next best actions and **one recommended reply**. Wait for the user before continuing.
+
+### After PR CI is green
+
+Recommended usually: merge when release metadata and checks are OK.
+
+1. Merge the PR
+2. Fix remaining review / CI issues
+3. Leave PR open / stop
+
+Never merge unless the user already ordered merge or picks option 1.
+
+### After merge is verified on `main`
+
+Recommended: deploy when main tests are green.
+
+1. Deploy to Cloudron now
+2. Skip deploy
+
+Never assume Cloudron already updated. Deploy only via `workflow_dispatch` (see `.cursor/skills/ship-gate/SKILL.md`).
+
+### After Cloudron deploy succeeds — changelog hubs
+
+App Change Log Hub (`/change-log`) is fed by `resources/data/releases.json` in **this** repo. A successful Cloudron deploy publishes that record; do not open a separate metadata PR for the hub.
+
+Recommended: verify the live app hub, then ask about sibling websites only if the user wants them updated.
+
+1. Verify app Change Log Hub on live, then continue to GitHub Release gate
+2. Also update sibling website changelogs / hubs (name which sites after the user confirms)
+3. Skip hub checks
+
+Never edit `APESCIC/*` website repos or create issues there unless the user explicitly asks in this session.
+
+### After changelog gate — GitHub Release
+
+Recommended: create a GitHub Release for the new `VERSION`.
+
+1. Create GitHub Release
+2. Skip release
+
+Never create the release silently.
+
+## Unchanged
+
+Release **metadata** (`VERSION`, `releases.json`, contract) still ships in the **same PR** before merge (see release-metadata rule). That metadata is the source of truth for the MyAPES Core Change Log Hub after deploy.

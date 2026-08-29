@@ -92,7 +92,7 @@ Every change merged to `main` must include release metadata in the **same pull r
    php artisan myapes:changelog-validate --base-ref=origin/main
    ```
 5. Include `VERSION`, `resources/data/releases.json`, `resources/data/module-runtime-contract.json`, and the version-pinned test updates from the prepare command in the **same PR**. Merge only when CI is green.
-6. Cloudron deploy runs automatically after a successful merge to `main`; do not deploy manually for normal releases.
+6. After merge, ask whether to deploy to Cloudron (`workflow_dispatch` only — no auto-deploy). After a successful deploy, verify the live Change Log Hub (`/change-log`, fed by `releases.json` in this deploy), ask before updating any sibling website changelogs/hubs, then ask whether to create a GitHub Release. Follow `.cursor/rules/ship-gate.mdc` and `.cursor/skills/ship-gate/SKILL.md`.
 
 The prepare command syncs `VERSION`, prepends one release record, updates `module-runtime-contract.json` → `application_version`, and patches version-pinned tests. Do not edit or reorder published release records. See `.cursor/skills/release-metadata/SKILL.md` for full guidance.
 
