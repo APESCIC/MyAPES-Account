@@ -25,6 +25,7 @@
     ],
     "version_rationale": "Patch release: deployment and release automation plus display-title correction; no end-user product behaviour change.",
     "validation": [
+      "php artisan myapes:changelog-prepare --type=patch with --issue and --pr before merge.",
       "DeploymentAuthenticationContractTest covers RELEASE_DISPLAY_TITLE and publish-github-release workflow contracts.",
       "bash scripts/github/rename-release-titles.sh supports --dry-run idempotent title edits.",
       "php artisan myapes:changelog-validate --base-ref=origin/main after filling release notes."
