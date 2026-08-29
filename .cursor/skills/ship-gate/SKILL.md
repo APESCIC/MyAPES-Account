@@ -1,11 +1,11 @@
 ---
 name: ship-gate
-description: Gated ship lifecycle after CI — next-actions menu, optional Cloudron deploy via workflow_dispatch, verify app/website changelog hubs, optional GitHub Release. Use when PR checks are green, after merge to main, after deploy, or when the user asks to ship, deploy, release, or update changelogs.
+description: Gated ship lifecycle from commit/push through merge, Cloudron deploy (workflow_dispatch), changelog hubs, and optional GitHub Release. Use when work is ready to commit or open a PR, when PR checks are green, after merge to main, after deploy, or when the user asks to ship, deploy, release, or update changelogs.
 ---
 
 # Ship-gate
 
-Use this skill for post-implementation shipping gates. Release **metadata** still uses `release-metadata` before the PR merges.
+Use this skill for shipping gates from first commit through post-deploy release. Release **metadata** still uses `release-metadata` before the PR merges.
 
 ## Gate reply format
 
@@ -20,6 +20,54 @@ End the turn with:
 ```
 
 Do not proceed past a gate without an explicit user pick (or a prior explicit order that covers that gate).
+
+## Before PR — commit gate
+
+### When committing is best
+
+Commit when **all** that apply are true:
+
+1. Feature/fix work on the `cursor/...` branch is complete for this slice (or a clear WIP checkpoint the user wants saved).
+2. Focused tests for the change have been run (or failure is documented and the user still wants a commit).
+3. If the change will merge to `main`: release metadata is prepared on the branch (`myapes:changelog-prepare`, TODOs filled, `changelog-validate` against `origin/main`) — same PR as the work (see `release-metadata`).
+4. Diff is reviewed for secrets / unrelated files; commit message will explain *why*.
+
+**Prefer not** to commit: mid-edit with broken tests (unless the user picks WIP), before release metadata when a versioned merge is required, or while still deciding scope.
+
+**Mid-work commits:** only after an explicit user pick at this gate (or a prior “commit WIP” order). Do not invent a cadence of automatic checkpoint commits.
+
+### Present the gate
+
+After the ready-for-review conditions above (or when the user asks to save progress), end the turn with Next actions. **Never commit or push until they pick (or already ordered commit/push).**
+
+**Recommended:** Commit and open/update PR when the slice is review-ready (release metadata included if needed). Prefer Commit only when a PR already exists and only the commit is missing.
+
+```markdown
+## Next actions
+**Recommended:** Commit and open/update PR
+
+1. Commit and open/update PR
+2. Commit only (no push / no PR yet)
+3. Commit WIP checkpoint (incomplete; message notes WIP)
+4. Keep working uncommitted
+5. Stop / leave as-is
+```
+
+### On pick 1–3
+
+Follow the repo commit protocol:
+
+- Parallel `git status`, staged/unstaged `git diff`, and recent `git log` for message style
+- Selective add (no secrets); concise message focused on *why*
+- HEREDOC commit message; no `--no-verify`; no amend unless amend rules are met
+
+**Option 1:** then `git push -u` if needed and `gh pr create` / update with `Fixes #<n>` or `Closes #<n>`.
+
+**Option 2:** commit locally only; do not push or open a PR until a later gate pick or explicit order.
+
+**Option 3:** commit with a message that clearly notes WIP / incomplete; same push/PR restraint as option 2 unless the user also ordered push.
+
+After a PR exists, continue into the “After PR CI is green” gate (do not merge without that gate).
 
 ## After PR CI is green
 
