@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\User;
+use App\Services\AuthorizationProfile;
+use Illuminate\Support\Facades\Gate;
 
 class ChangeLogPresenter
 {
@@ -10,7 +12,11 @@ class ChangeLogPresenter
 
     public function viewerCanSeeInternalNotes(?User $user): bool
     {
-        return $user instanceof User && $user->isStaff();
+        return $user instanceof User && Gate::forUser($user)->any([
+            AuthorizationProfile::PERMISSION_STAFF_ACCESS,
+            AuthorizationProfile::PERMISSION_VOLUNTEER_ACCESS,
+            AuthorizationProfile::PERMISSION_STUDENT_ACCESS,
+        ]);
     }
 
     /**
