@@ -23,7 +23,7 @@ class ChangeLogPageTest extends TestCase
             ->assertOk()
             ->assertSeeText('Change Log Hub')
             ->assertSeeText('Feedback & source')
-            ->assertSeeText('Current version v0.31.8')
+            ->assertSeeText('Current version v0.31.9')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
             ->assertSee('href="#release-v0-31-8"', false)
@@ -77,7 +77,7 @@ class ChangeLogPageTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSeeText('Current version v0.31.8');
+            ->assertSeeText('Current version v0.31.9');
 
         $this->assertGuestOrPublicAudience($response, $publicVersions);
         $this->assertPublicGithubLinks($response);
@@ -94,7 +94,7 @@ class ChangeLogPageTest extends TestCase
 
             $response
                 ->assertOk()
-                ->assertSeeText('Current version v0.31.8')
+                ->assertSeeText('Current version v0.31.9')
                 ->assertSee('data-change-log-filter="internal-only"', false)
                 ->assertSeeText('Internal-only')
                 ->assertSeeText('Rollback notes')
@@ -109,7 +109,7 @@ class ChangeLogPageTest extends TestCase
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/164', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/148', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/163', false)
-                ->assertSee('https://github.com/APESCIC/MyAPES-Account/releases/tag/v0.31.8', false);
+                ->assertSee('https://github.com/APESCIC/MyAPES-Account/releases/tag/v0.31.9', false);
 
             $this->assertPublicGithubLinks($response);
 
@@ -134,7 +134,7 @@ class ChangeLogPageTest extends TestCase
             $this->actingAs($user)
                 ->get('/change-log')
                 ->assertOk()
-                ->assertSeeText('Current version v0.31.8');
+                ->assertSeeText('Current version v0.31.9');
 
             $this->post(route('auth.logout'));
         }
@@ -148,8 +148,8 @@ class ChangeLogPageTest extends TestCase
             $response
                 ->assertOk()
                 ->assertSee('href="'.route('change-log.index').'"', false)
-                ->assertSee('aria-label="View the MyAPES Core change log for version v0.31.8"', false)
-                ->assertSeeText('v0.31.8');
+                ->assertSee('aria-label="View the MyAPES Core change log for version v0.31.9"', false)
+                ->assertSeeText('v0.31.9');
 
             $this->assertPublicGithubLinks($response);
         }
@@ -159,7 +159,7 @@ class ChangeLogPageTest extends TestCase
         $loginResponse
             ->assertOk()
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.31.8');
+            ->assertSeeText('v0.31.9');
 
         $this->assertPublicGithubLinks($loginResponse);
 
@@ -170,7 +170,7 @@ class ChangeLogPageTest extends TestCase
         $dashboardResponse
             ->assertOk()
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.31.8');
+            ->assertSeeText('v0.31.9');
 
         $this->assertPublicGithubLinks($dashboardResponse);
     }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "application_version": "0.31.8",
+  "application_version": "0.31.9",
   "sub_cores": [
   "apes-cic",
   "pet-care-clinic",
