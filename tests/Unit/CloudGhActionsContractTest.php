@@ -44,9 +44,20 @@ class CloudGhActionsContractTest extends TestCase
     {
         $environment = json_decode($this->read('.cursor/environment.json'), true, 512, JSON_THROW_ON_ERROR);
 
+        $this->assertSame('Dockerfile', $environment['build']['dockerfile']);
+        $this->assertSame('..', $environment['build']['context']);
         $this->assertSame('bash scripts/cloud/install.sh', $environment['install']);
         $this->assertSame('bash scripts/cloud/configure-gh-auth.sh', $environment['start']);
-        $this->assertSame('composer run dev', $environment['terminals'][0]['command']);
+        $this->assertSame('composer run dev', $environment['termininals'][0]['command']);
+    }
+
+    public function test_dockerfile_includes_php_node_and_composer(): void
+    {
+        $dockerfile = $this->read('.cursor/Dockerfile');
+
+        $this->assertStringContainsString('php8.4-cli', $dockerfile);
+        $this->assertStringContainsString('nodejs', $dockerfile);
+        $this->assertStringContainsString('composer', $dockerfile);
     }
 
     public function test_ship_gate_skill_uses_cloud_actions_helper(): void

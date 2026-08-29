@@ -12,6 +12,7 @@
 !/.cursor/skills/
 !/.cursor/skills/**
 !/.cursor/environment.json
+!/.cursor/Dockerfile
 /.idea
 /.nova
 /.phpunit.cache

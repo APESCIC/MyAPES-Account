@@ -1,6 +1,10 @@
 {
   "name": "MyAPES Account",
   "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
   "install": "bash scripts/cloud/install.sh",
   "start": "bash scripts/cloud/configure-gh-auth.sh",
   "terminals": [
