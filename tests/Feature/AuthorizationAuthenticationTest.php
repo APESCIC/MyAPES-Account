@@ -81,6 +81,28 @@ class AuthorizationAuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_directory_identities_without_staff_eligibility_cannot_use_public_password_login(): void
+    {
+        $user = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create([
+            'email' => 'directory.nongroup@example.com',
+            'password' => 'directory-password',
+            'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
+            'oidc_sub' => 'directory-without-groups',
+        ]);
+
+        $response = $this->post(route('public.login.submit'), [
+            'email' => $user->email,
+            'password' => 'directory-password',
+        ]);
+
+        $response->assertRedirect(route('staff.login'));
+        $this->assertGuest();
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'auth.public_login_blocked_for_staff',
+            'user_id' => $user->id,
+        ]);
+    }
+
     public function test_remembered_public_login_restores_a_current_password_context(): void
     {
         $user = User::factory()

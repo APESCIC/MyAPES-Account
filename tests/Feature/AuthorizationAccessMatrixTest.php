@@ -58,6 +58,7 @@ class AuthorizationAccessMatrixTest extends TestCase
 
         $this->assertServicesOutcome($servicesOutcome, $foreignTicket, $actor, $owner);
         $this->assertDeleteOutcome($deleteOutcome, $deletableTicket);
+        $this->assertHttpOutcome($this->get('/admin'), $adminUsersOutcome);
         $this->assertHttpOutcome($this->get('/admin/users'), $adminUsersOutcome);
         $this->assertHttpOutcome($this->get('/admin/access'), $superAdminOutcome);
         $this->assertHttpOutcome($this->get('/superadmin'), $superAdminOutcome);

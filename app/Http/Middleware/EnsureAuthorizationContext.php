@@ -64,8 +64,7 @@ class EnsureAuthorizationContext
     {
         return Auth::viaRemember()
             && $user->suspended_at === null
-            && ($user->identity_type === User::IDENTITY_HYBRID
-                || ($user->identity_type === User::IDENTITY_LOCAL
-                    && ! $this->profile->hasDirectoryProtectedEligibility($user)));
+            && $user->identity_type === User::IDENTITY_LOCAL
+            && ! $this->profile->hasDirectoryProtectedEligibility($user);
     }
 }

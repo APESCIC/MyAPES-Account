@@ -41,7 +41,11 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/staff/login', function () {
         return view('auth.staff-login');
     })->name('staff.login');
-    Route::post('/staff/login', [PublicAuthController::class, 'localStaffLogin'])->name('staff.local-login.submit');
+
+    if (app()->environment(['local', 'testing'])) {
+        Route::post('/staff/login', [PublicAuthController::class, 'localStaffLogin'])
+            ->name('staff.local-login.submit');
+    }
 });
 
 Route::post('/qa/switch-role', [PublicAuthController::class, 'qaSwitchRole'])->name('qa.switch-role');

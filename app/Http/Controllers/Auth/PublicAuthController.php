@@ -119,7 +119,8 @@ class PublicAuthController extends Controller
                 ->withErrors([$credentialField => 'This account is suspended.']);
         }
 
-        if ($this->authorizationProfile->hasDirectoryProtectedEligibility($user)) {
+        if ($user->identity_type !== User::IDENTITY_LOCAL
+            || $this->authorizationProfile->hasDirectoryProtectedEligibility($user)) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -127,7 +128,7 @@ class PublicAuthController extends Controller
 
             return redirect()
                 ->route('staff.login')
-                ->withErrors([$credentialField => 'Staff accounts must sign in using Staff Login.']);
+                ->withErrors([$credentialField => 'Staff and directory accounts must sign in using Staff Login.']);
         }
 
         $this->authorizationContext->recordPassword($request, $user);
