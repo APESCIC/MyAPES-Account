@@ -26,7 +26,7 @@ class ChangeLogPageTest extends TestCase
             ->assertSeeText('Current version v0.31.9')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
-            ->assertSee('href="#release-v0-31-8"', false)
+            ->assertSee('href="#release-v0-31-9"', false)
             ->assertSee('<details', false)
             ->assertSeeText('Redirect stale Super Admin plugins and groups URLs')
             ->assertSeeText('Hide Internal-only changelog notes from guests and public')
