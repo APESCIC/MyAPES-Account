@@ -136,6 +136,8 @@ bash scripts/local/dev.sh
 
 These start Laravel, the queue listener, application logs, and Vite together. Default app URL: **http://127.0.0.1:8000/** (override with `APP_PORT`). Vite HMR typically listens on **http://127.0.0.1:5173/**.
 
+On Laragon with an Apache virtual host, use **`http://myapes-account.test/`** (or your `-AppUrl` from `bootstrap.ps1 -Laragon`) and run **`composer run dev:laragon`** instead of `composer run dev`. See README “Local development with Laragon (Windows)”.
+
 ### Bootstrap when `.env` is missing
 
 If local env is not set up yet, run bootstrap first (installs dependencies, creates `.env` from `.env.local.example`, migrates/seeds, builds frontend):
@@ -143,6 +145,8 @@ If local env is not set up yet, run bootstrap first (installs dependencies, crea
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1 -Fresh
 ```
+
+For Laragon, use `-Laragon` (and optional `-AppUrl`) so `.env` is seeded from `.env.laragon.example` instead.
 
 ```bash
 bash scripts/local/bootstrap.sh --fresh

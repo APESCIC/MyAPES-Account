@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [switch]$Seed,
-    [switch]$Fresh
+    [switch]$Fresh,
+    [switch]$Laragon,
+    [string]$AppUrl = "http://myapes-account.test"
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,7 +31,9 @@ foreach ($tool in @("php", "composer", "npm")) {
     }
 }
 
-foreach ($requiredFile in @(".\artisan", ".\composer.json", ".\.env.local.example")) {
+$envExampleName = if ($Laragon) { ".env.laragon.example" } else { ".env.local.example" }
+
+foreach ($requiredFile in @(".\artisan", ".\composer.json", ".\$envExampleName")) {
     if (-not (Test-Path -LiteralPath $requiredFile)) {
         throw "Required local bootstrap file is missing: $requiredFile"
     }
@@ -37,8 +41,8 @@ foreach ($requiredFile in @(".\artisan", ".\composer.json", ".\.env.local.exampl
 
 $envPath = Join-Path $RootDir ".env"
 if (-not (Test-Path -LiteralPath $envPath)) {
-    Copy-Item -LiteralPath (Join-Path $RootDir ".env.local.example") -Destination $envPath
-    Write-Host "Created .env from .env.local.example"
+    Copy-Item -LiteralPath (Join-Path $RootDir $envExampleName) -Destination $envPath
+    Write-Host "Created .env from $envExampleName"
 }
 
 $envContent = [System.IO.File]::ReadAllText($envPath)
@@ -77,9 +81,14 @@ if (-not (Test-Path -LiteralPath $sqlitePath)) {
 }
 
 $sqliteEnvPath = $sqlitePath.Replace("\", "/")
+$appUrl = if ($Laragon) { $AppUrl.TrimEnd("/") } else { "http://127.0.0.1:8000" }
 Set-LocalEnvValue -Key "APP_ENV" -Value "local"
 Set-LocalEnvValue -Key "APP_DEBUG" -Value "true"
-Set-LocalEnvValue -Key "APP_URL" -Value "http://127.0.0.1:8000"
+Set-LocalEnvValue -Key "APP_URL" -Value $appUrl
+if ($Laragon) {
+    Set-LocalEnvValue -Key "OIDC_REDIRECT_URI" -Value "$appUrl/staff/auth/callback"
+    Set-LocalEnvValue -Key "VITE_DEV_SERVER_URL" -Value "http://127.0.0.1:5173"
+}
 Set-LocalEnvValue -Key "DB_CONNECTION" -Value "sqlite"
 Set-LocalEnvValue -Key "DB_DATABASE" -Value $sqliteEnvPath
 Set-LocalEnvValue -Key "CACHE_STORE" -Value "file"
@@ -116,4 +125,8 @@ if ($Fresh) {
 Assert-SelectiveMediaBoundary -RootDir $RootDir -CreateAvatarLink
 Invoke-CheckedCommand npm run build
 
-Write-Host "Local bootstrap complete. Run 'composer run dev' to start MyAPES Core."
+if ($Laragon) {
+    Write-Host "Local Laragon bootstrap complete. Start Laragon Apache, then run 'composer run dev:laragon'."
+} else {
+    Write-Host "Local bootstrap complete. Run 'composer run dev' to start MyAPES Core."
+}
