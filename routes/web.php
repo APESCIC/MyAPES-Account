@@ -119,6 +119,9 @@ Route::middleware([
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])
+        ->middleware('throttle:public-password-change')
+        ->name('profile.password.update');
     Route::get('/profile/staff-photo', [ProfileController::class, 'staffPhoto'])->name('profile.staff-photo');
 
     Route::prefix('apes-cic')->name('apes-cic.')->group(function (): void {

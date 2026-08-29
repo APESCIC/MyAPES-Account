@@ -22,16 +22,12 @@ class LocalPublicPasswordResetService
 
     public function isEligibleForGuestReset(?User $user): bool
     {
-        if ($user === null || $user->suspended_at !== null) {
-            return false;
-        }
+        return $this->isLocalPublicPasswordAccount($user);
+    }
 
-        if ($user->isPendingFirstLogin()) {
-            return false;
-        }
-
-        return $user->isLocalPasswordIdentity()
-            && ! $this->profile->hasDirectoryProtectedEligibility($user);
+    public function canChangeOwnPassword(?User $user): bool
+    {
+        return $this->isLocalPublicPasswordAccount($user);
     }
 
     public function completeGuestReset(User $user, string $password): void
@@ -42,24 +38,28 @@ class LocalPublicPasswordResetService
             );
         }
 
-        DB::transaction(function () use ($user, $password): void {
-            $user->forceFill([
-                'password' => $password,
-                'authorization_epoch' => (int) $user->authorization_epoch + 1,
-            ]);
-            $user->setRememberToken(Str::random(60));
-            $user->save();
+        $this->applyOwnPassword(
+            $user,
+            $password,
+            'auth.public_local_password_reset',
+            'guest_reset_local_public_password',
+        );
+    }
 
-            $this->auditLogger->record(
-                'auth.public_local_password_reset',
-                $user,
-                $user,
-                [
-                    'target_user_id' => $user->id,
-                    'action' => 'guest_reset_local_public_password',
-                ],
+    public function changeOwnPassword(User $user, string $password): void
+    {
+        if (! $this->canChangeOwnPassword($user)) {
+            throw new DomainException(
+                'Only local public accounts can change a password here. Directory and Cloudron accounts stay on Cloudron.',
             );
-        });
+        }
+
+        $this->applyOwnPassword(
+            $user,
+            $password,
+            'auth.public_local_password_changed',
+            'change_own_local_public_password',
+        );
     }
 
     public function reset(User $actor, User $target): string
@@ -112,5 +112,45 @@ class LocalPublicPasswordResetService
         }
 
         return null;
+    }
+
+    private function isLocalPublicPasswordAccount(?User $user): bool
+    {
+        if ($user === null || $user->suspended_at !== null) {
+            return false;
+        }
+
+        if ($user->isPendingFirstLogin()) {
+            return false;
+        }
+
+        return $user->isLocalPasswordIdentity()
+            && ! $this->profile->hasDirectoryProtectedEligibility($user);
+    }
+
+    private function applyOwnPassword(
+        User $user,
+        string $password,
+        string $event,
+        string $action,
+    ): void {
+        DB::transaction(function () use ($user, $password, $event, $action): void {
+            $user->forceFill([
+                'password' => $password,
+                'authorization_epoch' => (int) $user->authorization_epoch + 1,
+            ]);
+            $user->setRememberToken(Str::random(60));
+            $user->save();
+
+            $this->auditLogger->record(
+                $event,
+                $user,
+                $user,
+                [
+                    'target_user_id' => $user->id,
+                    'action' => $action,
+                ],
+            );
+        });
     }
 }

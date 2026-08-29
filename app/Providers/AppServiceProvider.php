@@ -81,5 +81,11 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
         });
+
+        RateLimiter::for('public-password-change', function (Request $request): Limit {
+            $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
+
+            return Limit::perMinute(5)->by(Str::transliterate($userId.'|'.$request->ip()));
+        });
     }
 }
