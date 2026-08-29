@@ -9,6 +9,12 @@
         <h1 id="change-log-title">Change Log Hub</h1>
         <p>Track MyAPES Core releases, fixes, compliance work, accessibility improvements, and user-facing changes.</p>
 
+        <section class="change-log__community" aria-labelledby="change-log-community-title">
+            <h2 id="change-log-community-title">Feedback &amp; source</h2>
+            <p>Report bugs, suggest improvements, or follow project discussion on GitHub.</p>
+            @include('partials._github-links', ['variant' => 'change-log'])
+        </section>
+
         <div class="change-log__current">
             <div>
                 <span>Current version</span>

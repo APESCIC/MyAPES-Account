@@ -2432,6 +2432,72 @@ caption {
     background: var(--surface-subtle);
 }
 
+.change-log__community {
+    margin-top: 1.3rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+}
+
+.change-log__community h2 {
+    margin: 0 0 0.35rem;
+    font-size: 0.95rem;
+}
+
+.change-log__community > p {
+    margin: 0 0 0.75rem;
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+}
+
+.github-links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.github-links--footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+}
+
+.github-links--footer a {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    color: var(--muted);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.github-links--footer a:hover {
+    color: var(--brand-teal);
+    text-decoration: underline;
+    text-underline-offset: 0.18rem;
+}
+
+.github-links--change-log {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+
+.github-links--change-log a {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    color: var(--brand-text);
+    font-weight: 780;
+    text-decoration: underline;
+    text-underline-offset: 0.18rem;
+}
+
+.github-links--change-log a:hover {
+    color: var(--brand-teal);
+}
+
 .change-log__current div {
     display: grid;
     gap: 0.15rem;
@@ -2616,6 +2682,10 @@ caption {
 
 .site-footer strong {
     color: var(--brand-text);
+}
+
+.site-footer__links {
+    flex: 1 1 auto;
 }
 
 .site-footer__version {

@@ -229,6 +229,9 @@
 <footer class="site-footer">
     <span><strong>MyAPES</strong> Core</span>
     <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
+    <nav class="site-footer__links" aria-label="Project links">
+        @include('partials._github-links', ['variant' => 'footer'])
+    </nav>
     <a
         class="site-footer__version"
         href="{{ route('change-log.index') }}"
