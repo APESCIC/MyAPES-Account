@@ -17,6 +17,7 @@ use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
 use App\Services\JumbojettOidcIdentityProvider;
 use App\Services\LaravelMaintenanceModeGateway;
+use App\Support\MascotTips;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -60,7 +61,7 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layouts.app', function (IlluminateView $view): void {
             $view->with('appVersion', app(ReleaseHistoryRepository::class)->version());
-            $view->with('mascotTip', app(\App\Support\MascotTips::class)->forCurrentRequest());
+            $view->with('mascotTip', app(MascotTips::class)->forCurrentRequest());
             $view->with(
                 'moduleNavigation',
                 auth()->check()
@@ -71,6 +72,12 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('public-login', function (Request $request): Limit {
             $email = Str::lower((string) $request->input('login'));
+
+            return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
+        });
+
+        RateLimiter::for('public-password-reset', function (Request $request): Limit {
+            $email = Str::lower((string) $request->input('email'));
 
             return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
         });

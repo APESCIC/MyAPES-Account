@@ -26,6 +26,14 @@ final class MascotTips
                 'title' => 'Tick the services you need.',
                 'body' => 'Choose at least one MyAPES service. You can update these later in Profile.',
             ],
+            'password.request' => [
+                'title' => 'Local public accounts only.',
+                'body' => 'Use the email for your public account. Staff and Cloudron directory passwords stay on Cloudron.',
+            ],
+            'password.reset' => [
+                'title' => 'Choose a new password.',
+                'body' => 'After you save it, you will be signed in to your public account.',
+            ],
             'staff.login' => [
                 'title' => 'Staff use Cloudron.',
                 'body' => 'APES staff and administrators sign in through APES Cloudron. Local QA can use seeded credentials.',
