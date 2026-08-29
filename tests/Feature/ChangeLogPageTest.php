@@ -178,12 +178,15 @@ class ChangeLogPageTest extends TestCase
     private function assertPublicGithubLinks(TestResponse $response): void
     {
         $response
+            ->assertSee('sidebar-support', false)
+            ->assertSeeText('App Support')
             ->assertSee('https://github.com/APESCIC/MyAPES-Account"', false)
             ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/new/choose"', false)
             ->assertSee('https://github.com/APESCIC/MyAPES-Account/discussions"', false)
             ->assertSeeText('GitHub')
             ->assertSeeText('Open an issue')
-            ->assertSeeText('Discussions');
+            ->assertSeeText('Discussions')
+            ->assertDontSee('site-footer__links', false);
     }
 
     /**
