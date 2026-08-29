@@ -30,11 +30,15 @@
       "Commit and push still require an explicit operator or user pick; agents do not auto-commit."
     ],
     "rollback": "Redeploy the previous application version. To remove the commit gate, restore the prior ship-gate rule and skill without the Before PR section.",
-    "provenance": "Defined by the ship-gate pre-PR commit gate work for MyAPES Account issue #169.",
+    "provenance": "Defined by the ship-gate pre-PR commit gate work for MyAPES Account issue #169 and pull request #170.",
     "references": [
       {
         "label": "Issue #169",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/169"
+      },
+      {
+        "label": "Pull request #170",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/170"
       }
     ]
   },
