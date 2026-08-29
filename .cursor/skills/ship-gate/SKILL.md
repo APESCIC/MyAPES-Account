@@ -171,7 +171,16 @@ Confirm:
 - `targetCommitish` equals `$health.release` (deployed SHA)
 - Release body matches the public-safe head record in `releases.json`
 
-Do not create a second GitHub Release manually unless the deploy workflow failed before the publish job and you are recovering.
+If a historical tag is missing, use the backfill helper (keeps notes aligned with `releases.json`):
+
+```powershell
+node scripts/local/map-release-commits.mjs --write
+node scripts/local/backfill-github-releases.mjs --from=$version --resume
+```
+
+To retroactively fix display titles on existing releases: `bash scripts/github/rename-release-titles.sh`
+
+Do not create a duplicate GitHub Release manually unless the deploy workflow failed before the publish job and you are recovering. Staff viewers on `/change-log` also see a **GitHub Release v{version}** link in the Source section.
 
 ## Completion
 

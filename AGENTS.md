@@ -93,7 +93,7 @@ Every change merged to `main` must include release metadata in the **same pull r
 1. Complete the feature/fix and its tests on the working branch.
 2. Scaffold the next release:
    ```powershell
-   php artisan myapes:changelog-prepare --type=patch --title="Short public title" --issue=<n> [--pr=<n>]
+   php artisan myapes:changelog-prepare --type=patch --title="Short public title" --issue=<n> --pr=<n>
    ```
    Use `--type=minor` for backward-compatible capabilities and `--type=patch` for compatible fixes. While the app is pre-1.0, document breaking changes and bump **minor**.
 3. Replace every `TODO:` field in the new head record of `resources/data/releases.json` with reviewed public prose. Keep notes free of credentials, personal data, private operational identifiers, exploitable security detail, and unnecessary infrastructure detail.

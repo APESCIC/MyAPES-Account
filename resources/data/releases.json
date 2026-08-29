@@ -4,55 +4,13 @@
     "date": "2026-08-29",
     "channel": "stable",
     "type": "patch",
-    "title": "Beta version display titles",
-    "summary": "GitHub Deployments and Releases now use the display title format {VERSION} Beta instead of word titles or v-prefixed labels with SHA.",
+    "title": "Version-stamped deploy and Beta release titles",
+    "summary": "Cloudron deploy now stamps GitHub Deployments, publishes GitHub Releases automatically, and uses the display title format {VERSION} Beta for deployments and releases.",
     "changes": [
+      "Automate Cloudron deploy GitHub Release publishing on successful deploy with notes from scripts/deploy/github-release-notes.sh.",
       "Set deployment description and GitHub Release display name to {VERSION} Beta; keep tags as v{VERSION}.",
       "Change workflow run-name to {VERSION} Beta without a Deploy prefix.",
-      "Add scripts/github/rename-release-titles.sh to retroactively rename existing GitHub Release titles."
-    ],
-    "affected_areas": [
-      "Cloudron deployment workflow",
-      "GitHub Releases and Deployments",
-      "Ship-gate verification guidance"
-    ],
-    "categories": [
-      "fixed"
-    ],
-    "audiences": [
-      "internal-only"
-    ],
-    "version_rationale": "Patch release: deployment and release display-title correction only; no end-user product behaviour change.",
-    "validation": [
-      "DeploymentAuthenticationContractTest updated for RELEASE_DISPLAY_TITLE workflow contract.",
-      "bash scripts/github/rename-release-titles.sh supports --dry-run idempotent title edits.",
-      "php artisan myapes:changelog-validate --base-ref=origin/main after filling release notes."
-    ],
-    "known_limitations": [
-      "Past deployment records cannot be renamed via the GitHub API; only future deploys show the new title.",
-      "Run scripts/github/rename-release-titles.sh once with admin gh auth to fix existing release display titles."
-    ],
-    "rollback": "Redeploy the previous application version. To restore prior titles, revert deploy-cloudron.yml and the rename script from this release.",
-    "provenance": "Defined by Beta version display titles for Releases and Deployments on MyAPES Account issue #183.",
-    "references": [
-      {
-        "label": "Issue #183",
-        "url": "https://github.com/APESCIC/MyAPES-Account/issues/183"
-      }
-    ]
-  },
-  {
-    "version": "0.31.9",
-    "date": "2026-08-29",
-    "channel": "stable",
-    "type": "patch",
-    "title": "Version-stamped deploy and release",
-    "summary": "Cloudron deploy now stamps GitHub Deployments with the app version, publishes a GitHub Release named v{VERSION} on the deployed SHA, and documents minor-line Beta milestones for issue tracking.",
-    "changes": [
-      "Stamp cloudron-deploy GitHub Deployments with v{VERSION} ({SHA}) and show the version in workflow run names.",
-      "Publish GitHub Release v{VERSION} automatically after a successful deploy; feature titles remain in the release body.",
-      "Add scripts/deploy/github-release-notes.sh and scripts/github/migrate-beta-milestones.sh for release notes and milestone migration.",
-      "Update ship-gate, AGENTS.md, and release-metadata guidance for automated releases and v0.N.x Beta milestones."
+      "Add scripts/github/rename-release-titles.sh and scripts/github/migrate-beta-milestones.sh for release title and milestone migration."
     ],
     "affected_areas": [
       "Cloudron deployment workflow",
@@ -65,15 +23,16 @@
     "audiences": [
       "internal-only"
     ],
-    "version_rationale": "Patch release: deployment and release automation plus documentation; no end-user product behaviour change.",
+    "version_rationale": "Patch release: deployment and release automation plus display-title correction; no end-user product behaviour change.",
     "validation": [
-      "DeploymentAuthenticationContractTest covers version-stamped deploy and publish-github-release workflow contracts.",
-      "bash scripts/deploy/github-release-notes.sh smoke-tested against releases.json.",
+      "DeploymentAuthenticationContractTest covers RELEASE_DISPLAY_TITLE and publish-github-release workflow contracts.",
+      "bash scripts/github/rename-release-titles.sh supports --dry-run idempotent title edits.",
       "php artisan myapes:changelog-validate --base-ref=origin/main after filling release notes."
     ],
     "known_limitations": [
-      "Run scripts/github/migrate-beta-milestones.sh with repo admin access to rename milestones; the cloud agent token cannot patch milestones.",
-      "Existing GitHub Releases keep their prior display names until the next deploy recreates or you rename them manually."
+      "Past deployment records cannot be renamed via the GitHub API; only future deploys show the new title.",
+      "Run scripts/github/rename-release-titles.sh once with admin gh auth to fix existing release display titles.",
+      "Run scripts/github/migrate-beta-milestones.sh with repo admin access to rename milestones."
     ],
     "rollback": "Redeploy the previous application version. To remove version-stamped releases, revert deploy-cloudron.yml, ship-gate docs, and the helper scripts from this release.",
     "provenance": "Defined by version-stamped deploys, releases, and Beta milestones for MyAPES Account issue #183.",
@@ -81,6 +40,61 @@
       {
         "label": "Issue #183",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/183"
+      },
+      {
+        "label": "Pull request #184",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/184"
+      }
+    ]
+  },
+  {
+    "version": "0.31.9",
+    "date": "2026-08-29",
+    "channel": "stable",
+    "type": "patch",
+    "title": "GitHub Release backfill and changelog sync",
+    "summary": "All 72 documented app versions now have matching GitHub Release tags (v{VERSION}), and release prepare requires a pull request reference so future versions stay aligned with GitHub.",
+    "changes": [
+      "Backfill GitHub Releases and tags for v0.1.0 through v0.31.6 mapped to their merge commits on main.",
+      "Add scripts/local/map-release-commits.mjs and scripts/local/backfill-github-releases.mjs with dry-run, resume, and batch support.",
+      "Require --pr on myapes:changelog-prepare so every new release cites its merging pull request.",
+      "Show a GitHub Release link in the Change Log Hub Source section for staff and admin viewers.",
+      "Document GitHub Release tag parity and the deploy SHA versus version introduction commit distinction in README and ship-gate guidance."
+    ],
+    "affected_areas": [
+      "GitHub Releases and tags",
+      "Release metadata workflow",
+      "Change Log Hub staff references",
+      "Agent ship-gate documentation"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "Patch release: aligns external GitHub versioning with in-app semver and tightens release metadata hygiene without changing production application behaviour.",
+    "validation": [
+      "node --test scripts/local/release-backfill.test.mjs",
+      "PHPUnit ChangeLogPresenterTest and PrepareChangeLogCommandTest for --pr requirement and GitHub Release references.",
+      "Verified 72 GitHub Releases on APESCIC/MyAPES-Account and live /healthz still reports 0.31.6 before deploy of this release."
+    ],
+    "known_limitations": [
+      "GitHub milestone descriptions may still need a manual update when API permissions are unavailable.",
+      "PR #166 remains a documented docs-only exception without its own version bump.",
+      "Live Cloudron will show v0.31.9 only after the next deploy; GitHub tags for prior versions are already published."
+    ],
+    "rollback": "Redeploy the previous application version. GitHub Releases already published remain on the repository; remove them only with an explicit operator decision.",
+    "provenance": "Defined by the changelog and GitHub version sync audit for MyAPES Account issue #178.",
+    "references": [
+      {
+        "label": "Issue #178",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/178"
+      },
+      {
+        "label": "Pull request #181",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/181"
       }
     ]
   },
@@ -574,7 +588,7 @@
     "channel": "stable",
     "type": "minor",
     "title": "Admin reset of local public passwords",
-    "summary": "Admins and Super Admins can issue a one-time temporary password for a local public account from Admin \u2192 Public users. Directory and Cloudron accounts cannot be reset this way.",
+    "summary": "Admins and Super Admins can issue a one-time temporary password for a local public account from Admin → Public users. Directory and Cloudron accounts cannot be reset this way.",
     "changes": [
       "Add a local-password reset action on the Admin public-users list and detail screens for local service-user accounts.",
       "Show the temporary password once after reset; it is not stored in audit history.",
@@ -1348,7 +1362,7 @@
       "Renamed signed-in chrome, Admin, changelog, and APP_NAME branding to MyAPES Core while keeping login and registration as MyAPES Account.",
       "Relabelled Super Admin Modules navigation and registry copy to Plugins, and sub-core wording to Services.",
       "Updated hub empty and summary headings, tips, permission titles, and flash messages to Plugins and Services language.",
-      "Documented the Core \u2192 Services \u2192 Plugins vocabulary in README and PRODUCT.md."
+      "Documented the Core → Services → Plugins vocabulary in README and PRODUCT.md."
     ],
     "affected_areas": [
       "Application branding and layout",
@@ -1648,7 +1662,7 @@
     ],
     "known_limitations": [
       "Custom app-owned groups are not introduced; groups remain Cloudron directory catalogue entries with optional custom role mappings.",
-      "Existing /admin technical URLs remain at the same paths and are now Super Admin\u2013gated rather than relocated under /superadmin except for the new overview."
+      "Existing /admin technical URLs remain at the same paths and are now Super Admin–gated rather than relocated under /superadmin except for the new overview."
     ],
     "rollback": "Revert this release record, VERSION, runtime manifest version, Super Admin views and routes, authorization matrix updates, admin UI Blade/CSS/JS changes, and related feature assertions. Re-run authorization metadata synchronization after rollback so protected role permissions match the restored matrix. No database schema rollback is required beyond restoring permission seed expectations.",
     "provenance": "Defined by the Admin UX cleanup with Super Admin technical panel for MyAPES Account issue #76 and pull request #77.",
@@ -1671,7 +1685,7 @@
     "title": "Polish Spike tip dock dismiss and avatar",
     "summary": "Spike tip dock dismiss control is a clear top-right close control, the dock avatar uses the pointing Spike artwork, and previous page dismissals are reset so the redesigned tip can appear again.",
     "changes": [
-      "Replaced the Hide tip text control with a high-contrast top-right \u00d7 close button on the tip bubble.",
+      "Replaced the Hide tip text control with a high-contrast top-right × close button on the tip bubble.",
       "Swapped the dock avatar to full-body pointing Spike artwork oriented toward the tip bubble.",
       "Rotated the local dismiss storage key so earlier page hide choices do not conceal the redesigned tip dock."
     ],
@@ -1920,7 +1934,7 @@
       "Updated package-lock.json so the development dependency graph resolves nanoid 3.3.18 instead of the affected 3.3.16 release under PostCSS."
     ],
     "affected_areas": [
-      "Frontend development lockfile (Vite \u2192 PostCSS \u2192 nanoid)"
+      "Frontend development lockfile (Vite → PostCSS → nanoid)"
     ],
     "categories": [
       "fixed",

@@ -26,7 +26,7 @@ class ChangeLogPageTest extends TestCase
             ->assertSeeText('Current version v0.31.10')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
-            ->assertSee('href="#release-v0-31-8"', false)
+            ->assertSee('href="#release-v0-31-10"', false)
             ->assertSee('<details', false)
             ->assertSeeText('Redirect stale Super Admin plugins and groups URLs')
             ->assertSeeText('Hide Internal-only changelog notes from guests and public')
@@ -108,7 +108,8 @@ class ChangeLogPageTest extends TestCase
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/122', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/164', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/148', false)
-                ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/163', false);
+                ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/163', false)
+                ->assertSee('https://github.com/APESCIC/MyAPES-Account/releases/tag/v0.31.10', false);
 
             $this->assertPublicGithubLinks($response);
 

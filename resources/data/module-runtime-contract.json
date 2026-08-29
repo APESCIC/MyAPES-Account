@@ -2,31 +2,31 @@
   "schema_version": 1,
   "application_version": "0.31.10",
   "sub_cores": [
-    "apes-cic",
-    "pet-care-clinic",
-    "shelter-rescue"
+  "apes-cic",
+  "pet-care-clinic",
+  "shelter-rescue"
   ],
   "module_types": [
-    "cases",
-    "consultations",
-    "pet-profiles",
-    "tickets"
+  "cases",
+  "consultations",
+  "pet-profiles",
+  "tickets"
   ],
   "shipped_instances": [
-    "apes-cic:cases",
-    "apes-cic:tickets",
-    "pet-care-clinic:consultations",
-    "pet-care-clinic:pet-profiles",
-    "pet-care-clinic:tickets",
-    "shelter-rescue:cases",
-    "shelter-rescue:pet-profiles",
-    "shelter-rescue:tickets"
+  "apes-cic:cases",
+  "apes-cic:tickets",
+  "pet-care-clinic:consultations",
+  "pet-care-clinic:pet-profiles",
+  "pet-care-clinic:tickets",
+  "shelter-rescue:cases",
+  "shelter-rescue:pet-profiles",
+  "shelter-rescue:tickets"
   ],
   "legacy_visible_instances": [
-    "apes-cic:tickets",
-    "pet-care-clinic:consultations",
-    "pet-care-clinic:pet-profiles",
-    "shelter-rescue:cases",
-    "shelter-rescue:pet-profiles"
+  "apes-cic:tickets",
+  "pet-care-clinic:consultations",
+  "pet-care-clinic:pet-profiles",
+  "shelter-rescue:cases",
+  "shelter-rescue:pet-profiles"
   ]
 }
