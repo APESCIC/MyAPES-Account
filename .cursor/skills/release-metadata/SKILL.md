@@ -9,7 +9,7 @@ Use this skill at the **end of work**, after implementation and tests pass, **be
 
 ## Quick checklist
 
-1. `php artisan myapes:changelog-prepare --type=... --title=... --issue=... [--pr=...]`
+1. `php artisan myapes:changelog-prepare --type=... --title=... --issue=... --pr=...`
 2. Edit `resources/data/releases.json` — replace every `TODO:` field in the head record
 3. `git fetch origin && php artisan myapes:changelog-validate --base-ref=origin/main`
 4. Commit release files in the **same PR** as the feature/fix

@@ -112,4 +112,39 @@ class ChangeLogPresenterTest extends TestCase
         $this->assertSame([], $placeholder['references']);
         $this->assertSame(['public-facing'], $placeholder['audiences']);
     }
+
+    public function test_with_github_release_reference_appends_release_link_for_staff(): void
+    {
+        $release = ChangeLogPresenter::withGithubReleaseReference([
+            'version' => '0.31.6',
+            'references' => [
+                [
+                    'label' => 'Issue #173',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/173',
+                ],
+            ],
+        ]);
+
+        $this->assertCount(2, $release['references']);
+        $this->assertSame(
+            'https://github.com/APESCIC/MyAPES-Account/releases/tag/v0.31.6',
+            $release['references'][1]['url'],
+        );
+        $this->assertSame('GitHub Release v0.31.6', $release['references'][1]['label']);
+    }
+
+    public function test_with_github_release_reference_is_idempotent(): void
+    {
+        $release = [
+            'version' => '0.31.6',
+            'references' => [
+                [
+                    'label' => 'GitHub Release v0.31.6',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/releases/tag/v0.31.6',
+                ],
+            ],
+        ];
+
+        $this->assertSame($release, ChangeLogPresenter::withGithubReleaseReference($release));
+    }
 }

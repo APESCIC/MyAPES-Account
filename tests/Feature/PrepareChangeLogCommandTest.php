@@ -183,12 +183,24 @@ class PrepareChangeLogCommandTest extends TestCase
             '--type' => 'patch',
             '--title' => 'Dry run only',
             '--issue' => 67,
+            '--pr' => 68,
             '--dry-run' => true,
         ])
             ->expectsOutputToContain('Dry run only; no files were modified.')
             ->assertSuccessful();
 
         $this->assertSame($beforeVersion, trim((string) file_get_contents(base_path('VERSION'))));
+    }
+
+    public function test_artisan_prepare_command_requires_pull_request_number(): void
+    {
+        $this->artisan('myapes:changelog-prepare', [
+            '--type' => 'patch',
+            '--title' => 'Missing PR reference',
+            '--issue' => 67,
+        ])
+            ->expectsOutputToContain('The --pr option is required')
+            ->assertFailed();
     }
 
     public function test_prepare_command_requires_a_title(): void
