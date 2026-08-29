@@ -1,15 +1,36 @@
 ---
-description: Gated ship lifecycle — post-CI next actions, ask deploy after merge, verify changelog hubs, ask GitHub Release after deploy
+description: Gated ship lifecycle — commit/push before PR, post-CI next actions, ask deploy after merge, verify changelog hubs, ask GitHub Release after deploy
 alwaysApply: true
 ---
 
 # Ship-gate workflow
 
-Start and finish product work from a Cursor agent request. Do not auto-merge, auto-deploy, create a GitHub Release, or edit sibling website changelogs without an explicit user choice at each gate.
+Start and finish product work from a Cursor agent request. Do not auto-commit, auto-push, auto-merge, auto-deploy, create a GitHub Release, or edit sibling website changelogs without an explicit user choice at each gate (or a prior explicit order that covers that gate).
 
 ## Gates
 
 At each gate, end the turn with a numbered list of next best actions and **one recommended reply**. Wait for the user before continuing.
+
+### Before PR / commit
+
+**When to commit** (all that apply):
+
+1. Slice on the `cursor/...` branch is complete (or the user wants a clear WIP checkpoint).
+2. Focused tests for the change have been run (or failure is documented and the user still wants a commit).
+3. If merging to `main`: release metadata is on the branch (`changelog-prepare`, TODOs filled, `changelog-validate` vs `origin/main`) — same PR as the work.
+4. Diff is free of secrets / unrelated files; message will explain *why*.
+
+Prefer **not** to commit mid-edit with broken tests (unless WIP), before required release metadata, or while scope is undecided. Mid-work commits only after an explicit pick below (or a prior “commit WIP” order) — no automatic checkpoint cadence.
+
+Present this gate when work is ready for review, or when the user asks to save progress. **Recommended:** Commit and open/update PR when review-ready (release metadata included if needed). Prefer Commit only when a PR already exists and only the commit is missing.
+
+1. Commit and open/update PR
+2. Commit only (no push / no PR yet)
+3. Commit WIP checkpoint (incomplete; message notes WIP)
+4. Keep working uncommitted
+5. Stop / leave as-is
+
+Never commit or push unless the user already ordered it or picks 1–3.
 
 ### After PR CI is green
 
