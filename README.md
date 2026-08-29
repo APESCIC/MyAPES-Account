@@ -258,6 +258,49 @@ bash scripts/local/bootstrap.sh --seed
 powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1 -Seed
 ```
 
+### Local development with Laragon (Windows)
+
+Use Laragon when you prefer an Apache virtual host (for example `http://myapes-account.test`) instead of `php artisan serve` on port `8000`. The Laragon profile keeps the same SQLite QA stack; MySQL and Redis are not required for local testing.
+
+**Prerequisites**
+
+- Laragon running with **PHP 8.3+** (prefer **8.4** to match CI)
+- Typical Laravel PHP extensions enabled in Laragon (`pdo_sqlite`, `openssl`, `mbstring`, `curl`, `fileinfo`, and related defaults)
+- `php`, `composer`, `node`, and `npm` available in the Laragon terminal
+
+**Virtual host**
+
+- Recommended: place the clone at `C:\laragon\www\MyAPES-Account` so Laragon auto-creates `http://myapes-account.test`
+- Document root must be **`{repo}/public`** (Laragon “Quick app → Laravel” or an equivalent manual vhost)
+- Restart Apache after vhost changes
+
+**One-time Laragon bootstrap**
+
+```powershell
+cd C:\laragon\www\MyAPES-Account
+powershell -ExecutionPolicy Bypass -File .\scripts\local\bootstrap.ps1 -Laragon -Fresh
+```
+
+Use `-AppUrl http://your-vhost.test` when the auto-generated hostname differs from `myapes-account.test`. The bootstrap copies [`.env.laragon.example`](.env.laragon.example), sets `VITE_DEV_SERVER_URL=http://127.0.0.1:5173`, and keeps SQLite plus file-backed cache and sessions.
+
+**Daily dev loop**
+
+1. Start Laragon (Apache)
+2. In the repo terminal: `composer run dev:laragon` (or `powershell -ExecutionPolicy Bypass -File .\scripts\local\dev-laragon.ps1`)
+3. Open `http://myapes-account.test` (or your `-AppUrl` value)
+4. Use the seeded QA accounts below (`/login` auto-login in local)
+
+**Testing**
+
+- Feature and unit tests: `php artisan test` or `composer test`
+- Pre-merge validation: `composer pre-merge`
+
+**Troubleshooting**
+
+- **404 or wrong site:** confirm the vhost document root is `public/`, not the repository root
+- **Unstyled pages:** ensure `composer run dev:laragon` is running, or run `npm run build`
+- **URL or OIDC callback mismatch:** re-run bootstrap with `-Laragon`, or align `APP_URL`, `OIDC_REDIRECT_URI`, and `VITE_DEV_SERVER_URL` in `.env`
+
 Both local bootstrap scripts enforce the tracked selective-media boundary at
 `public/storage/.myapes-selective-media`. They refuse marker changes or
 unexpected entries and create only `public/storage/avatars`, targeting
@@ -329,7 +372,9 @@ composer run dev
 
 The launcher automatically uses Laravel Pail for logs on macOS and Linux. On native Windows it follows `storage/logs/laravel.log` with PowerShell instead, because PHP's Unix-only `pcntl` extension is not available there; do not try to install `pcntl` on native Windows.
 
-Set `APP_PORT` before starting the launcher to use a Laravel port other than `8000`. The platform wrappers below delegate to `composer run dev` and remain available when you prefer an OS-specific entry point:
+Set `APP_PORT` before starting the launcher to use a Laravel port other than `8000`. The platform wrappers below delegate to `composer run dev` and remain available when you prefer an OS-specific entry point.
+
+On Laragon with an Apache virtual host, skip `composer run dev` and use `composer run dev:laragon` instead; see “Local development with Laragon (Windows)” above.
 
 ### macOS / Linux
 

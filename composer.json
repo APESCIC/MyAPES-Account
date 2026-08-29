@@ -47,6 +47,10 @@
             "Composer\\Config::disableProcessTimeout",
             "node scripts/local/dev-runner.mjs"
         ],
+        "dev:laragon": [
+            "Composer\\Config::disableProcessTimeout",
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/dev-laragon.ps1"
+        ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
