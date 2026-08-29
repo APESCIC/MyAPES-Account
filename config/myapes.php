@@ -62,4 +62,10 @@ return [
         'policy_version' => env('CONTACT_CONSENT_POLICY_VERSION', '2026-08'),
         'privacy_notice_url' => env('PRIVACY_NOTICE_URL'),
     ],
+
+    'github' => [
+        'repository_url' => env('MYAPES_GITHUB_REPOSITORY_URL', 'https://github.com/APESCIC/MyAPES-Account'),
+        'new_issue_url' => env('MYAPES_GITHUB_NEW_ISSUE_URL', 'https://github.com/APESCIC/MyAPES-Account/issues/new/choose'),
+        'discussions_url' => env('MYAPES_GITHUB_DISCUSSIONS_URL', 'https://github.com/APESCIC/MyAPES-Account/discussions'),
+    ],
 ];

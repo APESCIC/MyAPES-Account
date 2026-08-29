@@ -22,10 +22,11 @@ class ChangeLogPageTest extends TestCase
         $response
             ->assertOk()
             ->assertSeeText('Change Log Hub')
-            ->assertSeeText('Current version v0.31.6')
+            ->assertSeeText('Feedback & source')
+            ->assertSeeText('Current version v0.31.7')
             ->assertSee('data-change-log', false)
             ->assertSee('data-change-log-controls hidden', false)
-            ->assertSee('href="#release-v0-31-6"', false)
+            ->assertSee('href="#release-v0-31-7"', false)
             ->assertSee('<details', false)
             ->assertSeeText('Redirect stale Super Admin plugins and groups URLs')
             ->assertSeeText('Hide Internal-only changelog notes from guests and public')
@@ -62,6 +63,7 @@ class ChangeLogPageTest extends TestCase
             ->assertSeeText('APES CIC Tickets and Cases');
 
         $this->assertGuestOrPublicAudience($response, $publicVersions);
+        $this->assertPublicGithubLinks($response);
 
         $this->assertProgressiveDetailsContainReleaseContent($response);
     }
@@ -75,9 +77,10 @@ class ChangeLogPageTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSeeText('Current version v0.31.6');
+            ->assertSeeText('Current version v0.31.7');
 
         $this->assertGuestOrPublicAudience($response, $publicVersions);
+        $this->assertPublicGithubLinks($response);
     }
 
     public function test_staff_and_admin_can_read_internal_only_change_log_notes_and_links(): void
@@ -91,7 +94,7 @@ class ChangeLogPageTest extends TestCase
 
             $response
                 ->assertOk()
-                ->assertSeeText('Current version v0.31.6')
+                ->assertSeeText('Current version v0.31.7')
                 ->assertSee('data-change-log-filter="internal-only"', false)
                 ->assertSeeText('Internal-only')
                 ->assertSeeText('Rollback notes')
@@ -106,6 +109,8 @@ class ChangeLogPageTest extends TestCase
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/164', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/148', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/163', false);
+
+            $this->assertPublicGithubLinks($response);
 
             $this->assertSame(
                 count($allVersions),
@@ -128,7 +133,7 @@ class ChangeLogPageTest extends TestCase
             $this->actingAs($user)
                 ->get('/change-log')
                 ->assertOk()
-                ->assertSeeText('Current version v0.31.6');
+                ->assertSeeText('Current version v0.31.7');
 
             $this->post(route('auth.logout'));
         }
@@ -137,24 +142,47 @@ class ChangeLogPageTest extends TestCase
     public function test_shared_layout_exposes_the_accessible_current_version_link(): void
     {
         foreach (['/', '/register', '/staff/login', '/change-log'] as $path) {
-            $this->get($path)
+            $response = $this->get($path);
+
+            $response
                 ->assertOk()
                 ->assertSee('href="'.route('change-log.index').'"', false)
-                ->assertSee('aria-label="View the MyAPES Core change log for version v0.31.6"', false)
-                ->assertSeeText('v0.31.6');
+                ->assertSee('aria-label="View the MyAPES Core change log for version v0.31.7"', false)
+                ->assertSeeText('v0.31.7');
+
+            $this->assertPublicGithubLinks($response);
         }
 
-        $this->view('auth.public-login')
+        $loginResponse = $this->get('/login');
+
+        $loginResponse
+            ->assertOk()
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.31.6');
+            ->assertSeeText('v0.31.7');
+
+        $this->assertPublicGithubLinks($loginResponse);
 
         $user = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();
 
-        $this->actingAs($user)
-            ->get('/dashboard')
+        $dashboardResponse = $this->actingAs($user)->get('/dashboard');
+
+        $dashboardResponse
             ->assertOk()
             ->assertSee('href="'.route('change-log.index').'"', false)
-            ->assertSeeText('v0.31.6');
+            ->assertSeeText('v0.31.7');
+
+        $this->assertPublicGithubLinks($dashboardResponse);
+    }
+
+    private function assertPublicGithubLinks(TestResponse $response): void
+    {
+        $response
+            ->assertSee('https://github.com/APESCIC/MyAPES-Account"', false)
+            ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/new/choose"', false)
+            ->assertSee('https://github.com/APESCIC/MyAPES-Account/discussions"', false)
+            ->assertSeeText('GitHub')
+            ->assertSeeText('Open an issue')
+            ->assertSeeText('Discussions');
     }
 
     /**
@@ -175,8 +203,12 @@ class ChangeLogPageTest extends TestCase
             ->assertDontSeeText('Enable or disable Cloudron groups for app access')
             ->assertDontSeeText('Admin Super Admin panel and overview chart fix')
             ->assertDontSeeText('Deployment and local setup foundation')
-            ->assertDontSee('https://github.com/APESCIC/MyAPES-Account/issues/', false)
-            ->assertDontSee('https://github.com/APESCIC/MyAPES-Account/pull/', false);
+            ->assertDontSee('https://github.com/APESCIC/MyAPES-Account/issues/133', false)
+            ->assertDontSee('https://github.com/APESCIC/MyAPES-Account/pull/165', false)
+            ->assertDontSee('https://github.com/APESCIC/MyAPES-Account/issues/122', false)
+            ->assertDontSee('https://github.com/APESCIC/MyAPES-Account/pull/164', false);
+
+        $this->assertPublicGithubLinks($response);
 
         $this->assertSame(count($publicVersions), substr_count($content, 'data-release-record'));
         $this->assertStringNotContainsString('>Internal-only<', $content);
