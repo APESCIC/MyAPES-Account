@@ -57,7 +57,8 @@ class ModuleRollbackCompatibilityTest extends TestCase
             flags: JSON_THROW_ON_ERROR,
         );
 
-0.31.10
+        $this->assertSame('0.31.10', trim((string) file_get_contents(base_path('VERSION'))));
+        $this->assertSame('0.31.10', $manifest['application_version']);
         $this->assertSame([
             'apes-cic:cases',
             'apes-cic:tickets',
