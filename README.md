@@ -420,14 +420,15 @@ git fetch origin
 php artisan myapes:changelog-validate --base-ref=origin/main
 ```
 
-Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch of the test workflow performs structural validation without requiring another version. In-PR release metadata does not create Git tags automatically; after deploy, create or verify the matching GitHub Release tag `v{VERSION}` (see ship-gate).
+Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch of the test workflow performs structural validation without requiring another version. In-PR release metadata does not create Git tags automatically; a successful Cloudron deploy creates the GitHub Release with display title `{VERSION} Beta` and tag `v{VERSION}` on the deployed SHA. See ship-gate.
 
 ### GitHub Release tags
 
-Every documented app version in `releases.json` has a matching GitHub Release tag `v{VERSION}` (for example `v0.31.6` for `VERSION` `0.31.6`). The Change Log Hub and `/healthz` `version` field read from `VERSION` / `releases.json`; GitHub Releases are the external mirror on [the repository Releases page](https://github.com/APESCIC/MyAPES-Account/releases).
+Every documented app version in `releases.json` has a matching GitHub Release tag `v{VERSION}` (for example `v0.31.6` for `VERSION` `0.31.6`). The Change Log Hub and `/healthz` `version` field read from `VERSION` / `releases.json`; GitHub Releases are the external mirror on [the repository Releases page](https://github.com/APESCIC/MyAPES-Account/releases). Deploy sets the release **display name** to `{VERSION} Beta`.
 
 - Map versions to merge commits: `node scripts/local/map-release-commits.mjs --write`
 - Backfill or verify releases: `node scripts/local/backfill-github-releases.mjs --dry-run` then `node scripts/local/backfill-github-releases.mjs --resume`
+- Rename display titles to `{VERSION} Beta`: `bash scripts/github/rename-release-titles.sh`
 - `/healthz` `release` remains the immutable **deploy commit SHA**; the GitHub tag points at the **version introduction commit** on `main`. Neither replaces the other.
 
 ## Cloudron deployment automation

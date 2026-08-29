@@ -14,7 +14,7 @@ Release metadata (`VERSION`, `resources/data/releases.json`, `resources/data/mod
 | When to bump | Same PR as feature/fix, before merge |
 | Mechanism | `myapes:changelog-prepare` (stub-then-fill) + agent narrative |
 | CI changes | Extend validator only (manifest sync, reject `TODO:`) |
-| Deploy | Manual `workflow_dispatch` after merge (ship-gate); optional GitHub Release after successful deploy |
+| Deploy | Manual `workflow_dispatch` after merge (ship-gate); GitHub Release created automatically on successful deploy |
 
 ## Flow
 
@@ -24,10 +24,10 @@ Feature/fix complete
   → agent replaces TODO: fields
   → myapes:changelog-validate --base-ref=origin/main
   → same PR merges to main
-  → (ask) deploy via workflow_dispatch
+  → (ask) deploy via workflow_dispatch (pass app_version from VERSION)
   → verify live Change Log Hub (/change-log from releases.json)
   → (ask) sibling website changelogs only if operator wants them
-  → (ask) create GitHub Release from VERSION + releases.json head
+  → verify GitHub Release {VERSION} Beta display title on deployed SHA (tag v{VERSION}; created by deploy workflow)
 ```
 
 ## Components
@@ -44,5 +44,11 @@ Feature/fix complete
 ## Later change (#167)
 
 - Auto-deploy on green `main` removed; deploy is `workflow_dispatch` only
-- GitHub Releases are an optional post-deploy agent gate (not created by CI)
 - Agents verify the MyAPES Core Change Log Hub after deploy and ask before updating sibling website changelog hubs
+
+## Later change (#183)
+
+- Deploy workflow stamps GitHub Deployments with `{VERSION} Beta` (no SHA in the title)
+- Successful deploy publishes GitHub Release `{VERSION} Beta` (display name) with tag `v{VERSION}` on the deployed SHA; feature title remains in release body
+- Issue milestones use minor-line `v0.N.x Beta` naming until beta exit
+- One-time `scripts/github/rename-release-titles.sh` renames existing GitHub Release display titles to `{VERSION} Beta`

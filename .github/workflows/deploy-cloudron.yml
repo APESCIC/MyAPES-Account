@@ -2,6 +2,13 @@ name: Deploy MyAPES Core to Cloudron
 
 on:
   workflow_dispatch:
+    inputs:
+      app_version:
+        description: App semantic version being deployed (from VERSION on main)
+        required: false
+        type: string
+
+run-name: ${{ github.event.inputs.app_version || 'from-ref' }} Beta
 
 concurrency:
   group: cloudron-3465c63f-0e1b-4e49-8f5f-799a471055a1
@@ -81,7 +88,13 @@ jobs:
     needs: [deployment-control-authentication, resolve-release]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: cloudron-deploy
+    permissions:
+      contents: read
+      actions: read
+      deployments: write
+    environment:
+      name: cloudron-deploy
+      url: https://myaccount.myapes.me.uk
     env:
       CLOUDRON_APP_ID: 3465c63f-0e1b-4e49-8f5f-799a471055a1
       CLOUDRON_APP_URL: https://myaccount.myapes.me.uk
@@ -91,6 +104,7 @@ jobs:
       CLOUDRON_TOKEN: ${{ secrets.CLOUDRON_TOKEN }}
       RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
       APP_VERSION: ${{ needs.resolve-release.outputs.app_version }}
+      RELEASE_DISPLAY_TITLE: ${{ needs.resolve-release.outputs.app_version }} Beta
       DEPLOYMENT_CONTROLS_SHA256: ${{ needs.deployment-control-authentication.outputs.deployment_controls_sha256 }}
     steps:
       - name: Checkout tested revision
@@ -98,6 +112,16 @@ jobs:
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           fetch-depth: 1
+
+      - name: Start versioned GitHub deployment
+        id: deployment
+        uses: chrnorm/deployment-action@500aa6a23c81ffa1acf71072aee3cfa2cc2e556a # v2.0.8
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: cloudron-deploy
+          ref: ${{ env.RELEASE_SHA }}
+          description: ${{ env.RELEASE_DISPLAY_TITLE }}
 
       - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -737,6 +761,22 @@ jobs:
           print("OIDC redirect verification passed.")
           PY
 
+      - name: Record successful deployment summary
+        if: steps.verify.outcome == 'success'
+        shell: bash
+        env:
+          RELEASE_DISPLAY_TITLE: ${{ needs.resolve-release.outputs.app_version }} Beta
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Cloudron deployment succeeded"
+            echo "- Deployed title: \`${RELEASE_DISPLAY_TITLE}\`"
+            echo "- Deployed SHA: \`${RELEASE_SHA}\`"
+            echo "- Live health: \`${CLOUDRON_APP_URL}/healthz\`"
+            echo "- Change log hub: \`${CLOUDRON_APP_URL}/change-log\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Determine deployment recovery
         id: recovery
         if: always()
@@ -1069,6 +1109,16 @@ jobs:
             exec --app "$CLOUDRON_APP_ID" -- \
             bash -c "$cleanup_command" -- "$RELEASE_SHA"
 
+      - name: Finish versioned GitHub deployment
+        if: always()
+        uses: chrnorm/deployment-action@500aa6a23c81ffa1acf71072aee3cfa2cc2e556a # v2.0.8
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+          env: cloudron-deploy
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+
       - name: Fail deployment after unsuccessful outcome
         if: always() && steps.recovery.outputs.failure_detected == 'true'
         shell: bash
@@ -1079,13 +1129,14 @@ jobs:
           RESTORED_ENVIRONMENT_OUTCOME: ${{ steps.restored_environment.outcome }}
           RESTORED_VERIFICATION_OUTCOME: ${{ steps.restored_verification.outcome }}
           APP_VERSION: ${{ needs.resolve-release.outputs.app_version }}
+          RELEASE_DISPLAY_TITLE: ${{ needs.resolve-release.outputs.app_version }} Beta
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
         run: |
           set -euo pipefail
 
           {
             echo "## Cloudron deployment failed"
-            echo "- Target version: \`v${APP_VERSION}\`"
+            echo "- Target title: \`${RELEASE_DISPLAY_TITLE}\`"
             echo "- Target SHA: \`${RELEASE_SHA}\`"
             echo "- Failure scope: \`${FAILURE_SCOPE}\`"
             echo "- Rollback required: \`${ROLLBACK_REQUIRED}\`"
@@ -1119,3 +1170,82 @@ jobs:
           esac
           echo "Database migrations were retained; use the pre-deployment Cloudron backup if database recovery is required."
           exit 1
+
+  publish-github-release:
+    name: Publish GitHub Release
+    needs: [resolve-release, deploy-cloudron]
+    if: needs.deploy-cloudron.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      APP_VERSION: ${{ needs.resolve-release.outputs.app_version }}
+      RELEASE_DISPLAY_TITLE: ${{ needs.resolve-release.outputs.app_version }} Beta
+      RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+          fetch-depth: 1
+
+      - name: Build GitHub Release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/deploy/github-release-notes.sh resources/data/releases.json > release-notes.md
+          test -s release-notes.md
+
+      - name: Resolve GitHub Release state
+        id: release_state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v${APP_VERSION}"
+          if gh release view "$tag" --json targetCommitish --jq '.targetCommitish' >/tmp/existing-sha 2>/dev/null; then
+            existing_sha="$(tr -d '\r\n' < /tmp/existing-sha)"
+            if [[ "$existing_sha" == "$RELEASE_SHA" ]]; then
+              echo "GitHub Release ${tag} already targets ${RELEASE_SHA}; skipping creation."
+              echo "action=skip" >> "$GITHUB_OUTPUT"
+            else
+              echo "GitHub Release ${tag} already exists at ${existing_sha}, expected ${RELEASE_SHA}."
+              exit 1
+            fi
+          else
+            echo "action=create" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.release_state.outputs.action == 'create'
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: ${{ env.RELEASE_DISPLAY_TITLE }}
+          body_path: release-notes.md
+          target_commitish: ${{ env.RELEASE_SHA }}
+          make_latest: true
+
+      - name: Record GitHub Release summary
+        if: always()
+        shell: bash
+        env:
+          RELEASE_ACTION: ${{ steps.release_state.outputs.action }}
+          RELEASE_DISPLAY_TITLE: ${{ needs.resolve-release.outputs.app_version }} Beta
+        run: |
+          set -euo pipefail
+          {
+            echo "## GitHub Release"
+            echo "- Display title: \`${RELEASE_DISPLAY_TITLE}\`"
+            echo "- Version tag: \`v${APP_VERSION}\`"
+            echo "- Target SHA: \`${RELEASE_SHA}\`"
+            if [[ "$RELEASE_ACTION" == "skip" ]]; then
+              echo "- Action: existing release reused (same SHA)"
+            elif [[ "$RELEASE_ACTION" == "create" ]]; then
+              echo "- Action: created release \`${RELEASE_DISPLAY_TITLE}\`"
+            else
+              echo "- Action: release step did not complete"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

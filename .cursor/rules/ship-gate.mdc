@@ -1,11 +1,11 @@
 ---
-description: Gated ship lifecycle — commit/push before PR, post-CI next actions, ask deploy after merge, verify changelog hubs, ask GitHub Release after deploy
+description: Gated ship lifecycle — commit/push before PR, post-CI next actions, ask deploy after merge, verify changelog hubs, verify GitHub Release after deploy
 alwaysApply: true
 ---
 
 # Ship-gate workflow
 
-Start and finish product work from a Cursor agent request. Do not auto-commit, auto-push, auto-merge, auto-deploy, create a GitHub Release, or edit sibling website changelogs without an explicit user choice at each gate (or a prior explicit order that covers that gate).
+Start and finish product work from a Cursor agent request. Do not auto-commit, auto-push, auto-merge, auto-deploy, manually create a GitHub Release (deploy workflow creates it), or edit sibling website changelogs without an explicit user choice at each gate (or a prior explicit order that covers that gate).
 
 ## Gates
 
@@ -57,20 +57,20 @@ App Change Log Hub (`/change-log`) is fed by `resources/data/releases.json` in *
 
 Recommended: verify the live app hub, then ask about sibling websites only if the user wants them updated.
 
-1. Verify app Change Log Hub on live, then continue to GitHub Release gate
+1. Verify app Change Log Hub on live, then verify GitHub Release for deployed version
 2. Also update sibling website changelogs / hubs (name which sites after the user confirms)
 3. Skip hub checks
 
 Never edit `APESCIC/*` website repos or create issues there unless the user explicitly asks in this session.
 
-### After changelog gate — GitHub Release
+### After changelog gate — GitHub Release verification
 
-Recommended: create a GitHub Release for the new `VERSION`.
+Successful Cloudron deploy creates the GitHub Release automatically (`{VERSION} Beta` display title; tag `v{VERSION}` on the deployed SHA). Recommended: verify it matches live `/healthz`.
 
-1. Create GitHub Release
-2. Skip release
+1. Verify GitHub Release matches deployed version and SHA
+2. Skip release verification
 
-Never create the release silently.
+Never create a duplicate GitHub Release manually unless recovering from a failed publish job.
 
 ## Unchanged
 
