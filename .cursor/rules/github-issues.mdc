@@ -13,7 +13,7 @@ Human issue templates cannot set custom fields, milestone, parent/sub-issues, or
 - **Labels:** `bug`, `enhancement`, or `documentation` (create `chore` only if that label exists)
 - **Type:** `Task` | `Bug` | `Feature`
 - **Fields:** Priority (`Urgent` / `High` / `Medium` / `Low`), Effort (`High` / `Medium` / `Low`); Start date and Target date when known
-- **Milestone:** Public Release v1 (`milestone: 1`) for v1-scoped work
+- **Milestone:** active `v0.N.x Beta` minor-line milestone (see AGENTS.md **GitHub milestones**)
 - **Relationships:** parent/sub-issue via `sub_issue_write`; blocked-by when there is a real dependency
 - **Development:** branch `cursor/{feature|fix|chore}/<issue-number>-<short-slug>` and PR body `Fixes #<n>` or `Closes #<n>`
 

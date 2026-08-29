@@ -420,7 +420,7 @@ git fetch origin
 php artisan myapes:changelog-validate --base-ref=origin/main
 ```
 
-Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch of the test workflow performs structural validation without requiring another version. In-PR release metadata does not create Git tags; a GitHub Release is an optional post-deploy step (see ship-gate).
+Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch of the test workflow performs structural validation without requiring another version. In-PR release metadata does not create Git tags; a successful Cloudron deploy creates the GitHub Release (`v{VERSION}` name/tag on the deployed SHA). See ship-gate.
 
 ## Cloudron deployment automation
 

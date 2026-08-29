@@ -1229,6 +1229,34 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringNotContainsString('pull_request:', $deployWorkflow);
     }
 
+    public function test_deploy_workflow_stamps_versioned_deployments_and_github_releases(): void
+    {
+        $workflow = $this->deployWorkflow();
+
+        $this->assertStringContainsString('run-name: Deploy v${{ github.event.inputs.app_version || \'from-ref\' }}', $workflow);
+        $this->assertStringContainsString('app_version:', $workflow);
+        $this->assertStringContainsString('chrnorm/deployment-action@500aa6a23c81ffa1acf71072aee3cfa2cc2e556a', $workflow);
+        $this->assertStringContainsString('description: v${{ env.APP_VERSION }} (${{ env.RELEASE_SHA }})', $workflow);
+        $this->assertStringContainsString('deployments: write', $workflow);
+        $this->assertStringContainsString('publish-github-release:', $workflow);
+        $this->assertStringContainsString('needs: [resolve-release, deploy-cloudron]', $workflow);
+        $this->assertStringContainsString('if: needs.deploy-cloudron.result == \'success\'', $workflow);
+        $this->assertStringContainsString('scripts/deploy/github-release-notes.sh', $workflow);
+        $this->assertStringContainsString('tag_name: v${{ env.APP_VERSION }}', $workflow);
+        $this->assertStringContainsString('name: v${{ env.APP_VERSION }}', $workflow);
+        $this->assertStringContainsString('target_commitish: ${{ env.RELEASE_SHA }}', $workflow);
+        $this->assertStringContainsString('softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631', $workflow);
+
+        $this->assertMatchesRegularExpression(
+            '/publish-github-release:[\s\S]*?permissions:\s*\R\s*contents: write/m',
+            $workflow,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/Create GitHub Release[\s\S]*?name:\s*\$\{\{\s*needs\.resolve-release\.outputs\.release_title/s',
+            $workflow,
+        );
+    }
+
     public function test_workflow_pins_supported_node_24_first_party_actions(): void
     {
         $workflow = $this->combinedWorkflows();

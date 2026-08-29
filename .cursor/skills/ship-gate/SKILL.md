@@ -1,6 +1,6 @@
 ---
 name: ship-gate
-description: Gated ship lifecycle from commit/push through merge, Cloudron deploy (workflow_dispatch), changelog hubs, and optional GitHub Release. Use when work is ready to commit or open a PR, when PR checks are green, after merge to main, after deploy, or when the user asks to ship, deploy, release, or update changelogs.
+description: Gated ship lifecycle from commit/push through merge, Cloudron deploy (workflow_dispatch), changelog hubs, and automated GitHub Release verification after deploy.
 ---
 
 # Ship-gate
@@ -101,23 +101,24 @@ gh run list --branch main --workflow "Test MyAPES Core" --limit 3
 If the user chooses deploy:
 
 ```powershell
-gh workflow run "Deploy MyAPES Core to Cloudron" --ref main
+$version = (git show origin/main:VERSION).Trim()
+gh workflow run "Deploy MyAPES Core to Cloudron" --ref main -f app_version="$version"
 gh run list --workflow "Deploy MyAPES Core to Cloudron" --limit 1
 gh run watch <run-id>
 ```
 
 Verify live when the run succeeds:
 
-- Deploy run URL / conclusion
+- Deploy run URL / conclusion (run title should read `Deploy v<version>`)
+- GitHub **Deployments** entry shows `v<version> (<sha>)` for `cloudron-deploy`
 - `https://myaccount.myapes.me.uk/healthz` reports the expected `version` and `release` SHA
+- The deploy workflow's **Publish GitHub Release** job created or confirmed `v<version>` on the deployed SHA
 
 Deploy is **manual only** (`workflow_dispatch`). There is no auto-deploy on green `main`.
 
 ## After deploy — changelog hubs gate
 
 ### App Change Log Hub (this repo)
-
-Source of truth: in-PR `resources/data/releases.json` + `VERSION` (via `myapes:changelog-prepare`). The live hub is the same deploy — no separate changelog PR.
 
 Verify:
 
@@ -151,28 +152,26 @@ If the user picks sibling updates:
 3. Do **not** create GitHub issues in other repositories unless the user explicitly orders it.
 4. Keep MyAPES Core release notes accurate on `/change-log`; do not duplicate Core-only deploy details onto unrelated marketing sites unless the user wants a cross-link blurb.
 
-## After changelog gate — GitHub Release
+## After changelog gate — GitHub Release verification
 
-If the user chooses create release:
+Successful Cloudron deploy runs **Publish GitHub Release** automatically. The release **name** and tag are `v{VERSION}`; the feature title stays in the release body (from `scripts/deploy/github-release-notes.sh` / `releases.json`).
 
-1. Read root `VERSION` (no `v` prefix in the file).
-2. Read the head record in `resources/data/releases.json` for title/summary notes.
-3. Skip if the tag or release already exists:
+**Recommended:** verify the release matches the deployed version and SHA.
 
 ```powershell
 $version = (Get-Content VERSION -Raw).Trim()
-gh release view "v$version"
+$health = Invoke-RestMethod https://myaccount.myapes.me.uk/healthz
+gh release view "v$version" --json tagName,name,targetCommitish
 ```
 
-4. Otherwise create:
+Confirm:
 
-```powershell
-$version = (Get-Content VERSION -Raw).Trim()
-gh release create "v$version" --title "<title from releases.json>" --notes "<summary and changes from head record>" --target main
-```
+- `name` and `tagName` are `v$version`
+- `targetCommitish` equals `$health.release` (deployed SHA)
+- Release body matches the public-safe head record in `releases.json`
 
-Use public-safe notes only (same constraints as changelog prose).
+Do not create a second GitHub Release manually unless the deploy workflow failed before the publish job and you are recovering.
 
 ## Completion
 
-Only after merge is verified, and after any chosen deploy / changelog-hub / release steps succeed, give the completion confirmation (PR URL/number, merge SHA, target branch, deploy evidence if deployed, live `/change-log` confirmation if checked, release URL if created, linked issue closed/updated). Offer to archive the agent; do not archive silently.
+Only after merge is verified, and after any chosen deploy / changelog-hub / release-verification steps succeed, give the completion confirmation (PR URL/number, merge SHA, target branch, deploy evidence if deployed, live `/change-log` confirmation if checked, GitHub Release URL if verified, linked issue closed/updated). Offer to archive the agent; do not archive silently.

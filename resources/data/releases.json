@@ -1,5 +1,48 @@
 [
   {
+    "version": "0.31.9",
+    "date": "2026-08-29",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Version-stamped deploy and release",
+    "summary": "Cloudron deploy now stamps GitHub Deployments with the app version, publishes a GitHub Release named v{VERSION} on the deployed SHA, and documents minor-line Beta milestones for issue tracking.",
+    "changes": [
+      "Stamp cloudron-deploy GitHub Deployments with v{VERSION} ({SHA}) and show the version in workflow run names.",
+      "Publish GitHub Release v{VERSION} automatically after a successful deploy; feature titles remain in the release body.",
+      "Add scripts/deploy/github-release-notes.sh and scripts/github/migrate-beta-milestones.sh for release notes and milestone migration.",
+      "Update ship-gate, AGENTS.md, and release-metadata guidance for automated releases and v0.N.x Beta milestones."
+    ],
+    "affected_areas": [
+      "Cloudron deployment workflow",
+      "GitHub Releases and Deployments",
+      "Agent ship-gate and issue milestone guidance"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "Patch release: deployment and release automation plus documentation; no end-user product behaviour change.",
+    "validation": [
+      "DeploymentAuthenticationContractTest covers version-stamped deploy and publish-github-release workflow contracts.",
+      "bash scripts/deploy/github-release-notes.sh smoke-tested against releases.json.",
+      "php artisan myapes:changelog-validate --base-ref=origin/main after filling release notes."
+    ],
+    "known_limitations": [
+      "Run scripts/github/migrate-beta-milestones.sh with repo admin access to rename milestones; the cloud agent token cannot patch milestones.",
+      "Existing GitHub Releases keep their prior display names until the next deploy recreates or you rename them manually."
+    ],
+    "rollback": "Redeploy the previous application version. To remove version-stamped releases, revert deploy-cloudron.yml, ship-gate docs, and the helper scripts from this release.",
+    "provenance": "Defined by version-stamped deploys, releases, and Beta milestones for MyAPES Account issue #183.",
+    "references": [
+      {
+        "label": "Issue #183",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/183"
+      }
+    ]
+  },
+  {
     "version": "0.31.8",
     "date": "2026-08-29",
     "channel": "stable",

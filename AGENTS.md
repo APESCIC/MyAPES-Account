@@ -2,11 +2,24 @@
 
 ## Implement order
 
-`main` holds the merged **v1.0.0 Beta** stack through **v0.31.2** on live (Access/RBAC, password pack, changelog guest filter, stale Super Admin redirects). Milestone 1 is **closed**: epic #91 and live-verify #159 are done. v1.1.0 work (`milestone: 2`) may start when asked.
+`main` holds the merged **v1.0.0 Beta** stack through **v0.31.2** on live (Access/RBAC, password pack, changelog guest filter, stale Super Admin redirects). **`v0.31.x Beta`** is **closed**: epic #91 and live-verify #159 are done. **`v0.32.x Beta`** work may start when asked.
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
-### v1.0.0 Beta (`milestone: 1`) — complete on live v0.31.2
+## GitHub milestones
+
+Use **minor-line** milestones with a **Beta** suffix until the product exits beta:
+
+- Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
+- **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
+- **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
+- Closed historical lines: `v0.1.x Beta` through `v0.30.x Beta` (completed releases)
+- **Current completed line:** `v0.31.x Beta` (closed; v1.0.0 stack on live)
+- **Active backlog:** `v0.32.x Beta` (Public UX & compliance — former milestone 2), `v0.33.x Beta` (Staff UX — former milestone 3)
+
+Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
+
+### v1.0.0 Beta (`v0.31.x Beta`, closed) — complete on live v0.31.2
 
 1. #91 RBAC epic — closed; code on `main` via #120 / #156 / #157
 2. #97 Access admin UX — merged (#120)
@@ -21,7 +34,7 @@ Do not reopen Access/RBAC or password-pack feature PRs for work already on `main
 11. #122 Changelog Internal-only leak — merged (#164)
 12. #133 Stale `/superadmin/*` 404s — merged (#165)
 
-### v1.1.0 Beta: Public UX & compliance (`milestone: 2`)
+### v1.1.0 Beta: Public UX & compliance (`v0.32.x Beta`)
 
 1. #128 Branded 404 and 403
 2. #130 Signed-in home still shows login doors
@@ -38,7 +51,7 @@ Do not reopen Access/RBAC or password-pack feature PRs for work already on `main
 13. #126 SECURITY.md
 14. #127 Compress Spike/logo PNGs
 
-### v1.2.0 Beta: Staff UX (`milestone: 3`)
+### v1.2.0 Beta: Staff UX (`v0.33.x Beta`)
 
 1. #136 Hub Create/View URLs (incl. `/shelter/pet-profiles`)
 2. #143 Empty pet dropdown on create forms
@@ -64,7 +77,7 @@ When creating or updating a task, fill the GitHub sidebar completely (templates 
    - **Labels:** `area:` only — `area:auth`, `area:admin`, `area:public`, `area:cloudron`, `area:tests`. Do not use `type:` or `priority:` labels. GitHub Issue Type and Priority/Effort fields cover type and priority.
    - **Type:** `Task`, `Bug`, or `Feature`
    - **Fields:** Priority (`Urgent` / `High` / `Medium` / `Low`), Effort (`High` / `Medium` / `Low`); Start date and Target date when known
-   - **Milestone:** the matching Beta milestone — v1.0.0 Beta (`milestone: 1`), v1.1.0 Beta: Public UX & compliance (`milestone: 2`), or v1.2.0 Beta: Staff UX (`milestone: 3`). Do not dump work onto a catch-all “Public Release v1”.
+   - **Milestone:** the active minor-line Beta milestone — `v0.N.x Beta` (see **GitHub milestones** below). Patch work stays on the current minor-line milestone; open the next `v0.(N+1).x Beta` when `changelog-prepare --type=minor` ships and the previous line is complete.
 3. **Relationships:** link parent/sub-issues with `sub_issue_write`. Record blocked-by when there is a real dependency.
 4. **Development:** branch `cursor/{feature|fix|chore}/<issue-number>-<short-slug>` and open the PR with `Fixes #<n>` or `Closes #<n>` so GitHub links the PR in Development.
 5. Comment progress, blockers, and the branch/PR on the issue. Close with `state_reason` `completed`, `not_planned`, or `duplicate`.
@@ -90,7 +103,7 @@ Every change merged to `main` must include release metadata in the **same pull r
    php artisan myapes:changelog-validate --base-ref=origin/main
    ```
 5. Include `VERSION`, `resources/data/releases.json`, `resources/data/module-runtime-contract.json`, and the version-pinned test updates from the prepare command in the **same PR**. Before the first commit or push, present the ship-gate **commit** Next-actions menu (do not auto-commit); then open/update the PR and merge only when CI is green.
-6. After merge, ask whether to deploy to Cloudron (`workflow_dispatch` only — no auto-deploy). After a successful deploy, verify the live Change Log Hub (`/change-log`, fed by `releases.json` in this deploy), ask before updating any sibling website changelogs/hubs, then ask whether to create a GitHub Release. Follow `.cursor/rules/ship-gate.mdc` and `.cursor/skills/ship-gate/SKILL.md`.
+6. After merge, ask whether to deploy to Cloudron (`workflow_dispatch` only — no auto-deploy). Pass `app_version` from `VERSION` when dispatching deploy. After a successful deploy, verify the live Change Log Hub (`/change-log`), confirm the GitHub Release `v{VERSION}` targets the deployed SHA (created by the deploy workflow), and ask before updating any sibling website changelogs/hubs. Follow `.cursor/rules/ship-gate.mdc` and `.cursor/skills/ship-gate/SKILL.md`.
 
 The prepare command syncs `VERSION`, prepends one release record, updates `module-runtime-contract.json` → `application_version`, and patches version-pinned tests. Do not edit or reorder published release records. See `.cursor/skills/release-metadata/SKILL.md` for full guidance.
 
