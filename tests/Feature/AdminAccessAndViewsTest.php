@@ -350,6 +350,16 @@ class AdminAccessAndViewsTest extends TestCase
                     route('admin.users.suspension.destroy', 999999),
                 ),
             ],
+            [
+                $this->actingAs($staff)->post(
+                    route('admin.users.password-reset', $target),
+                    ['confirm' => '1'],
+                ),
+                $this->actingAs($staff)->post(
+                    route('admin.users.password-reset', 999999),
+                    ['confirm' => '1'],
+                ),
+            ],
         ];
 
         foreach ($pairs as [$existing, $missing]) {
@@ -365,12 +375,13 @@ class AdminAccessAndViewsTest extends TestCase
             ->where('event', 'authorization.admin_denied')
             ->where('user_id', $staff->id)
             ->get();
-        $this->assertCount(8, $audits);
+        $this->assertCount(10, $audits);
         $this->assertEqualsCanonicalizing([
             'admin.users.show',
             'admin.users.roles.update',
             'admin.users.suspension.store',
             'admin.users.suspension.destroy',
+            'admin.users.password-reset',
         ], $audits->pluck('context.route_name')->unique()->values()->all());
         $this->assertSame(
             ['permission_denied'],
@@ -524,6 +535,11 @@ class AdminAccessAndViewsTest extends TestCase
 
         $this->actingAs($superAdmin)
             ->get(route('admin.users.show', 999999))
+            ->assertNotFound();
+        $this->actingAs($superAdmin)
+            ->post(route('admin.users.password-reset', 999999), [
+                'confirm' => '1',
+            ])
             ->assertNotFound();
         $this->actingAs($superAdmin)
             ->get(route('admin.access.job-roles.show', 999999))

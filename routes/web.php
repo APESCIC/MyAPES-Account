@@ -299,6 +299,9 @@ Route::middleware([
             Route::delete('/users/{user}/suspension', [AdminUserController::class, 'reactivate'])
                 ->middleware('can:admin.users.manage')
                 ->name('users.suspension.destroy');
+            Route::post('/users/{user}/password-reset', [AdminUserController::class, 'resetLocalPassword'])
+                ->middleware('can:admin.users.manage')
+                ->name('users.password-reset');
 
             Route::get('/access', [AdminAccessController::class, 'index'])
                 ->name('access.index');

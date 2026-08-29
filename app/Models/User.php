@@ -432,6 +432,19 @@ class User extends Authenticatable implements MustVerifyEmail
             && trim($this->oidc_sub) !== '';
     }
 
+    public function isPendingFirstLogin(): bool
+    {
+        return $this->identity_type === self::IDENTITY_CLOUDRON_OIDC
+            && (! is_string($this->oidc_sub) || trim($this->oidc_sub) === '');
+    }
+
+    public function isLocalPasswordIdentity(): bool
+    {
+        return $this->identity_type === self::IDENTITY_LOCAL
+            && ! $this->hasDirectoryIdentity()
+            && ! $this->isPendingFirstLogin();
+    }
+
     public function hasDirectoryIdentity(): bool
     {
         return in_array(

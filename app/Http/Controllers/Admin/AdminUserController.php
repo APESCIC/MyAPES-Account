@@ -13,6 +13,7 @@ use App\Services\AuditLogger;
 use App\Services\AuthorizationMutationService;
 use App\Services\AuthorizationProfile;
 use App\Services\ContactPreferenceUpdater;
+use App\Services\LocalPublicPasswordResetService;
 use App\Services\SecureUploadService;
 use App\Services\StaffProfilePhotoResponder;
 use App\Services\UkPhoneNumber;
@@ -31,6 +32,7 @@ class AdminUserController extends Controller
     public function index(
         Request $request,
         AuthorizationProfile $profile,
+        LocalPublicPasswordResetService $passwordResets,
     ): View {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -98,12 +100,29 @@ class AdminUserController extends Controller
             );
         }
 
+        $users = $query
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate(25)
+            ->withQueryString();
+        $actor = $request->user();
+        $resettableUserIds = [];
+
+        if ($actor instanceof User && $actor->can('admin.users.manage')) {
+            $resettableUserIds = $users->getCollection()
+                ->filter(
+                    static fn (User $user): bool => $passwordResets->canReset(
+                        $actor,
+                        $user,
+                    ),
+                )
+                ->pluck('id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all();
+        }
+
         return view('admin.users.index', [
-            'users' => $query
-                ->orderBy('name')
-                ->orderBy('id')
-                ->paginate(25)
-                ->withQueryString(),
+            'users' => $users,
             'filters' => $filters,
             'identityTypes' => [
                 User::IDENTITY_LOCAL => 'Local',
@@ -111,6 +130,7 @@ class AdminUserController extends Controller
             ],
             'protectedRoles' => $profile->protectedRolesByPrecedence(),
             'authorizationProfile' => $profile,
+            'resettableUserIds' => $resettableUserIds,
         ]);
     }
 
@@ -118,6 +138,7 @@ class AdminUserController extends Controller
         Request $request,
         string $user,
         AuthorizationMutationService $mutations,
+        LocalPublicPasswordResetService $passwordResets,
     ): View {
         Gate::authorize('admin.users.view');
         $managedUser = User::query()->findOrFail($user);
@@ -199,6 +220,8 @@ class AdminUserController extends Controller
                 $request->user(),
                 $managedUser,
             ),
+            'canResetLocalPassword' => $request->user() instanceof User
+                && $passwordResets->canReset($request->user(), $managedUser),
             'identityLabel' => match ($managedUser->identity_type) {
                 User::IDENTITY_LOCAL => 'Local',
                 User::IDENTITY_CLOUDRON_OIDC => 'Cloudron OIDC',
@@ -464,5 +487,34 @@ class AdminUserController extends Controller
         $managedUser = User::query()->findOrFail($user);
 
         return $photos->response($managedUser->staffProfile);
+    }
+
+    public function resetLocalPassword(
+        Request $request,
+        string $user,
+        LocalPublicPasswordResetService $passwordResets,
+    ): RedirectResponse {
+        Gate::authorize('admin.users.manage');
+        $managedUser = User::query()->findOrFail($user);
+        $request->validate([
+            'confirm' => ['accepted'],
+        ]);
+
+        try {
+            $temporaryPassword = $passwordResets->reset(
+                $request->user(),
+                $managedUser,
+            );
+        } catch (DomainException $exception) {
+            abort(403, $exception->getMessage());
+        }
+
+        return redirect()
+            ->route('admin.users.show', $managedUser)
+            ->with(
+                'status',
+                'A one-time temporary password was generated. Copy it now; it will not be shown again.',
+            )
+            ->with('temporary_password', $temporaryPassword);
     }
 }
