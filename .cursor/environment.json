@@ -1,0 +1,13 @@
+{
+  "name": "MyAPES Account",
+  "user": "ubuntu",
+  "install": "bash scripts/cloud/install.sh",
+  "start": "bash scripts/cloud/configure-gh-auth.sh",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "composer run dev",
+      "description": "Laravel + Vite dev stack on :8000"
+    }
+  ]
+}
