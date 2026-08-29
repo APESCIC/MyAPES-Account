@@ -2,28 +2,26 @@
 
 ## Implement order
 
-`main` holds the merged v1.0.0 Beta code stack through **v0.31.2** (Access/RBAC, password pack, changelog guest filter, stale Super Admin redirects). Do **not** start v1.1.0 until **#159 is closed on live**.
+`main` holds the merged **v1.0.0 Beta** stack through **v0.31.2** on live (Access/RBAC, password pack, changelog guest filter, stale Super Admin redirects). Milestone 1 is **closed**: epic #91 and live-verify #159 are done. v1.1.0 work (`milestone: 2`) may start when asked.
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
-### v1.0.0 Beta (`milestone: 1`)
+### v1.0.0 Beta (`milestone: 1`) — complete on live v0.31.2
 
-1. #91 RBAC epic — code on `main` via #120 / #156 / #157
+1. #91 RBAC epic — closed; code on `main` via #120 / #156 / #157
 2. #97 Access admin UX — merged (#120)
 3. #98 PHPUnit auth matrix — merged (#156)
 4. #99 Public vs Cloudron separation — merged (#157)
-5. #158 Local public password pack (epic; children are #142, #121, #147, #148, #159 — not under closed #129)
+5. #158 Local public password pack — closed (children #142, #121, #147, #148, #159)
 6. #142 Admin reset of local public password — merged (#160)
 7. #121 Public local forgot-password — merged (#161)
 8. #147 Signed-in local change-password — merged (#162)
 9. #148 Read-only profile email — merged (#163)
-10. #159 Live-verify on production (**remaining gate** — pack is not done until this is closed on live)
+10. #159 Live-verify on production — closed completed on live v0.31.2
 11. #122 Changelog Internal-only leak — merged (#164)
 12. #133 Stale `/superadmin/*` 404s — merged (#165)
 
 ### v1.1.0 Beta: Public UX & compliance (`milestone: 2`)
-
-Only after #159 is closed on live:
 
 1. #128 Branded 404 and 403
 2. #130 Signed-in home still shows login doors
