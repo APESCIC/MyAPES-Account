@@ -1224,7 +1224,8 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringContainsString('github.event.before', $workflow);
         $this->assertStringContainsString('myapes:changelog-validate', $workflow);
         $this->assertStringContainsString('npm run test:frontend', $workflow);
-        $this->assertStringContainsString('workflow_run:', $deployWorkflow);
+        $this->assertStringContainsString('workflow_dispatch:', $deployWorkflow);
+        $this->assertStringNotContainsString('workflow_run:', $deployWorkflow);
         $this->assertStringNotContainsString('pull_request:', $deployWorkflow);
     }
 

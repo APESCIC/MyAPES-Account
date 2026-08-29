@@ -14,7 +14,7 @@ MyAPES Core is the APES CIC service-user and staff portal built on Laravel for C
 
 - Last verified README health review: `2026-08-14T16:05:40+01:00`
 - Source-controlled application version: [`VERSION`](VERSION)
-- Continuous integration and guarded deployment: [Test and deploy MyAPES Core](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
+- Continuous integration and manual Cloudron deploy: [Deploy MyAPES Core to Cloudron](https://github.com/APESCIC/MyAPES-Account/actions/workflows/deploy-cloudron.yml)
 - Public release history: [MyAPES Core Change Log](https://myaccount.myapes.me.uk/change-log)
 
 ## Support and maintainers
@@ -375,7 +375,7 @@ git fetch origin
 php artisan myapes:changelog-validate --base-ref=origin/main
 ```
 
-Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch performs structural validation without requiring another version. This contract does not create or backfill Git tags or GitHub Releases.
+Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch of the test workflow performs structural validation without requiring another version. In-PR release metadata does not create Git tags; a GitHub Release is an optional post-deploy step (see ship-gate).
 
 ## Cloudron deployment automation
 
@@ -383,8 +383,9 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 
 ### Deployment triggers
 
-1. Push to `main` automatically deploys only after the SQLite/package job and the MySQL database-compatibility job succeed in `test-cloudron.yml`; `deploy-cloudron.yml` then deploys via `workflow_run`.
-2. Pull requests and manual workflow runs execute structural verification but cannot deploy.
+1. Deploy runs only on manual `workflow_dispatch` (for example `gh workflow run "Deploy MyAPES Core to Cloudron" --ref main`). There is no auto-deploy after a green `main` test run.
+2. Prefer deploying after `test-cloudron.yml` has succeeded for the target `main` revision. Agents ask before dispatching (ship-gate).
+3. After a successful deploy, the app Change Log Hub at `/change-log` shows the head `releases.json` record from that revision. Sibling APES websites keep separate changelogs; update those only when the operator asks (ship-gate).
 
 ### Target app
 
