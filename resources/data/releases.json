@@ -32,11 +32,15 @@
       "Sibling APES website Change Log Hubs are not updated automatically by this deploy; operators must approve those updates separately."
     ],
     "rollback": "Redeploy the previous application version. To restore auto-deploy behaviour, reintroduce the workflow_run trigger on Deploy MyAPES Core to Cloudron.",
-    "provenance": "Defined by the ship-gate manual deploy and GitHub Release workflow for MyAPES Account issue #167.",
+    "provenance": "Defined by the ship-gate manual deploy and GitHub Release workflow for MyAPES Account issue #167 and pull request #168.",
     "references": [
       {
         "label": "Issue #167",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/167"
+      },
+      {
+        "label": "Pull request #168",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/168"
       }
     ]
   },
