@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AuthorizationRoleMaterializer;
 use App\Services\DirectoryRoleSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class DirectoryRoleSynchronizerTest extends TestCase
@@ -89,6 +90,48 @@ class DirectoryRoleSynchronizerTest extends TestCase
                 ->where('name', 'myapesaccount.superadmin')
                 ->value('id'),
         ]);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function legacySuperAdminAliasProvider(): array
+    {
+        return [
+            'myapes.superadmin' => ['myapes.superadmin'],
+            'myapes.superadmins' => ['myapes.superadmins'],
+        ];
+    }
+
+    #[DataProvider('legacySuperAdminAliasProvider')]
+    public function test_legacy_superadmin_aliases_grant_the_canonical_group_mapping(
+        string $alias,
+    ): void {
+        $user = User::factory()
+            ->accessLevel(User::ROLE_STAFF)
+            ->cloudronIdentity('legacy-alias-'.$alias)
+            ->create()
+            ->refresh();
+
+        $result = app(DirectoryRoleSynchronizer::class)->synchronize($user, [
+            $alias,
+        ]);
+
+        $this->assertTrue($result->eligible);
+        $this->assertSame('super-admin', $result->protectedRole);
+        $this->assertSame(['myapesaccount.superadmin'], $user->fresh()->ldap_groups);
+        $this->assertDatabaseHas('role_sources', [
+            'user_id' => $user->id,
+            'source' => RoleSource::SOURCE_DIRECTORY,
+            'directory_group_id' => DirectoryGroup::query()
+                ->where('name', 'myapesaccount.superadmin')
+                ->value('id'),
+        ]);
+        $this->assertDatabaseMissing('directory_groups', ['name' => $alias]);
+        $this->assertSame(
+            1,
+            DirectoryGroup::query()->where('name', 'myapesaccount.superadmin')->count(),
+        );
     }
 
     public function test_loss_of_protected_eligibility_removes_directory_sources_only(): void

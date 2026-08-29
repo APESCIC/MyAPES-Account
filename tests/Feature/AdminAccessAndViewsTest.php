@@ -539,6 +539,17 @@ class AdminAccessAndViewsTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_public_and_volunteer_cannot_open_admin_or_super_admin_surfaces(): void
+    {
+        foreach ([User::ROLE_SERVICE_USER, User::ROLE_VOLUNTEER] as $accessLevel) {
+            $user = $this->userWithAccess($accessLevel);
+
+            foreach (['/admin/users', '/admin/access', '/superadmin'] as $path) {
+                $this->actingAs($user)->get($path)->assertForbidden();
+            }
+        }
+    }
+
     private function userWithAccess(string $accessLevel): User
     {
         return User::factory()
