@@ -351,6 +351,87 @@ code {
     margin-left: auto;
 }
 
+.sidebar-support {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(220, 233, 230, 0.14);
+}
+
+.sidebar-support__heading {
+    margin: 0 0 0.55rem;
+    padding: 0 0.55rem;
+    color: #9eb8b4;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.sidebar-support__links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.sidebar-support__pill {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.7rem;
+    display: inline-flex;
+    gap: 0.65rem;
+    align-items: center;
+    border: 1px solid rgba(220, 233, 230, 0.16);
+    border-radius: 999px;
+    background: rgba(12, 58, 56, 0.42);
+    color: #dce9e6;
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition:
+        transform 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        color 0.18s ease;
+}
+
+.sidebar-support__pill:hover,
+.sidebar-support__pill:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(82, 240, 241, 0.35);
+    background: rgba(24, 228, 231, 0.16);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.sidebar-support__pill-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.sidebar-support__pill-icon svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    color: #c9dddd;
+}
+
+.sidebar-support__pill:hover .sidebar-support__pill-icon svg,
+.sidebar-support__pill:focus-visible .sidebar-support__pill-icon svg {
+    color: var(--brand-cyan);
+}
+
+.sidebar-support__pill-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .theme-toggle__icon--dark {
     display: none;
 }
@@ -2457,27 +2538,6 @@ caption {
     list-style: none;
 }
 
-.github-links--footer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem 0.75rem;
-}
-
-.github-links--footer a {
-    min-height: 2.75rem;
-    display: inline-flex;
-    align-items: center;
-    color: var(--muted);
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.github-links--footer a:hover {
-    color: var(--brand-teal);
-    text-decoration: underline;
-    text-underline-offset: 0.18rem;
-}
-
 .github-links--change-log {
     display: flex;
     flex-wrap: wrap;
@@ -2682,10 +2742,6 @@ caption {
 
 .site-footer strong {
     color: var(--brand-text);
-}
-
-.site-footer__links {
-    flex: 1 1 auto;
 }
 
 .site-footer__version {

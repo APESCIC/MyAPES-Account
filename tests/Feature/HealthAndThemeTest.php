@@ -16,7 +16,7 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.31.10',
+                'version' => '0.31.11',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -50,7 +50,7 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.31.10',
+                'version' => '0.31.11',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -113,6 +113,11 @@ class HealthAndThemeTest extends TestCase
         $response->assertSee('href="'.route('public.login').'"', false);
         $response->assertSee('href="'.route('public.register').'"', false);
         $response->assertSee('href="'.route('staff.login').'"', false);
+        $response->assertSee('sidebar-support', false);
+        $response->assertSeeText('App Support');
+        $response->assertSee('sidebar-support__pill', false);
+        $response->assertSee('https://github.com/APESCIC/MyAPES-Account"', false);
+        $response->assertDontSee('site-footer__links', false);
         $response->assertDontSee('rel="mask-icon"', false);
     }
 
@@ -152,6 +157,8 @@ class HealthAndThemeTest extends TestCase
             ->assertSee('href="'.route('apes-cic.tickets.index').'"', false)
             ->assertSee('href="'.route('shelter.pets.index').'"', false)
             ->assertSee('href="'.route('petcare.pets.index').'"', false)
+            ->assertSee('sidebar-support', false)
+            ->assertSeeText('App Support')
             ->assertDontSee('href="'.route('admin.index').'"', false);
 
         $admin = User::factory()->accessLevel(User::ROLE_ADMIN)->create();
