@@ -34,6 +34,17 @@
         </form>
     </div>
 
+    <div class="panel" id="account-email">
+        <h2>Account email</h2>
+        <p class="muted">Notifications and password-reset mail go to this address. Email cannot be changed here.</p>
+        <dl class="admin-definition-list">
+            <div>
+                <dt>Email</dt>
+                <dd>{{ auth()->user()->email }}</dd>
+            </div>
+        </dl>
+    </div>
+
     @if($canChangeLocalPassword)
         <div class="panel" id="change-password">
             <h2>Change password</h2>
