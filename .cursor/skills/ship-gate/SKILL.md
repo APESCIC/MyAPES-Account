@@ -154,7 +154,7 @@ If the user picks sibling updates:
 
 ## After changelog gate — GitHub Release verification
 
-Successful Cloudron deploy runs **Publish GitHub Release** automatically. The release **name** and tag are `v{VERSION}`; the feature title stays in the release body (from `scripts/deploy/github-release-notes.sh` / `releases.json`).
+Successful Cloudron deploy runs **Publish GitHub Release** automatically. The release **name** is `{VERSION} Beta` (for example `0.31.10 Beta`); the tag stays `v{VERSION}`. The feature title stays in the release body (from `scripts/deploy/github-release-notes.sh` / `releases.json`).
 
 **Recommended:** verify the release matches the deployed version and SHA.
 
@@ -166,7 +166,8 @@ gh release view "v$version" --json tagName,name,targetCommitish
 
 Confirm:
 
-- `name` and `tagName` are `v$version`
+- `name` is `$version Beta` (for example `0.31.10 Beta`)
+- `tagName` is `v$version`
 - `targetCommitish` equals `$health.release` (deployed SHA)
 - Release body matches the public-safe head record in `releases.json`
 

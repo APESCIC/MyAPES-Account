@@ -1,5 +1,47 @@
 [
   {
+    "version": "0.31.10",
+    "date": "2026-08-29",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Beta version display titles",
+    "summary": "GitHub Deployments and Releases now use the display title format {VERSION} Beta instead of word titles or v-prefixed labels with SHA.",
+    "changes": [
+      "Set deployment description and GitHub Release display name to {VERSION} Beta; keep tags as v{VERSION}.",
+      "Change workflow run-name to {VERSION} Beta without a Deploy prefix.",
+      "Add scripts/github/rename-release-titles.sh to retroactively rename existing GitHub Release titles."
+    ],
+    "affected_areas": [
+      "Cloudron deployment workflow",
+      "GitHub Releases and Deployments",
+      "Ship-gate verification guidance"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "Patch release: deployment and release display-title correction only; no end-user product behaviour change.",
+    "validation": [
+      "DeploymentAuthenticationContractTest updated for RELEASE_DISPLAY_TITLE workflow contract.",
+      "bash scripts/github/rename-release-titles.sh supports --dry-run idempotent title edits.",
+      "php artisan myapes:changelog-validate --base-ref=origin/main after filling release notes."
+    ],
+    "known_limitations": [
+      "Past deployment records cannot be renamed via the GitHub API; only future deploys show the new title.",
+      "Run scripts/github/rename-release-titles.sh once with admin gh auth to fix existing release display titles."
+    ],
+    "rollback": "Redeploy the previous application version. To restore prior titles, revert deploy-cloudron.yml and the rename script from this release.",
+    "provenance": "Defined by Beta version display titles for Releases and Deployments on MyAPES Account issue #183.",
+    "references": [
+      {
+        "label": "Issue #183",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/183"
+      }
+    ]
+  },
+  {
     "version": "0.31.9",
     "date": "2026-08-29",
     "channel": "stable",

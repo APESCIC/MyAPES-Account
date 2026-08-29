@@ -27,7 +27,7 @@ Feature/fix complete
   → (ask) deploy via workflow_dispatch (pass app_version from VERSION)
   → verify live Change Log Hub (/change-log from releases.json)
   → (ask) sibling website changelogs only if operator wants them
-  → verify GitHub Release v{VERSION} on deployed SHA (created by deploy workflow)
+  → verify GitHub Release {VERSION} Beta display title on deployed SHA (tag v{VERSION}; created by deploy workflow)
 ```
 
 ## Components
@@ -48,6 +48,7 @@ Feature/fix complete
 
 ## Later change (#183)
 
-- Deploy workflow stamps GitHub Deployments with `v{VERSION} ({SHA})`
-- Successful deploy publishes GitHub Release `v{VERSION}` (name and tag) on the deployed SHA; feature title remains in release body
+- Deploy workflow stamps GitHub Deployments with `{VERSION} Beta` (no SHA in the title)
+- Successful deploy publishes GitHub Release `{VERSION} Beta` (display name) with tag `v{VERSION}` on the deployed SHA; feature title remains in release body
 - Issue milestones use minor-line `v0.N.x Beta` naming until beta exit
+- One-time `scripts/github/rename-release-titles.sh` renames existing GitHub Release display titles to `{VERSION} Beta`

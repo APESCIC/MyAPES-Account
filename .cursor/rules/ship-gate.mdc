@@ -65,7 +65,7 @@ Never edit `APESCIC/*` website repos or create issues there unless the user expl
 
 ### After changelog gate — GitHub Release verification
 
-Successful Cloudron deploy creates the GitHub Release automatically (`v{VERSION}` name/tag on the deployed SHA). Recommended: verify it matches live `/healthz`.
+Successful Cloudron deploy creates the GitHub Release automatically (`{VERSION} Beta` display title; tag `v{VERSION}` on the deployed SHA). Recommended: verify it matches live `/healthz`.
 
 1. Verify GitHub Release matches deployed version and SHA
 2. Skip release verification

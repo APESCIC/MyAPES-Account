@@ -103,7 +103,7 @@ Every change merged to `main` must include release metadata in the **same pull r
    php artisan myapes:changelog-validate --base-ref=origin/main
    ```
 5. Include `VERSION`, `resources/data/releases.json`, `resources/data/module-runtime-contract.json`, and the version-pinned test updates from the prepare command in the **same PR**. Before the first commit or push, present the ship-gate **commit** Next-actions menu (do not auto-commit); then open/update the PR and merge only when CI is green.
-6. After merge, ask whether to deploy to Cloudron (`workflow_dispatch` only — no auto-deploy). Pass `app_version` from `VERSION` when dispatching deploy. After a successful deploy, verify the live Change Log Hub (`/change-log`), confirm the GitHub Release `v{VERSION}` targets the deployed SHA (created by the deploy workflow), and ask before updating any sibling website changelogs/hubs. Follow `.cursor/rules/ship-gate.mdc` and `.cursor/skills/ship-gate/SKILL.md`.
+6. After merge, ask whether to deploy to Cloudron (`workflow_dispatch` only — no auto-deploy). Pass `app_version` from `VERSION` when dispatching deploy. After a successful deploy, verify the live Change Log Hub (`/change-log`), confirm the GitHub Release display title `{VERSION} Beta` and tag `v{VERSION}` target the deployed SHA (created by the deploy workflow), and ask before updating any sibling website changelogs/hubs. Follow `.cursor/rules/ship-gate.mdc` and `.cursor/skills/ship-gate/SKILL.md`.
 
 The prepare command syncs `VERSION`, prepends one release record, updates `module-runtime-contract.json` → `application_version`, and patches version-pinned tests. Do not edit or reorder published release records. See `.cursor/skills/release-metadata/SKILL.md` for full guidance.
 
