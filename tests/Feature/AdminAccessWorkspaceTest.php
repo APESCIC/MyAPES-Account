@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\DirectoryGroup;
-use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\DefaultJobRoles;
@@ -42,9 +41,48 @@ class AdminAccessWorkspaceTest extends TestCase
             ->get('/superadmin')
             ->assertOk()
             ->assertSee('Access')
+            ->assertSee('href="'.route('admin.modules.index').'"', false)
             ->assertDontSee('>Groups</a>', false)
             ->assertDontSee('>Roles</a>', false)
-            ->assertDontSee('>Permissions</a>', false);
+            ->assertDontSee('>Permissions</a>', false)
+            ->assertDontSee('href="'.url('/superadmin/plugins').'"', false)
+            ->assertDontSee('href="'.url('/superadmin/groups').'"', false);
+    }
+
+    public function test_stale_superadmin_section_urls_redirect_to_live_admin_routes(): void
+    {
+        $superAdmin = $this->userWithAccess(User::ROLE_SUPERADMIN);
+        $administrator = $this->userWithAccess(User::ROLE_ADMIN);
+
+        $this->get('/superadmin/groups')->assertRedirect(route('public.login'));
+        $this->get('/superadmin/plugins')->assertRedirect(route('public.login'));
+        $this->get('/superadmin/modules')->assertRedirect(route('public.login'));
+
+        $this->actingAs($administrator)->get('/superadmin/groups')->assertForbidden();
+        $this->actingAs($administrator)->get('/superadmin/plugins')->assertForbidden();
+        $this->actingAs($administrator)->get('/superadmin/modules')->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->get('/superadmin/groups')
+            ->assertRedirect('/admin/groups');
+        $this->actingAs($superAdmin)
+            ->followingRedirects()
+            ->get('/superadmin/groups')
+            ->assertOk()
+            ->assertSee('Access')
+            ->assertSee('Groups');
+
+        $this->actingAs($superAdmin)
+            ->get('/superadmin/plugins')
+            ->assertRedirect('/admin/modules');
+        $this->actingAs($superAdmin)
+            ->get('/superadmin/modules')
+            ->assertRedirect('/admin/modules');
+        $this->actingAs($superAdmin)
+            ->followingRedirects()
+            ->get('/superadmin/plugins')
+            ->assertOk()
+            ->assertSee('module-registry', false);
     }
 
     public function test_groups_tab_shows_sync_tier_and_job_role_mapping(): void

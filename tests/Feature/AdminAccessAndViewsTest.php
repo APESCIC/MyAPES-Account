@@ -30,6 +30,8 @@ class AdminAccessAndViewsTest extends TestCase
             '/admin/access',
             '/admin/modules',
             '/superadmin',
+            '/superadmin/plugins',
+            '/superadmin/groups',
         ] as $path) {
             $this->actingAs($administrator)->get($path)->assertForbidden();
         }
@@ -560,7 +562,7 @@ class AdminAccessAndViewsTest extends TestCase
         foreach ([User::ROLE_SERVICE_USER, User::ROLE_VOLUNTEER] as $accessLevel) {
             $user = $this->userWithAccess($accessLevel);
 
-            foreach (['/admin/users', '/admin/access', '/superadmin'] as $path) {
+            foreach (['/admin/users', '/admin/access', '/superadmin', '/superadmin/plugins', '/superadmin/groups'] as $path) {
                 $this->actingAs($user)->get($path)->assertForbidden();
             }
         }
