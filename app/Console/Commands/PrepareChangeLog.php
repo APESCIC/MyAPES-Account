@@ -12,7 +12,7 @@ class PrepareChangeLog extends Command
         {--type=patch : Semantic version bump type: major, minor, or patch}
         {--title= : Short public release title}
         {--issue= : GitHub issue number for release references}
-        {--pr= : GitHub pull request number for release references}
+        {--pr= : GitHub pull request number for release references (required)}
         {--channel=stable : Release channel}
         {--date= : ISO release date (YYYY-MM-DD); defaults to today}
         {--dry-run : Print the planned release scaffold without writing files}';
@@ -31,9 +31,15 @@ class PrepareChangeLog extends Command
             $date = now()->format('Y-m-d');
         }
 
+        $pullRequestNumber = $this->parseOptionalPositiveInteger('pr');
+        if ($pullRequestNumber === null) {
+            $this->components->error('The --pr option is required so every release cites its merging pull request.');
+
+            return self::FAILURE;
+        }
+
         try {
             $issueNumber = $this->parseOptionalPositiveInteger('issue');
-            $pullRequestNumber = $this->parseOptionalPositiveInteger('pr');
             if ($dryRun) {
                 $plan = $preparer->plan($type, $title, $channel, $date, $issueNumber, $pullRequestNumber);
             } else {

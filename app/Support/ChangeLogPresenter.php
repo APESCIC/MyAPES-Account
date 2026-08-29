@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Gate;
 
 class ChangeLogPresenter
 {
+    private const GITHUB_RELEASE_TAG_URL = 'https://github.com/APESCIC/MyAPES-Account/releases/tag/v%s';
+
     public function __construct(private readonly ReleaseHistoryRepository $releases) {}
 
     public function viewerCanSeeInternalNotes(?User $user): bool
@@ -34,8 +36,11 @@ class ChangeLogPresenter
 
         if ($showInternal) {
             return [
-                'currentRelease' => $current,
-                'releases' => $this->releases->all(),
+                'currentRelease' => self::withGithubReleaseReference($current),
+                'releases' => array_map(
+                    static fn (array $release): array => self::withGithubReleaseReference($release),
+                    $this->releases->all(),
+                ),
                 'showInternalAudienceFilter' => true,
                 'showInternalNotes' => true,
             ];
@@ -130,5 +135,41 @@ class ChangeLogPresenter
             'audiences' => ['public-facing'],
             'version_rationale' => '',
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $release
+     * @return array<string, mixed>
+     */
+    public static function withGithubReleaseReference(array $release): array
+    {
+        $version = trim((string) ($release['version'] ?? ''));
+
+        if ($version === '') {
+            return $release;
+        }
+
+        $url = sprintf(self::GITHUB_RELEASE_TAG_URL, $version);
+        $references = is_array($release['references'] ?? null) ? $release['references'] : [];
+
+        foreach ($references as $reference) {
+            if (! is_array($reference)) {
+                continue;
+            }
+
+            if (($reference['url'] ?? '') === $url) {
+                return $release;
+            }
+        }
+
+        $release['references'] = [
+            ...$references,
+            [
+                'label' => "GitHub Release v{$version}",
+                'url' => $url,
+            ],
+        ];
+
+        return $release;
     }
 }

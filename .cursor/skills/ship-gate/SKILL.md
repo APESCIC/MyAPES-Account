@@ -153,25 +153,32 @@ If the user picks sibling updates:
 
 ## After changelog gate — GitHub Release
 
-If the user chooses create release:
+**Recommended:** verify the GitHub Release tag exists for the deployed `VERSION`.
 
 1. Read root `VERSION` (no `v` prefix in the file).
 2. Read the head record in `resources/data/releases.json` for title/summary notes.
-3. Skip if the tag or release already exists:
+3. Check whether the tag or release already exists:
 
 ```powershell
 $version = (Get-Content VERSION -Raw).Trim()
 gh release view "v$version"
 ```
 
-4. Otherwise create:
+4. If missing, use the backfill helper (preferred — keeps notes aligned with `releases.json`):
+
+```powershell
+node scripts/local/map-release-commits.mjs --write
+node scripts/local/backfill-github-releases.mjs --from=$version --resume
+```
+
+5. Or create manually when only the current version is needed:
 
 ```powershell
 $version = (Get-Content VERSION -Raw).Trim()
 gh release create "v$version" --title "<title from releases.json>" --notes "<summary and changes from head record>" --target main
 ```
 
-Use public-safe notes only (same constraints as changelog prose).
+Use public-safe notes only (same constraints as changelog prose). Staff viewers on `/change-log` also see a **GitHub Release v{version}** link in the Source section.
 
 ## Completion
 
