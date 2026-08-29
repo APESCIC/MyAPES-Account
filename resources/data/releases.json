@@ -31,11 +31,15 @@
       "Starting a v1.1.0 feature still requires an explicit operator request; this change only unlocks the documented order."
     ],
     "rollback": "Redeploy the previous application version. To restore the #159 gate wording, revert the AGENTS.md implement-order section from this release.",
-    "provenance": "Defined by the AGENTS.md v1.0.0 Beta complete sync for MyAPES Account issue #171.",
+    "provenance": "Defined by the AGENTS.md v1.0.0 Beta complete sync for MyAPES Account issue #171 and pull request #172.",
     "references": [
       {
         "label": "Issue #171",
         "url": "https://github.com/APESCIC/MyAPES-Account/issues/171"
+      },
+      {
+        "label": "Pull request #172",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/172"
       }
     ]
   },
