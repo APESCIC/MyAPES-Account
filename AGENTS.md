@@ -2,24 +2,24 @@
 
 ## Implement order
 
-Live app is still 0.26.1. Finish **v1.0.0 Beta** in this order, then stop. Do not start v1.1.0 until **#159 is closed on live** — not merely when the password PRs merge.
+`main` holds the merged v1.0.0 Beta code stack through **v0.31.2** (Access/RBAC, password pack, changelog guest filter, stale Super Admin redirects). Do **not** start v1.1.0 until **#159 is closed on live**.
 
-Do not start from or touch PR #120 / the Access RBAC branch — App Developer owns PR #120 and #97–#99. Do not open a second Access PR.
+Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
 ### v1.0.0 Beta (`milestone: 1`)
 
-1. #91 RBAC epic (in flight, PR #120 on #97) — App Developer owns this; do not open a second Access PR
-2. #97 Access admin UX — App Developer (PR #120)
-3. #98 PHPUnit auth matrix — App Developer
-4. #99 Public vs Cloudron separation — App Developer
+1. #91 RBAC epic — code on `main` via #120 / #156 / #157
+2. #97 Access admin UX — merged (#120)
+3. #98 PHPUnit auth matrix — merged (#156)
+4. #99 Public vs Cloudron separation — merged (#157)
 5. #158 Local public password pack (epic; children are #142, #121, #147, #148, #159 — not under closed #129)
-6. #142 Admin reset of local public password
-7. #121 Public local forgot-password
-8. #147 Signed-in local change-password
-9. #148 Read-only profile email
-10. #159 Live-verify on production (pack is not done until this is closed on live)
-11. #122 Changelog Internal-only leak
-12. #133 Stale `/superadmin/*` 404s
+6. #142 Admin reset of local public password — merged (#160)
+7. #121 Public local forgot-password — merged (#161)
+8. #147 Signed-in local change-password — merged (#162)
+9. #148 Read-only profile email — merged (#163)
+10. #159 Live-verify on production (**remaining gate** — pack is not done until this is closed on live)
+11. #122 Changelog Internal-only leak — merged (#164)
+12. #133 Stale `/superadmin/*` 404s — merged (#165)
 
 ### v1.1.0 Beta: Public UX & compliance (`milestone: 2`)
 
