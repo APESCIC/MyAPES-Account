@@ -108,7 +108,7 @@ class ChangeLogPageTest extends TestCase
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/122', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/164', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/issues/148', false)
-                ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/163', false);
+                ->assertSee('https://github.com/APESCIC/MyAPES-Account/pull/163', false)
                 ->assertSee('https://github.com/APESCIC/MyAPES-Account/releases/tag/v0.31.8', false);
 
             $this->assertPublicGithubLinks($response);
