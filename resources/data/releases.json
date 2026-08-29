@@ -39,12 +39,16 @@
   ],
   "rollback": "Redeploy the previous application version. GitHub Releases already published remain on the repository; remove them only with an explicit operator decision.",
   "provenance": "Defined by the changelog and GitHub version sync audit for MyAPES Account issue #178.",
-  "references": [
-    {
-    "label": "Issue #178",
-    "url": "https://github.com/APESCIC/MyAPES-Account/issues/178"
-    }
-  ]
+    "references": [
+      {
+        "label": "Issue #178",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/178"
+      },
+      {
+        "label": "Pull request #181",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/181"
+      }
+    ]
   },
   {
   "version": "0.31.6",
