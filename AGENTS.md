@@ -171,6 +171,24 @@ Use `--seed` / `-Seed` for non-destructive seeding. See README “Local environm
 
 Reuse an already-running preview; do not start duplicate servers. Open **http://127.0.0.1:8000/** in Cursor's built-in browser (side pane preferred) before UI edits, confirm the page loads, and note the preview URL (and Vite HMR port when relevant) in your reply. Skip preview startup for non-UI tasks.
 
+## Cloud Agents
+
+Repository-managed environment config lives in [`.cursor/environment.json`](.cursor/environment.json). `install` bootstraps dependencies; `start` verifies `GH_ACTIONS_TOKEN`; the `dev` terminal runs `composer run dev`.
+
+### GitHub Actions from cloud
+
+The built-in Cursor GitHub App token is **read-only for Actions**. These work without extra setup:
+
+- `gh workflow list`, `gh run list`, `gh run view`
+- `gh pr list`, `gh pr checks`, `gh issue list`
+
+These need `GH_ACTIONS_TOKEN` (fine-grained PAT with Actions write) in Cursor environment secrets:
+
+- `bash scripts/cloud/gh-actions.sh workflow-run "Deploy MyAPES Core to Cloudron" main app_version=<version>`
+- `bash scripts/cloud/gh-actions.sh run-rerun <run-id>`
+
+Use `bash scripts/cloud/gh-actions.sh run-watch <run-id>` to follow a run (read-only; default `gh` auth is fine). See `.cursor/skills/ship-gate/SKILL.md` for the full deploy gate.
+
 ===
 
 <laravel-boost-guidelines>

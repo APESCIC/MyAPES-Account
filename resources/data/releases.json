@@ -1,5 +1,51 @@
 [
   {
+    "version": "0.31.12",
+    "date": "2026-08-30",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Cloud agent GitHub Actions workflow dispatch",
+    "summary": "Cloud agents can dispatch GitHub Actions workflows and rerun CI using a PAT-backed helper when GH_ACTIONS_TOKEN is configured in the Cursor environment.",
+    "changes": [
+      "Add scripts/cloud/gh-actions.sh for workflow-run, run-rerun, and run-watch using GH_ACTIONS_TOKEN.",
+      "Add repository-managed .cursor/environment.json with install, start, and dev terminal wiring.",
+      "Add .cursor/Dockerfile with PHP 8.4 and Node 22 for full Laravel dev after merge.",
+      "Update ship-gate skill and AGENTS.md with cloud-safe deploy and CI commands."
+    ],
+    "affected_areas": [
+      "Cloud agent environment",
+      "Agent ship-gate workflow guidance"
+    ],
+    "categories": [
+      "fixed"
+    ],
+    "audiences": [
+      "internal-only"
+    ],
+    "version_rationale": "Patch release: agent and cloud environment infrastructure only; no end-user product behaviour change.",
+    "validation": [
+      "CloudGhActionsContractTest covers gh-actions helper, environment.json wiring, and ship-gate documentation.",
+      "Draft environment build bld-20260830-4429a1c4-a127-47a3-bbb3-9a3dd01c90e1 succeeded with install/start scripts.",
+      "php artisan myapes:changelog-validate --base-ref=origin/main after filling release notes."
+    ],
+    "known_limitations": [
+      "GH_ACTIONS_TOKEN must be added manually to Cursor environment secrets before workflow dispatch works.",
+      "The built-in Cursor GitHub App token remains read-only for Actions write operations."
+    ],
+    "rollback": "Redeploy the previous application version. Remove .cursor/environment.json and scripts/cloud/ if reverting agent workflow support.",
+    "provenance": "Defined by MyAPES Account issue #187 and pull request #188.",
+    "references": [
+      {
+        "label": "Issue #187",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/187"
+      },
+      {
+        "label": "Pull request #188",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/188"
+      }
+    ]
+  },
+  {
     "version": "0.31.11",
     "date": "2026-08-29",
     "channel": "stable",

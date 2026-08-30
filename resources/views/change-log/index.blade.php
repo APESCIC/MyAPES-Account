@@ -24,7 +24,7 @@
                 <span>{{ ucfirst($currentRelease['type']) }} · {{ ucfirst($currentRelease['channel']) }}</span>
                 <strong>{{ $currentRelease['title'] }}</strong>
             </div>
-            <a href="#release-v{{ str_replace('.', '-', $currentRelease['version']) }}">View current release</a>
+            <a href="#release-v{{ str_replace('.', '-', $currentReleaseAnchor) }}">View current release</a>
         </div>
     </section>
 

@@ -82,6 +82,12 @@ Watch pending checks:
 gh pr checks --watch --fail-fast
 ```
 
+To rerun a failed workflow from a cloud agent:
+
+```bash
+bash scripts/cloud/gh-actions.sh run-rerun <run-id>
+```
+
 **Recommended** when checks are green and release metadata is in the PR: merge.
 
 ```powershell
@@ -100,12 +106,15 @@ gh run list --branch main --workflow "Test MyAPES Core" --limit 3
 
 If the user chooses deploy:
 
-```powershell
-$version = (git show origin/main:VERSION).Trim()
-gh workflow run "Deploy MyAPES Core to Cloudron" --ref main -f app_version="$version"
-gh run list --workflow "Deploy MyAPES Core to Cloudron" --limit 1
-gh run watch <run-id>
+```bash
+version="$(git show origin/main:VERSION | tr -d '\r\n')"
+bash scripts/cloud/gh-actions.sh workflow-run \
+  "Deploy MyAPES Core to Cloudron" main "app_version=${version}"
+run_id="$(gh run list --workflow "Deploy MyAPES Core to Cloudron" --limit 1 --json databaseId --jq '.[0].databaseId')"
+bash scripts/cloud/gh-actions.sh run-watch "$run_id"
 ```
+
+Cloud agents need `GH_ACTIONS_TOKEN` in Cursor environment secrets for `workflow-run` and `run-rerun`. Read-only `gh` commands (`run list`, `pr checks`) use the default token.
 
 Verify live when the run succeeds:
 

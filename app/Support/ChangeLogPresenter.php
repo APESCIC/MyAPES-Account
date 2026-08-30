@@ -24,6 +24,7 @@ class ChangeLogPresenter
     /**
      * @return array{
      *     currentRelease: array<string, mixed>,
+     *     currentReleaseAnchor: string,
      *     releases: list<array<string, mixed>>,
      *     showInternalAudienceFilter: bool,
      *     showInternalNotes: bool,
@@ -37,6 +38,7 @@ class ChangeLogPresenter
         if ($showInternal) {
             return [
                 'currentRelease' => self::withGithubReleaseReference($current),
+                'currentReleaseAnchor' => (string) ($current['version'] ?? ''),
                 'releases' => array_map(
                     static fn (array $release): array => self::withGithubReleaseReference($release),
                     $this->releases->all(),
@@ -52,6 +54,7 @@ class ChangeLogPresenter
             'currentRelease' => self::isPublicFacing($current)
                 ? self::publicProjection($current)
                 : self::publicCurrentPlaceholder($current),
+            'currentReleaseAnchor' => self::publicCurrentReleaseAnchor($current, $releases),
             'releases' => $releases,
             'showInternalAudienceFilter' => false,
             'showInternalNotes' => false,
@@ -120,6 +123,19 @@ class ChangeLogPresenter
      * @param  array<string, mixed>  $release
      * @return array<string, mixed>
      */
+    /**
+     * @param  array<string, mixed>  $current
+     * @param  list<array<string, mixed>>  $publicReleases
+     */
+    public static function publicCurrentReleaseAnchor(array $current, array $publicReleases): string
+    {
+        if (self::isPublicFacing($current)) {
+            return (string) ($current['version'] ?? '');
+        }
+
+        return (string) ($publicReleases[0]['version'] ?? $current['version'] ?? '');
+    }
+
     public static function publicCurrentPlaceholder(array $release): array
     {
         return self::publicProjection([
