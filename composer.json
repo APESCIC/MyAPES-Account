@@ -60,6 +60,10 @@
             "Composer\\Config::disableProcessTimeout",
             "powershell -ExecutionPolicy Bypass -File scripts/local/pre-merge.ps1"
         ],
+        "pre-pr-verify": [
+            "Composer\\Config::disableProcessTimeout",
+            "powershell -ExecutionPolicy Bypass -File scripts/local/pre-pr-verify.ps1"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

@@ -102,14 +102,21 @@ Every change merged to `main` must include release metadata in the **same pull r
    git fetch origin
    php artisan myapes:changelog-validate --base-ref=origin/main
    ```
-5. Include `VERSION`, `resources/data/releases.json`, `resources/data/module-runtime-contract.json`, and the version-pinned test updates from the prepare command in the **same PR**. Before the first commit or push, present the ship-gate **commit** Next-actions menu (do not auto-commit); then open/update the PR and merge only when CI is green.
-6. After merge, ask whether to deploy to Cloudron (`workflow_dispatch` only — no auto-deploy). Pass `app_version` from `VERSION` when dispatching deploy. After a successful deploy, verify the live Change Log Hub (`/change-log`), confirm the GitHub Release display title `{VERSION} Beta` and tag `v{VERSION}` target the deployed SHA (created by the deploy workflow), and ask before updating any sibling website changelogs/hubs. Follow `.cursor/rules/ship-gate.mdc` and `.cursor/skills/ship-gate/SKILL.md`.
+5. Run local dev verify on the PR branch (`composer pre-pr-verify` or ship-gate manual steps in `.cursor/skills/ship-gate/SKILL.md`) after release metadata validates and before commit/PR.
+6. Include `VERSION`, `resources/data/releases.json`, `resources/data/module-runtime-contract.json`, and the version-pinned test updates from the prepare command in the **same PR**. Before the first commit or push, present the ship-gate **local verify** then **commit** Next-actions menus (do not auto-commit); then open/update the PR and merge only when CI is green.
+7. After merge, follow post-merge gates in order: changelog hubs (confirm metadata on `main`), Cloudron deploy last (`workflow_dispatch` only — pass `app_version` from `VERSION`), then verify live `/change-log`, `healthz`, and the GitHub Release `{VERSION} Beta` / tag `v{VERSION}` on the deployed SHA (created by the deploy workflow). Ask before updating any sibling website changelogs/hubs. Follow `.cursor/rules/ship-gate.mdc` and `.cursor/skills/ship-gate/SKILL.md`.
 
 The prepare command syncs `VERSION`, prepends one release record, updates `module-runtime-contract.json` → `application_version`, and patches version-pinned tests. Do not edit or reorder published release records. See `.cursor/skills/release-metadata/SKILL.md` for full guidance.
 
 ### Pre-merge validation
 
-Before pushing a release branch, run:
+Before pushing a release branch, run local dev verify (includes contract gate + bootstrap):
+
+```powershell
+composer pre-pr-verify
+```
+
+Or the contract gate alone:
 
 ```powershell
 composer pre-merge
@@ -118,6 +125,7 @@ composer pre-merge
 Or:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\local\pre-pr-verify.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\local\pre-merge.ps1
 ```
 
