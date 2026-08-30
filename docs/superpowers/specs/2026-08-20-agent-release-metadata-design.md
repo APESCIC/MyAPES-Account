@@ -14,7 +14,8 @@ Release metadata (`VERSION`, `resources/data/releases.json`, `resources/data/mod
 | When to bump | Same PR as feature/fix, before merge |
 | Mechanism | `myapes:changelog-prepare` (stub-then-fill) + agent narrative |
 | CI changes | Extend validator only (manifest sync, reject `TODO:`) |
-| Deploy | Manual `workflow_dispatch` after merge (ship-gate); GitHub Release created automatically on successful deploy |
+| Local verify | On PR branch before merge (`composer pre-pr-verify` or ship-gate steps) |
+| Deploy | Manual `workflow_dispatch` after merge; Cloudron last after changelog metadata; GitHub Release created automatically on successful deploy |
 
 ## Flow
 
@@ -23,10 +24,12 @@ Feature/fix complete
   → myapes:changelog-prepare
   → agent replaces TODO: fields
   → myapes:changelog-validate --base-ref=origin/main
+  → local dev verify on PR branch (pre-pr-verify)
   → same PR merges to main
-  → (ask) deploy via workflow_dispatch (pass app_version from VERSION)
-  → verify live Change Log Hub (/change-log from releases.json)
+  → (ask) confirm changelog metadata on main
   → (ask) sibling website changelogs only if operator wants them
+  → (ask) deploy via workflow_dispatch (Cloudron last; pass app_version from VERSION)
+  → verify live Change Log Hub (/change-log from releases.json)
   → verify GitHub Release {VERSION} Beta display title on deployed SHA (tag v{VERSION}; created by deploy workflow)
 ```
 
@@ -52,3 +55,8 @@ Feature/fix complete
 - Successful deploy publishes GitHub Release `{VERSION} Beta` (display name) with tag `v{VERSION}` on the deployed SHA; feature title remains in release body
 - Issue milestones use minor-line `v0.N.x Beta` naming until beta exit
 - One-time `scripts/github/rename-release-titles.sh` renames existing GitHub Release display titles to `{VERSION} Beta`
+
+## Later change (#189)
+
+- Local dev verify on the PR branch before commit/merge
+- Post-merge gate order: changelog hubs → Cloudron deploy last → live hub and GitHub Release verification

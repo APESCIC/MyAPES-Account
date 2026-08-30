@@ -13,7 +13,7 @@ Every feature or fix merged to `main` must include release metadata in the **sam
 2. Run `php artisan myapes:changelog-prepare` with `--type`, `--title`, and `--issue` (plus `--pr` when known).
 3. Replace all `TODO:` fields in the new `resources/data/releases.json` head record.
 4. Run `git fetch origin && php artisan myapes:changelog-validate --base-ref=origin/main`.
-5. Open or update the PR with release files included. Merge when CI is green. Cloudron deploy and GitHub Release are separate post-merge gates (see ship-gate rule).
+5. Run local dev verify on the PR branch (`composer pre-pr-verify` or ship-gate manual steps), then open or update the PR with release files included. Merge when CI is green. Changelog hubs, GitHub Release, and Cloudron deploy are separate post-merge gates in that order; Cloudron deploy is last (see ship-gate rule).
 
 ## Files that must stay in sync
 

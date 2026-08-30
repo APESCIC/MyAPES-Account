@@ -87,15 +87,23 @@ php artisan myapes:changelog-validate
 
 ## Pre-merge
 
-Before pushing, run the full release and contract gate:
+Before pushing, run local dev verify (contract gate + bootstrap upgrade path):
+
+```powershell
+composer pre-pr-verify
+```
+
+Or the contract gate alone:
 
 ```powershell
 composer pre-merge
 ```
 
-## Deploy timing
+## Local verify and deploy timing
 
-Release metadata belongs in the PR **before merge**. After merge to `main`, `.github/workflows/test-cloudron.yml` validates release history and runs tests. Cloudron deploy is **manual** (`workflow_dispatch` on `.github/workflows/deploy-cloudron.yml`, passing `app_version` from `VERSION`). After a successful deploy, verify the live Change Log Hub, confirm the GitHub Release `v{VERSION}` on the deployed SHA (created by the deploy workflow), and ask before touching sibling website changelogs. See `.cursor/skills/ship-gate/SKILL.md`.
+Release metadata belongs in the PR **before merge**. After release metadata validates, run local dev verify on the PR branch (`composer pre-pr-verify` or the ship-gate manual steps) before commit/PR.
+
+After merge to `main`, `.github/workflows/test-cloudron.yml` validates release history and runs tests. Post-merge gates run in order: changelog hubs (metadata on `main`; live hub after deploy), **Cloudron deploy last** (`workflow_dispatch` on `.github/workflows/deploy-cloudron.yml`, passing `app_version` from `VERSION`), then verify live `healthz`, the Change Log Hub, and the GitHub Release `{VERSION} Beta` / tag `v{VERSION}` on the deployed SHA (created by the deploy workflow). Ask before touching sibling website changelogs. See `.cursor/skills/ship-gate/SKILL.md`.
 
 ## Do not
 

@@ -420,7 +420,7 @@ git fetch origin
 php artisan myapes:changelog-validate --base-ref=origin/main
 ```
 
-Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch of the test workflow performs structural validation without requiring another version. In-PR release metadata does not create Git tags automatically; a successful Cloudron deploy creates the GitHub Release with display title `{VERSION} Beta` and tag `v{VERSION}` on the deployed SHA. See ship-gate.
+Pull-request and `main` workflows perform the same append-only comparison. Manual workflow dispatch of the test workflow performs structural validation without requiring another version. In-PR release metadata does not create Git tags automatically. Agents run local dev verify on the PR branch before merge. A successful Cloudron deploy (last post-merge step) creates the GitHub Release with display title `{VERSION} Beta` and tag `v{VERSION}` on the deployed SHA. See ship-gate.
 
 ### GitHub Release tags
 
@@ -438,8 +438,8 @@ Deployments are handled by `.github/workflows/deploy-cloudron.yml`.
 ### Deployment triggers
 
 1. Deploy runs only on manual `workflow_dispatch` (for example `gh workflow run "Deploy MyAPES Core to Cloudron" --ref main`). There is no auto-deploy after a green `main` test run.
-2. Prefer deploying after `test-cloudron.yml` has succeeded for the target `main` revision. Agents ask before dispatching (ship-gate).
-3. After a successful deploy, the app Change Log Hub at `/change-log` shows the head `releases.json` record from that revision. Sibling APES websites keep separate changelogs; update those only when the operator asks (ship-gate).
+2. Run local dev verify on the PR branch before merge (`composer pre-pr-verify` or ship-gate steps). Prefer Cloudron deploy only after `test-cloudron.yml` has succeeded for the target `main` revision, local verify passed, and changelog metadata on `main` is confirmed. Cloudron is the **last** post-merge deploy step; pass `app_version` from `VERSION` when dispatching (ship-gate).
+3. After a successful Cloudron deploy, the app Change Log Hub at `/change-log` shows the head `releases.json` record, and the deploy workflow publishes GitHub Release `{VERSION} Beta` with tag `v{VERSION}`. Sibling APES websites keep separate changelogs; update those only when the operator asks (ship-gate).
 
 ### Target app
 
