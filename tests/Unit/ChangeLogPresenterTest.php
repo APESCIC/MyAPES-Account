@@ -94,6 +94,30 @@ class ChangeLogPresenterTest extends TestCase
         $this->assertFalse(ChangeLogPresenter::isPublicFacing($releases[1]));
     }
 
+    public function test_public_current_release_anchor_points_at_latest_visible_release_when_current_is_internal_only(): void
+    {
+        $current = [
+            'version' => '0.4.1',
+            'audiences' => ['internal-only'],
+        ];
+        $publicReleases = [
+            ['version' => '0.4.0'],
+            ['version' => '0.3.0'],
+        ];
+
+        $this->assertSame(
+            '0.4.0',
+            ChangeLogPresenter::publicCurrentReleaseAnchor($current, $publicReleases),
+        );
+        $this->assertSame(
+            '0.4.1',
+            ChangeLogPresenter::publicCurrentReleaseAnchor(
+                ['version' => '0.4.1', 'audiences' => ['public-facing']],
+                $publicReleases,
+            ),
+        );
+    }
+
     public function test_internal_only_current_release_uses_a_public_placeholder(): void
     {
         $placeholder = ChangeLogPresenter::publicCurrentPlaceholder([

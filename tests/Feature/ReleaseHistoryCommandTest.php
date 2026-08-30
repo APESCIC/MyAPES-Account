@@ -32,7 +32,7 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-29', $releases[6]['date']);
         $this->assertSame('2026-08-29', $releases[7]['date']);
         $this->assertSame('2026-08-29', $releases[8]['date']);
-        $this->assertSame('2026-08-28', $releases[9]['date']);
+        $this->assertSame('2026-08-29', $releases[9]['date']);
         $this->assertSame('2026-08-28', $releases[10]['date']);
         $this->assertSame('2026-08-28', $releases[11]['date']);
         $this->assertSame('2026-08-28', $releases[12]['date']);

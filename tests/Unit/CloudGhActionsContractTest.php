@@ -89,10 +89,15 @@ class CloudGhActionsContractTest extends TestCase
 
     private function read(string $path): string
     {
-        $contents = file_get_contents($path);
+        $contents = file_get_contents($this->projectPath($path));
 
         $this->assertNotFalse($contents, "Unable to read {$path}.");
 
         return $contents;
+    }
+
+    private function projectPath(string $relativePath): string
+    {
+        return dirname(__DIR__, 2).DIRECTORY_SEPARATOR.$relativePath;
     }
 }
