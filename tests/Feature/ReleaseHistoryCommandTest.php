@@ -42,24 +42,24 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-28', $releases[16]['date']);
         $this->assertSame('2026-08-28', $releases[17]['date']);
         $this->assertSame('2026-08-28', $releases[18]['date']);
-        $this->assertSame('2026-08-25', $releases[19]['date']);
+        $this->assertSame('2026-08-28', $releases[19]['date']);
         $this->assertSame('2026-08-25', $releases[20]['date']);
         $this->assertSame('2026-08-25', $releases[21]['date']);
         $this->assertSame('2026-08-25', $releases[22]['date']);
         $this->assertSame('2026-08-25', $releases[23]['date']);
         $this->assertSame('2026-08-25', $releases[24]['date']);
         $this->assertSame('2026-08-25', $releases[25]['date']);
-        $this->assertSame('2026-08-24', $releases[26]['date']);
+        $this->assertSame('2026-08-25', $releases[26]['date']);
         $this->assertSame('2026-08-24', $releases[27]['date']);
         $this->assertSame('2026-08-24', $releases[28]['date']);
         $this->assertSame('2026-08-24', $releases[29]['date']);
         $this->assertSame('2026-08-24', $releases[30]['date']);
         $this->assertSame('2026-08-24', $releases[31]['date']);
-        $this->assertSame('2026-08-23', $releases[32]['date']);
-        $this->assertSame('2026-08-22', $releases[33]['date']);
+        $this->assertSame('2026-08-24', $releases[32]['date']);
+        $this->assertSame('2026-08-23', $releases[33]['date']);
         $this->assertSame('2026-08-22', $releases[34]['date']);
         $this->assertSame('2026-08-22', $releases[35]['date']);
-        $this->assertSame('2026-08-20', $releases[36]['date']);
+        $this->assertSame('2026-08-22', $releases[36]['date']);
         $this->assertSame('2026-08-20', $releases[37]['date']);
         $this->assertSame('2026-08-20', $releases[38]['date']);
         $this->assertSame('2026-08-20', $releases[39]['date']);
@@ -69,38 +69,40 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-20', $releases[43]['date']);
         $this->assertSame('2026-08-20', $releases[44]['date']);
         $this->assertSame('2026-08-20', $releases[45]['date']);
-        $this->assertSame('2026-08-19', $releases[46]['date']);
+        $this->assertSame('2026-08-20', $releases[46]['date']);
         $this->assertSame('2026-08-19', $releases[47]['date']);
         $this->assertSame('2026-08-19', $releases[48]['date']);
         $this->assertSame('2026-08-19', $releases[49]['date']);
-        $this->assertSame('2026-08-14', $releases[50]['date']);
+        $this->assertSame('2026-08-19', $releases[50]['date']);
         $this->assertSame('2026-08-14', $releases[51]['date']);
-        $this->assertSame('2026-08-11', $releases[52]['date']);
-        $this->assertSame('2026-08-10', $releases[53]['date']);
+        $this->assertSame('2026-08-14', $releases[52]['date']);
+        $this->assertSame('2026-08-11', $releases[53]['date']);
         $this->assertSame('2026-08-10', $releases[54]['date']);
         $this->assertSame('2026-08-10', $releases[55]['date']);
-        $this->assertSame('2026-08-09', $releases[56]['date']);
+        $this->assertSame('2026-08-10', $releases[56]['date']);
         $this->assertSame('2026-08-09', $releases[57]['date']);
         $this->assertSame('2026-08-09', $releases[58]['date']);
-        $this->assertSame('2026-08-08', $releases[59]['date']);
-        $this->assertSame('2026-08-07', $releases[60]['date']);
-        $this->assertSame('2026-08-06', $releases[61]['date']);
-        $this->assertSame('2026-08-05', $releases[62]['date']);
+        $this->assertSame('2026-08-09', $releases[59]['date']);
+        $this->assertSame('2026-08-08', $releases[60]['date']);
+        $this->assertSame('2026-08-07', $releases[61]['date']);
+        $this->assertSame('2026-08-06', $releases[62]['date']);
         $this->assertSame('2026-08-05', $releases[63]['date']);
         $this->assertSame('2026-08-05', $releases[64]['date']);
-        $this->assertSame('2026-07-28', $releases[65]['date']);
-        $this->assertSame('2026-07-27', $releases[66]['date']);
+        $this->assertSame('2026-08-05', $releases[65]['date']);
+        $this->assertSame('2026-07-28', $releases[66]['date']);
         $this->assertSame('2026-07-27', $releases[67]['date']);
         $this->assertSame('2026-07-27', $releases[68]['date']);
         $this->assertSame('2026-07-27', $releases[69]['date']);
+        $this->assertSame('2026-07-27', $releases[70]['date']);
 
-        foreach (array_slice($releases, 70) as $release) {
+        foreach (array_slice($releases, 71) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 69) as $release) {
+        foreach (array_slice($releases, 70) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
+
 
         $current = $repository->current();
         $this->assertSame('stable', $current['channel']);

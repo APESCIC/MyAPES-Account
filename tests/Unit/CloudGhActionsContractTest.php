@@ -48,7 +48,7 @@ class CloudGhActionsContractTest extends TestCase
         $this->assertSame('..', $environment['build']['context']);
         $this->assertSame('bash scripts/cloud/install.sh', $environment['install']);
         $this->assertSame('bash scripts/cloud/configure-gh-auth.sh', $environment['start']);
-        $this->assertSame('composer run dev', $environment['termininals'][0]['command']);
+        $this->assertSame('composer run dev', $environment['terminals'][0]['command']);
     }
 
     public function test_dockerfile_includes_php_node_and_composer(): void
