@@ -51,13 +51,12 @@ class CloudGhActionsContractTest extends TestCase
         $this->assertSame('composer run dev', $environment['termininals'][0]['command']);
     }
 
-    public function test_dockerfile_includes_php_node_and_composer(): void
+    public function test_install_script_skips_dependencies_when_php_is_missing(): void
     {
-        $dockerfile = $this->read('.cursor/Dockerfile');
+        $script = $this->read('scripts/cloud/install.sh');
 
-        $this->assertStringContainsString('php8.4-cli', $dockerfile);
-        $this->assertStringContainsString('nodejs', $dockerfile);
-        $this->assertStringContainsString('composer', $dockerfile);
+        $this->assertStringContainsString('Skipping dependency install; missing tools', $script);
+        $this->assertStringContainsString('GitHub Actions helpers only', $script);
     }
 
     public function test_ship_gate_skill_uses_cloud_actions_helper(): void
