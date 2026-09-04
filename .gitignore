@@ -11,6 +11,7 @@
 !/.cursor/rules/**
 !/.cursor/skills/
 !/.cursor/skills/**
+!/.cursor/environment.json
 /.idea
 /.nova
 /.phpunit.cache
