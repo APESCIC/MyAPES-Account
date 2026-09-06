@@ -165,25 +165,9 @@ Defer **live** verification until after Cloudron deploy succeeds.
 
 Footer version links also point at this hub.
 
-### Sibling website changelogs (other repos)
-
-These sites keep their **own** `VERSION` / `CHANGELOG.md` / Change Log Hub pages. They are **not** updated by MyAPES Account deploy:
-
-| Site | Typical repo | Typical paths |
-| --- | --- | --- |
-| APES CIC website | `APESCIC/APES.CIC.Website` | `CHANGELOG.md`, `public/CHANGELOG.md`, `/change-log-hub/` |
-| Shelter website | `APESCIC/APES.Shelter.Website` | `CHANGELOG.md`, `public/CHANGELOG.md`, changelog HTML |
-| Pet Care website | `APESCIC/APES.Pet.Care.Website` | follow that repo’s AGENTS.md |
-| MyAPES marketing site | `APESCIC/MyAPES.Website` | `CHANGELOG.md`, `VERSION`, `public/` |
+Sibling website changelogs/hubs are **out of scope** during this gate. Do not offer or update other repos’ changelogs or Change Log Hub pages when shipping MyAPES Account.
 
 **Recommended:** confirm metadata on `main`, then continue to Cloudron deploy.
-
-If the user picks sibling updates:
-
-1. Ask which site(s) to touch.
-2. Work only in those repos after the user confirms (separate clone/branch/PR there).
-3. Do **not** create GitHub issues in other repositories unless the user explicitly orders it.
-4. Keep MyAPES Core release notes accurate on `/change-log`; do not duplicate Core-only deploy details onto unrelated marketing sites unless the user wants a cross-link blurb.
 
 ## After changelog gate — Cloudron deploy
 

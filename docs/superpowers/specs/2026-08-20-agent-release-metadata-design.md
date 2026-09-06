@@ -26,8 +26,7 @@ Feature/fix complete
   → myapes:changelog-validate --base-ref=origin/main
   → local dev verify on PR branch (pre-pr-verify)
   → same PR merges to main
-  → (ask) confirm changelog metadata on main
-  → (ask) sibling website changelogs only if operator wants them
+  → (ask) confirm changelog metadata on main (this repo only)
   → (ask) deploy via workflow_dispatch (Cloudron last; pass app_version from VERSION)
   → verify live Change Log Hub (/change-log from releases.json)
   → verify GitHub Release {VERSION} Beta display title on deployed SHA (tag v{VERSION}; created by deploy workflow)
@@ -47,7 +46,7 @@ Feature/fix complete
 ## Later change (#167)
 
 - Auto-deploy on green `main` removed; deploy is `workflow_dispatch` only
-- Agents verify the MyAPES Core Change Log Hub after deploy and ask before updating sibling website changelog hubs
+- Agents verify the MyAPES Core Change Log Hub after deploy; sibling website changelogs/hubs are out of scope
 
 ## Later change (#183)
 
