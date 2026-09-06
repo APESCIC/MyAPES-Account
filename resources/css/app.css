@@ -489,6 +489,11 @@ code {
     flex: 1;
 }
 
+body.has-mascot-dock .app-main {
+    padding-bottom: 7.25rem;
+    scroll-padding-bottom: 7.25rem;
+}
+
 .qa-switcher {
     margin-bottom: 1.15rem;
     padding: 0.75rem 1.1rem;
@@ -2384,8 +2389,27 @@ tbody tr:hover {
     max-width: min(22rem, calc(100vw - 2rem));
 }
 
+.mascot-dock--collapsed {
+    max-width: none;
+}
+
 .mascot-dock[hidden] {
     display: none;
+}
+
+.mascot-dock__toggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.mascot-dock__toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--brand-teal);
 }
 
 .mascot-dock__avatar {
@@ -2394,6 +2418,7 @@ tbody tr:hover {
     flex: 0 0 auto;
     object-fit: contain;
     filter: drop-shadow(0 8px 16px rgba(42, 31, 20, 0.18));
+    pointer-events: none;
 }
 
 .mascot-dock__bubble {
@@ -2404,6 +2429,10 @@ tbody tr:hover {
     border-radius: 1.15rem 1.15rem 0.35rem 1.15rem;
     background: var(--surface-raised);
     box-shadow: var(--shadow-soft);
+}
+
+.mascot-dock__bubble[hidden] {
+    display: none;
 }
 
 .mascot-dock__bubble p {

@@ -182,6 +182,8 @@ sidebarMedia.addEventListener('change', () => {
 
 const mascotStorageKey = 'myapes-mascot-dismissed-v2';
 const mascotDock = document.querySelector('[data-mascot-dock]');
+const mascotToggle = document.querySelector('[data-mascot-toggle]');
+const mascotBubble = document.querySelector('[data-mascot-bubble]');
 const mascotDismiss = document.querySelector('[data-mascot-dismiss]');
 
 const readDismissedMascotRoutes = () => {
@@ -194,12 +196,47 @@ const readDismissedMascotRoutes = () => {
     }
 };
 
+const hideMascotDock = () => {
+    if (!(mascotDock instanceof HTMLElement)) {
+        return;
+    }
+
+    mascotDock.hidden = true;
+    document.body.classList.remove('has-mascot-dock');
+};
+
+const setMascotDockExpanded = (expanded) => {
+    if (!(mascotDock instanceof HTMLElement)) {
+        return;
+    }
+
+    mascotDock.classList.toggle('mascot-dock--collapsed', !expanded);
+
+    if (mascotToggle instanceof HTMLElement) {
+        mascotToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        mascotToggle.setAttribute(
+            'aria-label',
+            expanded ? 'Hide tip from Spike' : 'Show tip from Spike',
+        );
+    }
+
+    if (mascotBubble instanceof HTMLElement) {
+        mascotBubble.hidden = !expanded;
+    }
+};
+
 if (mascotDock instanceof HTMLElement) {
     const routeName = mascotDock.dataset.mascotRoute ?? '';
 
     if (routeName !== '' && readDismissedMascotRoutes().includes(routeName)) {
-        mascotDock.hidden = true;
+        hideMascotDock();
     }
+
+    mascotToggle?.addEventListener('click', () => {
+        const expanded = mascotToggle.getAttribute('aria-expanded') === 'true';
+
+        setMascotDockExpanded(!expanded);
+    });
 
     mascotDismiss?.addEventListener('click', () => {
         if (routeName === '') {
@@ -215,6 +252,6 @@ if (mascotDock instanceof HTMLElement) {
             // The tip still hides for this page when storage is unavailable.
         }
 
-        mascotDock.hidden = true;
+        hideMascotDock();
     });
 }
