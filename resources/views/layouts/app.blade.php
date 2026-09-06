@@ -38,7 +38,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body>
+<body @class(['has-mascot-dock' => $mascotTip])>
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
 <header class="mobile-header">
@@ -244,19 +244,33 @@
 </div>
 @if($mascotTip)
     <aside
-        class="mascot-dock"
+        class="mascot-dock mascot-dock--collapsed"
         data-mascot-dock
         data-mascot-route="{{ $mascotTip['route'] }}"
         aria-label="Tip from Spike, the MyAPES bearded dragon"
     >
-        <img
-            src="{{ asset('mascot/spike-dock.png') }}"
-            alt=""
-            class="mascot-dock__avatar"
-            width="1024"
-            height="1024"
+        <button
+            type="button"
+            class="mascot-dock__toggle"
+            data-mascot-toggle
+            aria-expanded="false"
+            aria-controls="mascot-dock-bubble"
+            aria-label="Show tip from Spike"
         >
-        <div class="mascot-dock__bubble">
+            <img
+                src="{{ asset('mascot/spike-dock.png') }}"
+                alt=""
+                class="mascot-dock__avatar"
+                width="1024"
+                height="1024"
+            >
+        </button>
+        <div
+            id="mascot-dock-bubble"
+            class="mascot-dock__bubble"
+            data-mascot-bubble
+            hidden
+        >
             <button
                 type="button"
                 class="mascot-dock__dismiss"
