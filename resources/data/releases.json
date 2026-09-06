@@ -9,7 +9,7 @@
     "changes": [
       "Show a branded Page not found page for genuinely unknown URLs.",
       "Show a branded Access denied page when a signed-in user is not allowed to open a page, including public users visiting Admin or Super Admin.",
-      "Keep intentional abort(403) messages visible on the branded Access denied page (for example staff email-collision guidance).",
+      "Keep intentional abort(403) messages visible on the branded Access denied page (for example staff email-collision guidance), while Gate denials keep the friendly public wording.",
       "Keep denial status codes unchanged so public users stay blocked from staff areas.",
       "Allow the production-upgrade preflight contract test to run without the LDAP PHP extension.",
       "Stop local bootstrap from losing its project root when sourcing the selective-media boundary script."

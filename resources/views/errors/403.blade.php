@@ -3,10 +3,16 @@
 @section('title', 'Access denied | MyAPES Core')
 
 @section('content')
+    @php
+        $denialMessage = trim($exception->getMessage());
+        $useFriendlyDenial = $denialMessage === '' || $denialMessage === 'This action is unauthorized.';
+    @endphp
     <div class="panel">
         <h1>Access denied</h1>
         <p class="muted">
-            {{ $exception->getMessage() !== '' ? $exception->getMessage() : 'You do not have permission to view this page. If you need access, contact an APES administrator.' }}
+            {{ $useFriendlyDenial
+                ? 'You do not have permission to view this page. If you need access, contact an APES administrator.'
+                : $denialMessage }}
         </p>
         <div class="actions">
             <a href="{{ route('home') }}">Back to home</a>
