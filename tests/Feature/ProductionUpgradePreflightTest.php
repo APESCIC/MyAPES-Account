@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\DirectoryUnavailable;
 use App\Models\User;
+use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;
 use App\Support\DirectoryGroupPrefix;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,7 +45,7 @@ class ProductionUpgradePreflightTest extends TestCase
             'myapes.ldap.groups_base_dn' => 'ou=groups,dc=cloudron',
         ]);
         $this->app->instance(
-            \App\Services\DirectoryUserSynchronizer::class,
+            DirectoryUserSynchronizer::class,
             new FakeDirectoryUserSynchronizer,
         );
         Http::preventStrayRequests();
@@ -84,6 +86,22 @@ class ProductionUpgradePreflightTest extends TestCase
              * @param  array<string, array<int, string>>  $groupsByEmail
              */
             public function __construct(private array &$groupsByEmail) {}
+
+            /**
+             * Catalogue fakes must not require the LDAP PHP extension.
+             *
+             * @return array<string, mixed>
+             */
+            protected function configuration(): array
+            {
+                $config = config('myapes.ldap');
+
+                if (! is_array($config)) {
+                    throw new DirectoryUnavailable('LDAP configuration is incomplete.');
+                }
+
+                return $config;
+            }
 
             /**
              * @param  array<string, mixed>  $config
