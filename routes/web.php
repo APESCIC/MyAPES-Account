@@ -26,7 +26,10 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'auth.landing')->name('home');
+Route::middleware('guest')->group(function (): void {
+    Route::view('/', 'auth.landing')->name('home');
+});
+
 Route::get('/change-log', ChangeLogController::class)->name('change-log.index');
 Route::get('/storage/pet-profiles/{path?}', static fn () => abort(404))
     ->where('path', '.*');
