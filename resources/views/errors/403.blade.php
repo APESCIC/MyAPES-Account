@@ -5,7 +5,9 @@
 @section('content')
     <div class="panel">
         <h1>Access denied</h1>
-        <p class="muted">You do not have permission to view this page. If you need access, contact an APES administrator.</p>
+        <p class="muted">
+            {{ $exception->getMessage() !== '' ? $exception->getMessage() : 'You do not have permission to view this page. If you need access, contact an APES administrator.' }}
+        </p>
         <div class="actions">
             <a href="{{ route('home') }}">Back to home</a>
             @auth

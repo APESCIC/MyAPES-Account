@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class BrandedErrorPagesTest extends TestCase
@@ -35,5 +36,19 @@ class BrandedErrorPagesTest extends TestCase
                 ->assertSeeText('Go to dashboard')
                 ->assertDontSee('403 | Forbidden', false);
         }
+    }
+
+    public function test_abort_403_with_message_renders_branded_page_and_message(): void
+    {
+        Route::get('/__branded-403-with-message', static function () {
+            abort(403, 'Use a different Cloudron or work email');
+        });
+
+        $this->get('/__branded-403-with-message')
+            ->assertForbidden()
+            ->assertSeeText('MyAPES Core')
+            ->assertSeeText('Access denied')
+            ->assertSeeText('Use a different Cloudron or work email')
+            ->assertDontSee('403 | Forbidden', false);
     }
 }
