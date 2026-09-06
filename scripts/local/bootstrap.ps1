@@ -8,8 +8,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$RootDir = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-Set-Location $RootDir
+$BootstrapRootDir = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+Set-Location $BootstrapRootDir
 
 function Invoke-CheckedCommand {
     param(
@@ -39,9 +39,9 @@ foreach ($requiredFile in @(".\artisan", ".\composer.json", ".\$envExampleName")
     }
 }
 
-$envPath = Join-Path $RootDir ".env"
+$envPath = Join-Path $BootstrapRootDir ".env"
 if (-not (Test-Path -LiteralPath $envPath)) {
-    Copy-Item -LiteralPath (Join-Path $RootDir $envExampleName) -Destination $envPath
+    Copy-Item -LiteralPath (Join-Path $BootstrapRootDir $envExampleName) -Destination $envPath
     Write-Host "Created .env from $envExampleName"
 }
 
@@ -75,7 +75,7 @@ function Set-LocalEnvValue {
     }
 }
 
-$sqlitePath = Join-Path $RootDir "database\database.sqlite"
+$sqlitePath = Join-Path $BootstrapRootDir "database\database.sqlite"
 if (-not (Test-Path -LiteralPath $sqlitePath)) {
     New-Item -ItemType File -Path $sqlitePath | Out-Null
 }
@@ -121,8 +121,10 @@ if ($Fresh) {
     Invoke-CheckedCommand php artisan migrate --force
 }
 
+# Dot-sourcing selective-media-boundary.ps1 declares a script-level $RootDir param that
+# would overwrite a caller variable of the same name; keep the bootstrap path separate.
 . (Join-Path $PSScriptRoot "selective-media-boundary.ps1")
-Assert-SelectiveMediaBoundary -RootDir $RootDir -CreateAvatarLink
+Assert-SelectiveMediaBoundary -RootDir $BootstrapRootDir -CreateAvatarLink
 Invoke-CheckedCommand npm run build
 
 if ($Laragon) {
