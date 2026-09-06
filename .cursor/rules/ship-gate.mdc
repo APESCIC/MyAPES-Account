@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Ship-gate workflow
 
-Start and finish product work from a Cursor agent request. Do not auto-commit, auto-push, auto-merge, auto-deploy, manually create a GitHub Release (deploy workflow creates it), or edit sibling website changelogs without an explicit user choice at each gate (or a prior explicit order that covers that gate).
+Start and finish product work from a Cursor agent request. Do not auto-commit, auto-push, auto-merge, auto-deploy, or manually create a GitHub Release (deploy workflow creates it) without an explicit user choice at each gate (or a prior explicit order that covers that gate).
 
 ## Gates
 
@@ -64,10 +64,9 @@ App Change Log Hub (`/change-log`) is fed by `resources/data/releases.json` in *
 Recommended: confirm metadata on `main`, then continue to the Cloudron deploy gate.
 
 1. Changelog metadata on `main` looks good — continue to Cloudron deploy gate
-2. Also update sibling website changelogs / hubs (name which sites after the user confirms)
-3. Skip hub checks
+2. Skip hub checks
 
-Never edit `APESCIC/*` website repos or create issues there unless the user explicitly asks in this session.
+Sibling website changelogs/hubs are **out of scope** for this ship flow. Do not offer or update them when shipping MyAPES Account; only this repo’s Change Log Hub (`/change-log` from `releases.json`) is in scope.
 
 ### After changelog gate — Cloudron deploy
 
