@@ -40,6 +40,10 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (): string => route('public.login'),
         );
 
+        $middleware->redirectUsersTo(
+            fn (): string => route('dashboard'),
+        );
+
         $middleware->alias([
             'admin.denial-audit' => AuditAdminAuthorizationDenial::class,
             'authorization.context' => EnsureAuthorizationContext::class,
