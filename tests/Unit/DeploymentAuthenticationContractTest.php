@@ -541,6 +541,28 @@ class DeploymentAuthenticationContractTest extends TestCase
         );
     }
 
+    public function test_cloud_install_provisions_php_before_calling_local_bootstrap(): void
+    {
+        $script = $this->read('scripts/cloud/install.sh');
+        $environment = $this->read('.cursor/environment.json');
+
+        $this->assertStringContainsString('bash scripts/cloud/install.sh', $environment);
+        $this->assertStringContainsString('install_php', $script);
+        $this->assertStringContainsString('install_composer', $script);
+        $this->assertStringContainsString('ppa:ondrej/php', $script);
+        $this->assertStringContainsString('php8.4-cli', $script);
+        $this->assertStringContainsString('php8.3-cli', $script);
+        $this->assertStringContainsString('getcomposer.org/installer', $script);
+        $this->assertStringContainsString('scripts/local/bootstrap.sh --fresh', $script);
+        $this->assertStringNotContainsString('Skipping dependency install', $script);
+
+        $phpInstall = $this->position($script, 'install_php');
+        $composerInstall = $this->position($script, 'install_composer');
+        $bootstrap = $this->position($script, 'scripts/local/bootstrap.sh --fresh');
+        $this->assertLessThan($composerInstall, $phpInstall);
+        $this->assertLessThan($bootstrap, $composerInstall);
+    }
+
     public function test_activation_and_rollback_enforce_selective_or_legacy_media_boundaries(): void
     {
         $activation = $this->read('scripts/deploy/activate-release.sh');

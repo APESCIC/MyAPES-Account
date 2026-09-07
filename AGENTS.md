@@ -179,6 +179,10 @@ Use `--seed` / `-Seed` for non-destructive seeding. See README “Local environm
 
 Reuse an already-running preview; do not start duplicate servers. Open **http://127.0.0.1:8000/** in Cursor's built-in browser (side pane preferred) before UI edits, confirm the page loads, and note the preview URL (and Vite HMR port when relevant) in your reply. Skip preview startup for non-UI tasks.
 
+### Cursor Cloud
+
+Cloud Agent VMs start without PHP or Composer. Do not use `scripts/local/bootstrap.sh` as the environment `install` command — it exits with `Missing required tool: php`. Use `bash scripts/cloud/install.sh`, which installs PHP 8.4 (Ubuntu 8.3 fallback) and Composer, then runs local bootstrap. The command is in `.cursor/environment.json`. After install, preview is **http://127.0.0.1:8000/** via `composer run dev`.
+
 ===
 
 <laravel-boost-guidelines>

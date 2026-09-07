@@ -1,0 +1,4 @@
+{
+  "name": "MyAPES Account",
+  "install": "bash scripts/cloud/install.sh"
+}
