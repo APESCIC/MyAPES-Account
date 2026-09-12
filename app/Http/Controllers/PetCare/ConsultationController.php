@@ -8,18 +8,21 @@ use App\Models\PetProfile;
 use App\Models\User;
 use App\Notifications\ConsultationUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
+use App\Rules\UkDateTimeFormat;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
+use App\Support\UkDateTime;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class ConsultationController extends Controller
 {
+    public function __construct(private readonly UkDateTime $ukDateTime) {}
+
     public function index(): View
     {
         $user = request()->user();
@@ -49,8 +52,9 @@ class ConsultationController extends Controller
             'pet_profile_id' => ['required', 'integer'],
             'subject' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'scheduled_for' => ['nullable', 'date'],
+            'scheduled_for' => ['nullable', new UkDateTimeFormat],
         ]);
+        $validated = $this->normalizeValidatedSchedule($validated);
 
         $pet = PetProfile::query()
             ->where('service_domain', PetProfile::DOMAIN_PETCARE)
@@ -147,8 +151,9 @@ class ConsultationController extends Controller
                 ),
             ],
             'notes' => ['sometimes', 'nullable', 'string'],
-            'scheduled_for' => ['sometimes', 'nullable', 'date'],
+            'scheduled_for' => ['sometimes', 'nullable', new UkDateTimeFormat],
         ]);
+        $validated = $this->normalizeValidatedSchedule($validated);
 
         $updates = [];
         foreach (['notes', 'scheduled_for'] as $field) {
@@ -271,11 +276,27 @@ class ConsultationController extends Controller
             return false;
         }
 
-        try {
-            return $current !== null
-                && Carbon::parse($requested)->equalTo($current);
-        } catch (Throwable) {
-            return false;
+        $parsed = $this->ukDateTime->parse($requested);
+
+        return $parsed !== null
+            && $current !== null
+            && $parsed->equalTo($current);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function normalizeValidatedSchedule(array $validated): array
+    {
+        if (! array_key_exists('scheduled_for', $validated)) {
+            return $validated;
         }
+
+        $validated['scheduled_for'] = is_string($validated['scheduled_for'])
+            ? $this->ukDateTime->parse($validated['scheduled_for'])
+            : null;
+
+        return $validated;
     }
 }
