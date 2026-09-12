@@ -4,15 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'MyAPES Core')</title>
+    <meta name="application-name" content="MyAPES Core">
+    <meta name="apple-mobile-web-app-title" content="MyAPES Core">
     <meta name="description" content="MyAPES Core service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="@yield('title', 'MyAPES Core')">
+    <meta property="og:site_name" content="MyAPES Core">
+    <meta property="og:title" content="MyAPES Core">
     <meta property="og:description" content="MyAPES Core service portal for APES CIC service users and staff.">
     <meta property="og:image" content="{{ asset('social/og-image-1200x630.jpg') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="@yield('title', 'MyAPES Core')">
+    <meta name="twitter:title" content="MyAPES Core">
     <meta name="twitter:description" content="MyAPES Core service portal for APES CIC service users and staff.">
     <meta name="twitter:image" content="{{ asset('social/og-image-1200x630.jpg') }}">
     <meta name="theme-color" content="#f3e4c4">
