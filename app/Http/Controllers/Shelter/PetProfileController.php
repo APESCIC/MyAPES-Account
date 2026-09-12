@@ -77,6 +77,8 @@ class PetProfileController extends Controller
     {
         $this->authorizeDomainPet($pet, PetProfile::DOMAIN_SHELTER, 'view');
 
+        $pet->loadMissing('user');
+
         return view('shelter.pets.show', [
             'pet' => $pet,
             'canUpdatePet' => Gate::allows('update', $pet),
