@@ -32,9 +32,9 @@ class TicketController extends Controller
     /**
      * @return list<string>
      */
-    public static function createPrioritiesFor(User $user): array
+    public static function createPrioritiesFor(User $user, string $permissionPrefix): array
     {
-        return $user->isStaff()
+        return $user->can($permissionPrefix.'update-all')
             ? self::PRIORITIES
             : self::PUBLIC_CREATE_PRIORITIES;
     }
@@ -76,7 +76,7 @@ class TicketController extends Controller
             'usesHierarchicalCategories' => $isApesCic,
             'canCreateTicket' => $user->can($prefix.'create'),
             'revealAssigneeIdentity' => $user->can($prefix.'view-all'),
-            'priorities' => self::createPrioritiesFor($user),
+            'priorities' => self::createPrioritiesFor($user, $prefix),
             'ticketService' => $ticketService,
             'categoryResolver' => $this->categories,
         ]);
@@ -95,7 +95,7 @@ class TicketController extends Controller
         $rules = [
             'service_area' => ['required', Rule::in($ticketService->serviceAreas)],
             'subject' => ['required', 'string', 'max:255'],
-            'priority' => ['required', Rule::in(self::createPrioritiesFor($request->user()))],
+            'priority' => ['required', Rule::in(self::createPrioritiesFor($request->user(), $prefix))],
             'description' => ['required', 'string'],
         ];
 
