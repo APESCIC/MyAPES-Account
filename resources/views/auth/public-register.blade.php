@@ -34,20 +34,35 @@
                 @endforeach
             </fieldset>
 
-            <p class="muted legal-register-note">
-                Creating an account means you accept the
-                <a href="{{ route('terms') }}">terms of use</a>.
-                Read the
-                <a
-                    href="{{ \App\Support\PrivacyNotice::url() }}"
-                    @if (\App\Support\PrivacyNotice::opensExternally()) target="_blank" rel="noopener noreferrer" @endif
-                >privacy notice</a>
-                and
-                <a href="{{ route('cookies') }}">cookie notice</a>,
-                or open
-                <a href="{{ route('help') }}">Help</a>
-                if you need a hand.
-            </p>
+            <fieldset>
+                <legend>Consent</legend>
+                <label class="inline-check legal-consent" for="registration_consent">
+                    <input
+                        id="registration_consent"
+                        type="checkbox"
+                        name="registration_consent"
+                        value="1"
+                        @checked((bool) old('registration_consent'))
+                        required
+                    >
+                    <span>
+                        I have read and accept the
+                        <a href="{{ route('terms') }}">terms of use</a>
+                        and the
+                        <a
+                            href="{{ \App\Support\PrivacyNotice::url() }}"
+                            @if (\App\Support\PrivacyNotice::opensExternally()) target="_blank" rel="noopener noreferrer" @endif
+                        >privacy notice</a>.
+                    </span>
+                </label>
+                <p class="muted legal-register-note">
+                    You can also read the
+                    <a href="{{ route('cookies') }}">cookie notice</a>
+                    or open
+                    <a href="{{ route('help') }}">Help</a>
+                    if you need a hand.
+                </p>
+            </fieldset>
 
             <div class="actions">
                 <button type="submit">Register</button>

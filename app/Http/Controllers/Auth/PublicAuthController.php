@@ -162,6 +162,9 @@ class PublicAuthController extends Controller
                 'string',
                 Rule::in(['apes-cic', 'shelter-rescue', 'pet-care-clinic']),
             ],
+            'registration_consent' => ['accepted'],
+        ], [
+            'registration_consent.accepted' => 'You must accept the terms of use and privacy notice to create an account.',
         ]);
 
         $user = DB::transaction(function () use ($validated): User {
@@ -173,6 +176,7 @@ class PublicAuthController extends Controller
                 'identity_type' => User::IDENTITY_LOCAL,
                 'email_verified_at' => null,
             ]);
+            $user->registration_consented_at = now();
             $user->save();
             $this->accounts->grantPublicBaseline($user);
             $user->contactPreference()->create([]);

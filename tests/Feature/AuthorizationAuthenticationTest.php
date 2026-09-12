@@ -21,6 +21,7 @@ class AuthorizationAuthenticationTest extends TestCase
             'password' => 'A-secure-public-password-2026!',
             'password_confirmation' => 'A-secure-public-password-2026!',
             'services' => ['apes-cic'],
+            'registration_consent' => '1',
         ]);
 
         $response->assertRedirect(route('verification.notice'));

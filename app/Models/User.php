@@ -95,6 +95,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
+            'registration_consented_at' => 'datetime',
             'password' => 'hashed',
             'ldap_groups' => 'array',
             'authorization_epoch' => 'integer',
