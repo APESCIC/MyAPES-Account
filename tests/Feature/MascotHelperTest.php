@@ -68,6 +68,22 @@ class MascotHelperTest extends TestCase
             ->assertDontSee('has-mascot-dock', false);
     }
 
+    public function test_privacy_cookies_and_terms_hide_the_dock_and_help_keeps_a_tip(): void
+    {
+        foreach (['privacy', 'cookies', 'terms'] as $route) {
+            $this->get(route($route))
+                ->assertOk()
+                ->assertDontSee('data-mascot-dock', false)
+                ->assertDontSee('has-mascot-dock', false);
+        }
+
+        $this->get(route('help'))
+            ->assertOk()
+            ->assertSee('data-mascot-dock', false)
+            ->assertSee('data-mascot-route="help"', false)
+            ->assertSeeText('Look here first.');
+    }
+
     public function test_ticket_and_pet_create_pages_keep_a_collapsed_dock_with_clearance(): void
     {
         $user = User::factory()->accessLevel(User::ROLE_SERVICE_USER)->create();

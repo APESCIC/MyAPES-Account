@@ -186,7 +186,11 @@ class ChangeLogPageTest extends TestCase
             ->assertSeeText('GitHub')
             ->assertSeeText('Open an issue')
             ->assertSeeText('Discussions')
-            ->assertDontSee('site-footer__links', false);
+            ->assertSee('site-footer__links', false)
+            ->assertSee('href="'.route('privacy').'"', false)
+            ->assertSee('href="'.route('cookies').'"', false)
+            ->assertSee('href="'.route('help').'"', false)
+            ->assertSee('href="'.route('terms').'"', false);
     }
 
     /**

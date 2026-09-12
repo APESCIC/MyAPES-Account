@@ -34,6 +34,18 @@
                 @endforeach
             </fieldset>
 
+            <p class="muted legal-register-note">
+                Creating an account means you accept the
+                <a href="{{ route('terms') }}">terms of use</a>.
+                Read the
+                <a href="{{ route('privacy') }}">privacy notice</a>
+                and
+                <a href="{{ route('cookies') }}">cookie notice</a>,
+                or open
+                <a href="{{ route('help') }}">Help</a>
+                if you need a hand.
+            </p>
+
             <div class="actions">
                 <button type="submit">Register</button>
                 <a href="{{ route('public.login') }}">Already have an account?</a>

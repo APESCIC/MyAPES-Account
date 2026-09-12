@@ -117,7 +117,11 @@ class HealthAndThemeTest extends TestCase
         $response->assertSeeText('App Support');
         $response->assertSee('sidebar-support__pill', false);
         $response->assertSee('https://github.com/APESCIC/MyAPES-Account"', false);
-        $response->assertDontSee('site-footer__links', false);
+        $response->assertSee('site-footer__links', false);
+        $response->assertSee('href="'.route('privacy').'"', false);
+        $response->assertSee('href="'.route('cookies').'"', false);
+        $response->assertSee('href="'.route('help').'"', false);
+        $response->assertSee('href="'.route('terms').'"', false);
         $response->assertDontSee('rel="mask-icon"', false);
     }
 
