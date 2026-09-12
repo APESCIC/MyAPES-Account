@@ -1,12 +1,27 @@
 @extends('layouts.app')
 
-@section('title', 'Shelter Pet: '.$pet->name)
+@section('title', 'Shelter Pet #'.$pet->id.': '.$pet->name)
 
 @section('content')
+    @inject('ukDateTime', \App\Support\UkDateTime::class)
     <div class="panel">
         <span class="service-label apes-shelter">APES Shelter and Rescue</span>
         <h1>{{ $pet->name }}</h1>
         <p class="muted">{{ $pet->species }} | Age: {{ $pet->age_years ?? 'n/a' }} | {{ $pet->sex }} | {{ $pet->neutering_status }}</p>
+        <dl class="ticket-meta">
+            <div>
+                <dt>Owner</dt>
+                <dd>{{ $pet->user?->name ?? '—' }}@if($pet->user)<br><small class="muted">{{ $pet->user->email }}</small>@endif</dd>
+            </div>
+            <div>
+                <dt>Created</dt>
+                <dd>{{ $ukDateTime->formatDate($pet->created_at) ?? '—' }}</dd>
+            </div>
+            <div>
+                <dt>ID</dt>
+                <dd>#{{ $pet->id }}</dd>
+            </div>
+        </dl>
         @if($pet->photo_path)
             <img src="{{ route('shelter.pets.photo', $pet) }}" alt="{{ $pet->name }}" class="record-photo">
         @endif
