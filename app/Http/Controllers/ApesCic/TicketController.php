@@ -25,6 +25,20 @@ use Illuminate\Validation\ValidationException;
 
 class TicketController extends Controller
 {
+    public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+
+    public const PUBLIC_CREATE_PRIORITIES = ['low', 'medium', 'high'];
+
+    /**
+     * @return list<string>
+     */
+    public static function createPrioritiesFor(User $user): array
+    {
+        return $user->isStaff()
+            ? self::PRIORITIES
+            : self::PUBLIC_CREATE_PRIORITIES;
+    }
+
     public function __construct(
         private readonly ModuleRouteContext $moduleContext,
         private readonly TicketServiceConfiguration $ticketServices,
@@ -62,6 +76,7 @@ class TicketController extends Controller
             'usesHierarchicalCategories' => $isApesCic,
             'canCreateTicket' => $user->can($prefix.'create'),
             'revealAssigneeIdentity' => $user->can($prefix.'view-all'),
+            'priorities' => self::createPrioritiesFor($user),
             'ticketService' => $ticketService,
             'categoryResolver' => $this->categories,
         ]);
@@ -80,7 +95,7 @@ class TicketController extends Controller
         $rules = [
             'service_area' => ['required', Rule::in($ticketService->serviceAreas)],
             'subject' => ['required', 'string', 'max:255'],
-            'priority' => ['required', 'in:low,medium,high,urgent'],
+            'priority' => ['required', Rule::in(self::createPrioritiesFor($request->user()))],
             'description' => ['required', 'string'],
         ];
 
@@ -224,6 +239,7 @@ class TicketController extends Controller
                 : collect(),
             'ticketService' => $ticketService,
             'usesHierarchicalCategories' => $isApesCic,
+            'priorities' => self::PRIORITIES,
             'categoryResolver' => $this->categories,
             'serviceAreaGroups' => $isApesCic
                 ? $this->categories->serviceAreas($instance->subCore->key)
@@ -307,7 +323,7 @@ class TicketController extends Controller
             ];
             $rules['priority'] = [
                 'required',
-                'in:low,medium,high,urgent',
+                Rule::in(self::PRIORITIES),
             ];
         }
         if ($assignmentRequested) {
