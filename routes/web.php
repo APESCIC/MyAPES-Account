@@ -31,6 +31,10 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::get('/change-log', ChangeLogController::class)->name('change-log.index');
+Route::view('/privacy', 'legal.privacy')->name('privacy');
+Route::view('/cookies', 'legal.cookies')->name('cookies');
+Route::view('/help', 'legal.help')->name('help');
+Route::view('/terms', 'legal.terms')->name('terms');
 Route::get('/storage/pet-profiles/{path?}', static fn () => abort(404))
     ->where('path', '.*');
 

@@ -9,11 +9,17 @@ final class MascotTips
      */
     public function forRoute(?string $routeName): ?array
     {
-        if ($routeName === null || str_starts_with($routeName, 'admin.') || $routeName === 'change-log.index') {
+        if ($routeName === null
+            || str_starts_with($routeName, 'admin.')
+            || in_array($routeName, ['change-log.index', 'privacy', 'cookies', 'terms'], true)) {
             return null;
         }
 
         return match ($routeName) {
+            'help' => [
+                'title' => 'Look here first.',
+                'body' => 'These notes cover public accounts, staff sign-in, and how to ask APES CIC for help.',
+            ],
             'home' => [
                 'title' => 'Pick the door that matches you.',
                 'body' => 'Public Login is for service users. Staff and administrators should use Staff Login.',

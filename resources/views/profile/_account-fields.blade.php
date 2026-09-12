@@ -14,9 +14,12 @@
 </div>
 <label for="telegram_username">Telegram username</label>
 <input id="telegram_username" name="telegram_username" value="{{ old('telegram_username', $profile?->telegram_username) }}">
-@if (config('myapes.consent.privacy_notice_url'))
-    <p><a href="{{ config('myapes.consent.privacy_notice_url') }}" target="_blank" rel="noopener noreferrer">Read the privacy notice</a></p>
-@endif
+<p>
+    <a
+        href="{{ \App\Support\PrivacyNotice::url() }}"
+        @if (\App\Support\PrivacyNotice::opensExternally()) target="_blank" rel="noopener noreferrer" @endif
+    >Read the privacy notice</a>
+</p>
 <fieldset>
     <legend>Your MyAPES services</legend>
     @foreach (['apes-cic' => 'APES CIC', 'shelter-rescue' => 'APES Shelter and Rescue', 'pet-care-clinic' => 'APES Pet Care Clinic'] as $key => $label)

@@ -158,6 +158,20 @@
 
                 <section class="sidebar-support" aria-labelledby="sidebar-support-title">
                     <h2 id="sidebar-support-title" class="sidebar-support__heading">App Support</h2>
+                    <ul class="sidebar-support__links">
+                        <li>
+                            <a
+                                class="sidebar-support__pill"
+                                href="{{ route('help') }}"
+                                @if (request()->routeIs('help')) aria-current="page" @endif
+                            >
+                                <span class="sidebar-support__pill-icon">
+                                    <i data-lucide="circle-help" aria-hidden="true"></i>
+                                </span>
+                                <span class="sidebar-support__pill-label">Help</span>
+                            </a>
+                        </li>
+                    </ul>
                     @include('partials._github-links', ['variant' => 'sidebar'])
                 </section>
             </div>
@@ -232,8 +246,16 @@
 </main>
 
 <footer class="site-footer">
-    <span><strong>MyAPES</strong> Core</span>
-    <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
+    <div class="site-footer__brand">
+        <span><strong>MyAPES</strong> Core</span>
+        <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
+    </div>
+    <nav class="site-footer__links" aria-label="Legal and help">
+        <a href="{{ route('privacy') }}" @if (request()->routeIs('privacy')) aria-current="page" @endif>Privacy</a>
+        <a href="{{ route('cookies') }}" @if (request()->routeIs('cookies')) aria-current="page" @endif>Cookies</a>
+        <a href="{{ route('help') }}" @if (request()->routeIs('help')) aria-current="page" @endif>Help</a>
+        <a href="{{ route('terms') }}" @if (request()->routeIs('terms')) aria-current="page" @endif>Terms</a>
+    </nav>
     <a
         class="site-footer__version"
         href="{{ route('change-log.index') }}"
