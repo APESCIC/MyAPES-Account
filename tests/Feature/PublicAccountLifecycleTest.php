@@ -19,6 +19,8 @@ class PublicAccountLifecycleTest extends TestCase
     {
         Notification::fake();
 
+        $this->travelTo('2026-09-12 17:00:00');
+
         $response = $this->post(route('public.register.submit'), [
             'name' => 'Public Person',
             'username' => 'Public.Person',
@@ -26,6 +28,7 @@ class PublicAccountLifecycleTest extends TestCase
             'password' => 'Correct-horse-42',
             'password_confirmation' => 'Correct-horse-42',
             'services' => ['apes-cic', 'shelter-rescue'],
+            'registration_consent' => '1',
         ]);
 
         $response->assertRedirect(route('verification.notice'));
@@ -34,10 +37,62 @@ class PublicAccountLifecycleTest extends TestCase
         $this->assertSame('public@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
         $this->assertSame(
+            '2026-09-12 17:00:00',
+            $user->registration_consented_at?->format('Y-m-d H:i:s'),
+        );
+        $this->assertSame(
             ['apes-cic', 'shelter-rescue'],
             $user->serviceSelections()->orderBy('sub_core_key')->pluck('sub_core_key')->all(),
         );
         Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    public function test_register_page_requires_visible_terms_and_privacy_consent(): void
+    {
+        config(['myapes.consent.privacy_notice_url' => null]);
+
+        $response = $this->get(route('public.register'));
+        $html = $response->getContent();
+
+        $response->assertOk()
+            ->assertSeeText('Consent')
+            ->assertSeeText('I have read and accept the')
+            ->assertSeeText('terms of use')
+            ->assertSeeText('privacy notice')
+            ->assertSee('href="'.route('terms').'"', false)
+            ->assertSee('href="'.route('privacy').'"', false);
+
+        $this->assertMatchesRegularExpression(
+            '/<input\b[^>]*\bname="registration_consent"[^>]*>/i',
+            $html,
+        );
+        $this->assertMatchesRegularExpression(
+            '/<input\b[^>]*\bname="registration_consent"[^>]*\brequired\b/i',
+            $html,
+        );
+        $this->assertMatchesRegularExpression(
+            '/<input\b[^>]*\btype="checkbox"[^>]*\bname="registration_consent"|\bname="registration_consent"[^>]*\btype="checkbox"/i',
+            $html,
+        );
+    }
+
+    public function test_registration_without_consent_does_not_create_an_account(): void
+    {
+        $response = $this->from(route('public.register'))->post(route('public.register.submit'), [
+            'name' => 'Public Person',
+            'username' => 'public.person',
+            'email' => 'public@example.com',
+            'password' => 'Correct-horse-42',
+            'password_confirmation' => 'Correct-horse-42',
+            'services' => ['apes-cic'],
+        ]);
+
+        $response->assertRedirect(route('public.register'));
+        $response->assertSessionHasErrors([
+            'registration_consent' => 'You must accept the terms of use and privacy notice to create an account.',
+        ]);
+        $this->assertSame(0, User::query()->count());
+        $this->assertGuest();
     }
 
     public function test_login_accepts_username_or_email_case_insensitively(): void

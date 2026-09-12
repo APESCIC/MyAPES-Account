@@ -2818,6 +2818,15 @@ caption {
     color: #fff;
 }
 
+.legal-consent {
+    align-items: flex-start;
+}
+
+.legal-consent input {
+    margin-top: 0.28rem;
+}
+
+.legal-consent a,
 .legal-register-note a {
     color: var(--brand-text);
     font-weight: 760;

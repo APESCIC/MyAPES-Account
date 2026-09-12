@@ -24,6 +24,7 @@ class AccountLifecycleSchemaTest extends TestCase
         $this->assertTrue(Schema::hasColumns('users', [
             'username',
             'onboarding_completed_at',
+            'registration_consented_at',
         ]));
         $this->assertTrue(Schema::hasColumns('user_profiles', [
             'address_line_1',
@@ -64,6 +65,27 @@ class AccountLifecycleSchemaTest extends TestCase
         $this->assertFalse($preference->whatsapp);
         $this->assertFalse($preference->telegram);
         $this->assertFalse($preference->email);
+        $this->assertNull($user->registration_consented_at);
+    }
+
+    public function test_registration_consent_column_is_nullable_and_not_backfilled(): void
+    {
+        $user = User::factory()->create();
+        $this->assertNull($user->registration_consented_at);
+
+        $migration = require database_path(
+            'migrations/2026_09_12_180000_add_registration_consented_at_to_users_table.php',
+        );
+        $migration->down();
+
+        $this->assertFalse(Schema::hasColumn('users', 'registration_consented_at'));
+
+        $migration->up();
+
+        $this->assertTrue(Schema::hasColumn('users', 'registration_consented_at'));
+        $this->assertNull(
+            User::query()->findOrFail($user->id)->registration_consented_at,
+        );
     }
 
     public function test_upgrade_backfills_public_accounts_without_inventing_consent(): void

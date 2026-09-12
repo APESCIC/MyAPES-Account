@@ -95,15 +95,22 @@ class PublicLegalPagesTest extends TestCase
     {
         config(['myapes.consent.privacy_notice_url' => null]);
 
-        $this->get(route('public.register'))
-            ->assertOk()
+        $register = $this->get(route('public.register'));
+        $register->assertOk()
+            ->assertSeeText('I have read and accept the')
             ->assertSeeText('terms of use')
             ->assertSeeText('privacy notice')
             ->assertSeeText('cookie notice')
+            ->assertSee('name="registration_consent"', false)
             ->assertSee('href="'.route('terms').'"', false)
             ->assertSee('href="'.route('privacy').'"', false)
             ->assertSee('href="'.route('cookies').'"', false)
             ->assertSee('href="'.route('help').'"', false);
+
+        $this->assertMatchesRegularExpression(
+            '/<input\b[^>]*\bname="registration_consent"[^>]*\brequired\b/i',
+            $register->getContent(),
+        );
     }
 
     public function test_sidebar_help_link_reaches_the_help_page(): void

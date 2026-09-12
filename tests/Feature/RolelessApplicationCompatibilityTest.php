@@ -32,6 +32,7 @@ class RolelessApplicationCompatibilityTest extends TestCase
             'password' => 'MyAPES-Test-Password-2026!',
             'password_confirmation' => 'MyAPES-Test-Password-2026!',
             'services' => ['apes-cic'],
+            'registration_consent' => '1',
         ]);
 
         $response->assertRedirect(route('verification.notice'));
