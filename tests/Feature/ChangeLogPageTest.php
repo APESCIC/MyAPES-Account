@@ -28,6 +28,7 @@ class ChangeLogPageTest extends TestCase
             ->assertSee('data-change-log-controls hidden', false)
             ->assertSee('href="#release-v0-32-14"', false)
             ->assertSee('<details', false)
+            ->assertSeeText('Smaller Spike and logo images')
             ->assertSeeText('Add SECURITY.md with a private reporting path')
             ->assertSeeText('Public chrome uses MyAPES Core consistently')
             ->assertSeeText('Register stores a visible consent timestamp')
