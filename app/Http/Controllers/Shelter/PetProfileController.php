@@ -70,7 +70,8 @@ class PetProfileController extends Controller
             'has_photo' => $request->hasFile('photo'),
         ]);
 
-        return redirect()->route('shelter.pets.show', $pet);
+        return redirect()->route('shelter.pets.show', $pet)
+            ->with('status', 'Your pet has been saved.');
     }
 
     public function show(PetProfile $pet): View
@@ -127,7 +128,8 @@ class PetProfileController extends Controller
             'photo_replaced' => $request->hasFile('photo'),
         ]);
 
-        return redirect()->route('shelter.pets.show', $pet)->with('status', 'Pet profile updated.');
+        return redirect()->route('shelter.pets.show', $pet)
+            ->with('status', 'Your pet has been saved.');
     }
 
     private function authorizeDomainPet(
