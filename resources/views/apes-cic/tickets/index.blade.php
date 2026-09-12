@@ -49,10 +49,9 @@
                 <div>
                     <label for="priority">Priority</label>
                     <select id="priority" name="priority">
-                        <option value="low" @selected(old('priority') === 'low')>low</option>
-                        <option value="medium" @selected(old('priority', 'medium') === 'medium')>medium</option>
-                        <option value="high" @selected(old('priority') === 'high')>high</option>
-                        <option value="urgent" @selected(old('priority') === 'urgent')>urgent</option>
+                        @foreach($priorities as $priority)
+                            <option value="{{ $priority }}" @selected(old('priority', 'medium') === $priority)>{{ $priority }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>

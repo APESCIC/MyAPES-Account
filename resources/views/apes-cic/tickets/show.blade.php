@@ -73,7 +73,7 @@
                         <div>
                             <label for="priority">Priority</label>
                             <select id="priority" name="priority">
-                                @foreach(['low', 'medium', 'high', 'urgent'] as $priority)
+                                @foreach($priorities as $priority)
                                     <option value="{{ $priority }}" @selected($ticket->priority === $priority)>{{ $priority }}</option>
                                 @endforeach
                             </select>
