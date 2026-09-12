@@ -65,6 +65,7 @@
             websiteField.hidden = !requiresWebsite;
             if (websiteSelect) {
                 websiteSelect.required = requiresWebsite;
+                websiteSelect.setAttribute('aria-required', requiresWebsite ? 'true' : 'false');
                 if (!requiresWebsite) {
                     websiteSelect.value = '';
                 }
