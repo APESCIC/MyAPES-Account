@@ -46,7 +46,7 @@
         <section>
             <h2>Your rights</h2>
             <p>You can ask APES CIC for a copy of the personal information we hold, and you can ask us to correct it or, where the law allows, delete it or limit how we use it. You can also complain to the Information Commissioner's Office if you are unhappy with how we handle your information.</p>
-            <p>Signed-in public users can start a privacy request through APES CIC cases. Guests can use the <a href="{{ route('help') }}">Help</a> page for the next step.</p>
+            <p>Signed-in public users can start a privacy request through APES CIC cases. If you cannot sign in, create a <a href="{{ route('public.register') }}">public account</a> and open a case, or contact APES CIC through the <a href="https://www.apes.org.uk" rel="noopener noreferrer">APES website</a>.</p>
         </section>
 
         <section>

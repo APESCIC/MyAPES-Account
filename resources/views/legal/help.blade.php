@@ -40,6 +40,12 @@
         </section>
 
         <section>
+            <h2>Privacy and data requests</h2>
+            <p>If you already have a public account, sign in and open an APES CIC case for a privacy request.</p>
+            <p>If you cannot sign in, <a href="{{ route('public.register') }}">create a public account</a> first, or contact APES CIC through the <a href="https://www.apes.org.uk" rel="noopener noreferrer">APES website</a>.</p>
+        </section>
+
+        <section>
             <h2>Notices</h2>
             <p>Read the <a href="{{ route('privacy') }}">privacy notice</a>, <a href="{{ route('cookies') }}">cookie notice</a>, and <a href="{{ route('terms') }}">terms of use</a> for how the portal handles information and account use.</p>
         </section>

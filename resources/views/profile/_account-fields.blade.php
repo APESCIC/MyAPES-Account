@@ -14,17 +14,10 @@
 </div>
 <label for="telegram_username">Telegram username</label>
 <input id="telegram_username" name="telegram_username" value="{{ old('telegram_username', $profile?->telegram_username) }}">
-@php
-    $privacyNoticeUrl = config('myapes.consent.privacy_notice_url');
-    $privacyNoticeIsExternal = is_string($privacyNoticeUrl) && $privacyNoticeUrl !== '';
-    if (! $privacyNoticeIsExternal) {
-        $privacyNoticeUrl = route('privacy');
-    }
-@endphp
 <p>
     <a
-        href="{{ $privacyNoticeUrl }}"
-        @if ($privacyNoticeIsExternal) target="_blank" rel="noopener noreferrer" @endif
+        href="{{ \App\Support\PrivacyNotice::url() }}"
+        @if (\App\Support\PrivacyNotice::opensExternally()) target="_blank" rel="noopener noreferrer" @endif
     >Read the privacy notice</a>
 </p>
 <fieldset>

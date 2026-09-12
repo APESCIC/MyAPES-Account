@@ -38,7 +38,10 @@
                 Creating an account means you accept the
                 <a href="{{ route('terms') }}">terms of use</a>.
                 Read the
-                <a href="{{ route('privacy') }}">privacy notice</a>
+                <a
+                    href="{{ \App\Support\PrivacyNotice::url() }}"
+                    @if (\App\Support\PrivacyNotice::opensExternally()) target="_blank" rel="noopener noreferrer" @endif
+                >privacy notice</a>
                 and
                 <a href="{{ route('cookies') }}">cookie notice</a>,
                 or open

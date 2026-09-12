@@ -93,6 +93,8 @@ class PublicLegalPagesTest extends TestCase
 
     public function test_register_page_links_to_terms_privacy_cookies_and_help(): void
     {
+        config(['myapes.consent.privacy_notice_url' => null]);
+
         $this->get(route('public.register'))
             ->assertOk()
             ->assertSeeText('terms of use')
@@ -114,6 +116,18 @@ class PublicLegalPagesTest extends TestCase
         $this->get(route('help'))
             ->assertOk()
             ->assertSeeText('Which sign-in should I use?')
+            ->assertSeeText('Privacy and data requests')
+            ->assertSeeText('contact APES CIC through the')
+            ->assertSee('href="https://www.apes.org.uk"', false)
             ->assertSee('aria-current="page"', false);
+    }
+
+    public function test_privacy_notice_gives_guests_a_usable_contact_path(): void
+    {
+        $this->get(route('privacy'))
+            ->assertOk()
+            ->assertSeeText('If you cannot sign in')
+            ->assertSee('href="'.route('public.register').'"', false)
+            ->assertSee('href="https://www.apes.org.uk"', false);
     }
 }

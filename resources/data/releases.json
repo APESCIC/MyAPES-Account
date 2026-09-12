@@ -23,8 +23,8 @@
     ],
     "version_rationale": "Patch release: adds the missing public policy and help routes without changing sign-in, consent capture, or account permissions.",
     "validation": [
-      "PHPUnit PublicLegalPagesTest covers branded content on all four routes, signed-in public access, and links from public chrome and register.",
-      "PHPUnit HealthAndThemeTest, ChangeLogPageTest, MascotHelperTest, and PublicAccountLifecycleTest cover footer links, Help tip, and the profile privacy fallback.",
+      "PHPUnit PublicLegalPagesTest covers branded content on all four routes, signed-in public access, public chrome links, and the guest privacy contact path.",
+      "PHPUnit HealthAndThemeTest, ChangeLogPageTest, MascotHelperTest, PublicAccountLifecycleTest, and AccountLifecycleReadinessTest cover footer links, Help tip, the privacy notice fallback, and deploy preflight accepting the in-app /privacy page.",
       "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch."
     ],
     "known_limitations": [

@@ -33,7 +33,7 @@ class AccountLifecycleReadinessTest extends TestCase
             ->assertSuccessful();
     }
 
-    public function test_preflight_rejects_email_collisions_and_missing_legal_configuration(): void
+    public function test_preflight_rejects_email_collisions_and_invalid_privacy_notice_urls(): void
     {
         $first = User::factory()->create(['email' => 'collision@example.com']);
         $second = User::factory()->create();
@@ -46,11 +46,21 @@ class AccountLifecycleReadinessTest extends TestCase
             ->assertFailed();
 
         DB::table('users')->where('id', $second->id)->delete();
-        config(['myapes.consent.privacy_notice_url' => null]);
+        config(['myapes.consent.privacy_notice_url' => 'not-a-url']);
 
         $this->artisan('myapes:accounts:preflight')
             ->expectsOutputToContain('privacy_notice_url')
             ->assertFailed();
+    }
+
+    public function test_preflight_accepts_the_in_app_privacy_page_when_no_notice_url_is_configured(): void
+    {
+        config(['myapes.consent.privacy_notice_url' => null]);
+        User::factory()->create();
+
+        $this->artisan('myapes:accounts:preflight')
+            ->expectsOutputToContain('Account lifecycle preflight: ok')
+            ->assertSuccessful();
     }
 
     public function test_post_migration_check_rejects_missing_public_account_defaults(): void

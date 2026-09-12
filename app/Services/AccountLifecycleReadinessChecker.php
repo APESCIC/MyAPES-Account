@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\PrivacyNotice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -89,9 +90,16 @@ class AccountLifecycleReadinessChecker
             throw new RuntimeException('contact_consent_policy_version');
         }
 
-        $privacyUrl = config('myapes.consent.privacy_notice_url');
-        if (! is_string($privacyUrl)
-            || filter_var($privacyUrl, FILTER_VALIDATE_URL) === false) {
+        $configured = config('myapes.consent.privacy_notice_url');
+        if (is_string($configured) && trim($configured) !== '') {
+            if (filter_var($configured, FILTER_VALIDATE_URL) === false) {
+                throw new RuntimeException('privacy_notice_url');
+            }
+
+            return;
+        }
+
+        if (filter_var(PrivacyNotice::url(), FILTER_VALIDATE_URL) === false) {
             throw new RuntimeException('privacy_notice_url');
         }
     }
