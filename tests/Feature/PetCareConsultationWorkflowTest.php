@@ -283,18 +283,60 @@ class PetCareConsultationWorkflowTest extends TestCase
             ->get(route('petcare.consultations.show', $consultation));
         $response->assertOk();
         $updateForm = $this->renderedForm($response->getContent(), 'consultation-update-form');
-        $this->assertStringContainsString('value="2026-08-20T12:34:56"', $updateForm);
-        $this->assertStringContainsString('step="1"', $updateForm);
+        $this->assertStringContainsString('value="20/08/2026 13:34:56"', $updateForm);
+        $this->assertStringContainsString('placeholder="dd/mm/yyyy HH:mm:ss"', $updateForm);
+        $this->assertStringNotContainsString('datetime-local', $updateForm);
 
         $this->put(route('petcare.consultations.update', $consultation), [
             'status' => 'open',
-            'scheduled_for' => '2026-08-20T12:34:56',
+            'scheduled_for' => '20/08/2026 13:34:56',
             'notes' => 'An unrelated form-shaped notes edit.',
         ])->assertRedirect(route('petcare.consultations.show', $consultation));
 
         $consultation->refresh();
         $this->assertSame('2026-08-20 12:34:56', $consultation->scheduled_for?->format('Y-m-d H:i:s'));
         $this->assertSame('An unrelated form-shaped notes edit.', $consultation->notes);
+    }
+
+    public function test_scheduled_for_shows_and_stores_uk_day_month_order(): void
+    {
+        $owner = User::factory()->create();
+        $pet = $this->petFor($owner, PetProfile::DOMAIN_PETCARE, 'UK schedule pet');
+
+        $this->actingAs($owner)->post(route('petcare.consultations.store'), [
+            'pet_profile_id' => $pet->id,
+            'subject' => 'UK scheduled date',
+            'scheduled_for' => '05/03/2026 14:30:00',
+        ])->assertRedirect();
+
+        $consultation = PetCareConsultation::query()
+            ->where('subject', 'UK scheduled date')
+            ->firstOrFail();
+        $this->assertSame(
+            '2026-03-05 14:30:00',
+            $consultation->scheduled_for?->timezone('UTC')->format('Y-m-d H:i:s'),
+        );
+
+        $this->get(route('petcare.consultations.show', $consultation))
+            ->assertOk()
+            ->assertSee('05/03/2026 14:30:00')
+            ->assertSee('dd/mm/yyyy')
+            ->assertDontSee('03/05/2026')
+            ->assertDontSee('2026-05-03');
+        $this->get(route('petcare.consultations.index'))
+            ->assertOk()
+            ->assertSee('05/03/2026 14:30:00');
+
+        $this->post(route('petcare.consultations.store'), [
+            'pet_profile_id' => $pet->id,
+            'subject' => 'Invalid UK scheduled date',
+            'scheduled_for' => '32/01/2026 10:00:00',
+        ])->assertSessionHasErrors([
+            'scheduled_for' => 'Enter a UK date as dd/mm/yyyy, optionally with HH:mm or HH:mm:ss.',
+        ]);
+        $this->assertDatabaseMissing('pet_care_consultations', [
+            'subject' => 'Invalid UK scheduled date',
+        ]);
     }
 
     public function test_mutation_permissions_and_visibility_authorize_before_validation(): void

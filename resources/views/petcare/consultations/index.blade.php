@@ -3,6 +3,7 @@
 @section('title', 'APES Pet Care Clinic Consultations')
 
 @section('content')
+    @inject('ukDateTime', \App\Support\UkDateTime::class)
     <div class="panel">
         <span class="service-label apes-petcare">APES Pet Care Clinic</span>
         <h1>Consultation management</h1>
@@ -22,8 +23,8 @@
                     </select>
                 </div>
                 <div>
-                    <label>Scheduled for</label>
-                    <input type="datetime-local" name="scheduled_for">
+                    <label>Scheduled for <span class="muted">(dd/mm/yyyy)</span></label>
+                    <input type="text" name="scheduled_for" placeholder="dd/mm/yyyy HH:mm:ss" autocomplete="off">
                 </div>
             </div>
             <label>Subject</label>
@@ -45,7 +46,7 @@
                     <td>{{ $consultation->subject }}</td>
                     <td><span class="status">{{ $consultation->status }}</span></td>
                     <td>{{ $consultation->petProfile->name }}</td>
-                    <td>{{ $consultation->scheduled_for }}</td>
+                    <td>{{ $ukDateTime->format($consultation->scheduled_for) }}</td>
                     <td><a href="{{ route('petcare.consultations.show', $consultation) }}">Open</a></td>
                 </tr>
             @endforeach
