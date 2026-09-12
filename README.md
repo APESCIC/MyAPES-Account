@@ -21,11 +21,12 @@ MyAPES Core is the APES CIC service-user and staff portal built on Laravel for C
 
 - [Report a bug](https://github.com/APESCIC/MyAPES-Account/issues/new?template=bug_report.yml)
 - [Request a feature](https://github.com/APESCIC/MyAPES-Account/issues/new?template=feature_request.yml)
+- [Report a security vulnerability privately](SECURITY.md)
 - [Browse existing issues](https://github.com/APESCIC/MyAPES-Account/issues)
 - [Browse discussions](https://github.com/APESCIC/MyAPES-Account/discussions)
 - Maintained by [APES CIC](https://github.com/APESCIC) with repository administration by [bmurphy-apescic](https://github.com/bmurphy-apescic).
 
-Do not disclose suspected security vulnerabilities in a public issue. This repository does not currently advertise a private vulnerability-reporting route; repository administrators must establish one before inviting external security reports.
+Do not disclose suspected security vulnerabilities in a public issue. Follow the private reporting path in [SECURITY.md](SECURITY.md).
 
 ## Core architecture
 

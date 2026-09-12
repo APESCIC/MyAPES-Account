@@ -11,7 +11,7 @@ body:
     attributes:
       value: |
         Thank you for reporting a problem. Remove credentials, personal data, private operational identifiers, and transient authentication values from every field and attachment.
-        Do not use this public form for suspected security vulnerabilities.
+        Do not use this public form for suspected security vulnerabilities. Follow the private path in SECURITY.md.
 
   - type: textarea
     id: summary
