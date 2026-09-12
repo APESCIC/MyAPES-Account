@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ApesCic;
 
 use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
 use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
 use App\Notifications\TicketUpdatedNotification;
@@ -19,6 +20,7 @@ use App\Services\TicketServiceConfiguration;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -216,10 +218,14 @@ class TicketController extends Controller
         if (! $user->can($prefix.'view-all')) {
             $messagesQuery->where('is_staff_note', false);
         }
+        $messages = $messagesQuery->get();
+        $creationMarker = $this->ticketCreationMarker($ticket, $messages);
 
         return view('apes-cic.tickets.show', [
             'ticket' => $ticket->load(['user', 'assignedTo', 'attachments']),
-            'messages' => $messagesQuery->get(),
+            'messages' => $messages,
+            'activityOpenerUser' => $creationMarker?->user ?? $ticket->user,
+            'hiddenCreationMessageId' => $creationMarker?->id,
             'canChangeAssignment' => $canChangeAssignment,
             'canUpdateTicket' => $canUpdateTicket,
             'canCloseTicket' => $canCloseTicket,
@@ -520,6 +526,29 @@ class TicketController extends Controller
             $ticket->sub_core_key === $instance->subCore->key,
             404,
         );
+    }
+
+    /**
+     * @param  Collection<int, SupportTicketMessage>  $messages
+     */
+    private function ticketCreationMarker(
+        SupportTicket $ticket,
+        Collection $messages,
+    ): ?SupportTicketMessage {
+        return $messages
+            ->filter(function (SupportTicketMessage $message) use ($ticket): bool {
+                if ($message->message !== 'Ticket created.' || $message->is_staff_note) {
+                    return false;
+                }
+
+                if ($ticket->created_at === null || $message->created_at === null) {
+                    return false;
+                }
+
+                return abs($message->created_at->diffInSeconds($ticket->created_at)) <= 5;
+            })
+            ->sortBy('id')
+            ->first();
     }
 
     private function instance(Request $request): ModuleInstanceDefinition

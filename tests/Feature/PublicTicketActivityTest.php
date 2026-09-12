@@ -144,6 +144,71 @@ class PublicTicketActivityTest extends TestCase
             ->assertDontSee('Internal triage note stays private.');
     }
 
+    public function test_activity_opener_keeps_the_original_submitter_after_owner_reassignment(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->create(['name' => 'Original Ticket Submitter']);
+        $newOwner = User::factory()->create(['name' => 'Reassigned Ticket Owner']);
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+
+        $this->actingAs($owner)
+            ->post(route('apes-cic.tickets.store'), [
+                'service_area' => 'operations_facilities',
+                'sub_category' => 'premises',
+                'subject' => 'Reassigned activity opener',
+                'priority' => 'medium',
+                'description' => 'Opened by the original submitter.',
+            ])
+            ->assertRedirect();
+
+        $ticket = SupportTicket::query()
+            ->where('subject', 'Reassigned activity opener')
+            ->firstOrFail();
+
+        $this->actingAs($staff)
+            ->put(route('apes-cic.tickets.update', $ticket), [
+                'user_id' => $newOwner->id,
+            ])
+            ->assertRedirect(route('apes-cic.tickets.show', $ticket));
+
+        $html = $this->actingAs($newOwner)
+            ->get(route('apes-cic.tickets.show', $ticket))
+            ->assertOk()
+            ->assertSee('data-ticket-activity-opener', false)
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/data-ticket-activity-opener[\s\S]*?Original Ticket Submitter/',
+            $html,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/data-ticket-activity-opener[\s\S]*?Reassigned Ticket Owner/',
+            $html,
+        );
+    }
+
+    public function test_a_later_ticket_created_comment_stays_visible_in_activity(): void
+    {
+        $owner = User::factory()->create();
+        $ticket = $this->ticketFor($owner, 'Literal ticket created comment');
+
+        $this->travel(1)->minutes();
+        $this->actingAs($owner)->put(route('apes-cic.tickets.update', $ticket), [
+            'message' => 'Ticket created.',
+        ])->assertRedirect(route('apes-cic.tickets.show', $ticket));
+
+        $this->actingAs($owner)
+            ->get(route('apes-cic.tickets.show', $ticket))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Activity',
+                'Public ticket description.',
+                'Ticket created.',
+            ]);
+    }
+
     public function test_staff_see_description_in_activity_without_the_owner_update_hint(): void
     {
         $owner = User::factory()->create();

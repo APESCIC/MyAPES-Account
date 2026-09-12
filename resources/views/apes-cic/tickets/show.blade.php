@@ -164,12 +164,12 @@
             <p class="muted" data-ticket-activity-hint>You can add an update (comment) to this ticket.</p>
         @endif
         <div class="item-divider" data-ticket-activity-opener>
-            <strong>{{ $ticket->user?->name ?? '—' }}</strong>
+            <strong>{{ ($activityOpenerUser ?? $ticket->user)?->name ?? '—' }}</strong>
             <span class="muted">{{ $ticket->created_at }}</span>
             <div>{{ $ticket->description }}</div>
         </div>
         @foreach(($messages ?? $ticket->messages) as $message)
-            @continue($message->message === 'Ticket created.')
+            @continue((int) $message->id === (int) ($hiddenCreationMessageId ?? 0))
             <div class="item-divider">
                 <strong>{{ $message->user->name }}</strong>
                 <span class="muted">{{ $message->created_at }}</span>
