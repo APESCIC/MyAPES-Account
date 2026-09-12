@@ -26,6 +26,89 @@ class ApesCicTicketCaseEnhancementTest extends TestCase
         Storage::fake('public');
     }
 
+    public function test_cic_ticket_create_form_does_not_preselect_service_area_while_subcategory_is_placeholder(): void
+    {
+        $owner = User::factory()->create();
+
+        $html = $this->actingAs($owner)
+            ->get(route('apes-cic.tickets.index'))
+            ->assertOk()
+            ->assertSee('data-ticket-create-form', false)
+            ->assertSeeText('Select service area')
+            ->assertSeeText('Select subcategory')
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<select[^>]*id="service_area"[^>]*>\s*<option value="">Select service area<\/option>/s',
+            $html,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<select[^>]*id="service_area"[^>]*>\s*<option[^>]+value="web_development"[^>]*selected/s',
+            $html,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/id="service_area"[\s\S]*?<option[^>]+selected[^>]*>Web Development/s',
+            $html,
+        );
+    }
+
+    public function test_cic_ticket_create_form_marks_affected_website_required(): void
+    {
+        $owner = User::factory()->create();
+
+        $this->actingAs($owner)
+            ->get(route('apes-cic.tickets.index'))
+            ->assertOk()
+            ->assertSee('data-website-field hidden', false)
+            ->assertSee('data-required-mark', false)
+            ->assertSeeText('Affected website')
+            ->assertSeeText('(required)');
+    }
+
+    public function test_ticket_creation_requires_a_subcategory_when_service_area_is_chosen(): void
+    {
+        $owner = User::factory()->create();
+
+        $this->actingAs($owner)
+            ->from(route('apes-cic.tickets.index'))
+            ->post(route('apes-cic.tickets.store'), [
+                'service_area' => 'web_development',
+                'subject' => 'Homepage broken',
+                'priority' => 'high',
+                'description' => 'The homepage layout is broken on mobile.',
+            ])
+            ->assertRedirect(route('apes-cic.tickets.index'))
+            ->assertSessionHasErrors('sub_category');
+
+        $this->assertSame(0, SupportTicket::query()->count());
+    }
+
+    public function test_cic_ticket_create_form_restores_the_chosen_service_area_after_validation_errors(): void
+    {
+        $owner = User::factory()->create();
+
+        $html = $this->actingAs($owner)
+            ->from(route('apes-cic.tickets.index'))
+            ->followingRedirects()
+            ->post(route('apes-cic.tickets.store'), [
+                'service_area' => 'it_systems',
+                'subject' => 'Cannot sign in',
+                'priority' => 'medium',
+                'description' => 'Account access is failing on the staff laptop.',
+            ])
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<option(?=[^>]*value="it_systems")(?=[^>]*selected)[^>]*>/s',
+            $html,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<option(?=[^>]*value="web_development")(?=[^>]*selected)[^>]*>/s',
+            $html,
+        );
+    }
+
     public function test_ticket_creation_requires_website_for_web_subcategories_and_stores_attachments(): void
     {
         $owner = User::factory()->create();

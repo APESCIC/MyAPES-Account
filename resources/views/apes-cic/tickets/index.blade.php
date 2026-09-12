@@ -24,6 +24,7 @@
                     <label for="service_area">Service area</label>
                     <select id="service_area" name="service_area" data-category-parent required>
                         @if($usesHierarchicalCategories)
+                            <option value="">Select service area</option>
                             @foreach($serviceAreaGroups as $area)
                                 <option
                                     value="{{ $area['key'] }}"
@@ -57,7 +58,10 @@
             </div>
             @if($usesHierarchicalCategories)
                 <div data-website-field hidden>
-                    <label for="affected_website_key">Affected website</label>
+                    <label for="affected_website_key">
+                        Affected website
+                        <span class="required-mark" data-required-mark>(required)</span>
+                    </label>
                     <select id="affected_website_key" name="affected_website_key">
                         <option value="">Select website</option>
                         @foreach($websites as $website)

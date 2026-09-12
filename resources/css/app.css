@@ -2101,6 +2101,11 @@ label {
     font-weight: 780;
 }
 
+.required-mark {
+    color: var(--danger);
+    font-weight: 700;
+}
+
 input,
 select,
 textarea {
