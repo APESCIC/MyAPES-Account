@@ -185,7 +185,8 @@ class TicketController extends Controller
             'module_key' => $instance->module->key,
         ]);
 
-        return redirect()->route($this->moduleContext->showRouteName($instance), $ticket);
+        return redirect()->route($this->moduleContext->showRouteName($instance), $ticket)
+            ->with('status', 'Your ticket has been saved.');
     }
 
     public function show(
@@ -458,7 +459,7 @@ class TicketController extends Controller
         ]);
 
         return redirect()->route($this->moduleContext->showRouteName($instance), $ticket)
-            ->with('status', 'Ticket updated.');
+            ->with('status', 'Your update has been saved.');
     }
 
     public function destroy(
