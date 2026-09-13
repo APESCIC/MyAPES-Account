@@ -286,8 +286,8 @@
                 src="{{ asset('mascot/spike-dock.png') }}"
                 alt=""
                 class="mascot-dock__avatar"
-                width="1024"
-                height="1024"
+                width="512"
+                height="512"
             >
         </button>
         <div
