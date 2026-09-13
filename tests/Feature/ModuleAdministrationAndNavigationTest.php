@@ -35,7 +35,8 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('APES Shelter and Rescue')
             ->assertSee('Pet Profiles')
-            ->assertSee('Cases');
+            ->assertSee('Cases')
+            ->assertSee(route('shelter.pets.index'));
         $this->actingAs($user)
             ->get('/petcare')
             ->assertOk()

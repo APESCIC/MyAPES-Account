@@ -22,7 +22,12 @@
                 @if($modules !== [])
                     <ul class="service-dashboard__tools">
                         @foreach($modules as $module)
-                            <li>{{ $module->label }}</li>
+                            <li>
+                                <a
+                                    href="{{ $module->viewUrl() }}"
+                                    data-hub-module-label="{{ $module->moduleKey }}"
+                                >{{ $module->label }}</a>
+                            </li>
                         @endforeach
                     </ul>
                 @endif
@@ -124,12 +129,22 @@
                                 default => 'Create '.$module->label,
                             };
                         @endphp
-                        <a href="{{ route($module->routeName) }}" class="service-dashboard__quick-link">
+                        <a
+                            href="{{ $module->viewUrl() }}"
+                            class="service-dashboard__quick-link"
+                            data-hub-action="view"
+                            data-module-key="{{ $module->moduleKey }}"
+                        >
                             View {{ $module->label }}
                             <i data-lucide="arrow-right" aria-hidden="true"></i>
                         </a>
                         @if(auth()->user()->can($permissionPrefix.'.create'))
-                            <a href="{{ route($module->routeName) }}" class="service-dashboard__quick-link service-dashboard__quick-link--action">
+                            <a
+                                href="{{ $module->createUrl() }}"
+                                class="service-dashboard__quick-link service-dashboard__quick-link--action"
+                                data-hub-action="create"
+                                data-module-key="{{ $module->moduleKey }}"
+                            >
                                 {{ $createLabel }}
                                 <i data-lucide="plus" aria-hidden="true"></i>
                             </a>

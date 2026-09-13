@@ -8,7 +8,7 @@
         <h1>Pet profiles</h1>
     </div>
     @if($canCreatePet)
-    <div class="panel">
+    <div class="panel" id="create">
         <h2>Add pet profile</h2>
         <form method="post" action="{{ route('petcare.pets.store') }}" enctype="multipart/form-data">
             @csrf
@@ -28,7 +28,7 @@
         </form>
     </div>
     @endif
-    <div class="panel">
+    <div class="panel" id="list">
         <h2>Profiles</h2>
         <table>
             <thead><tr><th>Name</th><th>Species</th><th>Age</th><th>Sex</th><th></th></tr></thead>

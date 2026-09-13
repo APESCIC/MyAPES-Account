@@ -1247,6 +1247,17 @@ form.inline {
     color: var(--ink-soft);
 }
 
+.service-dashboard__tools a {
+    color: inherit;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.service-dashboard__tools a:hover {
+    color: var(--brand-text);
+    text-decoration: underline;
+}
+
 .service-dashboard__section {
     padding: clamp(1rem, 2.5vw, 1.6rem);
     border: 1px solid var(--line);
