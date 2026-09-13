@@ -34,7 +34,7 @@ class ConsultationController extends Controller
             ->latest();
 
         return view('petcare.consultations.index', [
-            'consultations' => $query->paginate(20),
+            'consultations' => $query->paginate(20)->fragment('list'),
             'canCreate' => Gate::allows('create', PetCareConsultation::class),
             'petProfiles' => PetProfile::query()
                 ->where('service_domain', PetProfile::DOMAIN_PETCARE)

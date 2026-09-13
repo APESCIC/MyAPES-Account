@@ -67,7 +67,7 @@ class TicketController extends Controller
         $isApesCic = $instance->subCore->key === 'apes-cic';
 
         return view('apes-cic.tickets.index', [
-            'tickets' => $query->paginate(20),
+            'tickets' => $query->paginate(20)->fragment('list'),
             'serviceAreas' => $ticketService->serviceAreas,
             'serviceAreaGroups' => $isApesCic
                 ? $this->categories->serviceAreas($instance->subCore->key)

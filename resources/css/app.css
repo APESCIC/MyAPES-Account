@@ -1070,6 +1070,18 @@ form.inline {
     box-shadow: var(--shadow-soft);
 }
 
+#create,
+#list {
+    scroll-margin-top: 1rem;
+}
+
+@media (max-width: 64rem) {
+    #create,
+    #list {
+        scroll-margin-top: calc(4.5rem + 0.75rem);
+    }
+}
+
 .panel-flat {
     margin: 0;
     background: var(--canvas);

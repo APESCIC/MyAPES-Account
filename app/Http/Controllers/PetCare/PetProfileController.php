@@ -25,7 +25,7 @@ class PetProfileController extends Controller
             ->latest();
 
         return view('petcare.pets.index', [
-            'pets' => $query->paginate(20),
+            'pets' => $query->paginate(20)->fragment('list'),
             'canCreatePet' => $user->can('pet-care-clinic.pet-profiles.create'),
         ]);
     }

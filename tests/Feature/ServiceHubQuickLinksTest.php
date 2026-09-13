@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\PetProfile;
+use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
@@ -135,6 +137,42 @@ class ServiceHubQuickLinksTest extends TestCase
             '/data-hub-action="create"[^>]*data-module-key="pet-profiles"|data-module-key="pet-profiles"[^>]*data-hub-action="create"/',
             $html,
         ));
+    }
+
+    public function test_service_index_pagination_keeps_the_list_fragment(): void
+    {
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+
+        foreach (range(1, 21) as $i) {
+            PetProfile::query()->create([
+                'user_id' => $staff->id,
+                'service_domain' => PetProfile::DOMAIN_SHELTER,
+                'name' => 'Shelter page pet '.$i,
+                'species' => 'dog',
+                'sex' => 'unknown',
+                'neutering_status' => 'unknown',
+            ]);
+            SupportTicket::create([
+                'sub_core_key' => SupportTicket::SUB_CORE_APES_CIC,
+                'user_id' => $staff->id,
+                'service_area' => 'operations',
+                'subject' => 'CIC page ticket '.$i,
+                'priority' => 'medium',
+                'status' => 'open',
+                'description' => 'Pagination fixture.',
+            ]);
+        }
+
+        $this->actingAs($staff)
+            ->get(route('shelter.pets.index'))
+            ->assertOk()
+            ->assertSee('page=2#list', false);
+        $this->actingAs($staff)
+            ->get(route('apes-cic.tickets.index'))
+            ->assertOk()
+            ->assertSee('page=2#list', false);
     }
 
     public function test_signed_in_dashboard_does_not_use_staff_hub_create_view_actions(): void
