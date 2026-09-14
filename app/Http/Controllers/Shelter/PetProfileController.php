@@ -7,6 +7,7 @@ use App\Models\PetProfile;
 use App\Services\AuditLogger;
 use App\Services\PetProfilePhotoResponder;
 use App\Services\SecureUploadService;
+use App\Support\StaffPetCreateReturn;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,7 @@ class PetProfileController extends Controller
         return view('shelter.pets.index', [
             'pets' => $query->paginate(20)->fragment('list'),
             'canCreatePet' => $user->can('shelter-rescue.pet-profiles.create'),
+            'returnTo' => StaffPetCreateReturn::requestedKey(request('return_to')),
         ]);
     }
 
@@ -69,6 +71,16 @@ class PetProfileController extends Controller
         $auditLogger->record('shelter.pet_profile.created', $request->user(), $pet, [
             'has_photo' => $request->hasFile('photo'),
         ]);
+
+        $continueUrl = StaffPetCreateReturn::continueUrl(
+            $request->input('return_to'),
+            $pet->id,
+        );
+
+        if ($continueUrl !== null) {
+            return redirect($continueUrl)
+                ->with('status', 'Your pet has been saved.');
+        }
 
         return redirect()->route('shelter.pets.show', $pet)
             ->with('status', 'Your pet has been saved.');

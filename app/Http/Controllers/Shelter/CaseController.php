@@ -10,6 +10,7 @@ use App\Notifications\ShelterCaseUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
+use App\Support\StaffPetCreateReturn;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,16 +41,25 @@ class CaseController extends Controller
             ->with(['petProfile', 'assignedTo'])
             ->latest();
 
+        $petProfiles = PetProfile::query()
+            ->where('service_domain', PetProfile::DOMAIN_SHELTER)
+            ->visibleTo($user, PetProfile::DOMAIN_SHELTER)
+            ->orderBy('name')
+            ->get();
+
         return view('shelter.cases.index', [
             'cases' => $query->paginate(20)->fragment('list'),
             'canCreateCase' => $user->can(
                 ShelterCase::SUB_CORE_SHELTER_RESCUE.'.cases.create',
             ),
-            'petProfiles' => PetProfile::query()
-                ->where('service_domain', PetProfile::DOMAIN_SHELTER)
-                ->visibleTo($user, PetProfile::DOMAIN_SHELTER)
-                ->orderBy('name')
-                ->get(),
+            'petProfiles' => $petProfiles,
+            ...StaffPetCreateReturn::emptySelectViewData(
+                $user,
+                $petProfiles,
+                'shelter-rescue.pet-profiles.create',
+                'shelter.pets.index',
+                StaffPetCreateReturn::SHELTER_CASES,
+            ),
         ]);
     }
 
