@@ -10,8 +10,14 @@
     @if($canCreatePet)
     <div class="panel" id="create">
         <h2>Add pet profile</h2>
+        @if($returnTo)
+            <p class="muted">After you save this pet, you will return to the form you started.</p>
+        @endif
         <form method="post" action="{{ route('petcare.pets.store') }}" enctype="multipart/form-data">
             @csrf
+            @if($returnTo)
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+            @endif
             <div class="row">
                 <div><label>Name</label><input name="name"></div>
                 <div><label>Species</label><input name="species"></div>

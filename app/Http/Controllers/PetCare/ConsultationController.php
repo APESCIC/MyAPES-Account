@@ -11,6 +11,7 @@ use App\Rules\EligibleStaffAssignee;
 use App\Rules\UkDateTimeFormat;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
+use App\Support\StaffPetCreateReturn;
 use App\Support\UkDateTime;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -33,14 +34,23 @@ class ConsultationController extends Controller
             ->with(['petProfile', 'assignedTo'])
             ->latest();
 
+        $petProfiles = PetProfile::query()
+            ->where('service_domain', PetProfile::DOMAIN_PETCARE)
+            ->visibleTo($user, PetProfile::DOMAIN_PETCARE)
+            ->orderBy('name')
+            ->get();
+
         return view('petcare.consultations.index', [
             'consultations' => $query->paginate(20)->fragment('list'),
             'canCreate' => Gate::allows('create', PetCareConsultation::class),
-            'petProfiles' => PetProfile::query()
-                ->where('service_domain', PetProfile::DOMAIN_PETCARE)
-                ->visibleTo($user, PetProfile::DOMAIN_PETCARE)
-                ->orderBy('name')
-                ->get(),
+            'petProfiles' => $petProfiles,
+            ...StaffPetCreateReturn::emptySelectViewData(
+                $user,
+                $petProfiles,
+                'pet-care-clinic.pet-profiles.create',
+                'petcare.pets.index',
+                StaffPetCreateReturn::PETCARE_CONSULTATIONS,
+            ),
         ]);
     }
 
