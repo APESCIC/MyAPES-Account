@@ -50,7 +50,8 @@ class CaseController extends Controller
                 ->visibleTo($user, $instance->subCore->key)
                 ->with(['user', 'assignedTo'])
                 ->latest()
-                ->paginate(20),
+                ->paginate(20)
+                ->fragment('list'),
             'categoryGroups' => $this->categories->categories($instance->subCore->key),
             'websites' => $this->categories->websites($instance->subCore->key),
             'priorities' => self::PRIORITIES,

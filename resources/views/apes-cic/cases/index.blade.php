@@ -10,7 +10,7 @@
         <x-mascot-tip />
     </div>
     @if($canCreateCase)
-        <div class="panel">
+        <div class="panel" id="create">
             <h2>Open a case</h2>
             <form method="post" action="{{ route('apes-cic.cases.store') }}" enctype="multipart/form-data" data-case-create-form>
             @csrf
@@ -65,7 +65,7 @@
             </form>
         </div>
     @endif
-    <div class="panel">
+    <div class="panel" id="list">
         <h2>Your available cases</h2>
         @if($cases->isEmpty())
             <x-mascot-tip

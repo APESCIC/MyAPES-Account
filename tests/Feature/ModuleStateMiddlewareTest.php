@@ -29,8 +29,10 @@ class ModuleStateMiddlewareTest extends TestCase
             'apes-cic.tickets.' => 'module.available:apes-cic,tickets',
             'apes-cic.cases.' => 'module.available:apes-cic,cases',
             'shelter.pets.' => 'module.available:shelter-rescue,pet-profiles',
+            'shelter.pet-profiles' => 'module.available:shelter-rescue,pet-profiles',
             'shelter.cases.' => 'module.available:shelter-rescue,cases',
             'petcare.pets.' => 'module.available:pet-care-clinic,pet-profiles',
+            'petcare.pet-profiles' => 'module.available:pet-care-clinic,pet-profiles',
             'petcare.tickets.' => 'module.available:pet-care-clinic,tickets',
             'petcare.consultations.' => 'module.available:pet-care-clinic,consultations',
         ];

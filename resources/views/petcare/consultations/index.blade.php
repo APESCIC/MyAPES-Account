@@ -9,7 +9,7 @@
         <h1>Consultation management</h1>
     </div>
     @if($canCreate)
-        <div class="panel">
+        <div class="panel" id="create">
             <h2>Create consultation</h2>
             <form method="post" action="{{ route('petcare.consultations.store') }}">
             @csrf
@@ -35,7 +35,7 @@
             </form>
         </div>
     @endif
-    <div class="panel">
+    <div class="panel" id="list">
         <h2>Consultations</h2>
         <table>
             <thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Pet</th><th>Scheduled</th><th></th></tr></thead>

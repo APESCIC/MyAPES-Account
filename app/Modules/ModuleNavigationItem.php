@@ -13,4 +13,14 @@ final readonly class ModuleNavigationItem
         public string $icon,
         public int $order,
     ) {}
+
+    public function viewUrl(): string
+    {
+        return route($this->routeName).'#list';
+    }
+
+    public function createUrl(): string
+    {
+        return route($this->routeName).'#create';
+    }
 }

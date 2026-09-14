@@ -41,7 +41,7 @@ class CaseController extends Controller
             ->latest();
 
         return view('shelter.cases.index', [
-            'cases' => $query->paginate(20),
+            'cases' => $query->paginate(20)->fragment('list'),
             'canCreateCase' => $user->can(
                 ShelterCase::SUB_CORE_SHELTER_RESCUE.'.cases.create',
             ),

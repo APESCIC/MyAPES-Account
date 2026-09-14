@@ -29,7 +29,7 @@ class PetProfileController extends Controller
             ->latest();
 
         return view('shelter.pets.index', [
-            'pets' => $query->paginate(20),
+            'pets' => $query->paginate(20)->fragment('list'),
             'canCreatePet' => $user->can('shelter-rescue.pet-profiles.create'),
         ]);
     }

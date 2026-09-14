@@ -9,7 +9,7 @@
         <p class="muted">Track adoption, surrender, rescue and fostering workflows.</p>
     </div>
     @if($canCreateCase)
-        <div class="panel">
+        <div class="panel" id="create">
             <h2>Create case</h2>
             <form method="post" action="{{ route('shelter.cases.store') }}">
             @csrf
@@ -35,7 +35,7 @@
             </form>
         </div>
     @endif
-    <div class="panel">
+    <div class="panel" id="list">
         <h2>Cases</h2>
         <table>
             <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>Status</th><th>Pet</th><th></th></tr></thead>

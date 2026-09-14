@@ -1070,6 +1070,18 @@ form.inline {
     box-shadow: var(--shadow-soft);
 }
 
+#create,
+#list {
+    scroll-margin-top: 1rem;
+}
+
+@media (max-width: 64rem) {
+    #create,
+    #list {
+        scroll-margin-top: calc(4.5rem + 0.75rem);
+    }
+}
+
 .panel-flat {
     margin: 0;
     background: var(--canvas);
@@ -1245,6 +1257,17 @@ form.inline {
     display: grid;
     gap: 0.35rem;
     color: var(--ink-soft);
+}
+
+.service-dashboard__tools a {
+    color: inherit;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.service-dashboard__tools a:hover {
+    color: var(--brand-text);
+    text-decoration: underline;
 }
 
 .service-dashboard__section {

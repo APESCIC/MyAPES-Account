@@ -10,7 +10,7 @@
         <x-mascot-tip />
     </div>
     @if($canCreateTicket)
-        <div class="panel">
+        <div class="panel" id="create">
             <h2>Create ticket</h2>
             <form
                 method="post"
@@ -87,7 +87,7 @@
             </form>
         </div>
     @endif
-    <div class="panel">
+    <div class="panel" id="list">
         <h2>Tickets</h2>
         <table>
             <thead>

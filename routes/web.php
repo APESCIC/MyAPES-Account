@@ -214,6 +214,8 @@ Route::middleware([
             });
         Route::middleware(['module.available:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
             ->group(function (): void {
+                Route::get('pet-profiles', static fn () => redirect()->route('shelter.pets.index'))
+                    ->name('pet-profiles');
                 Route::get('pets/{pet}/photo', [ShelterPetProfileController::class, 'photo'])
                     ->defaults('subCoreKey', 'shelter-rescue')
                     ->defaults('moduleKey', 'pet-profiles')
@@ -260,6 +262,8 @@ Route::middleware([
             });
         Route::middleware(['module.available:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
+                Route::get('pet-profiles', static fn () => redirect()->route('petcare.pets.index'))
+                    ->name('pet-profiles');
                 Route::get('pets/{pet}/photo', [PetCarePetProfileController::class, 'photo'])
                     ->defaults('subCoreKey', 'pet-care-clinic')
                     ->defaults('moduleKey', 'pet-profiles')
