@@ -26,7 +26,8 @@
         ];
         $alertLabels = [
             'disabled' => 'Disabled',
-            'blocked' => 'Blocked',
+            'incompatible' => 'Incompatible',
+            'code_not_shipped' => 'Code not shipped',
             'active-records' => 'Active records',
         ];
         $chartData = [
@@ -177,7 +178,7 @@
             @endif
         </p>
         <table data-table="module-alerts">
-            <caption>Disabled, blocked, or active-record plugin warnings</caption>
+            <caption>Disabled, incompatible, code-not-shipped, or active-record plugin warnings</caption>
             <thead><tr><th scope="col">Plugin</th><th scope="col">Status</th></tr></thead>
             <tbody>
             @forelse($dashboard['module_alerts'] as $alert)

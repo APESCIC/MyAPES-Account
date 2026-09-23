@@ -195,12 +195,19 @@ class AdminAnalyticsAggregator
             $installation = $cell['installation'];
             $label = $definition->subCore->name.' / '.$definition->module->name;
 
-            if ($definition->codeStatus === ModuleCodeStatus::Incompatible
-                || $definition->codeStatus === ModuleCodeStatus::CodeNotShipped) {
+            if ($definition->codeStatus === ModuleCodeStatus::Incompatible) {
                 $alerts[] = [
                     'key' => $definition->key(),
                     'label' => $label,
-                    'kind' => 'blocked',
+                    'kind' => 'incompatible',
+                ];
+            }
+
+            if ($definition->codeStatus === ModuleCodeStatus::CodeNotShipped) {
+                $alerts[] = [
+                    'key' => $definition->key(),
+                    'label' => $label,
+                    'kind' => 'code_not_shipped',
                 ];
             }
 
