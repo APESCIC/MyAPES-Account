@@ -52,7 +52,7 @@ class AdminRoleAndUserManagementTest extends TestCase
         $this->actingAs($administrator)
             ->post("/admin/users/{$staff->id}/suspension", [
                 'reason' => 'Temporary access review',
-                'confirm' => '1',
+                'confirm_suspend' => '1',
             ])
             ->assertRedirect("/admin/users/{$staff->id}");
         $this->assertNotNull($staff->fresh()->suspended_at);
@@ -66,7 +66,7 @@ class AdminRoleAndUserManagementTest extends TestCase
             ->from("/admin/users/{$otherAdministrator->id}")
             ->post("/admin/users/{$otherAdministrator->id}/suspension", [
                 'reason' => 'Not permitted',
-                'confirm' => '1',
+                'confirm_suspend' => '1',
             ])
             ->assertRedirect("/admin/users/{$otherAdministrator->id}")
             ->assertSessionHasErrors('authorization');

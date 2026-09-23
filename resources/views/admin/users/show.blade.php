@@ -306,7 +306,7 @@
                         <label for="suspension-reason">Suspension reason</label>
                         <textarea id="suspension-reason" name="reason" required maxlength="500">{{ old('reason') }}</textarea>
                         <label class="inline-check">
-                            <input type="checkbox" name="confirm" value="1" required>
+                            <input type="checkbox" name="confirm_suspend" value="1" required>
                             <span>I confirm I want to suspend this account</span>
                         </label>
                         <div class="actions"><button class="danger-btn" type="submit">Suspend user</button></div>

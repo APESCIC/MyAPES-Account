@@ -309,7 +309,7 @@ class AdminUserController extends Controller
         $managedUser = User::query()->findOrFail($user);
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:500'],
-            'confirm' => ['accepted'],
+            'confirm_suspend' => ['accepted'],
         ]);
 
         try {

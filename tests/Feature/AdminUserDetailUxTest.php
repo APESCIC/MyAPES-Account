@@ -48,7 +48,7 @@ class AdminUserDetailUxTest extends TestCase
             ->assertOk()
             ->assertSee('id="suspend-user"', false)
             ->assertSee('I confirm I want to suspend this account')
-            ->assertSee('name="confirm"', false)
+            ->assertSee('name="confirm_suspend"', false)
             ->assertSee('#suspend-user', false);
 
         $this->actingAs($administrator)
@@ -57,13 +57,13 @@ class AdminUserDetailUxTest extends TestCase
                 'reason' => 'Temporary access review',
             ])
             ->assertRedirect(route('admin.users.show', $staff))
-            ->assertSessionHasErrors('confirm');
+            ->assertSessionHasErrors('confirm_suspend');
         $this->assertNull($staff->fresh()->suspended_at);
 
         $this->actingAs($administrator)
             ->post(route('admin.users.suspension.store', $staff), [
                 'reason' => 'Temporary access review',
-                'confirm' => '1',
+                'confirm_suspend' => '1',
             ])
             ->assertRedirect(route('admin.users.show', $staff));
         $this->assertNotNull($staff->fresh()->suspended_at);
