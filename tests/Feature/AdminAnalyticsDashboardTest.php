@@ -219,6 +219,29 @@ class AdminAnalyticsDashboardTest extends TestCase
             ->assertJsonPath('status', 'ok');
     }
 
+    public function test_superadmin_module_alerts_use_incompatible_not_blocked(): void
+    {
+        $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
+
+        $response = $this->actingAs($superAdmin)->get(route('superadmin.index'));
+        $dashboard = $response->viewData('dashboard');
+        $kinds = collect($dashboard['module_alerts'])->pluck('kind')->unique()->values()->all();
+
+        $response->assertOk()
+            ->assertSee('Incompatible')
+            ->assertDontSee('>Blocked<', false)
+            ->assertSee('data-alert-kind="incompatible"', false)
+            ->assertDontSee('data-alert-kind="blocked"', false);
+
+        $this->assertContains('incompatible', $kinds);
+        $this->assertNotContains('blocked', $kinds);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertSee('Incompatible');
+    }
+
     public function test_aggregate_cache_expires_and_does_not_cache_recent_account_identities(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-08-20 12:00:00', 'UTC'));
