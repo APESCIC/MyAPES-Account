@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use App\Services\AuthorizationProfile;
 use Illuminate\Support\Collection;
 
 final class StaffPetCreateReturn
@@ -62,7 +63,8 @@ final class StaffPetCreateReturn
         string $petsIndexRoute,
         string $returnKey,
     ): array {
-        $showEmptyPetSelect = $user->isStaff() && $petProfiles->isEmpty();
+        $showEmptyPetSelect = $user->can(AuthorizationProfile::PERMISSION_STAFF_ACCESS)
+            && $petProfiles->isEmpty();
         $canAddPet = $showEmptyPetSelect
             && $user->can($createPetPermission);
 

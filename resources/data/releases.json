@@ -26,6 +26,7 @@
     "validation": [
       "PHPUnit StaffEmptyPetSelectTest covers empty-state copy, the add-pet return path, public users keeping a blank select, and rejected external return addresses.",
       "PHPUnit StaffPetCreateReturnTest covers the allowed return keys.",
+      "PHPUnit AuthorizationRuntimeSourceContractTest confirms staff empty-state detection uses permission checks instead of scalar access helpers.",
       "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch."
     ],
     "known_limitations": [
