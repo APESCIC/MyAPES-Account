@@ -20,7 +20,14 @@
                     @endif
                 </dd>
             </div>
-            <div><dt>Suspension state</dt><dd>{{ $managedUser->suspended_at === null ? 'Active' : 'Suspended' }}</dd></div>
+            <div><dt>Suspension state</dt><dd>
+                {{ $managedUser->suspended_at === null ? 'Active' : 'Suspended' }}
+                @can('admin.users.manage')
+                    @if($canManageTarget && $managedUser->suspended_at === null)
+                        · <a href="#suspend-user">Suspend…</a>
+                    @endif
+                @endcan
+            </dd></div>
             <div><dt>Authorization epoch</dt><dd>{{ $managedUser->authorization_epoch }}</dd></div>
             <div class="admin-definition-list__groups">
                 <dt>Normalized directory groups</dt>
@@ -163,14 +170,78 @@
     </section>
 
     <section class="panel" aria-labelledby="effective-permissions-title">
-        <h2 id="effective-permissions-title">Effective permissions</h2>
-        <ul>
-            @forelse($permissions as $permission)
-                <li><code>{{ $permission->name }}</code></li>
+        <h2 id="effective-permissions-title">Effective access</h2>
+        <p class="muted">Summary of provenanced roles and capability packs. Expand Advanced for the fine-grained permission list.</p>
+
+        <h3>Job roles</h3>
+        @if($managedUser->roles->isEmpty())
+            <p>No job roles are assigned.</p>
+        @else
+            <ul class="permission-readable-list">
+                @foreach($managedUser->roles as $role)
+                    <li>
+                        <strong>
+                            @if(\App\Support\DefaultJobRoles::isDefault($role->name))
+                                {{ \App\Support\DefaultJobRoles::title($role->name) }}
+                            @else
+                                {{ $role->name }}
+                            @endif
+                        </strong>
+                        <p class="muted">{{ $role->permissions->count() }} permissions on this role</p>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+
+        <h3>Capability packs</h3>
+        @php
+            $activePacks = collect($packDefinitions)
+                ->filter(fn (array $pack, string $key): bool => ($packStates[$key] ?? 'off') !== 'off');
+        @endphp
+        @if($activePacks->isEmpty())
+            <p>No capability packs are fully or partially covered by this account's effective permissions.</p>
+        @else
+            <ul class="permission-readable-list">
+                @foreach($activePacks as $packKey => $pack)
+                    @php
+                        $state = $packStates[$packKey] ?? 'off';
+                    @endphp
+                    <li>
+                        <strong>{{ $pack['title'] }}</strong>
+                        @if($state === 'indeterminate')
+                            <p class="muted">Partially covered — expand Advanced for details</p>
+                        @else
+                            <p class="muted">{{ count($pack['permissions']) }} permissions</p>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+
+        <details class="permission-advanced" data-effective-permissions-advanced>
+            <summary>Advanced permissions</summary>
+            @php
+                $assignedGroups = $permissions
+                    ->groupBy(fn ($permission) => \App\Support\PermissionDescriptions::group($permission->name))
+                    ->sortKeys();
+            @endphp
+            @forelse($assignedGroups as $groupName => $groupPermissions)
+                <div class="permission-readable-group">
+                    <h3>{{ $groupName }}</h3>
+                    <ul class="permission-readable-list">
+                        @foreach($groupPermissions as $permission)
+                            <li>
+                                <strong>{{ \App\Support\PermissionDescriptions::title($permission->name) }}</strong>
+                                <p class="muted">{{ \App\Support\PermissionDescriptions::description($permission->name) }}</p>
+                                <code>{{ $permission->name }}</code>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
             @empty
-                <li>No effective permissions.</li>
+                <p>No effective permissions.</p>
             @endforelse
-        </ul>
+        </details>
     </section>
 
     <section class="panel" aria-labelledby="direct-permission-provenance-title">
@@ -226,10 +297,18 @@
                 <hr class="section-divider">
 
                 @if($managedUser->suspended_at === null)
-                    <form method="post" action="{{ route('admin.users.suspension.store', $managedUser) }}">
+                    <form
+                        id="suspend-user"
+                        method="post"
+                        action="{{ route('admin.users.suspension.store', $managedUser) }}"
+                    >
                         @csrf
                         <label for="suspension-reason">Suspension reason</label>
-                        <textarea id="suspension-reason" name="reason" required maxlength="500"></textarea>
+                        <textarea id="suspension-reason" name="reason" required maxlength="500">{{ old('reason') }}</textarea>
+                        <label class="inline-check">
+                            <input type="checkbox" name="confirm_suspend" value="1" required>
+                            <span>I confirm I want to suspend this account</span>
+                        </label>
                         <div class="actions"><button class="danger-btn" type="submit">Suspend user</button></div>
                     </form>
                 @else

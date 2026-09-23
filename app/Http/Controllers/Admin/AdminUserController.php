@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\ModuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OnboardingController;
 use App\Models\AuditLog;
@@ -17,6 +18,7 @@ use App\Services\LocalPublicPasswordResetService;
 use App\Services\SecureUploadService;
 use App\Services\StaffProfilePhotoResponder;
 use App\Services\UkPhoneNumber;
+use App\Support\JobRoleCapabilityPacks;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -139,6 +141,7 @@ class AdminUserController extends Controller
         string $user,
         AuthorizationMutationService $mutations,
         LocalPublicPasswordResetService $passwordResets,
+        ModuleRegistry $modules,
     ): View {
         Gate::authorize('admin.users.view');
         $managedUser = User::query()->findOrFail($user);
@@ -165,6 +168,18 @@ class AdminUserController extends Controller
             ->unique('id')
             ->sortBy('name')
             ->values();
+        $permissionNames = $permissions->pluck('name')->all();
+        $packDefinitions = JobRoleCapabilityPacks::definitions($modules);
+        $packStates = [];
+
+        foreach (array_keys($packDefinitions) as $packKey) {
+            $packStates[$packKey] = JobRoleCapabilityPacks::state(
+                $packKey,
+                $permissionNames,
+                $modules,
+            );
+        }
+
         $auditContextKeys = [
             'actor_id',
             'target_user_id',
@@ -205,6 +220,8 @@ class AdminUserController extends Controller
         return view('admin.users.show', [
             'managedUser' => $managedUser,
             'permissions' => $permissions,
+            'packDefinitions' => $packDefinitions,
+            'packStates' => $packStates,
             'customRoles' => Role::query()
                 ->where('guard_name', 'web')
                 ->where('is_protected', false)
@@ -292,6 +309,7 @@ class AdminUserController extends Controller
         $managedUser = User::query()->findOrFail($user);
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:500'],
+            'confirm_suspend' => ['accepted'],
         ]);
 
         try {

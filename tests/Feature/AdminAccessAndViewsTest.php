@@ -204,6 +204,8 @@ class AdminAccessAndViewsTest extends TestCase
         $response = $this->actingAs($reviewingAdministrator)
             ->get(route('admin.users.show', $target))
             ->assertOk()
+            ->assertSee('Effective access')
+            ->assertSee('Advanced permissions')
             ->assertSee('admin.users.*')
             ->assertSee('admin.users.view')
             ->assertSee('Direct permission provenance')
@@ -211,12 +213,18 @@ class AdminAccessAndViewsTest extends TestCase
             ->assertSee((string) $grantingAdministrator->id)
             ->assertSee('System');
 
+        $content = $response->getContent();
         $this->assertSame(
             1,
-            substr_count(
-                $response->getContent(),
-                '<li><code>staff.access</code></li>',
+            preg_match(
+                '/<details class="permission-advanced"[^>]*data-effective-permissions-advanced[^>]*>(.*?)<\/details>/s',
+                $content,
+                $advancedMatch,
             ),
+        );
+        $this->assertSame(
+            1,
+            substr_count($advancedMatch[1], '<code>staff.access</code>'),
         );
     }
 
