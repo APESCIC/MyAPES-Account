@@ -1,6 +1,8 @@
 @extends('admin.access.layout')
 
 @section('access-content')
+    @inject('ukDateTime', \App\Support\UkDateTime::class)
+
     <section class="panel" aria-labelledby="access-groups-title">
         <h2 id="access-groups-title">Groups</h2>
         <p class="muted">Managed Cloudron <code>myapesaccount.*</code> groups used for MyAPES Account authorization. Directory sync imports only these groups (legacy aliases map to the canonical names). Historical non-prefix catalogue rows stay in the database for audits but are hidden here. Protected access-tier mappings stay preset; Super Admins can attach an optional job role.</p>
@@ -38,11 +40,19 @@
     <section class="panel" aria-labelledby="group-results-title">
         <h2 id="group-results-title">Preset groups</h2>
         <table>
-            <caption>{{ $groups->total() }} preset directory groups, ordered by normalized name</caption>
+            <caption>
+                {{ $groups->total() }} preset directory groups, ordered by normalized name
+                @if($catalogueSyncedAt)
+                    — as of {{ $ukDateTime->format(\Illuminate\Support\Carbon::parse($catalogueSyncedAt)) }}
+                @else
+                    — last sync unknown
+                @endif
+            </caption>
             <thead>
                 <tr>
                     <th scope="col">Group</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Members</th>
                     <th scope="col">Access tier</th>
                     <th scope="col">Optional job role</th>
                 </tr>
@@ -52,10 +62,14 @@
                 @php
                     $accessTier = $group->roles->first(fn ($role) => (bool) $role->pivot->is_immutable);
                     $jobRoleMappings = $group->roles->filter(fn ($role) => ! (bool) $role->pivot->is_immutable);
+                    $memberCountLabel = $group->member_count ?? 'Unknown';
                 @endphp
                 <tr>
                     <td><code>{{ $group->name }}</code></td>
                     <td>{{ ucfirst($group->status) }}</td>
+                    <td>
+                        <a href="{{ route('admin.groups.show', $group) }}">{{ $memberCountLabel }}</a>
+                    </td>
                     <td>
                         @if($accessTier)
                             <code>{{ $accessTier->name }}</code>
@@ -95,7 +109,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="4">No preset directory groups match these filters.</td></tr>
+                <tr><td colspan="5">No preset directory groups match these filters.</td></tr>
             @endforelse
             </tbody>
         </table>

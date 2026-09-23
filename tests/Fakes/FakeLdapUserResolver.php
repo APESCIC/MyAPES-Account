@@ -59,6 +59,10 @@ final class FakeLdapUserResolver extends LdapUserResolver
      */
     public function membersOfGroup(string $groupName): array
     {
+        if ($this->failure !== null) {
+            throw $this->failure;
+        }
+
         $normalizedGroup = strtolower(trim($groupName));
 
         return $this->membersByGroup[$normalizedGroup] ?? [];

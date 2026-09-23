@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminAccessController;
+use App\Http\Controllers\Admin\AdminGroupController;
 use App\Http\Controllers\Admin\AdminMaintenanceController;
 use App\Http\Controllers\Admin\AdminModuleController;
 use App\Http\Controllers\Admin\AdminUserController;
@@ -366,6 +367,9 @@ Route::middleware([
             Route::get('/groups', fn () => redirect()->route('admin.access.index', ['tab' => 'groups']))
                 ->middleware('can:admin.groups.view')
                 ->name('groups.index');
+            Route::get('/groups/{directoryGroup}', [AdminGroupController::class, 'show'])
+                ->middleware('can:admin.groups.view')
+                ->name('groups.show');
             Route::get('/roles', fn () => redirect()->route('admin.access.index', ['tab' => 'job-roles']))
                 ->middleware('can:admin.roles.view')
                 ->name('roles.index');
