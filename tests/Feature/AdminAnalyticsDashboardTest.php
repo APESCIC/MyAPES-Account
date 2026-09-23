@@ -39,22 +39,40 @@ class AdminAnalyticsDashboardTest extends TestCase
         $admin = User::factory()->accessLevel(User::ROLE_ADMIN)->create();
 
         $this->actingAs($staff)->get(route('admin.index'))->assertForbidden();
-        $this->actingAs($admin)
+        $adminResponse = $this->actingAs($admin)
             ->get(route('admin.index'))
             ->assertOk()
             ->assertSee('Admin overview')
             ->assertSee('data-kpi="open-workload"', false)
             ->assertDontSee('data-kpi="median-closure"', false)
+            ->assertDontSee('data-kpi="enabled-modules"', false)
+            ->assertDontSee('data-kpi="module-alerts"', false)
             ->assertDontSee('Created versus closed')
             ->assertDontSee('id="analytics-trend-chart"', false)
             ->assertDontSee('cdn.jsdelivr.net');
+        $this->assertKpisAppearOnce($adminResponse->getContent(), [
+            'total-accounts',
+            'created-in-range',
+            'suspended-accounts',
+            'open-workload',
+            'high-or-urgent',
+            'unassigned',
+        ]);
 
         $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
-        $this->actingAs($superAdmin)
+        $superAdminResponse = $this->actingAs($superAdmin)
             ->get(route('superadmin.index'))
             ->assertOk()
             ->assertSee('Super Admin overview')
             ->assertSee('data-kpi="median-closure"', false)
+            ->assertSee('data-kpi="enabled-modules"', false)
+            ->assertSee('data-kpi="module-alerts"', false)
+            ->assertDontSee('data-kpi="total-accounts"', false)
+            ->assertDontSee('data-kpi="created-in-range"', false)
+            ->assertDontSee('data-kpi="suspended-accounts"', false)
+            ->assertDontSee('data-kpi="open-workload"', false)
+            ->assertDontSee('data-kpi="high-or-urgent"', false)
+            ->assertDontSee('data-kpi="unassigned"', false)
             ->assertSee('Created versus closed')
             ->assertSee('data-chart-frame="trend"', false)
             ->assertSee('data-chart-frame="workload"', false)
@@ -63,6 +81,11 @@ class AdminAnalyticsDashboardTest extends TestCase
             ->assertSee('data-table="created-versus-closed"', false)
             ->assertSee('data-table="workload-by-service"', false)
             ->assertDontSee('cdn.jsdelivr.net');
+        $this->assertKpisAppearOnce($superAdminResponse->getContent(), [
+            'enabled-modules',
+            'median-closure',
+            'module-alerts',
+        ]);
     }
 
     public function test_invalid_range_defaults_to_thirty_days_and_boundaries_use_app_timezone(): void
@@ -287,6 +310,20 @@ class AdminAnalyticsDashboardTest extends TestCase
             ->assertDontSee('staff league')
             ->assertDontSee('PHPUnit')
             ->assertDontSee('admin.roles.manage');
+    }
+
+    /**
+     * @param  list<string>  $kpiKeys
+     */
+    private function assertKpisAppearOnce(string $html, array $kpiKeys): void
+    {
+        foreach ($kpiKeys as $kpiKey) {
+            $this->assertSame(
+                1,
+                substr_count($html, 'data-kpi="'.$kpiKey.'"'),
+                "Expected data-kpi=\"{$kpiKey}\" exactly once on the page.",
+            );
+        }
     }
 
     /**
