@@ -335,6 +335,9 @@ Route::middleware([
             Route::post('/users/{user}/password-reset', [AdminUserController::class, 'resetLocalPassword'])
                 ->middleware('can:admin.users.manage')
                 ->name('users.password-reset');
+            Route::post('/users/{user}/pending-first-login-chase', [AdminUserController::class, 'chasePendingFirstLogin'])
+                ->middleware('can:admin.users.manage')
+                ->name('users.pending-first-login-chase');
 
             Route::get('/access', [AdminAccessController::class, 'index'])
                 ->name('access.index');

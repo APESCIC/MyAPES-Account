@@ -185,8 +185,9 @@ class AdminLocalPublicPasswordResetTest extends TestCase
         $this->actingAs($administrator)
             ->get(route('admin.users.show', $pendingFirstLogin))
             ->assertOk()
-            ->assertSeeText('Pending first-login directory accounts stay on Cloudron.')
+            ->assertSeeText('This directory account has not completed Staff Login yet.')
             ->assertSeeText('Pending first login')
+            ->assertSee('Send Staff Login reminder')
             ->assertDontSee('Reset local password');
 
         $this->actingAs($administrator)

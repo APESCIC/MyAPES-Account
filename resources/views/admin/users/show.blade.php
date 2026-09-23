@@ -138,9 +138,22 @@
                 </form>
             </section>
         @elseif($managedUser->isPendingFirstLogin())
-            <section class="panel" id="local-password" aria-labelledby="local-password-title">
-                <h2 id="local-password-title">Local password</h2>
-                <p class="muted">Pending first-login directory accounts stay on Cloudron. This password cannot be reset here.</p>
+            <section class="panel" id="pending-first-login" aria-labelledby="pending-first-login-title">
+                <h2 id="pending-first-login-title">Pending first login</h2>
+                <p class="muted">This directory account has not completed Staff Login yet. Passwords and passkeys stay on Cloudron — do not use the public password reset.</p>
+                @if($canChasePendingFirstLogin)
+                    <form method="post" action="{{ route('admin.users.pending-first-login-chase', $managedUser) }}">
+                        @csrf
+                        <label class="inline-check">
+                            <input type="checkbox" name="confirm_chase" value="1" required>
+                            <span>Send a Staff Login reminder that opens Staff Login / Cloudron</span>
+                        </label>
+                        <div class="actions">
+                            <button type="submit">Send Staff Login reminder</button>
+                        </div>
+                    </form>
+                    <p class="muted"><a href="{{ route('staff.login') }}">Staff Login</a> is the only sign-in path for this account.</p>
+                @endif
             </section>
         @elseif(! $isStaffAccount && ! $managedUser->isLocalPasswordIdentity())
             <section class="panel" id="local-password" aria-labelledby="local-password-title">
