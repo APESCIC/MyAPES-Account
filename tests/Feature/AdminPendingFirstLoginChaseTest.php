@@ -1,0 +1,214 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AuditLog;
+use App\Models\User;
+use App\Notifications\PendingFirstLoginChaseNotification;
+use App\Services\AuthorizationProfile;
+use App\Services\LocalPublicPasswordResetService;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
+use Tests\TestCase;
+
+class AdminPendingFirstLoginChaseTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_admin_can_chase_pending_first_login_directory_user_via_staff_login(): void
+    {
+        Notification::fake();
+
+        $administrator = $this->administrator();
+        $pending = User::factory()->create([
+            'name' => 'Pending Directory',
+            'email' => 'pending.chase@example.com',
+            'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
+            'oidc_sub' => null,
+            'password' => 'password',
+        ]);
+
+        $detail = $this->actingAs($administrator)
+            ->get(route('admin.users.show', $pending));
+        $detail->assertOk()
+            ->assertSee('Pending first login')
+            ->assertSee('Send Staff Login reminder')
+            ->assertSee('name="confirm_chase"', false)
+            ->assertSee(route('staff.login'), false)
+            ->assertDontSee('Reset local password')
+            ->assertDontSee(route('password.request'), false)
+            ->assertDontSeeText('Forgot password');
+
+        $this->actingAs($administrator)
+            ->from(route('admin.users.show', $pending))
+            ->post(route('admin.users.pending-first-login-chase', $pending), [
+                'confirm_chase' => '1',
+            ])
+            ->assertRedirect(route('admin.users.show', $pending))
+            ->assertSessionHas('status');
+
+        Notification::assertSentTo(
+            $pending,
+            PendingFirstLoginChaseNotification::class,
+            function (PendingFirstLoginChaseNotification $notification) use ($pending): bool {
+                $mail = $notification->toMail($pending);
+                $rendered = implode("\n", [
+                    $mail->subject,
+                    ...$mail->introLines,
+                    $mail->actionUrl ?? '',
+                    ...$mail->outroLines,
+                ]);
+
+                $this->assertStringContainsString(route('staff.login'), $rendered);
+                $this->assertStringNotContainsString(route('password.request'), $rendered);
+                $this->assertStringNotContainsString('/forgot-password', $rendered);
+                $this->assertStringContainsString('Cloudron', $rendered);
+
+                return true;
+            },
+        );
+        Notification::assertNotSentTo($pending, ResetPassword::class);
+
+        $audit = AuditLog::query()
+            ->where('event', 'auth.pending_first_login_chase')
+            ->where('user_id', $administrator->id)
+            ->sole();
+        $this->assertSame($pending->id, $audit->auditable_id);
+        $this->assertSame($pending->id, $audit->context['target_user_id']);
+        $this->assertSame('staff_login', $audit->context['login_path']);
+    }
+
+    public function test_public_local_accounts_are_refused_chase_and_keep_password_reset_path(): void
+    {
+        Notification::fake();
+
+        $administrator = $this->administrator();
+        $public = User::factory()->create([
+            'email' => 'local.public.chase@example.com',
+            'password' => 'password',
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('admin.users.show', $public))
+            ->assertOk()
+            ->assertSee('Reset local password')
+            ->assertDontSee('Send Staff Login reminder')
+            ->assertDontSee('name="confirm_chase"', false);
+
+        $this->actingAs($administrator)
+            ->from(route('admin.users.show', $public))
+            ->post(route('admin.users.pending-first-login-chase', $public), [
+                'confirm_chase' => '1',
+            ])
+            ->assertForbidden();
+
+        Notification::assertNothingSent();
+        $this->assertDatabaseMissing('audit_logs', [
+            'event' => 'auth.pending_first_login_chase',
+        ]);
+
+        $this->assertTrue(
+            app(LocalPublicPasswordResetService::class)->canReset($administrator, $public),
+        );
+    }
+
+    public function test_directory_accounts_that_already_logged_in_are_refused(): void
+    {
+        Notification::fake();
+
+        $administrator = $this->administrator();
+        $directory = User::factory()
+            ->directoryIdentity('directory-already-linked')
+            ->create([
+                'email' => 'directory.linked@example.com',
+                'password' => 'password',
+            ]);
+
+        $this->actingAs($administrator)
+            ->get(route('admin.users.show', $directory))
+            ->assertOk()
+            ->assertDontSee('Send Staff Login reminder');
+
+        $this->actingAs($administrator)
+            ->post(route('admin.users.pending-first-login-chase', $directory), [
+                'confirm_chase' => '1',
+            ])
+            ->assertForbidden();
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_chase_requires_confirmation(): void
+    {
+        Notification::fake();
+
+        $administrator = $this->administrator();
+        $pending = User::factory()->create([
+            'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
+            'oidc_sub' => null,
+            'password' => 'password',
+        ]);
+
+        $this->actingAs($administrator)
+            ->from(route('admin.users.show', $pending))
+            ->post(route('admin.users.pending-first-login-chase', $pending))
+            ->assertRedirect(route('admin.users.show', $pending))
+            ->assertSessionHasErrors('confirm_chase');
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_staff_cannot_chase_pending_first_login(): void
+    {
+        Notification::fake();
+
+        $staff = User::factory()
+            ->accessLevel(User::ROLE_STAFF)
+            ->create()
+            ->refresh();
+        $pending = User::factory()->create([
+            'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
+            'oidc_sub' => null,
+            'password' => 'password',
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('admin.users.pending-first-login-chase', $pending), [
+                'confirm_chase' => '1',
+            ])
+            ->assertForbidden();
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_pending_first_login_still_refuses_local_public_password_reset(): void
+    {
+        $administrator = $this->administrator();
+        $pending = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create([
+                'identity_type' => User::IDENTITY_CLOUDRON_OIDC,
+                'oidc_sub' => null,
+                'password' => 'password',
+            ]);
+
+        $this->actingAs($administrator)
+            ->post(route('admin.users.password-reset', $pending), [
+                'confirm' => '1',
+            ])
+            ->assertForbidden();
+
+        $this->assertFalse(
+            app(LocalPublicPasswordResetService::class)->canReset($administrator, $pending),
+        );
+    }
+
+    private function administrator(): User
+    {
+        return User::factory()
+            ->accessLevel(User::ROLE_ADMIN)
+            ->create()
+            ->refresh();
+    }
+}

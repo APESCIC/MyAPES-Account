@@ -15,6 +15,7 @@ use App\Services\AuthorizationMutationService;
 use App\Services\AuthorizationProfile;
 use App\Services\ContactPreferenceUpdater;
 use App\Services\LocalPublicPasswordResetService;
+use App\Services\PendingFirstLoginChaseService;
 use App\Services\SecureUploadService;
 use App\Services\StaffProfilePhotoResponder;
 use App\Services\UkPhoneNumber;
@@ -141,6 +142,7 @@ class AdminUserController extends Controller
         string $user,
         AuthorizationMutationService $mutations,
         LocalPublicPasswordResetService $passwordResets,
+        PendingFirstLoginChaseService $pendingFirstLoginChase,
         ModuleRegistry $modules,
     ): View {
         Gate::authorize('admin.users.view');
@@ -239,6 +241,11 @@ class AdminUserController extends Controller
             ),
             'canResetLocalPassword' => $request->user() instanceof User
                 && $passwordResets->canReset($request->user(), $managedUser),
+            'canChasePendingFirstLogin' => $request->user() instanceof User
+                && $pendingFirstLoginChase->canChase(
+                    $request->user(),
+                    $managedUser,
+                ),
             'identityLabel' => match ($managedUser->identity_type) {
                 User::IDENTITY_LOCAL => 'Local',
                 User::IDENTITY_CLOUDRON_OIDC => 'Cloudron OIDC',
@@ -534,5 +541,30 @@ class AdminUserController extends Controller
                 'A one-time temporary password was generated. Copy it now; it will not be shown again.',
             )
             ->with('temporary_password', $temporaryPassword);
+    }
+
+    public function chasePendingFirstLogin(
+        Request $request,
+        string $user,
+        PendingFirstLoginChaseService $chase,
+    ): RedirectResponse {
+        Gate::authorize('admin.users.manage');
+        $managedUser = User::query()->findOrFail($user);
+        $request->validate([
+            'confirm_chase' => ['accepted'],
+        ]);
+
+        try {
+            $chase->chase($request->user(), $managedUser);
+        } catch (DomainException $exception) {
+            abort(403, $exception->getMessage());
+        }
+
+        return redirect()
+            ->route('admin.users.show', $managedUser)
+            ->with(
+                'status',
+                'A Staff Login reminder was sent. It points at Staff Login / Cloudron, not the public password reset.',
+            );
     }
 }
