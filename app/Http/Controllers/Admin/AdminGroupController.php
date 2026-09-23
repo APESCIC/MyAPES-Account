@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\DirectoryUnavailable;
 use App\Http\Controllers\Controller;
 use App\Jobs\RunDirectorySync;
 use App\Models\DirectoryGroup;
@@ -9,7 +10,9 @@ use App\Models\DirectoryGroupRoleMapping;
 use App\Models\Role;
 use App\Services\AuditLogger;
 use App\Services\DirectoryGroupMappingService;
+use App\Services\LdapUserResolver;
 use App\Services\ManualDirectorySyncQueueResolver;
+use App\Support\DirectoryGroupPrefix;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +24,35 @@ use LogicException;
 
 class AdminGroupController extends Controller
 {
+    public function show(
+        string $directoryGroup,
+        LdapUserResolver $directory,
+    ): View {
+        Gate::authorize('admin.groups.view');
+
+        $group = DirectoryGroup::query()->findOrFail($directoryGroup);
+
+        if (! DirectoryGroupPrefix::isManagedGroup($group->name)) {
+            abort(404);
+        }
+
+        $members = [];
+        $directoryUnavailable = false;
+
+        try {
+            $members = $directory->membersOfGroup($group->name);
+        } catch (DirectoryUnavailable) {
+            $members = [];
+            $directoryUnavailable = true;
+        }
+
+        return view('admin.groups.show', [
+            'group' => $group,
+            'members' => $members,
+            'directoryUnavailable' => $directoryUnavailable,
+        ]);
+    }
+
     public function index(Request $request): View
     {
         $filters = $request->validate([

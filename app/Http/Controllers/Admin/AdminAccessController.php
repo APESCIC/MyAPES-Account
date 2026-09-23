@@ -14,13 +14,14 @@ use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleManagementService;
 use App\Services\DirectoryGroupMappingService;
 use App\Services\ManualDirectorySyncQueueResolver;
-use App\Support\DefaultJobRoles;
 use App\Support\JobRoleCapabilityPacks;
 use App\Support\PermissionDescriptions;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
@@ -283,6 +284,10 @@ class AdminAccessController extends Controller
             $query->where('status', $filters['status']);
         }
 
+        $catalogueSyncedAt = DirectoryGroup::query()
+            ->managedMyApesGroups()
+            ->max('last_synced_at');
+
         return view('admin.access.groups', [
             'activeTab' => 'groups',
             'groups' => $query
@@ -296,6 +301,7 @@ class AdminAccessController extends Controller
                 ->orderBy('name')
                 ->get(),
             'filters' => $filters,
+            'catalogueSyncedAt' => $catalogueSyncedAt,
         ]);
     }
 
@@ -374,7 +380,7 @@ class AdminAccessController extends Controller
 
         $page = max(1, (int) $request->query('page', 1));
         $perPage = 50;
-        $permissions = new \Illuminate\Pagination\LengthAwarePaginator(
+        $permissions = new LengthAwarePaginator(
             $allMatching->forPage($page, $perPage)->values(),
             $allMatching->count(),
             $perPage,
@@ -444,7 +450,7 @@ class AdminAccessController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Permission>
+     * @return Collection<int, Permission>
      */
     private function assignablePermissions(AuthorizationProfile $profile)
     {
