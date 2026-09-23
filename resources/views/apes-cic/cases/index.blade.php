@@ -9,6 +9,57 @@
         <p class="muted">Formal casework including data access, privacy requests, complaints and escalated enquiries. Use tickets for general support.</p>
         <x-mascot-tip />
     </div>
+    <div class="panel" id="list">
+        <h2>Your available cases</h2>
+        @if($cases->isEmpty())
+            <x-mascot-tip
+                variant="empty"
+                title="No cases are available to you yet."
+                body="When a case is shared with you, or you open one, it will appear here."
+            />
+        @else
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Owner</th>
+                        <th>Assigned</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach($cases as $case)
+                    <tr>
+                        <td>#{{ $case->id }}</td>
+                        <td>{{ $case->title }}</td>
+                        <td>
+                            {{ $categoryResolver->labelForCategory($case->sub_core_key, (string) $case->category) }}
+                            @if($case->sub_category)
+                                <br><small class="muted">{{ $categoryResolver->labelForSubcategory($case->sub_core_key, (string) $case->category, $case->sub_category) }}</small>
+                            @endif
+                        </td>
+                        <td><span class="status">{{ $case->status }}</span></td>
+                        <td>{{ $case->priority }}</td>
+                        <td>{{ $case->user?->name ?? '—' }}</td>
+                        <td>
+                            @if($revealAssigneeIdentity)
+                                {{ $case->assignedTo?->name ?? 'Unassigned' }}
+                            @else
+                                {{ $case->assigned_to ? 'Assigned' : 'Unassigned' }}
+                            @endif
+                        </td>
+                        <td><a href="{{ route('apes-cic.cases.show', $case) }}">Open</a></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+            {{ $cases->links() }}
+        @endif
+    </div>
     @if($canCreateCase)
         <div class="panel" id="create">
             <h2>Open a case</h2>
@@ -65,57 +116,6 @@
             </form>
         </div>
     @endif
-    <div class="panel" id="list">
-        <h2>Your available cases</h2>
-        @if($cases->isEmpty())
-            <x-mascot-tip
-                variant="empty"
-                title="No cases are available to you yet."
-                body="When a case is shared with you, or you open one, it will appear here."
-            />
-        @else
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th>Status</th>
-                        <th>Priority</th>
-                        <th>Owner</th>
-                        <th>Assigned</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach($cases as $case)
-                    <tr>
-                        <td>#{{ $case->id }}</td>
-                        <td>{{ $case->title }}</td>
-                        <td>
-                            {{ $categoryResolver->labelForCategory($case->sub_core_key, (string) $case->category) }}
-                            @if($case->sub_category)
-                                <br><small class="muted">{{ $categoryResolver->labelForSubcategory($case->sub_core_key, (string) $case->category, $case->sub_category) }}</small>
-                            @endif
-                        </td>
-                        <td><span class="status">{{ $case->status }}</span></td>
-                        <td>{{ $case->priority }}</td>
-                        <td>{{ $case->user?->name ?? '—' }}</td>
-                        <td>
-                            @if($revealAssigneeIdentity)
-                                {{ $case->assignedTo?->name ?? 'Unassigned' }}
-                            @else
-                                {{ $case->assigned_to ? 'Assigned' : 'Unassigned' }}
-                            @endif
-                        </td>
-                        <td><a href="{{ route('apes-cic.cases.show', $case) }}">Open</a></td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-            {{ $cases->links() }}
-        @endif
-    </div>
 
     @if($canCreateCase)
         @include('partials.category-cascade-script', [
