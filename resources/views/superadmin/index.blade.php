@@ -57,30 +57,6 @@
 
         <div class="grid analytics-kpis" role="list">
             <div class="panel panel-flat" role="listitem">
-                <h3>Total accounts</h3>
-                <div data-kpi="total-accounts">{{ $accounts['total'] }}</div>
-            </div>
-            <div class="panel panel-flat" role="listitem">
-                <h3>Created in range</h3>
-                <div data-kpi="created-in-range">{{ $accounts['created_in_range'] }}</div>
-            </div>
-            <div class="panel panel-flat" role="listitem">
-                <h3>Suspended</h3>
-                <div data-kpi="suspended-accounts">{{ $accounts['suspended'] }}</div>
-            </div>
-            <div class="panel panel-flat" role="listitem">
-                <h3>Open workload</h3>
-                <div data-kpi="open-workload">{{ $workload['open'] }}</div>
-            </div>
-            <div class="panel panel-flat" role="listitem">
-                <h3>High or urgent</h3>
-                <div data-kpi="high-or-urgent">{{ $workload['high_or_urgent'] }}</div>
-            </div>
-            <div class="panel panel-flat" role="listitem">
-                <h3>Unassigned</h3>
-                <div data-kpi="unassigned">{{ $workload['unassigned'] }}</div>
-            </div>
-            <div class="panel panel-flat" role="listitem">
                 <h3>Enabled plugins</h3>
                 <div data-kpi="enabled-modules">{{ $dashboard['modules']['enabled'] }} / {{ $dashboard['modules']['installed'] }}</div>
             </div>
@@ -93,6 +69,10 @@
                         {{ number_format($median, 1) }} minutes
                     @endif
                 </div>
+            </div>
+            <div class="panel panel-flat" role="listitem">
+                <h3>Plugin alerts</h3>
+                <div data-kpi="module-alerts">{{ count($dashboard['module_alerts']) }}</div>
             </div>
         </div>
     </div>
