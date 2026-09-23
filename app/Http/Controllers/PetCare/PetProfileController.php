@@ -7,6 +7,7 @@ use App\Models\PetProfile;
 use App\Services\AuditLogger;
 use App\Services\PetProfilePhotoResponder;
 use App\Services\SecureUploadService;
+use App\Support\StaffPetCreateReturn;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ class PetProfileController extends Controller
         return view('petcare.pets.index', [
             'pets' => $query->paginate(20)->fragment('list'),
             'canCreatePet' => $user->can('pet-care-clinic.pet-profiles.create'),
+            'returnTo' => StaffPetCreateReturn::requestedKey(request('return_to')),
         ]);
     }
 
@@ -67,6 +69,16 @@ class PetProfileController extends Controller
             'sub_core_key' => 'pet-care-clinic',
             'module_key' => 'pet-profiles',
         ]);
+
+        $continueUrl = StaffPetCreateReturn::continueUrl(
+            $request->input('return_to'),
+            $pet->id,
+        );
+
+        if ($continueUrl !== null) {
+            return redirect($continueUrl)
+                ->with('status', 'Your pet has been saved.');
+        }
 
         return redirect()->route('petcare.pets.show', $pet);
     }

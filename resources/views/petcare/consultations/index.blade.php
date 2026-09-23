@@ -11,28 +11,25 @@
     @if($canCreate)
         <div class="panel" id="create">
             <h2>Create consultation</h2>
-            <form method="post" action="{{ route('petcare.consultations.store') }}">
-            @csrf
-            <div class="row">
-                <div>
-                    <label>Pet profile</label>
-                    <select name="pet_profile_id">
-                        @foreach($petProfiles as $petProfile)
-                            <option value="{{ $petProfile->id }}">{{ $petProfile->name }}</option>
-                        @endforeach
-                    </select>
+            @if($showEmptyPetSelect)
+                @include('partials.staff-empty-pet-select')
+            @else
+                <form method="post" action="{{ route('petcare.consultations.store') }}">
+                @csrf
+                <div class="row">
+                    @include('partials.pet-profile-select')
+                    <div>
+                        <label>Scheduled for <span class="muted">(dd/mm/yyyy)</span></label>
+                        <input type="text" name="scheduled_for" placeholder="dd/mm/yyyy HH:mm:ss" autocomplete="off">
+                    </div>
                 </div>
-                <div>
-                    <label>Scheduled for <span class="muted">(dd/mm/yyyy)</span></label>
-                    <input type="text" name="scheduled_for" placeholder="dd/mm/yyyy HH:mm:ss" autocomplete="off">
-                </div>
-            </div>
-            <label>Subject</label>
-            <input name="subject">
-            <label>Notes</label>
-            <textarea name="notes"></textarea>
-            <button type="submit">Create consultation</button>
-            </form>
+                <label>Subject</label>
+                <input name="subject">
+                <label>Notes</label>
+                <textarea name="notes"></textarea>
+                <button type="submit">Create consultation</button>
+                </form>
+            @endif
         </div>
     @endif
     <div class="panel" id="list">
