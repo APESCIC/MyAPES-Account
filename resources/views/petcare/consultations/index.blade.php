@@ -8,6 +8,25 @@
         <span class="service-label apes-petcare">APES Pet Care Clinic</span>
         <h1>Consultation management</h1>
     </div>
+    <div class="panel" id="list">
+        <h2>Consultations</h2>
+        <table>
+            <thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Pet</th><th>Scheduled</th><th></th></tr></thead>
+            <tbody>
+            @foreach($consultations as $consultation)
+                <tr>
+                    <td>#{{ $consultation->id }}</td>
+                    <td>{{ $consultation->subject }}</td>
+                    <td><span class="status">{{ $consultation->status }}</span></td>
+                    <td>{{ $consultation->petProfile->name }}</td>
+                    <td>{{ $ukDateTime->format($consultation->scheduled_for) }}</td>
+                    <td><a href="{{ route('petcare.consultations.show', $consultation) }}">Open</a></td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+        {{ $consultations->links() }}
+    </div>
     @if($canCreate)
         <div class="panel" id="create">
             <h2>Create consultation</h2>
@@ -32,23 +51,4 @@
             @endif
         </div>
     @endif
-    <div class="panel" id="list">
-        <h2>Consultations</h2>
-        <table>
-            <thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Pet</th><th>Scheduled</th><th></th></tr></thead>
-            <tbody>
-            @foreach($consultations as $consultation)
-                <tr>
-                    <td>#{{ $consultation->id }}</td>
-                    <td>{{ $consultation->subject }}</td>
-                    <td><span class="status">{{ $consultation->status }}</span></td>
-                    <td>{{ $consultation->petProfile->name }}</td>
-                    <td>{{ $ukDateTime->format($consultation->scheduled_for) }}</td>
-                    <td><a href="{{ route('petcare.consultations.show', $consultation) }}">Open</a></td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-        {{ $consultations->links() }}
-    </div>
 @endsection

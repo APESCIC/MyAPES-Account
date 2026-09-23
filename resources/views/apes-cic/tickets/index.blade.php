@@ -9,6 +9,61 @@
         <p class="muted">{{ $ticketService->supportingCopy }}</p>
         <x-mascot-tip />
     </div>
+    <div class="panel" id="list">
+        <h2>Tickets</h2>
+        @if($tickets->isEmpty())
+            <x-mascot-tip
+                variant="empty"
+                title="No tickets are available to you yet."
+                body="When a ticket is shared with you, or you create one, it will appear here."
+            />
+        @else
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Subject</th>
+                        <th>Area</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Owner</th>
+                        <th>Assigned</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach($tickets as $ticket)
+                    <tr>
+                        <td>#{{ $ticket->id }}</td>
+                        <td>{{ $ticket->subject }}</td>
+                        <td>
+                            @if($usesHierarchicalCategories)
+                                {{ $categoryResolver->labelForArea($ticket->sub_core_key, $ticket->service_area) }}
+                                @if($ticket->sub_category)
+                                    <br><small class="muted">{{ $categoryResolver->labelForSubcategory($ticket->sub_core_key, $ticket->service_area, $ticket->sub_category) }}</small>
+                                @endif
+                            @else
+                                {{ $ticket->service_area }}
+                            @endif
+                        </td>
+                        <td><span class="status">{{ $ticket->status }}</span></td>
+                        <td>{{ $ticket->priority }}</td>
+                        <td>{{ $ticket->user?->name ?? '—' }}</td>
+                        <td>
+                            @if($revealAssigneeIdentity)
+                                {{ $ticket->assignedTo?->name ?? 'Unassigned' }}
+                            @else
+                                {{ $ticket->assigned_to ? 'Assigned' : 'Unassigned' }}
+                            @endif
+                        </td>
+                        <td><a href="{{ route($ticketService->routePrefix.'.show', $ticket) }}">Open</a></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+            {{ $tickets->links() }}
+        @endif
+    </div>
     @if($canCreateTicket)
         <div class="panel" id="create">
             <h2>Create ticket</h2>
@@ -87,53 +142,6 @@
             </form>
         </div>
     @endif
-    <div class="panel" id="list">
-        <h2>Tickets</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Subject</th>
-                    <th>Area</th>
-                    <th>Status</th>
-                    <th>Priority</th>
-                    <th>Owner</th>
-                    <th>Assigned</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach($tickets as $ticket)
-                <tr>
-                    <td>#{{ $ticket->id }}</td>
-                    <td>{{ $ticket->subject }}</td>
-                    <td>
-                        @if($usesHierarchicalCategories)
-                            {{ $categoryResolver->labelForArea($ticket->sub_core_key, $ticket->service_area) }}
-                            @if($ticket->sub_category)
-                                <br><small class="muted">{{ $categoryResolver->labelForSubcategory($ticket->sub_core_key, $ticket->service_area, $ticket->sub_category) }}</small>
-                            @endif
-                        @else
-                            {{ $ticket->service_area }}
-                        @endif
-                    </td>
-                    <td><span class="status">{{ $ticket->status }}</span></td>
-                    <td>{{ $ticket->priority }}</td>
-                    <td>{{ $ticket->user?->name ?? '—' }}</td>
-                    <td>
-                        @if($revealAssigneeIdentity)
-                            {{ $ticket->assignedTo?->name ?? 'Unassigned' }}
-                        @else
-                            {{ $ticket->assigned_to ? 'Assigned' : 'Unassigned' }}
-                        @endif
-                    </td>
-                    <td><a href="{{ route($ticketService->routePrefix.'.show', $ticket) }}">Open</a></td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-        {{ $tickets->links() }}
-    </div>
 
     @if($usesHierarchicalCategories && $canCreateTicket)
         @include('partials.category-cascade-script', [

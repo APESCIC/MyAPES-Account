@@ -7,6 +7,32 @@
         <span class="service-label apes-shelter">APES Shelter and Rescue</span>
         <h1>Pet profiles</h1>
     </div>
+    <div class="panel" id="list">
+        <h2>Profiles</h2>
+        @if($pets->isEmpty())
+            <x-mascot-tip
+                variant="empty"
+                title="No pet profiles are available yet."
+                body="When a pet profile is added, it will appear here."
+            />
+        @else
+            <table>
+                <thead><tr><th>Name</th><th>Species</th><th>Age</th><th>Sex</th><th></th></tr></thead>
+                <tbody>
+                @foreach($pets as $pet)
+                    <tr>
+                        <td>{{ $pet->name }}</td>
+                        <td>{{ $pet->species }}</td>
+                        <td>{{ $pet->age_years }}</td>
+                        <td>{{ $pet->sex }}</td>
+                        <td><a href="{{ route('shelter.pets.show', $pet) }}">Open</a></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+            {{ $pets->links() }}
+        @endif
+    </div>
     @if($canCreatePet)
         <div class="panel" id="create">
             <h2>Add pet profile</h2>
@@ -34,22 +60,4 @@
             </form>
         </div>
     @endif
-    <div class="panel" id="list">
-        <h2>Profiles</h2>
-        <table>
-            <thead><tr><th>Name</th><th>Species</th><th>Age</th><th>Sex</th><th></th></tr></thead>
-            <tbody>
-            @foreach($pets as $pet)
-                <tr>
-                    <td>{{ $pet->name }}</td>
-                    <td>{{ $pet->species }}</td>
-                    <td>{{ $pet->age_years }}</td>
-                    <td>{{ $pet->sex }}</td>
-                    <td><a href="{{ route('shelter.pets.show', $pet) }}">Open</a></td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-        {{ $pets->links() }}
-    </div>
 @endsection
