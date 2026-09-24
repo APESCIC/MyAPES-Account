@@ -19,7 +19,7 @@ use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
 use App\Services\JumbojettOidcIdentityProvider;
 use App\Services\LaravelMaintenanceModeGateway;
-use App\Services\ModuleState;
+use App\Services\ModuleCatalogueProjection;
 use App\Support\MascotTips;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -72,10 +72,17 @@ class AppServiceProvider extends ServiceProvider
                     ? app(ModuleNavigationProvider::class)->forUser(auth()->user())
                     : [],
             );
-            $view->with(
-                'publicRecruitmentEnabled',
-                app(ModuleState::class)->enabled('apes-cic', 'recruitment'),
-            );
+            $publicRecruitmentEnabled = false;
+            try {
+                $publicRecruitmentEnabled = in_array(
+                    'apes-cic:recruitment',
+                    app(ModuleCatalogueProjection::class)->enabledInstanceKeys(),
+                    true,
+                );
+            } catch (\Throwable) {
+                $publicRecruitmentEnabled = false;
+            }
+            $view->with('publicRecruitmentEnabled', $publicRecruitmentEnabled);
         });
 
         RateLimiter::for('public-login', function (Request $request): Limit {
