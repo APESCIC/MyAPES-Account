@@ -68,6 +68,7 @@ class ModuleProviderContractTest extends TestCase
         }
 
         $this->assertNull($registry->module('pet-profiles')->recentActivityProvider);
+        $this->assertNull($registry->module('recruitment')->recentActivityProvider);
     }
 
     public function test_attention_providers_are_registered_for_open_item_modules_only(): void
@@ -87,6 +88,7 @@ class ModuleProviderContractTest extends TestCase
             $registry->module('consultations')->attentionProvider,
         );
         $this->assertNull($registry->module('pet-profiles')->attentionProvider);
+        $this->assertNull($registry->module('recruitment')->attentionProvider);
     }
 
     public function test_disabled_pet_care_analytics_providers_return_canonical_empty_snapshots_with_retained_data(): void

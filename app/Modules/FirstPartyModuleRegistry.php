@@ -16,6 +16,7 @@ use App\Modules\Attention\ConsultationAttentionProvider;
 use App\Modules\Attention\SupportTicketAttentionProvider;
 use App\Modules\Detectors\PetCareConsultationActiveRecordDetector;
 use App\Modules\Detectors\PetProfileActiveRecordDetector;
+use App\Modules\Detectors\RecruitmentActiveRecordDetector;
 use App\Modules\Detectors\ShelterCaseActiveRecordDetector;
 use App\Modules\Detectors\SupportTicketActiveRecordDetector;
 use App\Modules\Summaries\PetCareConsultationSummaryProvider;
@@ -336,6 +337,31 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 PetCareConsultationRecentActivityProvider::class,
                 PetCareConsultationAnalyticsProvider::class,
                 attentionProvider: ConsultationAttentionProvider::class,
+            ),
+            new ModuleDefinition(
+                'recruitment',
+                'Recruitment',
+                'Staff, volunteering, and student roles for APES CIC.',
+                '1.0.0',
+                ['apes-cic'],
+                ['apes-cic'],
+                [
+                    $public('view-own', 'View own recruitment items'),
+                    $public('create', 'Create recruitment roles'),
+                    $staff('view-all', 'View all recruitment roles'),
+                    $staff('update', 'Update recruitment roles'),
+                    $staffDelete('delete', 'Delete recruitment roles'),
+                    $staff('review-applications', 'Review recruitment applications'),
+                ],
+                [
+                    'apes-cic' => new ModuleNavigationDefinition(
+                        'Recruitment',
+                        'apes-cic.recruitment.index',
+                        'clipboard-list',
+                        30,
+                    ),
+                ],
+                RecruitmentActiveRecordDetector::class,
             ),
         ];
 

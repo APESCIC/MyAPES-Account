@@ -126,7 +126,7 @@ class ModuleLifecycleTest extends TestCase
             }
         }
 
-        $this->assertDatabaseCount('module_installations', 8);
+        $this->assertDatabaseCount('module_installations', 9);
     }
 
     public function test_install_recreates_an_available_shipped_instance_with_actor_provenance(): void
@@ -390,7 +390,9 @@ class ModuleLifecycleTest extends TestCase
             /** @var ModuleActiveRecordDetector $detector */
             $detector = app($instance->module->activeRecordDetector);
 
-            $this->assertSame(1, $detector->count($instance), $key);
+            // Recruitment has no persisted records until Wave 1 CRUD.
+            $expected = $module === 'recruitment' ? 0 : 1;
+            $this->assertSame($expected, $detector->count($instance), $key);
         }
     }
 

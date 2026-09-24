@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\Admin\SuperAdminDashboardController;
 use App\Http\Controllers\ApesCic\CaseController as ApesCicCaseController;
 use App\Http\Controllers\ApesCic\CaseUpdateController as ApesCicCaseUpdateController;
+use App\Http\Controllers\ApesCic\RecruitmentRoleController;
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
@@ -186,6 +187,13 @@ Route::middleware([
                     ->defaults('subCoreKey', 'apes-cic')
                     ->defaults('moduleKey', 'cases')
                     ->name('cases.updates.store');
+            });
+        Route::middleware(['module.available:apes-cic,recruitment', 'service.selected:apes-cic'])
+            ->group(function (): void {
+                Route::get('recruitment', [RecruitmentRoleController::class, 'index'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.index');
             });
     });
 
