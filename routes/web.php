@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\Admin\SuperAdminDashboardController;
 use App\Http\Controllers\ApesCic\CaseController as ApesCicCaseController;
 use App\Http\Controllers\ApesCic\CaseUpdateController as ApesCicCaseUpdateController;
+use App\Http\Controllers\ApesCic\RecruitmentApplicationController;
 use App\Http\Controllers\ApesCic\RecruitmentRoleController;
 use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PetCare\ConsultationController;
 use App\Http\Controllers\PetCare\PetProfileController as PetCarePetProfileController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicRecruitmentApplicationController;
 use App\Http\Controllers\RecruitmentBoardController;
 use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
@@ -42,6 +44,7 @@ Route::middleware('module.available:apes-cic,recruitment')->group(function (): v
     Route::get('/recruitment', [RecruitmentBoardController::class, 'index'])
         ->name('recruitment.index');
     Route::get('/recruitment/{recruitmentRole}', [RecruitmentBoardController::class, 'show'])
+        ->whereNumber('recruitmentRole')
         ->name('recruitment.show');
 });
 Route::get('/storage/pet-profiles/{path?}', static fn () => abort(404))
@@ -140,6 +143,18 @@ Route::middleware([
         ->name('profile.password.update');
     Route::get('/profile/staff-photo', [ProfileController::class, 'staffPhoto'])->name('profile.staff-photo');
 
+    Route::middleware('module.available:apes-cic,recruitment')->group(function (): void {
+        Route::get('/recruitment/applications', [PublicRecruitmentApplicationController::class, 'index'])
+            ->name('recruitment.applications.index');
+        Route::get('/recruitment/applications/{recruitmentApplication}', [PublicRecruitmentApplicationController::class, 'show'])
+            ->name('recruitment.applications.show');
+        Route::post('/recruitment/applications/{recruitmentApplication}/withdraw', [PublicRecruitmentApplicationController::class, 'withdraw'])
+            ->name('recruitment.applications.withdraw');
+        Route::post('/recruitment/{recruitmentRole}/apply', [PublicRecruitmentApplicationController::class, 'store'])
+            ->whereNumber('recruitmentRole')
+            ->name('recruitment.apply');
+    });
+
     Route::prefix('apes-cic')->name('apes-cic.')->group(function (): void {
         Route::get('/', [SubCoreController::class, 'show'])
             ->defaults('subCoreKey', 'apes-cic')
@@ -205,6 +220,18 @@ Route::middleware([
                     ->defaults('subCoreKey', 'apes-cic')
                     ->defaults('moduleKey', 'recruitment')
                     ->name('recruitment.store');
+                Route::get('recruitment/applications', [RecruitmentApplicationController::class, 'index'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.applications.index');
+                Route::get('recruitment/applications/{recruitmentApplication}', [RecruitmentApplicationController::class, 'show'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.applications.show');
+                Route::match(['put', 'patch'], 'recruitment/applications/{recruitmentApplication}', [RecruitmentApplicationController::class, 'update'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.applications.update');
                 Route::get('recruitment/{recruitmentRole}', [RecruitmentRoleController::class, 'show'])
                     ->defaults('subCoreKey', 'apes-cic')
                     ->defaults('moduleKey', 'recruitment')

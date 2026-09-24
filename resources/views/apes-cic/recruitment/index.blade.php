@@ -7,6 +7,13 @@
         <span class="service-label service-apes-cic">APES CIC</span>
         <h1>Recruitment</h1>
         <p class="muted">Staff, volunteering, and student roles for APES CIC.</p>
+        <div class="actions">
+            @can('apes-cic.recruitment.view-all')
+                <a href="{{ route('apes-cic.recruitment.applications.index') }}">Review applications</a>
+            @elsecan('apes-cic.recruitment.review-applications')
+                <a href="{{ route('apes-cic.recruitment.applications.index') }}">Review applications</a>
+            @endcan
+        </div>
         <x-mascot-tip />
     </div>
     <div class="panel" id="list">

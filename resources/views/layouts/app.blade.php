@@ -140,11 +140,15 @@
                         <span>Staff Login</span>
                     </a>
                 @endauth
-                @auth
+                    @auth
                     @if($publicRecruitmentEnabled)
-                        <a href="{{ route('recruitment.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.*')]) @if(request()->routeIs('recruitment.*')) aria-current="page" @endif>
+                        <a href="{{ route('recruitment.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.index', 'recruitment.show')]) @if(request()->routeIs('recruitment.index', 'recruitment.show')) aria-current="page" @endif>
                             <i data-lucide="briefcase" aria-hidden="true"></i>
                             <span>Roles</span>
+                        </a>
+                        <a href="{{ route('recruitment.applications.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.applications.*')]) @if(request()->routeIs('recruitment.applications.*')) aria-current="page" @endif>
+                            <i data-lucide="file-text" aria-hidden="true"></i>
+                            <span>My applications</span>
                         </a>
                     @endif
                 @endauth

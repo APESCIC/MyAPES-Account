@@ -1,0 +1,315 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\RecruitmentApplication;
+use App\Models\RecruitmentRole;
+use App\Models\Role;
+use App\Models\User;
+use App\Services\AuthorizationProfile;
+use App\Services\ModuleInstallationSynchronizer;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
+use Tests\TestCase;
+
+class RecruitmentApplicationManageTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        app(ModuleInstallationSynchronizer::class)->synchronize();
+    }
+
+    public function test_signed_in_public_user_can_apply_list_and_withdraw_own_application(): void
+    {
+        $role = RecruitmentRole::factory()->open()->create([
+            'title' => 'Volunteer coordinator',
+        ]);
+        $applicant = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SERVICE_USER)
+            ->create();
+
+        $this->actingAs($applicant)
+            ->get(route('recruitment.show', $role))
+            ->assertOk()
+            ->assertSee('action="'.route('recruitment.apply', $role).'"', false)
+            ->assertSeeText('Submit application');
+
+        $this->actingAs($applicant)
+            ->post(route('recruitment.apply', $role), [
+                'statement' => 'I would like to help with volunteer coordination.',
+            ])
+            ->assertRedirect();
+
+        $application = RecruitmentApplication::query()
+            ->where('recruitment_role_id', $role->id)
+            ->where('user_id', $applicant->id)
+            ->firstOrFail();
+
+        $this->assertSame(RecruitmentApplication::STATUS_SUBMITTED, $application->status);
+        $this->assertSame('I would like to help with volunteer coordination.', $application->statement);
+
+        $this->actingAs($applicant)
+            ->get(route('recruitment.applications.index'))
+            ->assertOk()
+            ->assertSeeText('Volunteer coordinator')
+            ->assertSeeText('Submitted')
+            ->assertSee('href="'.route('recruitment.applications.show', $application).'"', false);
+
+        $this->actingAs($applicant)
+            ->get(route('recruitment.applications.show', $application))
+            ->assertOk()
+            ->assertSeeText('Withdraw application')
+            ->assertSee('action="'.route('recruitment.applications.withdraw', $application).'"', false);
+
+        $this->actingAs($applicant)
+            ->post(route('recruitment.applications.withdraw', $application))
+            ->assertRedirect(route('recruitment.applications.show', $application));
+
+        $application->refresh();
+        $this->assertSame(RecruitmentApplication::STATUS_WITHDRAWN, $application->status);
+        $this->assertNotNull($application->withdrawn_at);
+    }
+
+    public function test_public_user_cannot_apply_twice_or_see_others_applications(): void
+    {
+        $role = RecruitmentRole::factory()->open()->create();
+        $applicant = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SERVICE_USER)
+            ->create();
+        $other = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SERVICE_USER)
+            ->create();
+        $otherApplication = RecruitmentApplication::factory()
+            ->forRole($role)
+            ->forUser($other)
+            ->create([
+                'statement' => 'Other applicant private statement',
+            ]);
+
+        $this->actingAs($applicant)
+            ->post(route('recruitment.apply', $role), [
+                'statement' => 'First application.',
+            ])
+            ->assertRedirect();
+
+        $own = RecruitmentApplication::query()
+            ->where('user_id', $applicant->id)
+            ->firstOrFail();
+
+        $this->actingAs($applicant)
+            ->from(route('recruitment.show', $role))
+            ->post(route('recruitment.apply', $role), [
+                'statement' => 'Second attempt.',
+            ])
+            ->assertRedirect(route('recruitment.show', $role))
+            ->assertSessionHasErrors('statement');
+
+        $this->assertSame(
+            1,
+            RecruitmentApplication::query()->where('user_id', $applicant->id)->count(),
+        );
+
+        $this->actingAs($applicant)
+            ->get(route('recruitment.applications.index'))
+            ->assertOk()
+            ->assertSeeText($own->role->title)
+            ->assertDontSeeText('Other applicant private statement');
+
+        $this->actingAs($applicant)
+            ->get(route('recruitment.applications.show', $otherApplication))
+            ->assertForbidden();
+
+        $this->actingAs($applicant)
+            ->post(route('recruitment.applications.withdraw', $otherApplication))
+            ->assertForbidden();
+    }
+
+    public function test_guest_is_prompted_to_sign_in_and_cannot_apply(): void
+    {
+        $role = RecruitmentRole::factory()->open()->create();
+
+        $this->get(route('recruitment.show', $role))
+            ->assertOk()
+            ->assertSeeText('Sign in or create a public account to apply')
+            ->assertSee('href="'.route('public.login').'"', false)
+            ->assertSee('href="'.route('public.register').'"', false)
+            ->assertDontSee('action="'.route('recruitment.apply', $role).'"', false);
+
+        $this->post(route('recruitment.apply', $role), [
+            'statement' => 'Guest attempt.',
+        ])->assertRedirect(route('public.login'));
+
+        $this->assertDatabaseMissing('recruitment_applications', [
+            'recruitment_role_id' => $role->id,
+        ]);
+
+        $this->get(route('recruitment.applications.index'))
+            ->assertRedirect(route('public.login'));
+    }
+
+    public function test_staff_can_review_application_status_transitions(): void
+    {
+        $staff = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+        $applicant = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SERVICE_USER)
+            ->create([
+                'name' => 'Applicant Person',
+                'email' => 'applicant.person@example.test',
+            ]);
+        $role = RecruitmentRole::factory()->open()->category('volunteer')->create([
+            'title' => 'Review target role',
+        ]);
+        $application = RecruitmentApplication::factory()
+            ->forRole($role)
+            ->forUser($applicant)
+            ->create([
+                'statement' => 'Please consider my application.',
+            ]);
+
+        $this->actingAs($staff)
+            ->get(route('apes-cic.recruitment.applications.index'))
+            ->assertOk()
+            ->assertSeeText('Review target role')
+            ->assertSeeText('Applicant Person')
+            ->assertSeeText('Submitted');
+
+        $this->actingAs($staff)
+            ->get(route('apes-cic.recruitment.applications.index', [
+                'status' => RecruitmentApplication::STATUS_SUBMITTED,
+                'category' => 'volunteer',
+                'role' => $role->id,
+            ]))
+            ->assertOk()
+            ->assertSeeText('Review target role');
+
+        $this->actingAs($staff)
+            ->get(route('apes-cic.recruitment.applications.show', $application))
+            ->assertOk()
+            ->assertSeeText('Please consider my application.')
+            ->assertSeeText('applicant.person@example.test')
+            ->assertSee('action="'.route('apes-cic.recruitment.applications.update', $application).'"', false);
+
+        $this->actingAs($staff)
+            ->put(route('apes-cic.recruitment.applications.update', $application), [
+                'status' => RecruitmentApplication::STATUS_UNDER_REVIEW,
+                'staff_notes' => 'Looks promising.',
+            ])
+            ->assertRedirect(route('apes-cic.recruitment.applications.show', $application));
+
+        $application->refresh();
+        $this->assertSame(RecruitmentApplication::STATUS_UNDER_REVIEW, $application->status);
+        $this->assertSame('Looks promising.', $application->staff_notes);
+        $this->assertNotNull($application->reviewed_at);
+
+        $this->actingAs($staff)
+            ->put(route('apes-cic.recruitment.applications.update', $application), [
+                'status' => RecruitmentApplication::STATUS_SHORTLISTED,
+                'staff_notes' => 'Shortlisted for interview.',
+            ])
+            ->assertRedirect(route('apes-cic.recruitment.applications.show', $application));
+
+        $application->refresh();
+        $this->assertSame(RecruitmentApplication::STATUS_SHORTLISTED, $application->status);
+
+        $this->actingAs($staff)
+            ->put(route('apes-cic.recruitment.applications.update', $application), [
+                'status' => RecruitmentApplication::STATUS_ACCEPTED,
+                'staff_notes' => 'Offer made.',
+            ])
+            ->assertRedirect(route('apes-cic.recruitment.applications.show', $application));
+
+        $application->refresh();
+        $this->assertSame(RecruitmentApplication::STATUS_ACCEPTED, $application->status);
+        $this->assertNotNull($application->decided_at);
+        $this->assertTrue($application->isTerminal());
+    }
+
+    public function test_public_user_cannot_access_staff_review_ui(): void
+    {
+        $applicant = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SERVICE_USER)
+            ->create();
+        $application = RecruitmentApplication::factory()->create();
+
+        $this->actingAs($applicant)
+            ->get(route('apes-cic.recruitment.applications.index'))
+            ->assertForbidden();
+
+        $this->actingAs($applicant)
+            ->get(route('apes-cic.recruitment.applications.show', $application))
+            ->assertForbidden();
+
+        $this->actingAs($applicant)
+            ->put(route('apes-cic.recruitment.applications.update', $application), [
+                'status' => RecruitmentApplication::STATUS_UNDER_REVIEW,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_staff_without_review_ability_cannot_update_status(): void
+    {
+        $viewer = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_STAFF)
+            ->create();
+
+        $permission = Permission::findOrCreate(
+            RecruitmentApplication::PERMISSION_PREFIX.'review-applications',
+            'web',
+        );
+        $staffRole = Role::query()
+            ->where('name', AuthorizationProfile::ROLE_STAFF)
+            ->firstOrFail();
+        $staffRole->revokePermissionTo($permission);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $viewer->unsetRelation('roles');
+        $viewer->unsetRelation('permissions');
+
+        $application = RecruitmentApplication::factory()->create();
+
+        $this->actingAs($viewer)
+            ->get(route('apes-cic.recruitment.applications.index'))
+            ->assertOk();
+
+        $this->actingAs($viewer)
+            ->get(route('apes-cic.recruitment.applications.show', $application))
+            ->assertOk()
+            ->assertDontSee('action="'.route('apes-cic.recruitment.applications.update', $application).'"', false);
+
+        $this->actingAs($viewer)
+            ->put(route('apes-cic.recruitment.applications.update', $application), [
+                'status' => RecruitmentApplication::STATUS_UNDER_REVIEW,
+            ])
+            ->assertForbidden();
+
+        $application->refresh();
+        $this->assertSame(RecruitmentApplication::STATUS_SUBMITTED, $application->status);
+    }
+
+    public function test_cannot_apply_to_draft_or_closed_roles_via_http(): void
+    {
+        $applicant = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SERVICE_USER)
+            ->create();
+
+        foreach (['draft', 'closed'] as $state) {
+            $role = RecruitmentRole::factory()->{$state}()->create();
+
+            $this->actingAs($applicant)
+                ->post(route('recruitment.apply', $role), [
+                    'statement' => 'Should fail.',
+                ])
+                ->assertNotFound();
+
+            $this->assertDatabaseMissing('recruitment_applications', [
+                'recruitment_role_id' => $role->id,
+                'user_id' => $applicant->id,
+            ]);
+        }
+    }
+}
