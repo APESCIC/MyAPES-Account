@@ -55,7 +55,7 @@ class RecruitmentApplicationController extends Controller
 
         $applications = RecruitmentApplication::query()
             ->visibleTo($user)
-            ->with(['role', 'user'])
+            ->with(['recruitmentRole', 'user'])
             ->when(
                 $selectedStatus !== null,
                 static fn ($query) => $query->where('status', $selectedStatus),
@@ -63,7 +63,7 @@ class RecruitmentApplicationController extends Controller
             ->when(
                 $selectedCategory !== null,
                 static fn ($query) => $query->whereHas(
-                    'role',
+                    'recruitmentRole',
                     static fn ($roleQuery) => $roleQuery->where('category', $selectedCategory),
                 ),
             )
@@ -97,7 +97,7 @@ class RecruitmentApplicationController extends Controller
     public function show(RecruitmentApplication $recruitmentApplication): View
     {
         Gate::authorize('view', $recruitmentApplication);
-        $recruitmentApplication->loadMissing(['role', 'user']);
+        $recruitmentApplication->loadMissing(['recruitmentRole', 'user']);
 
         $allowedTransitions = array_values(array_filter(
             RecruitmentApplication::ALLOWED_TRANSITIONS[$recruitmentApplication->status] ?? [],

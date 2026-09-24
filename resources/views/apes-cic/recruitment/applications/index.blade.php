@@ -80,7 +80,7 @@
                 <tbody>
                     @foreach($applications as $application)
                         <tr>
-                            <td>{{ $application->role?->title ?? '—' }}</td>
+                            <td>{{ $application->recruitmentRole?->title ?? '—' }}</td>
                             <td>
                                 {{ $application->user?->name ?? '—' }}
                                 @if($application->user)

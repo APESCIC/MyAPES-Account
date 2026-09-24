@@ -116,7 +116,7 @@ class RecruitmentApplicationManageTest extends TestCase
         $this->actingAs($applicant)
             ->get(route('recruitment.applications.index'))
             ->assertOk()
-            ->assertSeeText($own->role->title)
+            ->assertSeeText($own->recruitmentRole->title)
             ->assertDontSeeText('Other applicant private statement');
 
         $this->actingAs($applicant)

@@ -19,7 +19,7 @@ class PublicRecruitmentApplicationController extends Controller
 
         $applications = RecruitmentApplication::query()
             ->visibleTo($request->user())
-            ->with('role')
+            ->with('recruitmentRole')
             ->latest('submitted_at')
             ->latest('id')
             ->paginate(20);
@@ -33,7 +33,7 @@ class PublicRecruitmentApplicationController extends Controller
     public function show(RecruitmentApplication $recruitmentApplication): View
     {
         Gate::authorize('view', $recruitmentApplication);
-        $recruitmentApplication->loadMissing('role');
+        $recruitmentApplication->loadMissing('recruitmentRole');
 
         return view('recruitment.applications.show', [
             'application' => $recruitmentApplication,

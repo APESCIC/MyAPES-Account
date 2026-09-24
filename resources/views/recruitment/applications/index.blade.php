@@ -34,7 +34,7 @@
                 <tbody>
                     @foreach($applications as $application)
                         <tr>
-                            <td>{{ $application->role?->title ?? 'Role removed' }}</td>
+                            <td>{{ $application->recruitmentRole?->title ?? 'Role removed' }}</td>
                             <td>{{ $statusLabels[$application->status] ?? $application->status }}</td>
                             <td>{{ $ukDateTime->formatDate($application->submitted_at) ?? '—' }}</td>
                             <td>

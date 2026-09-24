@@ -101,7 +101,7 @@ class RecruitmentApplication extends Model
         ];
     }
 
-    public function role(): BelongsTo
+    public function recruitmentRole(): BelongsTo
     {
         return $this->belongsTo(RecruitmentRole::class, 'recruitment_role_id');
     }

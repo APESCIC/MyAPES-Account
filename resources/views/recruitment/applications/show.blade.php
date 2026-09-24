@@ -6,7 +6,7 @@
     @inject('ukDateTime', \App\Support\UkDateTime::class)
     <div class="panel" data-recruitment-application-detail>
         <span class="service-label service-apes-cic">APES CIC</span>
-        <h1>{{ $application->role?->title ?? 'Application' }}</h1>
+        <h1>{{ $application->recruitmentRole?->title ?? 'Application' }}</h1>
         <p class="muted">Status: {{ $statusLabels[$application->status] ?? $application->status }}</p>
         <dl class="ticket-meta">
             <div>
@@ -32,8 +32,8 @@
         @endif
         <div class="actions">
             <a href="{{ route('recruitment.applications.index') }}">Back to my applications</a>
-            @if($application->role?->isOpen())
-                <a href="{{ route('recruitment.show', $application->role) }}">View role</a>
+            @if($application->recruitmentRole?->isOpen())
+                <a href="{{ route('recruitment.show', $application->recruitmentRole) }}">View role</a>
             @endif
         </div>
         @if($canWithdraw)
