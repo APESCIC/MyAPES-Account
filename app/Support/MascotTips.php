@@ -24,6 +24,14 @@ final class MascotTips
                 'title' => 'Pick the door that matches you.',
                 'body' => 'Public Login is for service users. Staff and administrators should use Staff Login.',
             ],
+            'recruitment.index' => [
+                'title' => 'Browse open roles.',
+                'body' => 'Filter by staff, volunteer, or student. Draft and closed roles stay private.',
+            ],
+            'recruitment.show' => [
+                'title' => 'Read the full role.',
+                'body' => 'Applications open in a later release. Use Back to return to the board.',
+            ],
             'public.login' => [
                 'title' => 'Use your public account.',
                 'body' => 'Sign in with your username or email to reach your profile, pets, and support.',

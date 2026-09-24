@@ -19,6 +19,7 @@ use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
 use App\Services\JumbojettOidcIdentityProvider;
 use App\Services\LaravelMaintenanceModeGateway;
+use App\Services\ModuleState;
 use App\Support\MascotTips;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -62,7 +63,7 @@ class AppServiceProvider extends ServiceProvider
             )->authorize($user, $ability),
         );
 
-        View::composer('layouts.app', function (IlluminateView $view): void {
+        View::composer(['layouts.app', 'auth.landing'], function (IlluminateView $view): void {
             $view->with('appVersion', app(ReleaseHistoryRepository::class)->version());
             $view->with('mascotTip', app(MascotTips::class)->forCurrentRequest());
             $view->with(
@@ -70,6 +71,10 @@ class AppServiceProvider extends ServiceProvider
                 auth()->check()
                     ? app(ModuleNavigationProvider::class)->forUser(auth()->user())
                     : [],
+            );
+            $view->with(
+                'publicRecruitmentEnabled',
+                app(ModuleState::class)->enabled('apes-cic', 'recruitment'),
             );
         });
 

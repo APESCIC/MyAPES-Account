@@ -41,5 +41,14 @@
                 <a href="{{ route('staff.login') }}">Staff Login</a>
             </div>
         </div>
+        @if($publicRecruitmentEnabled)
+            <div class="panel">
+                <h2>Open roles</h2>
+                <p class="muted">Browse staff, volunteering, and student opportunities with APES CIC.</p>
+                <div class="actions">
+                    <a href="{{ route('recruitment.index') }}">View open roles</a>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection
