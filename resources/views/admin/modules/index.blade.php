@@ -70,8 +70,8 @@
                                 }
                                 $transitionLabel = $cell['transition_at']?->format('Y-m-d H:i') ?? 'Release default';
                                 $actorLabel = $cell['actor_id'] ?? 'System';
-                                $supportsSettings = $subCore->key === 'apes-cic'
-                                    && in_array($module->key, ['tickets', 'cases'], true);
+                                $settingsDescriptor = $cell['settings'];
+                                $supportsSettings = $settingsDescriptor->supportsSettings;
                                 $recordCount = (int) $cell['active_record_count'];
                                 $depsLabel = $dependencySummary === 'None' ? 'None' : $dependencySummary;
                             @endphp
@@ -111,12 +111,14 @@
 
                                     <div class="module-registry__row-actions">
                                         @if($supportsSettings)
-                                            @can('admin.modules.view')
+                                            @can($settingsDescriptor->viewPermission)
                                                 <a
                                                     class="module-registry__settings-link"
-                                                    href="{{ route('admin.modules.settings.edit', [$subCore->key, $module->key]) }}"
-                                                >Settings</a>
+                                                    href="{{ $settingsDescriptor->settingsUrl() }}"
+                                                >{{ $settingsDescriptor->navLabel }}</a>
                                             @endcan
+                                        @else
+                                            <span class="module-registry__settings-none muted">No configurable settings</span>
                                         @endif
 
                                         @can('admin.modules.manage')

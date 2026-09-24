@@ -29,7 +29,9 @@
 
     <div class="panel" data-recruitment-apply>
         <h2>Apply for this role</h2>
-        @guest
+        @if(! ($publicApplyEnabled ?? true))
+            <p class="muted">Applications are not open for public roles right now. You can still browse open roles.</p>
+        @elseif(auth()->guest())
             <p class="muted">Sign in or create a public account to apply. You can still browse open roles without an account.</p>
             <div class="actions">
                 <a href="{{ route('public.login') }}">Public Login</a>
@@ -57,6 +59,6 @@
             @else
                 <p class="muted">You cannot apply for this role with your current account.</p>
             @endif
-        @endguest
+        @endif
     </div>
 @endsection

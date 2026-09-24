@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
+use App\Services\ModuleSettingsService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class RecruitmentBoardController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, ModuleSettingsService $moduleSettings): View
     {
+        abort_unless($moduleSettings->recruitmentPublicBoardEnabled(), 404);
+
         $category = $request->query('category');
         if (is_string($category) && $category !== '' && ! in_array($category, RecruitmentRole::CATEGORIES, true)) {
             abort(404);
@@ -37,24 +40,32 @@ class RecruitmentBoardController extends Controller
             'categories' => RecruitmentRole::CATEGORIES,
             'selectedCategory' => $selectedCategory,
             'categoryLabels' => $this->categoryLabels(),
+            'publicApplyEnabled' => $moduleSettings->recruitmentPublicApplyEnabled(),
         ]);
     }
 
-    public function show(Request $request, RecruitmentRole $recruitmentRole): View
+    public function show(Request $request, RecruitmentRole $recruitmentRole, ModuleSettingsService $moduleSettings): View
     {
+        abort_unless($moduleSettings->recruitmentPublicBoardEnabled(), 404);
         abort_unless($recruitmentRole->isOpen(), 404);
 
         $user = $request->user();
         $existingApplication = null;
         $canApply = false;
+        $publicApplyEnabled = $moduleSettings->recruitmentPublicApplyEnabled();
 
-        if ($user !== null) {
+        if ($user !== null && $publicApplyEnabled) {
             $existingApplication = RecruitmentApplication::query()
                 ->where('recruitment_role_id', $recruitmentRole->id)
                 ->where('user_id', $user->id)
                 ->first();
             $canApply = $existingApplication === null
                 && Gate::forUser($user)->allows('create', [RecruitmentApplication::class, $recruitmentRole]);
+        } elseif ($user !== null) {
+            $existingApplication = RecruitmentApplication::query()
+                ->where('recruitment_role_id', $recruitmentRole->id)
+                ->where('user_id', $user->id)
+                ->first();
         }
 
         return view('recruitment.show', [
@@ -62,6 +73,7 @@ class RecruitmentBoardController extends Controller
             'categoryLabels' => $this->categoryLabels(),
             'existingApplication' => $existingApplication,
             'canApply' => $canApply,
+            'publicApplyEnabled' => $publicApplyEnabled,
             'statusLabels' => [
                 RecruitmentApplication::STATUS_SUBMITTED => 'Submitted',
                 RecruitmentApplication::STATUS_UNDER_REVIEW => 'Under review',

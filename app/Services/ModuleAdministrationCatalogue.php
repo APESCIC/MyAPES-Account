@@ -12,6 +12,7 @@ class ModuleAdministrationCatalogue
 {
     public function __construct(
         private readonly ModuleRegistry $registry,
+        private readonly ModuleSettingsRegistry $settingsRegistry,
     ) {}
 
     /**
@@ -59,6 +60,11 @@ class ModuleAdministrationCatalogue
                 }
             }
 
+            $settingsDescriptor = $this->settingsRegistry->descriptor(
+                $instance->subCore->key,
+                $instance->module->key,
+            );
+
             $cells[$instance->key()] = [
                 'definition' => $instance,
                 'installation' => $installation,
@@ -66,6 +72,7 @@ class ModuleAdministrationCatalogue
                 'dependencies' => $dependencies,
                 'transition_at' => $transitionAt,
                 'actor_id' => $actorId,
+                'settings' => $settingsDescriptor,
             ];
         }
 
