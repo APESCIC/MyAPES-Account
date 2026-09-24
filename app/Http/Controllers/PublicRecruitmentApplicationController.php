@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
 use App\Services\AuditLogger;
+use App\Services\ModuleSettingsService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,7 +47,9 @@ class PublicRecruitmentApplicationController extends Controller
         Request $request,
         RecruitmentRole $recruitmentRole,
         AuditLogger $auditLogger,
+        ModuleSettingsService $moduleSettings,
     ): RedirectResponse {
+        abort_unless($moduleSettings->recruitmentPublicApplyEnabled(), 404);
         abort_unless($recruitmentRole->isOpen(), 404);
         Gate::authorize('create', [RecruitmentApplication::class, $recruitmentRole]);
 

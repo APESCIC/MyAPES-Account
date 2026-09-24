@@ -87,7 +87,21 @@ Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`).
 
 ### v1.4.0 Beta: Unified Admin shell + plugin settings (`v0.35.x Beta`)
 
-Ship order vs neighbors: **6 → 7 → 5**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin. Plugin settings registry follows in a later 0.35.x patch.
+Ship order vs neighbors: **6 → 7 → 5**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin.
+
+#### Plugin settings registry contract
+
+Single source of truth: `App\Services\ModuleSettingsRegistry` + `App\Modules\ModuleSettingsDescriptor`.
+
+| Field | Purpose |
+| --- | --- |
+| `supportsSettings` | Whether Admin → Plugins deep-links to a settings page |
+| `schema` | Settings UI/validation shape (`websites_categories`, `recruitment_board`, or `none`) |
+| `settingsRouteName` | Named route for the settings editor (default `admin.modules.settings.edit`) |
+| `viewPermission` / `managePermission` | Gates for viewing and saving (default `admin.modules.view` / `admin.modules.manage`) |
+| `navLabel` | Plugins-index link label (default `Settings`) |
+
+Tickets and cases on `apes-cic` remain the `websites_categories` reference. Recruitment uses `recruitment_board` (public board / apply toggles). Consultations and Pet Profiles declare `supportsSettings = false` and show **No configurable settings** on the Plugins index. Do not hardcode module keys in Blade; consume the registry via `ModuleAdministrationCatalogue` / `ModuleSettingsService`.
 
 1. #246 Epic: Unified Admin shell (merge Super Admin)
 2. #251 Permission-gated Admin page submenu

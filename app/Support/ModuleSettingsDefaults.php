@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Services\ModuleSettingsRegistry;
+
 final class ModuleSettingsDefaults
 {
     /** @return array<string, mixed> */
@@ -200,23 +202,28 @@ final class ModuleSettingsDefaults
         ];
     }
 
+    /**
+     * Recruitment public board / apply toggles for APES CIC.
+     *
+     * @return array{public_board_enabled: bool, public_apply_enabled: bool}
+     */
+    public static function recruitmentForApesCic(): array
+    {
+        return [
+            'public_board_enabled' => true,
+            'public_apply_enabled' => true,
+        ];
+    }
+
     /** @return array<string, mixed>|null */
     public static function for(string $subCoreKey, string $moduleKey): ?array
     {
-        if ($subCoreKey !== 'apes-cic') {
-            return null;
-        }
-
-        return match ($moduleKey) {
-            'tickets' => self::ticketsForApesCic(),
-            'cases' => self::casesForApesCic(),
-            default => null,
-        };
+        return app(ModuleSettingsRegistry::class)->defaults($subCoreKey, $moduleKey);
     }
 
     /** @return array<int, string> */
     public static function configurableModules(): array
     {
-        return ['tickets', 'cases'];
+        return app(ModuleSettingsRegistry::class)->configurableModuleKeys('apes-cic');
     }
 }

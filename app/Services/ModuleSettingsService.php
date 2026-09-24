@@ -4,26 +4,35 @@ namespace App\Services;
 
 use App\Models\ModuleSetting;
 use App\Models\User;
-use App\Support\ModuleSettingsDefaults;
+use App\Modules\ModuleSettingsDescriptor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ModuleSettingsService
 {
-    public function supportsSettings(string $moduleKey): bool
+    public function __construct(
+        private readonly ModuleSettingsRegistry $registry,
+    ) {}
+
+    public function supportsSettings(string $moduleKey, string $subCoreKey = 'apes-cic'): bool
     {
-        return in_array($moduleKey, ModuleSettingsDefaults::configurableModules(), true);
+        return $this->registry->supportsSettings($subCoreKey, $moduleKey);
+    }
+
+    public function descriptor(string $subCoreKey, string $moduleKey): ModuleSettingsDescriptor
+    {
+        return $this->registry->descriptor($subCoreKey, $moduleKey);
     }
 
     /** @return array<string, mixed> */
     public function defaults(string $subCoreKey, string $moduleKey): array
     {
-        return ModuleSettingsDefaults::for($subCoreKey, $moduleKey) ?? [];
+        return $this->registry->defaults($subCoreKey, $moduleKey) ?? [];
     }
 
     public function ensureSeeded(string $subCoreKey, string $moduleKey): ?ModuleSetting
     {
-        $defaults = ModuleSettingsDefaults::for($subCoreKey, $moduleKey);
+        $defaults = $this->registry->defaults($subCoreKey, $moduleKey);
         if ($defaults === null) {
             return null;
         }
@@ -62,6 +71,28 @@ class ModuleSettingsService
         return $this->ensureSeeded($subCoreKey, $moduleKey);
     }
 
+    public function recruitmentPublicBoardEnabled(): bool
+    {
+        if (! $this->moduleInstanceEnabled('apes-cic', 'recruitment')) {
+            return false;
+        }
+
+        $settings = $this->get('apes-cic', 'recruitment');
+
+        return (bool) ($settings['public_board_enabled'] ?? true);
+    }
+
+    public function recruitmentPublicApplyEnabled(): bool
+    {
+        if (! $this->recruitmentPublicBoardEnabled()) {
+            return false;
+        }
+
+        $settings = $this->get('apes-cic', 'recruitment');
+
+        return (bool) ($settings['public_apply_enabled'] ?? true);
+    }
+
     /**
      * @param  array<string, mixed>  $settings
      */
@@ -72,13 +103,13 @@ class ModuleSettingsService
         int $expectedLockVersion,
         ?User $actor = null,
     ): ModuleSetting {
-        if (! $this->supportsSettings($moduleKey) || ModuleSettingsDefaults::for($subCoreKey, $moduleKey) === null) {
+        if (! $this->supportsSettings($moduleKey, $subCoreKey) || $this->registry->defaults($subCoreKey, $moduleKey) === null) {
             throw ValidationException::withMessages([
                 'module' => 'This module does not support editable settings.',
             ]);
         }
 
-        $this->validateStructure($moduleKey, $settings);
+        $this->validateStructure($subCoreKey, $moduleKey, $settings);
 
         return DB::transaction(function () use (
             $subCoreKey,
@@ -125,7 +156,7 @@ class ModuleSettingsService
         int $expectedLockVersion,
         ?User $actor = null,
     ): ModuleSetting {
-        $defaults = ModuleSettingsDefaults::for($subCoreKey, $moduleKey);
+        $defaults = $this->registry->defaults($subCoreKey, $moduleKey);
         if ($defaults === null) {
             throw ValidationException::withMessages([
                 'module' => 'This module does not support editable settings.',
@@ -138,7 +169,37 @@ class ModuleSettingsService
     /**
      * @param  array<string, mixed>  $settings
      */
-    private function validateStructure(string $moduleKey, array $settings): void
+    private function validateStructure(string $subCoreKey, string $moduleKey, array $settings): void
+    {
+        $descriptor = $this->registry->descriptor($subCoreKey, $moduleKey);
+
+        match ($descriptor->schema) {
+            ModuleSettingsDescriptor::SCHEMA_RECRUITMENT_BOARD => $this->validateRecruitmentBoard($settings),
+            ModuleSettingsDescriptor::SCHEMA_WEBSITES_CATEGORIES => $this->validateWebsitesCategories($moduleKey, $settings),
+            default => throw ValidationException::withMessages([
+                'module' => 'This module does not support editable settings.',
+            ]),
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    private function validateRecruitmentBoard(array $settings): void
+    {
+        foreach (['public_board_enabled', 'public_apply_enabled'] as $key) {
+            if (! array_key_exists($key, $settings) || ! is_bool($settings[$key])) {
+                throw ValidationException::withMessages([
+                    'settings' => 'Recruitment board toggles must be boolean.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    private function validateWebsitesCategories(string $moduleKey, array $settings): void
     {
         if (! isset($settings['websites']) || ! is_array($settings['websites'])) {
             throw ValidationException::withMessages([
@@ -210,7 +271,7 @@ class ModuleSettingsService
     public function seedConfigurableDefaults(): int
     {
         $created = 0;
-        foreach (ModuleSettingsDefaults::configurableModules() as $moduleKey) {
+        foreach ($this->registry->configurableModuleKeys('apes-cic') as $moduleKey) {
             $before = ModuleSetting::query()
                 ->where('sub_core_key', 'apes-cic')
                 ->where('module_key', $moduleKey)
@@ -222,5 +283,18 @@ class ModuleSettingsService
         }
 
         return $created;
+    }
+
+    private function moduleInstanceEnabled(string $subCoreKey, string $moduleKey): bool
+    {
+        try {
+            return in_array(
+                "{$subCoreKey}:{$moduleKey}",
+                app(ModuleCatalogueProjection::class)->enabledInstanceKeys(),
+                true,
+            );
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

@@ -21,7 +21,7 @@ use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
 use App\Services\JumbojettOidcIdentityProvider;
 use App\Services\LaravelMaintenanceModeGateway;
-use App\Services\ModuleCatalogueProjection;
+use App\Services\ModuleSettingsService;
 use App\Support\MascotTips;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -77,11 +77,8 @@ class AppServiceProvider extends ServiceProvider
             );
             $publicRecruitmentEnabled = false;
             try {
-                $publicRecruitmentEnabled = in_array(
-                    'apes-cic:recruitment',
-                    app(ModuleCatalogueProjection::class)->enabledInstanceKeys(),
-                    true,
-                );
+                $publicRecruitmentEnabled = app(ModuleSettingsService::class)
+                    ->recruitmentPublicBoardEnabled();
             } catch (\Throwable) {
                 $publicRecruitmentEnabled = false;
             }
