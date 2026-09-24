@@ -32,11 +32,11 @@ class RecruitmentApplicationWorkflowTest extends TestCase
             'id' => $application->id,
             'status' => RecruitmentApplication::STATUS_SUBMITTED,
         ]);
-        $this->assertTrue($application->role->isOpen());
+        $this->assertTrue($application->recruitmentRole->isOpen());
         $this->assertNotNull($application->submitted_at);
         $this->assertSame(
             $application->id,
-            $application->role->applications()->firstOrFail()->id,
+            $application->recruitmentRole->applications()->firstOrFail()->id,
         );
     }
 
