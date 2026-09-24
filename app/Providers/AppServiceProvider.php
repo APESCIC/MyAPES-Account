@@ -7,11 +7,13 @@ use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\OidcIdentityProvider;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
+use App\Models\RecruitmentRole;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Policies\PetCareConsultationPolicy;
 use App\Policies\PetProfilePolicy;
+use App\Policies\RecruitmentRolePolicy;
 use App\Policies\ShelterCasePolicy;
 use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
@@ -52,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
             PetCareConsultation::class,
             PetCareConsultationPolicy::class,
         );
+        Gate::policy(RecruitmentRole::class, RecruitmentRolePolicy::class);
 
         Gate::before(
             static fn (User $user, string $ability): ?bool => app(

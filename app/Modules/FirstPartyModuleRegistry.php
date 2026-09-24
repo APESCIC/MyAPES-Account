@@ -347,7 +347,7 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
                 ['apes-cic'],
                 [
                     $public('view-own', 'View own recruitment items'),
-                    $public('create', 'Create recruitment roles'),
+                    $staff('create', 'Create recruitment roles'),
                     $staff('view-all', 'View all recruitment roles'),
                     $staff('update', 'Update recruitment roles'),
                     $staffDelete('delete', 'Delete recruitment roles'),
