@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Super Admin plugins | MyAPES Core')
+@section('title', 'Admin plugins | MyAPES Core')
 
 @section('content')
-    @include('superadmin._navigation')
+    @include('admin._navigation')
 
     <header class="page-heading">
         <div>
             <p class="eyebrow">First-party capability registry</p>
-            <h1>Super Admin plugins</h1>
+            <h1>Admin plugins</h1>
             <p>Review shipped code, dependencies and guarded installation state across every permanent Service.</p>
         </div>
     </header>

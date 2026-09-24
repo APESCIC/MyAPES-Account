@@ -39,6 +39,11 @@ class AdminAccessWorkspaceTest extends TestCase
 
         $this->actingAs($superAdmin)
             ->get('/superadmin')
+            ->assertRedirect(route('admin.index'));
+
+        $this->actingAs($superAdmin)
+            ->followingRedirects()
+            ->get('/superadmin')
             ->assertOk()
             ->assertSee('Access')
             ->assertSee('href="'.route('admin.modules.index').'"', false)

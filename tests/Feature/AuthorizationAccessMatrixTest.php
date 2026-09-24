@@ -61,7 +61,7 @@ class AuthorizationAccessMatrixTest extends TestCase
         $this->assertHttpOutcome($this->get('/admin'), $adminUsersOutcome);
         $this->assertHttpOutcome($this->get('/admin/users'), $adminUsersOutcome);
         $this->assertHttpOutcome($this->get('/admin/access'), $superAdminOutcome);
-        $this->assertHttpOutcome($this->get('/superadmin'), $superAdminOutcome);
+        $this->assertSuperAdminShellOutcome($this->get('/superadmin'), $superAdminOutcome);
     }
 
     /**
@@ -316,5 +316,16 @@ class AuthorizationAccessMatrixTest extends TestCase
             'forbidden' => $response->assertForbidden(),
             default => $this->fail('Unknown HTTP outcome ['.$outcome.'].'),
         };
+    }
+
+    private function assertSuperAdminShellOutcome(TestResponse $response, string $outcome): void
+    {
+        if ($outcome === 'ok') {
+            $response->assertRedirect(route('admin.index'));
+
+            return;
+        }
+
+        $this->assertHttpOutcome($response, $outcome);
     }
 }

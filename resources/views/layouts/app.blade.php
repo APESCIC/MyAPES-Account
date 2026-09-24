@@ -108,18 +108,25 @@
                             <span>{{ $subCoreNavigation->subCore->name }}</span>
                         </a>
                     @endforeach
-                    @can('admin.access')
-                        <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('admin.index', 'admin.users.*')]) @if(request()->routeIs('admin.index', 'admin.users.*')) aria-current="page" @endif>
+                    @canany([
+                        'admin.access',
+                        'admin.analytics.view',
+                        'admin.users.view',
+                        'admin.groups.view',
+                        'admin.roles.view',
+                        'admin.permissions.view',
+                        'admin.modules.view',
+                        'admin.maintenance.manage',
+                        'superadmin.access',
+                    ])
+                        @php
+                            $adminNavActive = request()->routeIs('admin.*', 'superadmin.*');
+                        @endphp
+                        <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => $adminNavActive]) @if($adminNavActive) aria-current="page" @endif>
                             <i data-lucide="settings" aria-hidden="true"></i>
                             <span>Admin</span>
                         </a>
-                    @endcan
-                    @can('superadmin.access')
-                        <a href="{{ route('superadmin.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('superadmin.*', 'admin.access.*', 'admin.modules.*', 'admin.maintenance.*')]) @if(request()->routeIs('superadmin.*', 'admin.access.*', 'admin.modules.*', 'admin.maintenance.*')) aria-current="page" @endif>
-                            <i data-lucide="shield-check" aria-hidden="true"></i>
-                            <span>Super Admin</span>
-                        </a>
-                    @endcan
+                    @endcanany
                 @else
                     @if($publicRecruitmentEnabled)
                         <a href="{{ route('recruitment.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.*')]) @if(request()->routeIs('recruitment.*')) aria-current="page" @endif>

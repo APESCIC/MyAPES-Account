@@ -206,8 +206,13 @@ class LocalQaAuthTest extends TestCase
         $this->assertTrue(auth()->user()?->can('superadmin.access'));
 
         $this->get(route('superadmin.index'))
+            ->assertRedirect(route('admin.index'));
+
+        $this->followingRedirects()
+            ->get(route('superadmin.index'))
             ->assertOk()
-            ->assertSee('Super Admin overview');
+            ->assertSee('Admin overview')
+            ->assertSee('data-kpi="enabled-modules"', false);
     }
 
     public function test_role_switcher_rejects_unsupported_role(): void
