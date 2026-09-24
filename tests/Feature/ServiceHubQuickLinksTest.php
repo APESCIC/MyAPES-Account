@@ -33,6 +33,7 @@ class ServiceHubQuickLinksTest extends TestCase
             '/apes-cic' => [
                 'tickets' => route('apes-cic.tickets.index'),
                 'cases' => route('apes-cic.cases.index'),
+                'recruitment' => route('apes-cic.recruitment.index'),
             ],
             '/shelter' => [
                 'pet-profiles' => route('shelter.pets.index'),

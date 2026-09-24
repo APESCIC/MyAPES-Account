@@ -28,6 +28,7 @@ class ModuleStateMiddlewareTest extends TestCase
         $expected = [
             'apes-cic.tickets.' => 'module.available:apes-cic,tickets',
             'apes-cic.cases.' => 'module.available:apes-cic,cases',
+            'apes-cic.recruitment.' => 'module.available:apes-cic,recruitment',
             'shelter.pets.' => 'module.available:shelter-rescue,pet-profiles',
             'shelter.pet-profiles' => 'module.available:shelter-rescue,pet-profiles',
             'shelter.cases.' => 'module.available:shelter-rescue,cases',

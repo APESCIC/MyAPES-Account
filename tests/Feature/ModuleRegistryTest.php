@@ -28,7 +28,7 @@ class ModuleRegistryTest extends TestCase
             array_keys($registry->subCores()),
         );
         $this->assertSame(
-            ['cases', 'consultations', 'pet-profiles', 'tickets'],
+            ['cases', 'consultations', 'pet-profiles', 'recruitment', 'tickets'],
             array_keys($registry->modules()),
         );
 
@@ -37,26 +37,29 @@ class ModuleRegistryTest extends TestCase
         $this->assertSame('/petcare', $registry->subCore('pet-care-clinic')->basePath);
     }
 
-    public function test_all_twelve_matrix_cells_have_an_explicit_code_status(): void
+    public function test_all_fifteen_matrix_cells_have_an_explicit_code_status(): void
     {
         $registry = app(ModuleRegistry::class);
         $matrix = collect($registry->matrix())
             ->mapWithKeys(fn ($cell): array => [$cell->key() => $cell->codeStatus])
             ->all();
 
-        $this->assertCount(12, $matrix);
+        $this->assertCount(15, $matrix);
         $this->assertSame([
             'apes-cic:cases' => ModuleCodeStatus::Shipped,
             'apes-cic:consultations' => ModuleCodeStatus::Incompatible,
             'apes-cic:pet-profiles' => ModuleCodeStatus::Incompatible,
+            'apes-cic:recruitment' => ModuleCodeStatus::Shipped,
             'apes-cic:tickets' => ModuleCodeStatus::Shipped,
             'pet-care-clinic:cases' => ModuleCodeStatus::Incompatible,
             'pet-care-clinic:consultations' => ModuleCodeStatus::Shipped,
             'pet-care-clinic:pet-profiles' => ModuleCodeStatus::Shipped,
+            'pet-care-clinic:recruitment' => ModuleCodeStatus::Incompatible,
             'pet-care-clinic:tickets' => ModuleCodeStatus::Shipped,
             'shelter-rescue:cases' => ModuleCodeStatus::Shipped,
             'shelter-rescue:consultations' => ModuleCodeStatus::Incompatible,
             'shelter-rescue:pet-profiles' => ModuleCodeStatus::Shipped,
+            'shelter-rescue:recruitment' => ModuleCodeStatus::Incompatible,
             'shelter-rescue:tickets' => ModuleCodeStatus::Shipped,
         ], $matrix);
     }
@@ -67,6 +70,7 @@ class ModuleRegistryTest extends TestCase
 
         $this->assertSame([
             'apes-cic:cases',
+            'apes-cic:recruitment',
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
@@ -98,6 +102,11 @@ class ModuleRegistryTest extends TestCase
         $this->assertSame(
             20,
             $registry->instance('apes-cic', 'cases')
+                ->module->navigation['apes-cic']->order,
+        );
+        $this->assertSame(
+            30,
+            $registry->instance('apes-cic', 'recruitment')
                 ->module->navigation['apes-cic']->order,
         );
         $this->assertSame(
@@ -228,10 +237,16 @@ class ModuleRegistryTest extends TestCase
             $permissions,
         );
 
-        $this->assertCount(59, $permissions);
-        $this->assertCount(59, array_unique($names));
+        $this->assertCount(65, $permissions);
+        $this->assertCount(65, array_unique($names));
         $this->assertContains('apes-cic.cases.comment-own', $names);
         $this->assertContains('apes-cic.cases.delete', $names);
+        $this->assertContains('apes-cic.recruitment.view-own', $names);
+        $this->assertContains('apes-cic.recruitment.create', $names);
+        $this->assertContains('apes-cic.recruitment.view-all', $names);
+        $this->assertContains('apes-cic.recruitment.update', $names);
+        $this->assertContains('apes-cic.recruitment.delete', $names);
+        $this->assertContains('apes-cic.recruitment.review-applications', $names);
         $this->assertContains('apes-cic.tickets.view-own', $names);
         $this->assertContains('apes-cic.tickets.comment-own', $names);
         $this->assertContains('apes-cic.tickets.delete', $names);
@@ -250,7 +265,15 @@ class ModuleRegistryTest extends TestCase
             $this->assertSame(
                 in_array(
                     $permission->ability,
-                    ['view-all', 'update-all', 'assign', 'close', 'delete'],
+                    [
+                        'view-all',
+                        'update-all',
+                        'update',
+                        'assign',
+                        'close',
+                        'delete',
+                        'review-applications',
+                    ],
                     true,
                 ),
                 $permission->requiresDirectoryContext,
@@ -306,7 +329,7 @@ class ModuleRegistryTest extends TestCase
         $this->assertTrue(
             $profile->isSuperAdminOnlyPermission('admin.modules.manage'),
         );
-        $this->assertCount(75, $profile->permissions());
+        $this->assertCount(81, $profile->permissions());
         $this->assertTrue(
             $profile->isSuperAdminOnlyPermission('superadmin.access'),
         );

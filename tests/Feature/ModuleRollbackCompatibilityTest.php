@@ -57,10 +57,11 @@ class ModuleRollbackCompatibilityTest extends TestCase
             flags: JSON_THROW_ON_ERROR,
         );
 
-        $this->assertSame('0.33.7', trim((string) file_get_contents(base_path('VERSION'))));
-        $this->assertSame('0.33.7', $manifest['application_version']);
+        $this->assertSame('0.34.0', trim((string) file_get_contents(base_path('VERSION'))));
+        $this->assertSame('0.34.0', $manifest['application_version']);
         $this->assertSame([
             'apes-cic:cases',
+            'apes-cic:recruitment',
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
@@ -80,8 +81,8 @@ class ModuleRollbackCompatibilityTest extends TestCase
         $result = app(ModuleRollbackCompatibilityChecker::class)
             ->check(base_path());
         $this->assertSame('manifest', $result['contract']);
-        $this->assertSame(8, $result['installations']);
-        $this->assertSame('0.33.7', $result['target_version']);
+        $this->assertSame(9, $result['installations']);
+        $this->assertSame('0.34.0', $result['target_version']);
     }
 
     public function test_a_legacy_target_without_a_manifest_requires_exactly_five_enabled_baselines(): void
@@ -89,6 +90,10 @@ class ModuleRollbackCompatibilityTest extends TestCase
         ModuleInstallation::query()
             ->where('sub_core_key', 'apes-cic')
             ->where('module_key', 'cases')
+            ->delete();
+        ModuleInstallation::query()
+            ->where('sub_core_key', 'apes-cic')
+            ->where('module_key', 'recruitment')
             ->delete();
         ModuleInstallation::query()
             ->where('sub_core_key', 'shelter-rescue')
@@ -122,7 +127,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
     public function test_v0121_target_rejects_the_current_persisted_installations(): void
     {
-        $this->assertSame(8, ModuleInstallation::query()->count());
+        $this->assertSame(9, ModuleInstallation::query()->count());
 
         try {
             app(ModuleRollbackCompatibilityChecker::class)
@@ -149,6 +154,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
         $this->assertSame([
             'apes-cic:cases',
+            'apes-cic:recruitment',
             'apes-cic:tickets',
             'pet-care-clinic:consultations',
             'pet-care-clinic:pet-profiles',
@@ -328,7 +334,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             true,
             flags: JSON_THROW_ON_ERROR,
         );
-        $this->assertSame('0.33.7', $manifest['application_version']);
+        $this->assertSame('0.34.0', $manifest['application_version']);
         file_put_contents(
             $target.'/resources/data/module-runtime-contract.json',
             json_encode([
@@ -357,7 +363,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             '--target-release' => base_path(),
         ])
             ->expectsOutputToContain(
-                'Module rollback compatibility: ok (manifest, 8 installations)',
+                'Module rollback compatibility: ok (manifest, 9 installations)',
             )
             ->assertSuccessful();
 

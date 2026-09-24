@@ -29,7 +29,9 @@ class ModuleAdministrationAndNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('APES CIC')
             ->assertSee('Tickets')
-            ->assertSee(route('apes-cic.tickets.index'));
+            ->assertSee('Recruitment')
+            ->assertSee(route('apes-cic.tickets.index'))
+            ->assertSee(route('apes-cic.recruitment.index'));
         $this->actingAs($user)
             ->get('/shelter')
             ->assertOk()
@@ -72,6 +74,11 @@ class ModuleAdministrationAndNavigationTest extends TestCase
 
         $cases = $this->installation('apes-cic', 'cases');
         $cases->forceFill([
+            'enabled' => false,
+            'disabled_at' => now(),
+        ])->save();
+        $recruitment = $this->installation('apes-cic', 'recruitment');
+        $recruitment->forceFill([
             'enabled' => false,
             'disabled_at' => now(),
         ])->save();
@@ -123,7 +130,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $response->assertSee(route('admin.modules.settings.edit', ['apes-cic', 'tickets']));
         $response->assertSeeText('Settings');
         $this->assertSame(
-            12,
+            15,
             substr_count($response->getContent(), 'data-module-cell='),
         );
         $this->assertSame(

@@ -2,7 +2,7 @@
 
 ## Implement order
 
-`main` holds the merged **v1.0.0 Beta** stack through **v0.31.2** on live (Access/RBAC, password pack, changelog guest filter, stale Super Admin redirects). **`v0.31.x Beta`** is **closed**: epic #91 and live-verify #159 are done. **`v0.32.x Beta`** work may start when asked.
+`main` holds the merged stack through **v0.33.7** on live (Staff UX complete). **`v0.33.x Beta`** is **closed**. **`v0.34.x Beta`** Recruitment work is in progress.
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
@@ -13,9 +13,9 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
 - **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
-- Closed historical lines: `v0.1.x Beta` through `v0.30.x Beta` (completed releases)
-- **Current completed line:** `v0.31.x Beta` (closed; v1.0.0 stack on live)
-- **Active backlog:** `v0.32.x Beta` (Public UX & compliance — former milestone 2), `v0.33.x Beta` (Staff UX — former milestone 3)
+- Closed historical lines: `v0.1.x Beta` through `v0.33.x Beta` (completed releases)
+- **Current completed line:** `v0.33.x Beta` (Staff UX closed; live through 0.33.7)
+- **Active backlog:** `v0.34.x Beta` (Recruitment), `v0.35.x Beta` (Account security — do not start until recruitment completes)
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
 
@@ -34,7 +34,7 @@ Planning lists below still describe feature order; map issues to the semver mino
 11. #122 Changelog Internal-only leak — merged (#164)
 12. #133 Stale `/superadmin/*` 404s — merged (#165)
 
-### v1.1.0 Beta: Public UX & compliance (`v0.32.x Beta`)
+### v1.1.0 Beta: Public UX & compliance (`v0.32.x Beta`, closed)
 
 1. #128 Branded 404 and 403
 2. #130 Signed-in home still shows login doors
@@ -51,7 +51,7 @@ Planning lists below still describe feature order; map issues to the semver mino
 13. #126 SECURITY.md
 14. #127 Compress Spike/logo PNGs
 
-### v1.2.0 Beta: Staff UX (`v0.33.x Beta`)
+### v1.2.0 Beta: Staff UX (`v0.33.x Beta`, closed)
 
 1. #136 Hub Create/View URLs (incl. `/shelter/pet-profiles`)
 2. #143 Empty pet dropdown on create forms
@@ -64,6 +64,25 @@ Planning lists below still describe feature order; map issues to the semver mino
 9. #144 Suspend user confirm
 10. #140 Group member counts clickable
 11. #145 Groups last-sync as-of
+
+### v1.3.0 Beta: Recruitment (`v0.34.x Beta`)
+
+Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`).
+
+1. #211 Epic: Recruitment plugin — public roles board
+2. #212 Module scaffold + registration
+3. #213 Role model + staff admin CRUD
+4. #214 Public roles listing (staff / volunteer / student)
+5. #215 Public role detail page
+6. #217 Public nav / discovery links
+7. #216 PHPUnit coverage + sample seed data
+8. #218 Epic: Recruitment on APES CIC — public & staff manage
+9. #219 Register recruitment on APES CIC sub-core
+10. #220 Staff APES CIC hub — manage roles
+11. #221 Application model + status workflow
+12. #222 Public apply + manage own applications
+13. #223 Staff review applications
+14. #224 PHPUnit — APES CIC recruitment manage paths
 
 ## GitHub issues
 
