@@ -262,20 +262,22 @@ class ModuleRegistryTest extends TestCase
                 '/^[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9-]+$/',
                 $permission->name,
             );
+            $expectsDirectoryContext = in_array(
+                $permission->ability,
+                [
+                    'view-all',
+                    'update-all',
+                    'update',
+                    'assign',
+                    'close',
+                    'delete',
+                    'review-applications',
+                ],
+                true,
+            ) || ($permission->moduleKey === 'recruitment'
+                && $permission->ability === 'create');
             $this->assertSame(
-                in_array(
-                    $permission->ability,
-                    [
-                        'view-all',
-                        'update-all',
-                        'update',
-                        'assign',
-                        'close',
-                        'delete',
-                        'review-applications',
-                    ],
-                    true,
-                ),
+                $expectsDirectoryContext,
                 $permission->requiresDirectoryContext,
             );
         }
@@ -289,6 +291,14 @@ class ModuleRegistryTest extends TestCase
         $this->assertContains(
             'apes-cic.tickets.create',
             $matrix[AuthorizationProfile::ROLE_SERVICE_USER],
+        );
+        $this->assertNotContains(
+            'apes-cic.recruitment.create',
+            $matrix[AuthorizationProfile::ROLE_SERVICE_USER],
+        );
+        $this->assertContains(
+            'apes-cic.recruitment.create',
+            $matrix[AuthorizationProfile::ROLE_STAFF],
         );
         $this->assertContains(
             'apes-cic.tickets.assign',

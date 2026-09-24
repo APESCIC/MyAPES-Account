@@ -194,6 +194,26 @@ Route::middleware([
                     ->defaults('subCoreKey', 'apes-cic')
                     ->defaults('moduleKey', 'recruitment')
                     ->name('recruitment.index');
+                Route::post('recruitment', [RecruitmentRoleController::class, 'store'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.store');
+                Route::get('recruitment/{recruitmentRole}', [RecruitmentRoleController::class, 'show'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.show');
+                Route::match(['put', 'patch'], 'recruitment/{recruitmentRole}', [RecruitmentRoleController::class, 'update'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.update');
+                Route::post('recruitment/{recruitmentRole}/publish', [RecruitmentRoleController::class, 'publish'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.publish');
+                Route::post('recruitment/{recruitmentRole}/close', [RecruitmentRoleController::class, 'close'])
+                    ->defaults('subCoreKey', 'apes-cic')
+                    ->defaults('moduleKey', 'recruitment')
+                    ->name('recruitment.close');
             });
     });
 
