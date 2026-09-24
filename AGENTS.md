@@ -2,7 +2,7 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.33.7** on live (Staff UX complete). **`v0.33.x Beta`** is **closed**. **`v0.34.x Beta`** Recruitment work is in progress.
+`main` holds the merged stack through **v0.34.4** on live (Recruitment plugin complete). **`v0.34.x Beta`** is **closed**. **`v0.35.x Beta`** Admin shell + plugin settings work is in progress.
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
@@ -13,9 +13,10 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
 - **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
-- Closed historical lines: `v0.1.x Beta` through `v0.33.x Beta` (completed releases)
-- **Current completed line:** `v0.33.x Beta` (Staff UX closed; live through 0.33.7)
-- **Active backlog:** `v0.34.x Beta` (Recruitment), `v0.35.x Beta` (Account security — do not start until recruitment completes)
+- Closed historical lines: `v0.1.x Beta` through `v0.34.x Beta` (completed releases)
+- **Current completed line:** `v0.34.x Beta` (Recruitment; live through 0.34.4)
+- **Active backlog:** `v0.35.x Beta` (Unified Admin shell + plugin settings — ships first), `v0.36.x Beta` (Recruitment dual frontends), `v0.37.x Beta` (Account security — do not start until Admin shell and Recruitment IA complete)
+- **Ship order:** milestone **6 → 7 → 5** (`v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Account security)
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
 
@@ -83,6 +84,19 @@ Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`).
 12. #222 Public apply + manage own applications
 13. #223 Staff review applications
 14. #224 PHPUnit — APES CIC recruitment manage paths
+
+### v1.4.0 Beta: Unified Admin shell + plugin settings (`v0.35.x Beta`)
+
+Ship order vs neighbors: **6 → 7 → 5**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin. Plugin settings registry follows in a later 0.35.x patch.
+
+1. #246 Epic: Unified Admin shell (merge Super Admin)
+2. #251 Permission-gated Admin page submenu
+3. #250 Collapse primary nav Admin/Super Admin → Admin
+4. #252 Legacy `/superadmin` redirects
+5. #247 Epic: Per-plugin settings pages
+6. #253 Plugin settings registry contract
+7. #255 Recruitment (+ remaining plugins) settings pages
+8. #254 PHPUnit Admin shell + plugin settings matrix
 
 ## GitHub issues
 

@@ -3,7 +3,7 @@
 @section('title', 'Super Admin permissions | MyAPES Core')
 
 @section('content')
-    @include('superadmin._navigation')
+    @include('admin._navigation')
 
     <section class="panel" aria-labelledby="admin-permissions-title">
         <h1 id="admin-permissions-title">Super Admin permissions</h1>

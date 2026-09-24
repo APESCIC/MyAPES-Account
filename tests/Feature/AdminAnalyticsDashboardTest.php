@@ -61,18 +61,18 @@ class AdminAnalyticsDashboardTest extends TestCase
 
         $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
         $superAdminResponse = $this->actingAs($superAdmin)
-            ->get(route('superadmin.index'))
+            ->get(route('admin.index'))
             ->assertOk()
-            ->assertSee('Super Admin overview')
+            ->assertSee('Admin overview')
             ->assertSee('data-kpi="median-closure"', false)
             ->assertSee('data-kpi="enabled-modules"', false)
             ->assertSee('data-kpi="module-alerts"', false)
-            ->assertDontSee('data-kpi="total-accounts"', false)
-            ->assertDontSee('data-kpi="created-in-range"', false)
-            ->assertDontSee('data-kpi="suspended-accounts"', false)
-            ->assertDontSee('data-kpi="open-workload"', false)
-            ->assertDontSee('data-kpi="high-or-urgent"', false)
-            ->assertDontSee('data-kpi="unassigned"', false)
+            ->assertSee('data-kpi="total-accounts"', false)
+            ->assertSee('data-kpi="created-in-range"', false)
+            ->assertSee('data-kpi="suspended-accounts"', false)
+            ->assertSee('data-kpi="open-workload"', false)
+            ->assertSee('data-kpi="high-or-urgent"', false)
+            ->assertSee('data-kpi="unassigned"', false)
             ->assertSee('Created versus closed')
             ->assertSee('data-chart-frame="trend"', false)
             ->assertSee('data-chart-frame="workload"', false)
@@ -82,6 +82,12 @@ class AdminAnalyticsDashboardTest extends TestCase
             ->assertSee('data-table="workload-by-service"', false)
             ->assertDontSee('cdn.jsdelivr.net');
         $this->assertKpisAppearOnce($superAdminResponse->getContent(), [
+            'total-accounts',
+            'created-in-range',
+            'suspended-accounts',
+            'open-workload',
+            'high-or-urgent',
+            'unassigned',
             'enabled-modules',
             'median-closure',
             'module-alerts',
@@ -164,7 +170,7 @@ class AdminAnalyticsDashboardTest extends TestCase
 
         $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
         $this->actingAs($superAdmin)
-            ->get(route('superadmin.index', ['range' => 7]))
+            ->get(route('admin.index', ['range' => 7]))
             ->assertOk()
             ->assertSee('120.0 minutes')
             ->assertSee('data-kpi="median-closure"', false);
@@ -206,7 +212,7 @@ class AdminAnalyticsDashboardTest extends TestCase
                 'disabled_at' => now(),
             ]);
 
-        $response = $this->actingAs($superAdmin)->get(route('superadmin.index'));
+        $response = $this->actingAs($superAdmin)->get(route('admin.index'));
         $dashboard = $response->viewData('dashboard');
         $kinds = collect($dashboard['module_alerts'])->pluck('kind')->all();
 
@@ -223,7 +229,7 @@ class AdminAnalyticsDashboardTest extends TestCase
     {
         $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
 
-        $response = $this->actingAs($superAdmin)->get(route('superadmin.index'));
+        $response = $this->actingAs($superAdmin)->get(route('admin.index'));
         $dashboard = $response->viewData('dashboard');
         $kinds = collect($dashboard['module_alerts'])->pluck('kind')->unique()->values()->all();
 
@@ -326,7 +332,7 @@ class AdminAnalyticsDashboardTest extends TestCase
         ]);
 
         $this->actingAs($superAdmin)
-            ->get(route('superadmin.index'))
+            ->get(route('admin.index'))
             ->assertOk()
             ->assertSee('authorization.role_updated')
             ->assertSee('Dashboard Operator')

@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\AdminMaintenanceController;
 use App\Http\Controllers\Admin\AdminModuleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
-use App\Http\Controllers\Admin\SuperAdminDashboardController;
 use App\Http\Controllers\ApesCic\CaseController as ApesCicCaseController;
 use App\Http\Controllers\ApesCic\CaseUpdateController as ApesCicCaseUpdateController;
 use App\Http\Controllers\ApesCic\RecruitmentApplicationController;
@@ -347,11 +346,10 @@ Route::middleware([
         ->name('superadmin.')
         ->middleware('admin.denial-audit')
         ->group(function (): void {
-            Route::get('/', SuperAdminDashboardController::class)
+            // Legacy Super Admin shell URLs collapse into the unified Admin area (#252).
+            Route::get('/', fn () => redirect()->route('admin.index', request()->query()))
                 ->middleware('can:superadmin.access')
                 ->name('index');
-
-            // Stale Super Admin URLs from early chrome / live walks (issue #133).
             Route::get('/groups', fn () => redirect()->route('admin.groups.index'))
                 ->middleware('can:admin.groups.view')
                 ->name('groups');

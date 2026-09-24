@@ -3,7 +3,7 @@
 @section('title', 'Plugin settings | MyAPES Core')
 
 @section('content')
-    @include('superadmin._navigation')
+    @include('admin._navigation')
 
     @php
         $idLabel = $moduleKey === 'tickets' ? 'Service area ID' : 'Category ID';

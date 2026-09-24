@@ -3,7 +3,7 @@
 @section('title', 'Job role | MyAPES Core')
 
 @section('content')
-    @include('superadmin._navigation')
+    @include('admin._navigation')
 
     <section class="panel" aria-labelledby="managed-role-title">
         <p><a href="{{ route('admin.access.index', ['tab' => 'job-roles']) }}">← Back to Job roles</a></p>
