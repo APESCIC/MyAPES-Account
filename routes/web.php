@@ -20,6 +20,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PetCare\ConsultationController;
 use App\Http\Controllers\PetCare\PetProfileController as PetCarePetProfileController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RecruitmentBoardController;
 use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
 use App\Http\Controllers\SubCoreController;
@@ -37,6 +38,12 @@ Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/cookies', 'legal.cookies')->name('cookies');
 Route::view('/help', 'legal.help')->name('help');
 Route::view('/terms', 'legal.terms')->name('terms');
+Route::middleware('module.available:apes-cic,recruitment')->group(function (): void {
+    Route::get('/recruitment', [RecruitmentBoardController::class, 'index'])
+        ->name('recruitment.index');
+    Route::get('/recruitment/{recruitmentRole}', [RecruitmentBoardController::class, 'show'])
+        ->name('recruitment.show');
+});
 Route::get('/storage/pet-profiles/{path?}', static fn () => abort(404))
     ->where('path', '.*');
 

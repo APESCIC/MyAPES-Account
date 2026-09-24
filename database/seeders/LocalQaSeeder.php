@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\CaseUpdate;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
+use App\Models\RecruitmentRole;
 use App\Models\Role;
 use App\Models\RoleSource;
 use App\Models\ShelterCase;
@@ -794,6 +795,91 @@ class LocalQaSeeder extends Seeder
             ]
         );
         $this->setTimestamps($closedConsultation, $seededAt->subDays(3));
+
+        $this->seedRecruitmentRoles($staffUser, $seededAt);
+    }
+
+    private function seedRecruitmentRoles(User $staffUser, CarbonImmutable $seededAt): void
+    {
+        $openRoles = [
+            'staff' => [
+                'title' => 'QA Seed: Operations coordinator',
+                'summary' => 'Coordinate day-to-day APES CIC operations and partner liaison.',
+                'description' => "Support service delivery across APES CIC teams.\n\nIdeal for someone who enjoys clear follow-up and calm coordination.",
+                'location' => 'Hybrid — London',
+                'commitment' => 'Part-time',
+            ],
+            'volunteer' => [
+                'title' => 'QA Seed: Community outreach volunteer',
+                'summary' => 'Help with events, awareness days, and community conversations.',
+                'description' => "Join outreach activities that introduce people to APES CIC work.\n\nTraining and shadowing are provided.",
+                'location' => 'Community venues',
+                'commitment' => 'Flexible',
+            ],
+            'student' => [
+                'title' => 'QA Seed: Placement student — administration',
+                'summary' => 'A structured placement supporting admin and communications tasks.',
+                'description' => "Work alongside staff on documentation, scheduling, and public information.\n\nSuitable for students seeking supervised experience.",
+                'location' => 'Office / remote mix',
+                'commitment' => '2 days per week',
+            ],
+        ];
+
+        foreach ($openRoles as $category => $payload) {
+            $role = RecruitmentRole::query()->updateOrCreate(
+                [
+                    'title' => $payload['title'],
+                    'category' => $category,
+                ],
+                [
+                    'created_by' => $staffUser->id,
+                    'summary' => $payload['summary'],
+                    'description' => $payload['description'],
+                    'status' => RecruitmentRole::STATUS_OPEN,
+                    'location' => $payload['location'],
+                    'commitment' => $payload['commitment'],
+                    'published_at' => $seededAt->subDays(3),
+                    'closed_at' => null,
+                ],
+            );
+            $this->setTimestamps($role, $seededAt->subDays(3));
+        }
+
+        $draftRole = RecruitmentRole::query()->updateOrCreate(
+            [
+                'title' => 'QA Seed: Draft communications lead',
+                'category' => 'staff',
+            ],
+            [
+                'created_by' => $staffUser->id,
+                'summary' => 'Internal draft — must not appear on the public board.',
+                'description' => 'Draft role used for local visibility tests. Guests must never see this content.',
+                'status' => RecruitmentRole::STATUS_DRAFT,
+                'location' => 'Remote',
+                'commitment' => 'Full-time',
+                'published_at' => null,
+                'closed_at' => null,
+            ],
+        );
+        $this->setTimestamps($draftRole, $seededAt->subDay());
+
+        $closedRole = RecruitmentRole::query()->updateOrCreate(
+            [
+                'title' => 'QA Seed: Closed weekend volunteer',
+                'category' => 'volunteer',
+            ],
+            [
+                'created_by' => $staffUser->id,
+                'summary' => 'Closed role — must not appear on the public board.',
+                'description' => 'Closed role used for local visibility tests. Guests must never see this content.',
+                'status' => RecruitmentRole::STATUS_CLOSED,
+                'location' => 'On site',
+                'commitment' => 'Weekends',
+                'published_at' => $seededAt->subWeeks(2),
+                'closed_at' => $seededAt->subDays(5),
+            ],
+        );
+        $this->setTimestamps($closedRole, $seededAt->subDays(5));
     }
 
     private function seedDirectoryGroupsForQaStaff(

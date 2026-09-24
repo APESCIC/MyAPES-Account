@@ -2205,6 +2205,12 @@ button:disabled {
     background: var(--brand-deep-teal);
 }
 
+.actions a.is-active {
+    border-color: var(--brand-teal);
+    background: var(--brand-teal);
+    box-shadow: inset 0 0 0 1px var(--brand-deep-teal);
+}
+
 .inline-check {
     display: flex;
     gap: 0.55rem;

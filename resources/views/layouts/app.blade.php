@@ -121,6 +121,12 @@
                         </a>
                     @endcan
                 @else
+                    @if($publicRecruitmentEnabled)
+                        <a href="{{ route('recruitment.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.*')]) @if(request()->routeIs('recruitment.*')) aria-current="page" @endif>
+                            <i data-lucide="briefcase" aria-hidden="true"></i>
+                            <span>Roles</span>
+                        </a>
+                    @endif
                     <a href="{{ route('public.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.login')]) @if(request()->routeIs('public.login')) aria-current="page" @endif>
                         <i data-lucide="log-in" aria-hidden="true"></i>
                         <span>Public Login</span>
@@ -133,6 +139,14 @@
                         <i data-lucide="badge-check" aria-hidden="true"></i>
                         <span>Staff Login</span>
                     </a>
+                @endauth
+                @auth
+                    @if($publicRecruitmentEnabled)
+                        <a href="{{ route('recruitment.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.*')]) @if(request()->routeIs('recruitment.*')) aria-current="page" @endif>
+                            <i data-lucide="briefcase" aria-hidden="true"></i>
+                            <span>Roles</span>
+                        </a>
+                    @endif
                 @endauth
             </nav>
 
@@ -254,6 +268,9 @@
         <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
     </div>
     <nav class="site-footer__links" aria-label="Legal and help">
+        @if($publicRecruitmentEnabled)
+            <a href="{{ route('recruitment.index') }}" @if (request()->routeIs('recruitment.*')) aria-current="page" @endif>Roles</a>
+        @endif
         <a href="{{ route('privacy') }}" @if (request()->routeIs('privacy')) aria-current="page" @endif>Privacy</a>
         <a href="{{ route('cookies') }}" @if (request()->routeIs('cookies')) aria-current="page" @endif>Cookies</a>
         <a href="{{ route('help') }}" @if (request()->routeIs('help')) aria-current="page" @endif>Help</a>
