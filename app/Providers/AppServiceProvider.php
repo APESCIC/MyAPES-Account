@@ -21,8 +21,8 @@ use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
 use App\Services\JumbojettOidcIdentityProvider;
 use App\Services\LaravelMaintenanceModeGateway;
+use App\Services\ModuleCatalogueProjection;
 use App\Services\ModuleSettingsService;
-use App\Services\ModuleState;
 use App\Support\MascotTips;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -87,8 +87,11 @@ class AppServiceProvider extends ServiceProvider
 
             $staffRecruitmentManageEnabled = false;
             try {
-                $staffRecruitmentManageEnabled = app(ModuleState::class)
-                    ->enabled('apes-cic', 'recruitment');
+                $staffRecruitmentManageEnabled = in_array(
+                    'apes-cic:recruitment',
+                    app(ModuleCatalogueProjection::class)->enabledInstanceKeys(),
+                    true,
+                );
             } catch (\Throwable) {
                 $staffRecruitmentManageEnabled = false;
             }
