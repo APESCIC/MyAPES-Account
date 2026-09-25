@@ -1,19 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Recruitment')
+@section('title', 'Recruit manage — Roles')
 
 @section('content')
+    @include('apes-cic.recruitment._navigation')
     <div class="panel">
         <span class="service-label service-apes-cic">APES CIC</span>
-        <h1>Recruitment</h1>
-        <p class="muted">Staff, volunteering, and student roles for APES CIC.</p>
-        <div class="actions">
-            @can('apes-cic.recruitment.view-all')
-                <a href="{{ route('apes-cic.recruitment.applications.index') }}">Review applications</a>
-            @elsecan('apes-cic.recruitment.review-applications')
-                <a href="{{ route('apes-cic.recruitment.applications.index') }}">Review applications</a>
-            @endcan
-        </div>
+        <h1>Roles</h1>
+        <p class="muted">Staff, volunteering, and student openings for APES CIC.</p>
         <x-mascot-tip />
     </div>
     <div class="panel" id="list">

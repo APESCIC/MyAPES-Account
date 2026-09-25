@@ -21,6 +21,7 @@ use App\Policies\SupportTicketPolicy;
 use App\Services\ApplicationAuthorizationGate;
 use App\Services\JumbojettOidcIdentityProvider;
 use App\Services\LaravelMaintenanceModeGateway;
+use App\Services\ModuleCatalogueProjection;
 use App\Services\ModuleSettingsService;
 use App\Support\MascotTips;
 use App\Support\ReleaseHistoryRepository;
@@ -83,6 +84,18 @@ class AppServiceProvider extends ServiceProvider
                 $publicRecruitmentEnabled = false;
             }
             $view->with('publicRecruitmentEnabled', $publicRecruitmentEnabled);
+
+            $staffRecruitmentManageEnabled = false;
+            try {
+                $staffRecruitmentManageEnabled = in_array(
+                    'apes-cic:recruitment',
+                    app(ModuleCatalogueProjection::class)->enabledInstanceKeys(),
+                    true,
+                );
+            } catch (\Throwable) {
+                $staffRecruitmentManageEnabled = false;
+            }
+            $view->with('staffRecruitmentManageEnabled', $staffRecruitmentManageEnabled);
         });
 
         RateLimiter::for('public-login', function (Request $request): Limit {

@@ -116,7 +116,11 @@ Tickets and cases on `apes-cic` remain the `websites_categories` reference. Recr
 
 Ship order vs neighbors: **6 → 7 → 8 → 5**. Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`). Copy uses openings / **Open roles**, not Access “Roles”.
 
-Public URLs stay stable (`/recruitment`, `/recruitment/{id}`, `/recruitment/applications*`). Staff manage URLs stay under `/apes-cic/recruitment*`. Respect 0.35.1 Recruitment settings toggles (public board / apply).
+Public URLs stay stable (`/recruitment`, `/recruitment/{id}`, `/recruitment/applications*`). Staff manage URLs stay under `/apes-cic/recruitment*`. Respect 0.35.1 Recruitment settings toggles (public board / apply) for the public frontend only — staff manage chrome uses module enabled state, not the public board toggle.
+
+**Public shell:** one **Recruitment** primary + page submenu **Open roles** | **My applications** (signed-in).
+
+**Staff manage shell:** independent primary **Recruit manage** (product-shortened) for users with any staff `apes-cic.recruitment.*` ability (`view-all`, `create`, `update`, `delete`, `review-applications` — not `view-own` alone). Page submenu **Roles** | **Applications**. Parent menu shows if any child is allowed; controllers stay fail-closed. HR with `review-applications` only sees Applications (Roles actions 403). APES CIC hub Recruitment links remain. Distinct from public Recruitment / My applications.
 
 1. #248 Epic: Public Recruitment frontend IA
 2. #260 Public primary menu → Recruitment with submenu
