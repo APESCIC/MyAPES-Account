@@ -3,6 +3,8 @@
 @section('title', 'Open roles | MyAPES Core')
 
 @section('content')
+    @include('recruitment._navigation')
+
     <div class="panel" data-recruitment-board>
         <span class="service-label service-apes-cic">APES CIC</span>
         <h1>Open roles</h1>

@@ -3,6 +3,8 @@
 @section('title', $role->title.' | MyAPES Core')
 
 @section('content')
+    @include('recruitment._navigation')
+
     <div class="panel" data-recruitment-role-detail>
         <span class="service-label service-apes-cic">{{ $categoryLabels[$role->category] }}</span>
         <h1>{{ $role->title }}</h1>

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ModuleInstallation;
 use App\Models\RecruitmentRole;
 use App\Models\User;
+use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Database\Seeders\LocalQaSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -175,19 +176,59 @@ class PublicRecruitmentBoardTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_public_chrome_links_to_roles_board_when_module_enabled(): void
+    public function test_public_chrome_links_to_recruitment_board_when_module_enabled(): void
     {
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('href="'.route('recruitment.index').'"', false)
             ->assertSeeText('Open roles')
             ->assertSeeText('View open roles')
-            ->assertSeeText('Roles');
+            ->assertSeeText('Recruitment')
+            ->assertDontSee('>Roles</span>', false);
+
+        $board = $this->get(route('recruitment.index'))
+            ->assertOk()
+            ->assertSee('href="'.route('recruitment.index').'"', false)
+            ->assertSeeText('Recruitment')
+            ->assertSeeText('Open roles')
+            ->assertDontSeeText('My applications');
+
+        $board->assertSee('aria-label="Recruitment sections"', false);
+    }
+
+    public function test_signed_in_public_user_sees_recruitment_submenu_with_my_applications(): void
+    {
+        $applicant = User::factory()
+            ->protectedRole(AuthorizationProfile::ROLE_SERVICE_USER)
+            ->create();
+
+        $this->actingAs($applicant)
+            ->get(route('recruitment.index'))
+            ->assertOk()
+            ->assertSeeText('Recruitment')
+            ->assertSeeText('Open roles')
+            ->assertSeeText('My applications')
+            ->assertSee('href="'.route('recruitment.applications.index').'"', false)
+            ->assertDontSee('href="'.route('apes-cic.recruitment.index').'"', false)
+            ->assertDontSee('href="'.route('apes-cic.recruitment.applications.index').'"', false);
+
+        $this->actingAs($applicant)
+            ->get(route('recruitment.applications.index'))
+            ->assertOk()
+            ->assertSeeText('My applications')
+            ->assertSee('aria-current="page"', false)
+            ->assertSee('href="'.route('recruitment.index').'"', false);
+    }
+
+    public function test_guest_applications_route_requires_login_without_staff_manage_bleed(): void
+    {
+        $this->get(route('recruitment.applications.index'))
+            ->assertRedirect();
 
         $this->get(route('recruitment.index'))
             ->assertOk()
-            ->assertSee('href="'.route('recruitment.index').'"', false)
-            ->assertSeeText('Roles');
+            ->assertDontSeeText('My applications')
+            ->assertDontSee('href="'.route('apes-cic.recruitment.applications.index').'"', false);
     }
 
     public function test_public_roles_board_is_unavailable_when_module_disabled(): void

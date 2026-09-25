@@ -3,11 +3,13 @@
 @section('title', 'My applications | MyAPES Core')
 
 @section('content')
+    @include('recruitment._navigation')
+
     @inject('ukDateTime', \App\Support\UkDateTime::class)
     <div class="panel">
         <span class="service-label service-apes-cic">APES CIC</span>
         <h1>My applications</h1>
-        <p class="muted">Roles you have applied for, with their current status.</p>
+        <p class="muted">Openings you have applied for, with their current status.</p>
         <div class="actions">
             <a href="{{ route('recruitment.index') }}">Browse open roles</a>
         </div>

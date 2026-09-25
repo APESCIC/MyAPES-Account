@@ -2,7 +2,7 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.34.4** on live (Recruitment plugin complete). **`v0.34.x Beta`** is **closed**. **`v0.35.x Beta`** Admin shell + plugin settings work is in progress.
+`main` holds the merged stack through **v0.35.1** on live (Admin shell + plugin settings complete). **`v0.34.x Beta`** and **`v0.35.x Beta`** are **closed**. **`v0.36.x Beta`** Recruitment dual-frontend IA work is in progress.
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
@@ -13,10 +13,10 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
 - **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
-- Closed historical lines: `v0.1.x Beta` through `v0.34.x Beta` (completed releases)
-- **Current completed line:** `v0.34.x Beta` (Recruitment; live through 0.34.4)
-- **Active backlog:** `v0.35.x Beta` (Unified Admin shell + plugin settings — ships first), `v0.36.x Beta` (Recruitment dual frontends), `v0.37.x Beta` (Account security — do not start until Admin shell and Recruitment IA complete)
-- **Ship order:** milestone **6 → 7 → 5** (`v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Account security)
+- Closed historical lines: `v0.1.x Beta` through `v0.35.x Beta` (completed releases)
+- **Current completed line:** `v0.35.x Beta` (Unified Admin shell + plugin settings; live through 0.35.1)
+- **Active backlog:** `v0.36.x Beta` (Recruitment dual frontends — ships next), `v0.37.x Beta` (Language & keywords), `v0.38.x Beta` (Account security — do not start until Admin shell, Recruitment IA, and Language complete)
+- **Ship order:** milestone **6 → 7 → 8 → 5** (`v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Language → `v0.38` Account security)
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
 
@@ -85,9 +85,9 @@ Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`).
 13. #223 Staff review applications
 14. #224 PHPUnit — APES CIC recruitment manage paths
 
-### v1.4.0 Beta: Unified Admin shell + plugin settings (`v0.35.x Beta`)
+### v1.4.0 Beta: Unified Admin shell + plugin settings (`v0.35.x Beta`, closed)
 
-Ship order vs neighbors: **6 → 7 → 5**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin.
+Ship order vs neighbors: **6 → 7 → 8 → 5**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin.
 
 #### Plugin settings registry contract
 
@@ -111,6 +111,21 @@ Tickets and cases on `apes-cic` remain the `websites_categories` reference. Recr
 6. #253 Plugin settings registry contract
 7. #255 Recruitment (+ remaining plugins) settings pages
 8. #254 PHPUnit Admin shell + plugin settings matrix
+
+### v1.5.0 Beta: Recruitment dual-frontend IA (`v0.36.x Beta`)
+
+Ship order vs neighbors: **6 → 7 → 8 → 5**. Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`). Copy uses openings / **Open roles**, not Access “Roles”.
+
+Public URLs stay stable (`/recruitment`, `/recruitment/{id}`, `/recruitment/applications*`). Staff manage URLs stay under `/apes-cic/recruitment*`. Respect 0.35.1 Recruitment settings toggles (public board / apply).
+
+1. #248 Epic: Public Recruitment frontend IA
+2. #260 Public primary menu → Recruitment with submenu
+3. #256 Open roles / openings page
+4. #257 My applications track page
+5. #249 Epic: Staff Recruitment manage frontend
+6. #258 Staff Recruitment manage menu + roles CRUD IA
+7. #259 Staff applications review IA + HR permissions
+8. #261 PHPUnit recruitment dual-frontend IA matrix
 
 ## GitHub issues
 
