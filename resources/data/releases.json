@@ -1,5 +1,72 @@
 [
   {
+    "version": "0.36.1",
+    "date": "2026-09-25",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Staff Recruitment manage IA",
+    "summary": "Staff Recruitment manage gets an independent Recruit manage primary with a Roles / Applications page submenu, so roles CRUD and applications review are reachable outside the APES CIC hub alone while staying separate from public Recruitment.",
+    "changes": [
+      "Add a permission-gated Recruit manage primary for staff with any apes-cic.recruitment view-all, create, update, delete, or review-applications ability.",
+      "Add a Roles | Applications page submenu on staff /apes-cic/recruitment* pages (URLs unchanged).",
+      "Keep APES CIC hub Recruitment links working; do not bury manage only inside the hub.",
+      "Document and cover the HR review-applications-only path: Applications submenu visible, roles CRUD fail-closed.",
+      "Add PHPUnit RecruitmentDualFrontendIaMatrixTest for guest, public, HR, staff, admin, and superadmin chrome and fail-closed manage URLs.",
+      "Extend AGENTS.md staff manage shell notes for the dual-frontend IA."
+    ],
+    "affected_areas": [
+      "Staff primary navigation",
+      "Recruitment manage page submenu",
+      "APES CIC recruitment roles CRUD",
+      "APES CIC recruitment applications review",
+      "Change Log Hub",
+      "AGENTS.md"
+    ],
+    "categories": [
+      "added",
+      "changed"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "Patch on the v0.36.x line: staff manage information architecture and dual-frontend test matrix without changing public URLs, staff URL baselines, or permission definitions.",
+    "validation": [
+      "PHPUnit RecruitmentDualFrontendIaMatrixTest passes (guest / public / HR / staff / admin / superadmin).",
+      "Related PublicRecruitmentBoardTest, RecruitmentRoleWorkflowTest, RecruitmentApplicationManageTest, and AdminShellNavigationTest pass.",
+      "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch.",
+      "composer pre-pr-verify (or equivalent local verify) on the PR branch before merge."
+    ],
+    "known_limitations": [
+      "Staff manage still ships only on the APES CIC sub-core.",
+      "Public applicants with view-own may still open the staff roles list URL without the Recruit manage primary; create/edit and applications review remain fail-closed."
+    ],
+    "rollback": "Redeploy the previous application version to remove the Recruit manage primary and Roles / Applications staff page submenu.",
+    "provenance": "Implements issues #258, #259, and #261 via pull request #296; closes epic #249.",
+    "references": [
+      {
+        "label": "Issue #258",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/258"
+      },
+      {
+        "label": "Issue #259",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/259"
+      },
+      {
+        "label": "Issue #261",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/261"
+      },
+      {
+        "label": "Issue #249",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/249"
+      },
+      {
+        "label": "Pull request #296",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/296"
+      }
+    ]
+  },
+  {
     "version": "0.36.0",
     "date": "2026-09-25",
     "channel": "stable",
@@ -72,12 +139,12 @@
     "channel": "stable",
     "type": "patch",
     "title": "Plugin settings registry",
-    "summary": "Admin \u2192 Plugins settings are driven by a shared registry contract. Recruitment gains public board and apply toggles; plugins without settings show an explicit empty state.",
+    "summary": "Admin → Plugins settings are driven by a shared registry contract. Recruitment gains public board and apply toggles; plugins without settings show an explicit empty state.",
     "changes": [
       "Introduce a ModuleSettingsRegistry contract (supports settings, schema, route, permissions, nav label) as the single source of truth for plugin settings.",
       "Adapt APES CIC tickets and cases settings to consume the registry as the reference websites/categories schema.",
       "Add a Recruitment settings page for public board and public apply toggles, gated by admin.modules view/manage.",
-      "Show \u201cNo configurable settings\u201d on the Plugins index for Consultations and Pet Profiles.",
+      "Show “No configurable settings” on the Plugins index for Consultations and Pet Profiles.",
       "Respect Recruitment board/apply settings on the public roles board and application submit path.",
       "Cover registry discovery, authorization fail-closed behaviour, and public gating with PHPUnit feature tests."
     ],
@@ -197,7 +264,7 @@
       "Add apply on the public role detail page (one application per person per role) with a required interest statement.",
       "Add My applications list and detail so signed-in public users can view status and withdraw when the workflow allows.",
       "Add staff applications list with status, category, and role filters, plus review transitions and staff-only notes.",
-      "Prompt guests on open role detail to sign in or register before applying; deny access to other people\u2019s applications and to staff review for public users.",
+      "Prompt guests on open role detail to sign in or register before applying; deny access to other people’s applications and to staff review for public users.",
       "Cover public apply, own-manage, staff review, and denial paths with PHPUnit feature tests."
     ],
     "affected_areas": [
@@ -517,7 +584,7 @@
     "channel": "stable",
     "type": "patch",
     "title": "Consistent Incompatible module status copy",
-    "summary": "Super Admin overview plugin warnings now use Incompatible and Code not shipped \u2014 the same labels as the modules registry \u2014 instead of calling those cells Blocked.",
+    "summary": "Super Admin overview plugin warnings now use Incompatible and Code not shipped — the same labels as the modules registry — instead of calling those cells Blocked.",
     "changes": [
       "Label Super Admin module alerts for incompatible and code-not-shipped plugins with the same terms as the modules registry chips.",
       "Keep Disabled and Active records as separate alert kinds with their existing meanings."
@@ -561,7 +628,7 @@
     "channel": "stable",
     "type": "patch",
     "title": "Staff Login chase for pending first login",
-    "summary": "Admins can send a Staff Login reminder to directory accounts that have not completed first login. The reminder opens Staff Login / Cloudron only \u2014 not the public password reset.",
+    "summary": "Admins can send a Staff Login reminder to directory accounts that have not completed first login. The reminder opens Staff Login / Cloudron only — not the public password reset.",
     "changes": [
       "Add a Staff Login reminder action on Admin user detail for PENDING FIRST LOGIN directory accounts.",
       "Send chase mail that links to Staff Login / Cloudron and refuse the public-local password reset path for those accounts."
@@ -629,7 +696,7 @@
       "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch."
     ],
     "known_limitations": [
-      "Fine-grained permissions remain available under Advanced for any Admin who can view the account; Super Admin\u2013only hiding was not required for this release."
+      "Fine-grained permissions remain available under Advanced for any Admin who can view the account; Super Admin–only hiding was not required for this release."
     ],
     "rollback": "Redeploy the previous application version to restore the raw effective-permission dump and suspend-without-confirm behaviour.",
     "provenance": "User detail access summary and suspend confirm for issues #137 and #144, pull request #237.",
@@ -654,7 +721,7 @@
     "channel": "stable",
     "type": "patch",
     "title": "Super Admin overview drops duplicate Admin KPIs",
-    "summary": "Super Admin overview no longer repeats the Admin day-to-day KPI cards. It shows Super Admin\u2013only metrics for plugins, median closure, and plugin alerts, while Admin overview keeps the existing account and workload KPIs.",
+    "summary": "Super Admin overview no longer repeats the Admin day-to-day KPI cards. It shows Super Admin–only metrics for plugins, median closure, and plugin alerts, while Admin overview keeps the existing account and workload KPIs.",
     "changes": [
       "Remove the duplicated Admin account and workload KPI strip from Super Admin overview.",
       "Keep Super Admin overview KPIs to enabled plugins, median closure, and plugin alert count."
@@ -1357,7 +1424,7 @@
     "channel": "stable",
     "type": "patch",
     "title": "Spike dock stays clear of form fields",
-    "summary": "Spike\u2019s floating tip starts as a small avatar and keeps main content clear of the dock so Priority, Health, and similar form controls stay usable.",
+    "summary": "Spike’s floating tip starts as a small avatar and keeps main content clear of the dock so Priority, Health, and similar form controls stay usable.",
     "changes": [
       "Collapse the Spike tip dock to an avatar-only control by default; expand the tip on demand.",
       "Add bottom clearance on main content when the dock is present so lower form fields can scroll clear of the avatar."
@@ -1467,7 +1534,7 @@
       "public-facing",
       "internal-only"
     ],
-    "version_rationale": "Minor release: first Public UX capability in the v0.32.x line \u2014 branded error pages without changing who can access what. Includes small local-verify fixes needed to clear the pre-PR gate.",
+    "version_rationale": "Minor release: first Public UX capability in the v0.32.x line — branded error pages without changing who can access what. Includes small local-verify fixes needed to clear the pre-PR gate.",
     "validation": [
       "PHPUnit BrandedErrorPagesTest covers unknown-URL 404 branding, service-user Admin/Super Admin 403 branding, and abort(403) message passthrough.",
       "Local Laragon preview confirmed branded 404 chrome at an unknown path.",
@@ -2171,7 +2238,7 @@
     "channel": "stable",
     "type": "minor",
     "title": "Admin reset of local public passwords",
-    "summary": "Admins and Super Admins can issue a one-time temporary password for a local public account from Admin \u2192 Public users. Directory and Cloudron accounts cannot be reset this way.",
+    "summary": "Admins and Super Admins can issue a one-time temporary password for a local public account from Admin → Public users. Directory and Cloudron accounts cannot be reset this way.",
     "changes": [
       "Add a local-password reset action on the Admin public-users list and detail screens for local service-user accounts.",
       "Show the temporary password once after reset; it is not stored in audit history.",
@@ -2945,7 +3012,7 @@
       "Renamed signed-in chrome, Admin, changelog, and APP_NAME branding to MyAPES Core while keeping login and registration as MyAPES Account.",
       "Relabelled Super Admin Modules navigation and registry copy to Plugins, and sub-core wording to Services.",
       "Updated hub empty and summary headings, tips, permission titles, and flash messages to Plugins and Services language.",
-      "Documented the Core \u2192 Services \u2192 Plugins vocabulary in README and PRODUCT.md."
+      "Documented the Core → Services → Plugins vocabulary in README and PRODUCT.md."
     ],
     "affected_areas": [
       "Application branding and layout",
@@ -3245,7 +3312,7 @@
     ],
     "known_limitations": [
       "Custom app-owned groups are not introduced; groups remain Cloudron directory catalogue entries with optional custom role mappings.",
-      "Existing /admin technical URLs remain at the same paths and are now Super Admin\u2013gated rather than relocated under /superadmin except for the new overview."
+      "Existing /admin technical URLs remain at the same paths and are now Super Admin–gated rather than relocated under /superadmin except for the new overview."
     ],
     "rollback": "Revert this release record, VERSION, runtime manifest version, Super Admin views and routes, authorization matrix updates, admin UI Blade/CSS/JS changes, and related feature assertions. Re-run authorization metadata synchronization after rollback so protected role permissions match the restored matrix. No database schema rollback is required beyond restoring permission seed expectations.",
     "provenance": "Defined by the Admin UX cleanup with Super Admin technical panel for MyAPES Account issue #76 and pull request #77.",
@@ -3268,7 +3335,7 @@
     "title": "Polish Spike tip dock dismiss and avatar",
     "summary": "Spike tip dock dismiss control is a clear top-right close control, the dock avatar uses the pointing Spike artwork, and previous page dismissals are reset so the redesigned tip can appear again.",
     "changes": [
-      "Replaced the Hide tip text control with a high-contrast top-right \u00d7 close button on the tip bubble.",
+      "Replaced the Hide tip text control with a high-contrast top-right × close button on the tip bubble.",
       "Swapped the dock avatar to full-body pointing Spike artwork oriented toward the tip bubble.",
       "Rotated the local dismiss storage key so earlier page hide choices do not conceal the redesigned tip dock."
     ],
@@ -3517,7 +3584,7 @@
       "Updated package-lock.json so the development dependency graph resolves nanoid 3.3.18 instead of the affected 3.3.16 release under PostCSS."
     ],
     "affected_areas": [
-      "Frontend development lockfile (Vite \u2192 PostCSS \u2192 nanoid)"
+      "Frontend development lockfile (Vite → PostCSS → nanoid)"
     ],
     "categories": [
       "fixed",
