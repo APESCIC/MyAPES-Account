@@ -101,13 +101,37 @@
                             $routePrefix = str($subCoreNavigation->subCore->routeName)
                                 ->before('.')
                                 ->toString();
-                            $active = request()->routeIs($routePrefix.'.*');
+                            $active = request()->routeIs($routePrefix.'.*')
+                                && ! request()->routeIs('apes-cic.recruitment.*');
                         @endphp
                         <a href="{{ route($subCoreNavigation->subCore->routeName) }}" @class(['primary-nav__link', 'is-active' => $active]) @if($active) aria-current="page" @endif>
                             <i data-lucide="{{ $subCoreNavigation->subCore->icon }}" aria-hidden="true"></i>
                             <span>{{ $subCoreNavigation->subCore->name }}</span>
                         </a>
                     @endforeach
+                    @if($staffRecruitmentManageEnabled)
+                        @canany([
+                            'apes-cic.recruitment.view-all',
+                            'apes-cic.recruitment.create',
+                            'apes-cic.recruitment.update',
+                            'apes-cic.recruitment.delete',
+                            'apes-cic.recruitment.review-applications',
+                        ])
+                            @php
+                                $staffRecruitmentNavActive = request()->routeIs('apes-cic.recruitment.*');
+                                $staffRecruitmentHome = (
+                                    auth()->user()->can('apes-cic.recruitment.view-all')
+                                    || auth()->user()->can('apes-cic.recruitment.view-own')
+                                )
+                                    ? route('apes-cic.recruitment.index')
+                                    : route('apes-cic.recruitment.applications.index');
+                            @endphp
+                            <a href="{{ $staffRecruitmentHome }}" @class(['primary-nav__link', 'is-active' => $staffRecruitmentNavActive]) @if($staffRecruitmentNavActive) aria-current="page" @endif>
+                                <i data-lucide="clipboard-list" aria-hidden="true"></i>
+                                <span>Recruit manage</span>
+                            </a>
+                        @endcanany
+                    @endif
                     @canany([
                         'admin.access',
                         'admin.analytics.view',

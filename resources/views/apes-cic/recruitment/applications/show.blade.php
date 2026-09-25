@@ -1,9 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Review application')
+@section('title', 'Recruit manage — Application')
 
 @section('content')
     @inject('ukDateTime', \App\Support\UkDateTime::class)
+    @include('apes-cic.recruitment._navigation')
     <div class="panel" data-staff-recruitment-application-detail>
         <span class="service-label service-apes-cic">APES CIC</span>
         <h1>{{ $application->recruitmentRole?->title ?? 'Application' }}</h1>

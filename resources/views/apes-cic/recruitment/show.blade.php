@@ -1,9 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Recruitment: '.$role->title)
+@section('title', 'Recruit manage: '.$role->title)
 
 @section('content')
     @inject('ukDateTime', \App\Support\UkDateTime::class)
+    @include('apes-cic.recruitment._navigation')
     <div class="panel">
         <span class="service-label service-apes-cic">APES CIC</span>
         <h1>{{ $role->title }}</h1>
