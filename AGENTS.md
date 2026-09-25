@@ -2,7 +2,7 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.35.1** on live (Admin shell + plugin settings complete). **`v0.34.x Beta`** and **`v0.35.x Beta`** are **closed**. **`v0.36.x Beta`** Recruitment dual-frontend IA work is in progress.
+`main` holds the merged stack through **v0.36.0** (public Recruitment IA). **`v0.34.x Beta`** and **`v0.35.x Beta`** are **closed**. **`v0.36.x Beta`** Recruitment dual-frontend IA is in progress (staff manage still open). **`v0.37.x Beta`** is the structure line: Core > Modules > Plugins. See [docs/architecture.md](docs/architecture.md).
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
@@ -15,8 +15,8 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
 - Closed historical lines: `v0.1.x Beta` through `v0.35.x Beta` (completed releases)
 - **Current completed line:** `v0.35.x Beta` (Unified Admin shell + plugin settings; live through 0.35.1)
-- **Active backlog:** `v0.36.x Beta` (Recruitment dual frontends — ships next), `v0.37.x Beta` (Language & keywords), `v0.38.x Beta` (Account security — do not start until Admin shell, Recruitment IA, and Language complete)
-- **Ship order:** milestone **6 → 7 → 8 → 5** (`v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Language → `v0.38` Account security)
+- **Active backlog:** `v0.36.x Beta` (Recruitment dual frontends — ships next), `v0.37.x Beta` (Structure: Core > Modules > Plugins), `v0.38.x Beta` (Language & keywords), `v0.39.x Beta` (Account security — do not start until Admin shell, Recruitment IA, Structure, and Language are complete)
+- **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
 
@@ -87,7 +87,7 @@ Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`).
 
 ### v1.4.0 Beta: Unified Admin shell + plugin settings (`v0.35.x Beta`, closed)
 
-Ship order vs neighbors: **6 → 7 → 8 → 5**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin.
+Ship order vs neighbors: **v0.35 → v0.36 → v0.37 Structure → v0.38 Language → v0.39 Account security**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin.
 
 #### Plugin settings registry contract
 
@@ -114,7 +114,7 @@ Tickets and cases on `apes-cic` remain the `websites_categories` reference. Recr
 
 ### v1.5.0 Beta: Recruitment dual-frontend IA (`v0.36.x Beta`)
 
-Ship order vs neighbors: **6 → 7 → 8 → 5**. Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`). Copy uses openings / **Open roles**, not Access “Roles”.
+Ship order vs neighbors: **v0.35 → v0.36 → v0.37 Structure → v0.38 Language → v0.39 Account security**. Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`). Copy uses openings / **Open roles**, not Access “Roles”.
 
 Public URLs stay stable (`/recruitment`, `/recruitment/{id}`, `/recruitment/applications*`). Staff manage URLs stay under `/apes-cic/recruitment*`. Respect 0.35.1 Recruitment settings toggles (public board / apply) for the public frontend only — staff manage chrome uses module enabled state, not the public board toggle.
 
@@ -130,6 +130,22 @@ Public URLs stay stable (`/recruitment`, `/recruitment/{id}`, `/recruitment/appl
 6. #258 Staff Recruitment manage menu + roles CRUD IA
 7. #259 Staff applications review IA + HR permissions
 8. #261 PHPUnit recruitment dual-frontend IA matrix
+
+### v1.6.0 Beta: Structure — Core > Modules > Plugins (`v0.37.x Beta`)
+
+Ship after Recruitment IA. Docs: [docs/architecture.md](docs/architecture.md) and [ADR 0001](docs/adr/0001-core-modules-plugins.md). Inventory: [docs/architecture-inventory.md](docs/architecture-inventory.md).
+
+- **Core** — sign-in/auth, accounts, profiles, access (directory groups, job roles, permissions), notifications, settings, Admin shell, maintenance, audit, health, change log, shared attachments. Core never depends on a Module or Plugin.
+- **Module** — organisation area: APES CIC (`apes-cic`), APES Pet Care Clinic (`pet-care-clinic`), APES Shelter and Rescue (`shelter-rescue`). The code still says sub-core until the move children land.
+- **Plugin** — reusable feature: Tickets, Cases, Recruitment, Consultations, Pet Profiles. The code still says module; the Admin UI already says Plugins. Recruitment uses `RecruitmentRole` (never Spatie `Role`).
+
+New base folders `app/Core`, `modules/<slug>`, and `plugins/<slug>` are approved for the layout child (#281) onward. Do not create them before that child. Do not rename live URLs or stored permission strings in the documentation PR. UI wording for these terms belongs to the glossary (#267, `docs/glossary.md`), which does not exist yet.
+
+1. #278 Epic
+2. #279 ADR + `docs/architecture.md`
+3. #280 Inventory
+4. #281 Folder, namespace, and autoload layout
+5. Later children #282–#295 move code, permissions, and redirects. They are not part of the docs PR.
 
 ## GitHub issues
 
@@ -278,7 +294,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Application Structure & Architecture
 
-- Stick to existing directory structure; don't create new base folders without approval.
+- Stick to the existing directory structure until the structure epic moves a class. [ADR 0001](docs/adr/0001-core-modules-plugins.md) approves these base folders when #281 scaffolds them: `app/Core`, `modules/<slug>`, and `plugins/<slug>`. Do not add other base folders without approval. Layer rules and the rename map live in [docs/architecture.md](docs/architecture.md).
 - Do not change the application's dependencies without approval.
 
 ## Frontend Bundling
