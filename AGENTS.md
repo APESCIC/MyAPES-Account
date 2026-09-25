@@ -2,7 +2,7 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.36.0** (public Recruitment IA). **`v0.34.x Beta`** and **`v0.35.x Beta`** are **closed**. **`v0.36.x Beta`** Recruitment dual-frontend IA is in progress (staff manage still open). **`v0.37.x Beta`** is the structure line: Core > Modules > Plugins. See [docs/architecture.md](docs/architecture.md).
+`main` holds the merged stack through **v0.36.1** (Recruitment dual-frontend IA, public and staff). **`v0.34.x Beta`** and **`v0.35.x Beta`** are **closed**. **`v0.37.x Beta`** is the structure line: Core > Modules > Plugins. See [docs/architecture.md](docs/architecture.md).
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
@@ -15,7 +15,7 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
 - Closed historical lines: `v0.1.x Beta` through `v0.35.x Beta` (completed releases)
 - **Current completed line:** `v0.35.x Beta` (Unified Admin shell + plugin settings; live through 0.35.1)
-- **Active backlog:** `v0.36.x Beta` (Recruitment dual frontends — ships next), `v0.37.x Beta` (Structure: Core > Modules > Plugins), `v0.38.x Beta` (Language & keywords), `v0.39.x Beta` (Account security — do not start until Admin shell, Recruitment IA, Structure, and Language are complete)
+- **Active backlog:** `v0.36.x Beta` (Recruitment dual frontends — public and staff IA are on main through 0.36.1), `v0.37.x Beta` (Structure: Core > Modules > Plugins), `v0.38.x Beta` (Language & keywords), `v0.39.x Beta` (Account security — do not start until Admin shell, Recruitment IA, Structure, and Language are complete)
 - **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.

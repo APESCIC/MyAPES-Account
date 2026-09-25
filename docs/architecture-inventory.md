@@ -1,6 +1,6 @@
 # Architecture inventory
 
-Generated from the tree at `8b9882d` (v0.36.0, `main`) and from `php artisan route:list --json --except-vendor` (126 routes). Reviewed against [ADR 0001](adr/0001-core-modules-plugins.md) and [architecture.md](architecture.md).
+Generated from `php artisan route:list --json --except-vendor` on v0.36.0 (`8b9882d`, 126 routes; v0.36.1 did not change `routes/web.php`) and a walk of `app/`, migrations, views, tests, and config, then updated for the v0.36.1 staff navigation view. Reviewed against [ADR 0001](adr/0001-core-modules-plugins.md) and [architecture.md](architecture.md).
 
 This is a map for later children of [#278](https://github.com/APESCIC/MyAPES-Account/issues/278). It does not move files. Target paths are the [#281](https://github.com/APESCIC/MyAPES-Account/issues/281) layout. Live URLs and permission strings stay ([ADR 0001](adr/0001-core-modules-plugins.md)).
 
@@ -28,7 +28,7 @@ There is no `app/Livewire` directory and no Livewire dependency.
 | Admin copy vs code | `/admin/modules` is labelled Plugins. Code, tables, and permissions still say module. | Docs now; code in #283/#288 |
 | `PRODUCT.md` said Services | Organisation areas were Services. The layer name is Module. UI labels wait for #267. | This PR updates PRODUCT.md |
 | Shelter and Pet Care ticket routes | `shelter.tickets.*` and `petcare.tickets.*` have no `DELETE` route. The code-owned `delete` permission still exists. APES CIC tickets do have `apes-cic.tickets.destroy`. | #289 |
-| Staff Recruitment IA | Public Recruitment IA is on this tree (v0.36.0). Staff manage IA (#258/#259/#261) was not merged here, so staff routes are still the v0.34 shapes. Re-inventory those paths if that PR changes URLs before #290. | #290 |
+| Staff Recruitment IA (v0.36.1) | Staff manage URLs are still `/apes-cic/recruitment*`. v0.36.1 added a Recruit manage primary and a Roles / Applications submenu in the views (`resources/views/apes-cic/recruitment/_navigation.blade.php`). It did not add routes. | #290 |
 
 ### Stored class names ([#281](https://github.com/APESCIC/MyAPES-Account/issues/281))
 
@@ -566,7 +566,8 @@ From `FirstPartyModuleRegistry` on this commit. Nine of fifteen area × feature 
 | resources/views/admin/users/show.blade.php | Core | resources/views/admin | Admin shell. |
 | resources/views/apes-cic/cases/index.blade.php | Plugin:cases | plugins/cases/resources/views/apes-cic | APES CIC case screens. #289. |
 | resources/views/apes-cic/cases/show.blade.php | Plugin:cases | plugins/cases/resources/views/apes-cic | APES CIC case screens. #289. |
-| resources/views/apes-cic/recruitment/applications/index.blade.php | Plugin:recruitment | plugins/recruitment/resources/views/staff | Staff manage. #290. |
+| resources/views/apes-cic/recruitment/_navigation.blade.php | Plugin:recruitment | plugins/recruitment/resources/views/staff/_navigation.blade.php | v0.36.1 Roles / Applications submenu. URLs unchanged. #290. |
+| resources/views/apes-cic/recruitment/applications/index.blade.php | Plugin:recruitment | plugins/recruitment/resources/views/staff | Staff manage. Includes the v0.36.1 submenu. #290. |
 | resources/views/apes-cic/recruitment/applications/show.blade.php | Plugin:recruitment | plugins/recruitment/resources/views/staff | Staff manage. #290. |
 | resources/views/apes-cic/recruitment/index.blade.php | Plugin:recruitment | plugins/recruitment/resources/views/staff | Staff manage. #290. |
 | resources/views/apes-cic/recruitment/show.blade.php | Plugin:recruitment | plugins/recruitment/resources/views/staff | Staff manage. #290. |
