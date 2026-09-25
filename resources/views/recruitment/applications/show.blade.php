@@ -3,6 +3,8 @@
 @section('title', 'Application | MyAPES Core')
 
 @section('content')
+    @include('recruitment._navigation')
+
     @inject('ukDateTime', \App\Support\UkDateTime::class)
     <div class="panel" data-recruitment-application-detail>
         <span class="service-label service-apes-cic">APES CIC</span>
