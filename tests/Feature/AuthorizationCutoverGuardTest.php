@@ -548,7 +548,7 @@ class AuthorizationCutoverGuardTest extends TestCase
             ));
 
             $this->assertSame(
-                User::class,
+                'user',
                 DB::table('model_has_roles')
                     ->where('model_id', 102)
                     ->value('model_type'),
