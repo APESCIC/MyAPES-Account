@@ -133,12 +133,20 @@ class StructureModulesWave4Test extends TestCase
         $this->assertStringNotContainsString("'pet-care-clinic:consultations'", $matrixSource);
     }
 
-    public function test_plugin_controllers_were_not_moved_into_module_packages(): void
+    public function test_plugin_controllers_live_in_plugin_packages_not_modules(): void
     {
-        $this->assertFileExists(app_path('Http/Controllers/ApesCic/TicketController.php'));
-        $this->assertFileExists(app_path('Http/Controllers/Shelter/CaseController.php'));
+        // Wave 6 (#289): Tickets + Cases moved into plugins/.
+        $this->assertFileExists(base_path('plugins/tickets/src/Http/Controllers/TicketController.php'));
+        $this->assertFileExists(base_path('plugins/cases/src/Http/Controllers/CaseController.php'));
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/ApesCic/TicketController.php'));
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/Shelter/CaseController.php'));
+
+        // Wave 7 (#290) still owns Recruitment + Consultations moves.
         $this->assertFileExists(app_path('Http/Controllers/PetCare/ConsultationController.php'));
+        $this->assertFileDoesNotExist(base_path('plugins/consultations/src/Http/Controllers/ConsultationController.php'));
+
+        // Controllers must not land inside organisation module packages.
         $this->assertFileDoesNotExist(base_path('modules/apes-cic/src/Http/Controllers/TicketController.php'));
-        $this->assertFileDoesNotExist(base_path('plugins/tickets/src/Http/Controllers/TicketController.php'));
+        $this->assertFileDoesNotExist(base_path('modules/shelter-rescue/src/Http/Controllers/CaseController.php'));
     }
 }
