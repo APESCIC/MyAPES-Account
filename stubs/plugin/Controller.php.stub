@@ -1,0 +1,20 @@
+<?php
+
+namespace Plugins\{{ studly }}\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Gate;
+use Plugins\{{ studly }}\Models\{{ model }};
+
+class {{ controller }} extends Controller
+{
+    public function index(): View
+    {
+        Gate::authorize('viewAny', {{ model }}::class);
+
+        return view('{{ slug }}::index', [
+            'items' => {{ model }}::query()->latest()->paginate(20),
+        ]);
+    }
+}

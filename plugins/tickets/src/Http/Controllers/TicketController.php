@@ -6,19 +6,12 @@ use App\Core\Accounts\User;
 use App\Core\Extensions\Modules\ModuleContext;
 use App\Http\Controllers\Controller;
 use App\Modules\ModuleInstanceDefinition;
+use App\Rules\EligibleRecordOwner;
 use App\Rules\EligibleStaffAssignee;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
 use App\Services\SecureUploadService;
 use App\Services\SupportAttachmentService;
-use InvalidArgumentException;
-use Plugins\Tickets\Models\SupportTicket;
-use Plugins\Tickets\Models\SupportTicketMessage;
-use Plugins\Tickets\Notifications\TicketUpdatedNotification;
-use Plugins\Tickets\Rules\EligibleTicketOwner;
-use Plugins\Tickets\TicketCategoryResolver;
-use Plugins\Tickets\TicketsArea;
-use Plugins\Tickets\TicketServiceConfiguration;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +19,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
+use Plugins\Tickets\Models\SupportTicket;
+use Plugins\Tickets\Models\SupportTicketMessage;
+use Plugins\Tickets\Notifications\TicketUpdatedNotification;
+use Plugins\Tickets\TicketCategoryResolver;
+use Plugins\Tickets\TicketsArea;
+use Plugins\Tickets\TicketServiceConfiguration;
 
 class TicketController extends Controller
 {
@@ -347,7 +347,7 @@ class TicketController extends Controller
             $rules['user_id'] = [
                 'required',
                 'integer',
-                new EligibleTicketOwner,
+                new EligibleRecordOwner,
             ];
         }
         if ($attachmentRequested) {

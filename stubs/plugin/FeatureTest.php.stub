@@ -1,0 +1,13 @@
+<?php
+
+namespace Plugins\{{ studly }}\Tests;
+
+use PHPUnit\Framework\TestCase;
+
+class PluginPackageTest extends TestCase
+{
+    public function test_plugin_provider_file_exists(): void
+    {
+        $this->assertFileExists(dirname(__DIR__).'/src/{{ studly }}ServiceProvider.php');
+    }
+}

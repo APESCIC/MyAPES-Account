@@ -1,0 +1,17 @@
+<?php
+
+namespace Plugins\{{ studly }}\Dashboard;
+
+use App\Contracts\ModuleActiveRecordDetector;
+use App\Modules\ModuleInstanceDefinition;
+use Plugins\{{ studly }}\Models\{{ model }};
+
+class {{ studly }}ActiveRecordDetector implements ModuleActiveRecordDetector
+{
+    public function count(ModuleInstanceDefinition $instance): int
+    {
+        return {{ model }}::query()
+            ->where('sub_core_key', $instance->subCore->key)
+            ->count();
+    }
+}

@@ -2,7 +2,7 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.36.1** (Recruitment dual-frontend IA, public and staff). **`v0.34.x Beta`** and **`v0.35.x Beta`** are **closed**. **`v0.37.x Beta`** is the structure line: Core > Modules > Plugins. See [docs/architecture.md](docs/architecture.md).
+`main` holds the merged stack through **v0.37.x** (Structure: Core > Modules > Plugins). **`v0.34.x Beta`** through **`v0.36.x Beta`** are **closed**. Structure ships before Language (**v0.38**) and Account security (**v0.39**). See [docs/architecture.md](docs/architecture.md) and [docs/developer-guide.md](docs/developer-guide.md).
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
@@ -13,10 +13,10 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
 - **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
-- Closed historical lines: `v0.1.x Beta` through `v0.35.x Beta` (completed releases)
-- **Current completed line:** `v0.35.x Beta` (Unified Admin shell + plugin settings; live through 0.35.1)
-- **Active backlog:** `v0.36.x Beta` (Recruitment dual frontends — public and staff IA are on main through 0.36.1), `v0.37.x Beta` (Structure: Core > Modules > Plugins), `v0.38.x Beta` (Language & keywords), `v0.39.x Beta` (Account security — do not start until Admin shell, Recruitment IA, Structure, and Language are complete)
-- **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security
+- Closed historical lines: `v0.1.x Beta` through `v0.36.x Beta` (completed releases)
+- **Current completed line:** `v0.37.x Beta` (Structure: Core > Modules > Plugins — layout, contracts, enablement, module packages, plugin moves, architecture hard-fail, generators)
+- **Active backlog:** `v0.38.x Beta` (Language & keywords), `v0.39.x Beta` (Account security — do not start until Language is complete)
+- **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security (milestones **7 → 9 → 8 → 5**)
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
 
@@ -131,21 +131,24 @@ Public URLs stay stable (`/recruitment`, `/recruitment/{id}`, `/recruitment/appl
 7. #259 Staff applications review IA + HR permissions
 8. #261 PHPUnit recruitment dual-frontend IA matrix
 
-### v1.6.0 Beta: Structure — Core > Modules > Plugins (`v0.37.x Beta`)
+### v1.6.0 Beta: Structure — Core > Modules > Plugins (`v0.37.x Beta`, closed)
 
-Ship after Recruitment IA. Docs: [docs/architecture.md](docs/architecture.md) and [ADR 0001](docs/adr/0001-core-modules-plugins.md). Inventory: [docs/architecture-inventory.md](docs/architecture-inventory.md).
+Shipped after Recruitment IA. Docs: [docs/architecture.md](docs/architecture.md), [ADR 0001](docs/adr/0001-core-modules-plugins.md), [docs/architecture-inventory.md](docs/architecture-inventory.md), [docs/developer-guide.md](docs/developer-guide.md).
 
-- **Core** — sign-in/auth, accounts, profiles, access (directory groups, job roles, permissions), notifications, settings, Admin shell, maintenance, audit, health, change log, shared attachments. Core never depends on a Module or Plugin.
-- **Module** — organisation area: APES CIC (`apes-cic`), APES Pet Care Clinic (`pet-care-clinic`), APES Shelter and Rescue (`shelter-rescue`). The code still says sub-core until the move children land.
-- **Plugin** — reusable feature: Tickets, Cases, Recruitment, Consultations, Pet Profiles. The code still says module; the Admin UI already says Plugins. Recruitment uses `RecruitmentRole` (never Spatie `Role`).
+- **Core** — sign-in/auth, accounts, profiles, access, notifications, settings, Admin shell, maintenance, audit, health, change log, shared attachments. Core never depends on a Module or Plugin.
+- **Module** — organisation area packages under `modules/<slug>`: APES CIC, Pet Care Clinic, Shelter and Rescue.
+- **Plugin** — reusable feature packages under `plugins/<slug>`: Tickets, Cases, Recruitment, Consultations, Pet Profiles. Recruitment uses `RecruitmentRole` (never Spatie `Role`).
+- Architecture tests **hard-fail** in CI (#294). Generators: `php artisan make:module` / `make:plugin` (#295).
 
-New base folders `app/Core`, `modules/<slug>`, and `plugins/<slug>` are approved for the layout child (#281) onward. Do not create them before that child. Do not rename live URLs or stored permission strings in the documentation PR. UI wording for these terms belongs to the glossary (#267, `docs/glossary.md`), which does not exist yet.
-
-1. #278 Epic
+1. #278 Epic — closed with Wave 8
 2. #279 ADR + `docs/architecture.md`
 3. #280 Inventory
 4. #281 Folder, namespace, and autoload layout
-5. Later children #282–#295 move code, permissions, and redirects. They are not part of the docs PR.
+5. #282–#295 contracts, enablement, modules, plugin moves, arch hard-fail, generators
+
+### v1.7.0 Beta: Language & keywords (`v0.38.x Beta`)
+
+Ship after Structure. Do not start until milestone 9 is closed.
 
 ## GitHub issues
 
@@ -294,7 +297,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Application Structure & Architecture
 
-- Stick to the existing directory structure until the structure epic moves a class. [ADR 0001](docs/adr/0001-core-modules-plugins.md) approves these base folders when #281 scaffolds them: `app/Core`, `modules/<slug>`, and `plugins/<slug>`. Do not add other base folders without approval. Layer rules and the rename map live in [docs/architecture.md](docs/architecture.md).
+- Stick to the existing directory structure. Layer roots: `app/Core`, `modules/<slug>`, `plugins/<slug>` ([ADR 0001](docs/adr/0001-core-modules-plugins.md), [docs/architecture.md](docs/architecture.md)). Add packages with `php artisan make:module` / `make:plugin` ([docs/developer-guide.md](docs/developer-guide.md)) — do not edit Core to register them.
 - Do not change the application's dependencies without approval.
 
 ## Frontend Bundling

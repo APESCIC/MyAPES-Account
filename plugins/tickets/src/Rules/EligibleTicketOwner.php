@@ -2,23 +2,9 @@
 
 namespace Plugins\Tickets\Rules;
 
-use App\Core\Accounts\User;
-use Closure;
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Rules\EligibleRecordOwner;
 
-class EligibleTicketOwner implements ValidationRule
-{
-    public function validate(
-        string $attribute,
-        mixed $value,
-        Closure $fail,
-    ): void {
-        if ($value === null) {
-            return;
-        }
-
-        if (! User::query()->whereKey($value)->exists()) {
-            $fail('The selected owner is unavailable.');
-        }
-    }
-}
+/**
+ * @deprecated Prefer {@see EligibleRecordOwner}. Thin alias kept for ticket package callers.
+ */
+class EligibleTicketOwner extends EligibleRecordOwner {}

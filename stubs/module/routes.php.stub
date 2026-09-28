@@ -1,0 +1,13 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/*
+| {{ name }} hub routes.
+| Live prefix {{ prefix }} — names {{ routeName }}.*
+| Wire this file from routes/web.php under the module middleware group.
+*/
+
+Route::get('/', static function () {
+    return view('{{ slug }}::hub');
+})->name('index');

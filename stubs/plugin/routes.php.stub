@@ -1,0 +1,14 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Plugins\{{ studly }}\Http\Controllers\{{ controller }};
+
+/*
+| {{ name }} staff routes for module {{ moduleSlug }}.
+| Live prefix {{ routePrefix }}/{{ slug }} — names {{ routeName }}.{{ slug }}.*
+*/
+
+Route::get('{{ slug }}', [{{ controller }}::class, 'index'])
+    ->defaults('subCoreKey', '{{ moduleSlug }}')
+    ->defaults('moduleKey', '{{ slug }}')
+    ->name('{{ slug }}.index');

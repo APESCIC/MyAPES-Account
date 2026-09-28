@@ -49,13 +49,16 @@ Reusable features. A module enables a plugin; the plugin does not belong to one 
 
 ## Dependency rules
 
-[#294](https://github.com/APESCIC/MyAPES-Account/issues/294) will turn these into CI checks. They are the rules to build against now.
+[#294](https://github.com/APESCIC/MyAPES-Account/issues/294) enforces these in CI via `tests/Architecture/StructureArchitectureHardFailTest` (hard-fail). Fixture proofs live in `StructureArchitectureRuleFixturesTest`. Scanner: `App\Support\ArchitectureDependencyScanner` (hand-rolled PHPUnit — no Pest/`phpat`).
 
-1. Core does not import a Module or Plugin namespace.
+1. Core does not `use` a Module or Plugin namespace. (String FQCNs in the morph map are allowed.)
 2. A module depends on Core and on the plugins it enables, only through those plugins' public contracts and manifests.
-3. A plugin depends on Core contracts, plus plugins named in its manifest. It does not import a module. It does not import a plugin it has not declared.
+3. A plugin depends on Core contracts, plus plugins named in its manifest `PluginDependency` list. It does not import a module. Cross-plugin imports are limited to `Contracts\`, `Models\`, and `Support\`.
 4. A module does not import another module.
 5. A plugin receives the current module as context (slug, route prefix, settings). It does not hard-code a module slug to reach that module's internals.
+6. Legacy feature controller folders (`app/Http/Controllers/{ApesCic,Shelter,PetCare}`) and `app/Modules/{Activity,Analytics,Attention,Detectors,Summaries}` stay empty of PHP.
+
+See [docs/developer-guide.md](developer-guide.md) for `make:module` / `make:plugin`.
 
 ## How a request flows
 
@@ -108,7 +111,7 @@ plugins/<slug>/src/...               Plugins\<Studly>\
 plugins/<slug>/{routes,resources/views,lang,config,database/migrations,database/factories,tests}
 ```
 
-Examples: `modules/apes-cic` → `Modules\ApesCic`, `plugins/pet-profiles` → `Plugins\PetProfiles`. One service provider per module and per plugin, discovered from the registries. Core providers stay in `bootstrap/providers.php`. Module packages own `module.php` manifests (nav, hub route, live prefix, enabled flag, composed plugins, settings defaults). Pet Profiles model/controller/views live under `plugins/pet-profiles` (#291); other plugin feature models remain under `App\Models` until Waves 6–7.
+Examples: `modules/apes-cic` → `Modules\ApesCic`, `plugins/pet-profiles` → `Plugins\PetProfiles`. One service provider per module and per plugin, discovered from the registries. Core providers stay in `bootstrap/providers.php`. Module packages own `module.php` manifests (nav, hub route, live prefix, enabled flag, composed plugins, settings defaults). Feature models live under `plugins/<slug>/src/Models` after Waves 5–7.
 
 ## Permissions
 
