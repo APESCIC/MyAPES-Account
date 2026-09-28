@@ -1815,6 +1815,22 @@ class DeploymentAuthenticationContractTest extends TestCase
             $launcher,
         );
         $this->assertStringContainsString(
+            'repair_release_symlinks',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            'Ownership assert failed at boot; repairing release symlinks and restoring ownership.',
+            $launcher,
+        );
+        $this->assertStringContainsString(
+            'ln -s /app/data/shared/storage "${release_root}/storage"',
+            $launcher,
+        );
+        $this->assertLessThan(
+            $this->position($launcher, 'repair_release_symlinks'),
+            $this->position($launcher, 'find /app/data -xdev'),
+        );
+        $this->assertStringContainsString(
             'start_laravel_runtime',
             $launcher,
         );

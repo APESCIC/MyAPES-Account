@@ -225,10 +225,51 @@ assert_runtime_ownership() {
   fi
 }
 
+repair_release_symlinks() {
+  local release_root=""
+  local link_path=""
+  local current_target=""
+  local previous_target=""
+
+  # BusyBox/Cloudron chown -R rewrites symlink owners to www-data. chown -h
+  # cannot repair those inodes here, so recreate the expected root-owned links.
+  current_target="$(readlink -f /app/data/current 2>/dev/null || true)"
+  previous_target="$(readlink -f /app/data/previous 2>/dev/null || true)"
+  if [[ "$current_target" =~ ^/app/data/releases/[0-9a-f]{40}$ ]]; then
+    rm -f /app/data/current
+    ln -s "$current_target" /app/data/current
+  fi
+  if [[ "$previous_target" =~ ^/app/data/releases/[0-9a-f]{40}$ ]]; then
+    rm -f /app/data/previous
+    ln -s "$previous_target" /app/data/previous
+  fi
+
+  for release_root in /app/data/releases/[0-9a-f]*; do
+    [[ -d "$release_root" ]] || continue
+    if [[ -L "${release_root}/storage" || ! -e "${release_root}/storage" ]]; then
+      rm -f "${release_root}/storage"
+      ln -s /app/data/shared/storage "${release_root}/storage"
+    fi
+    if [[ -L "${release_root}/.env" || ! -e "${release_root}/.env" ]]; then
+      rm -f "${release_root}/.env"
+      ln -s /app/data/shared/.env "${release_root}/.env"
+    fi
+    link_path="${release_root}/public/storage/avatars"
+    if [[ -L "$link_path" || ! -e "$link_path" ]]; then
+      rm -f "$link_path"
+      ln -s /app/data/shared/storage/app/public/avatars "$link_path"
+    fi
+  done
+}
+
 restore_runtime_ownership() {
   local release_root=""
   local previous_target=""
   local -a release_roots=("$CURRENT_TARGET")
+
+  repair_release_symlinks
+  CURRENT_TARGET="$(readlink -f "$CURRENT_DIR" 2>/dev/null || true)"
+  release_roots=("$CURRENT_TARGET")
 
   assert_runtime_control_paths
   assert_release_runtime_path_boundaries "$CURRENT_TARGET" true
@@ -296,6 +337,12 @@ start_laravel_runtime() {
   fi
 }
 
+if ! assert_runtime_ownership; then
+  echo "Ownership assert failed at boot; repairing release symlinks and restoring ownership."
+  repair_release_symlinks
+  CURRENT_TARGET="$(readlink -f "$CURRENT_DIR" 2>/dev/null || true)"
+  restore_runtime_ownership
+fi
 assert_runtime_ownership
 MYAPES_OWNERSHIP_RESTORED=false
 
