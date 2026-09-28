@@ -503,6 +503,21 @@ class AuthorizationCutoverGuardTest extends TestCase
         }
     }
 
+    public function test_guard_accepts_legacy_user_fqcn_morph_expression_during_cutover(): void
+    {
+        $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
+        $this->assertTrue($guard->isInstalled());
+
+        $this->rewriteUserMorphExpressionInTriggersToLegacyFqcn();
+
+        try {
+            $this->assertTrue($guard->isInstalled());
+        } finally {
+            $guard->drop();
+            $guard->install();
+        }
+    }
+
     public function test_guard_detects_the_previous_generation_installation(): void
     {
         $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
@@ -1329,6 +1344,56 @@ class AuthorizationCutoverGuardTest extends TestCase
                 $definition,
             ),
         );
+    }
+
+    private function rewriteUserMorphExpressionInTriggersToLegacyFqcn(): void
+    {
+        $current = 'CHAR(117, 115, 101, 114)';
+        $legacy = 'CHAR(65, 112, 112, 92, 77, 111, 100, 101, 108, 115, 92, 85, 115, 101, 114)';
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $triggers = DB::table('sqlite_master')
+                ->where('type', 'trigger')
+                ->where('sql', 'like', '%'.$current.'%')
+                ->get(['name', 'sql']);
+
+            foreach ($triggers as $trigger) {
+                DB::unprepared('DROP TRIGGER '.((string) $trigger->name));
+                DB::unprepared(str_replace($current, $legacy, (string) $trigger->sql));
+            }
+
+            return;
+        }
+
+        // Alias columns: MySQL information_schema may expose UPPERCASE
+        // attribute names when selected without aliases via the query builder.
+        $triggers = collect(DB::select(
+            'SELECT trigger_name AS name,
+                    event_object_table AS table_name,
+                    action_timing AS timing,
+                    event_manipulation AS event_name,
+                    action_statement AS definition
+             FROM information_schema.triggers
+             WHERE trigger_schema = DATABASE()
+               AND action_statement LIKE ?',
+            ['%'.$current.'%'],
+        ));
+
+        foreach ($triggers as $trigger) {
+            $name = (string) $trigger->name;
+            DB::unprepared("DROP TRIGGER {$name}");
+            DB::unprepared(
+                "CREATE TRIGGER {$name}
+                 {$trigger->timing} {$trigger->event_name}
+                 ON {$trigger->table_name}
+                 FOR EACH ROW ".str_replace(
+                    $current,
+                    $legacy,
+                    (string) $trigger->definition,
+                ),
+            );
+        }
     }
 
     private function downgradeAuthorizationGuardToPreviousGeneration(): void
