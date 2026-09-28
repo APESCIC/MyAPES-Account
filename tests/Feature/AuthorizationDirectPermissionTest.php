@@ -46,7 +46,7 @@ class AuthorizationDirectPermissionTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_permissions', [
             'permission_id' => $permission->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $staff->id,
             'team_id' => null,
         ]);
@@ -68,7 +68,7 @@ class AuthorizationDirectPermissionTest extends TestCase
         ]);
         $this->assertDatabaseMissing('model_has_permissions', [
             'permission_id' => $permission->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $staff->id,
         ]);
     }

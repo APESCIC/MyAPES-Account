@@ -200,7 +200,7 @@ class AuthorizationIntegrityChecker
             ->values()
             ->all();
         $pivots = DB::table('model_has_permissions')
-            ->where('model_type', User::class)
+            ->where('model_type', (new User)->getMorphClass())
             ->get(['model_id', 'permission_id', 'team_id']);
 
         if ($pivots->contains(
@@ -412,7 +412,7 @@ class AuthorizationIntegrityChecker
             ->values()
             ->all();
         $pivotPairs = DB::table('model_has_roles')
-            ->where('model_type', User::class)
+            ->where('model_type', (new User)->getMorphClass())
             ->get(['model_id', 'role_id'])
             ->map(
                 static fn (object $pivot): string => $pivot->model_id.':'.$pivot->role_id,

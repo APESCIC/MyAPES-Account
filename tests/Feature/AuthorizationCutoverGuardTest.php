@@ -128,7 +128,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $staff->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
 
@@ -163,7 +163,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $custom->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
     }
@@ -202,7 +202,7 @@ class AuthorizationCutoverGuardTest extends TestCase
                     ]);
                     DB::table('model_has_roles')->insert([
                         'role_id' => $staffRoleId,
-                        'model_type' => User::class,
+                        'model_type' => 'user',
                         'model_id' => $userId,
                     ]);
                 }
@@ -317,7 +317,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $staff->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
 
@@ -354,7 +354,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $custom->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
     }
@@ -377,7 +377,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $staff->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
         DB::table('authorization_states')
@@ -435,7 +435,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $staff->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
         Schema::drop('directory_sync_runs');
@@ -548,7 +548,7 @@ class AuthorizationCutoverGuardTest extends TestCase
             ));
 
             $this->assertSame(
-                User::class,
+                'user',
                 DB::table('model_has_roles')
                     ->where('model_id', 102)
                     ->value('model_type'),
@@ -917,7 +917,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $role->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
 
@@ -933,7 +933,7 @@ class AuthorizationCutoverGuardTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $role->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
     }
@@ -1419,7 +1419,7 @@ class AuthorizationCutoverGuardTest extends TestCase
     {
         return DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-            ->where('model_has_roles.model_type', User::class)
+            ->where('model_has_roles.model_type', 'user')
             ->where('model_has_roles.model_id', $user->id)
             ->where('roles.guard_name', 'web')
             ->where('roles.is_protected', true)
@@ -1455,7 +1455,7 @@ class AuthorizationCutoverGuardTest extends TestCase
     private function rolePivotSemanticTuples(User $user): array
     {
         return DB::table('model_has_roles')
-            ->where('model_type', User::class)
+            ->where('model_type', 'user')
             ->where('model_id', $user->id)
             ->orderBy('role_id')
             ->get(['role_id', 'model_type', 'model_id'])

@@ -17,31 +17,31 @@ class ReleaseHistoryCommandTest extends TestCase
         $repository = app(ReleaseHistoryRepository::class);
         $releases = $repository->all();
 
-        $this->assertSame('0.36.2', $repository->version());
-        $this->assertSame('0.36.2', $repository->current()['version']);
+        $this->assertSame('0.37.0', $repository->version());
+        $this->assertSame('0.37.0', $repository->current()['version']);
         $this->assertSame(
-            ['0.36.2', '0.36.1', '0.36.0', '0.35.1', '0.35.0', '0.34.4', '0.34.3', '0.34.2', '0.34.1', '0.34.0', '0.33.7', '0.33.6', '0.33.5', '0.33.4', '0.33.3', '0.33.2', '0.33.1', '0.33.0', '0.32.14', '0.32.13', '0.32.12', '0.32.11', '0.32.10', '0.32.9', '0.32.8', '0.32.7', '0.32.6', '0.32.5', '0.32.4', '0.32.3', '0.32.2', '0.32.1', '0.32.0', '0.31.12', '0.31.11', '0.31.10', '0.31.9', '0.31.8', '0.31.7', '0.31.6', '0.31.5', '0.31.4', '0.31.3', '0.31.2', '0.31.1', '0.31.0', '0.30.0', '0.29.0', '0.28.0', '0.27.2', '0.27.1', '0.27.0', '0.26.1', '0.26.0', '0.25.9', '0.25.8', '0.25.7', '0.25.6', '0.25.5', '0.25.4', '0.25.3', '0.25.2', '0.25.1', '0.25.0', '0.24.1', '0.24.0', '0.23.1', '0.23.0', '0.22.0', '0.21.1', '0.21.0', '0.20.0', '0.19.4', '0.19.3', '0.19.2', '0.19.1', '0.19.0', '0.18.2', '0.18.1', '0.18.0', '0.17.0', '0.16.3', '0.16.1', '0.16.0', '0.15.0', '0.14.0', '0.13.1', '0.13.0', '0.12.1', '0.12.0', '0.11.0', '0.10.0', '0.9.2', '0.9.1', '0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
+            ['0.37.0', '0.36.2', '0.36.1', '0.36.0', '0.35.1', '0.35.0', '0.34.4', '0.34.3', '0.34.2', '0.34.1', '0.34.0', '0.33.7', '0.33.6', '0.33.5', '0.33.4', '0.33.3', '0.33.2', '0.33.1', '0.33.0', '0.32.14', '0.32.13', '0.32.12', '0.32.11', '0.32.10', '0.32.9', '0.32.8', '0.32.7', '0.32.6', '0.32.5', '0.32.4', '0.32.3', '0.32.2', '0.32.1', '0.32.0', '0.31.12', '0.31.11', '0.31.10', '0.31.9', '0.31.8', '0.31.7', '0.31.6', '0.31.5', '0.31.4', '0.31.3', '0.31.2', '0.31.1', '0.31.0', '0.30.0', '0.29.0', '0.28.0', '0.27.2', '0.27.1', '0.27.0', '0.26.1', '0.26.0', '0.25.9', '0.25.8', '0.25.7', '0.25.6', '0.25.5', '0.25.4', '0.25.3', '0.25.2', '0.25.1', '0.25.0', '0.24.1', '0.24.0', '0.23.1', '0.23.0', '0.22.0', '0.21.1', '0.21.0', '0.20.0', '0.19.4', '0.19.3', '0.19.2', '0.19.1', '0.19.0', '0.18.2', '0.18.1', '0.18.0', '0.17.0', '0.16.3', '0.16.1', '0.16.0', '0.15.0', '0.14.0', '0.13.1', '0.13.0', '0.12.1', '0.12.0', '0.11.0', '0.10.0', '0.9.2', '0.9.1', '0.9.0', '0.8.3', '0.8.2', '0.8.1', '0.8.0', '0.7.1', '0.7.0', '0.6.1', '0.6.0', '0.5.0', '0.4.2', '0.4.1', '0.4.0', '0.3.0', '0.2.1', '0.2.0', '0.1.0'],
             array_column($releases, 'version'),
         );
-        $this->assertSame('2026-09-25', $releases[0]['date']);
+        $this->assertSame('2026-09-28', $releases[0]['date']);
         $this->assertSame('2026-09-25', $releases[1]['date']);
         $this->assertSame('2026-09-25', $releases[2]['date']);
-        $this->assertSame('2026-09-24', $releases[3]['date']);
+        $this->assertSame('2026-09-25', $releases[3]['date']);
         $this->assertSame('2026-09-24', $releases[4]['date']);
         $this->assertSame('2026-09-24', $releases[5]['date']);
         $this->assertSame('2026-09-24', $releases[6]['date']);
         $this->assertSame('2026-09-24', $releases[7]['date']);
         $this->assertSame('2026-09-24', $releases[8]['date']);
         $this->assertSame('2026-09-24', $releases[9]['date']);
-        $this->assertSame('2026-09-23', $releases[10]['date']);
+        $this->assertSame('2026-09-24', $releases[10]['date']);
         $this->assertSame('2026-09-23', $releases[11]['date']);
         $this->assertSame('2026-09-23', $releases[12]['date']);
         $this->assertSame('2026-09-23', $releases[13]['date']);
         $this->assertSame('2026-09-23', $releases[14]['date']);
         $this->assertSame('2026-09-23', $releases[15]['date']);
-        $this->assertSame('2026-09-14', $releases[16]['date']);
-        $this->assertSame('2026-09-13', $releases[17]['date']);
-        $this->assertSame('2026-09-12', $releases[18]['date']);
+        $this->assertSame('2026-09-23', $releases[16]['date']);
+        $this->assertSame('2026-09-14', $releases[17]['date']);
+        $this->assertSame('2026-09-13', $releases[18]['date']);
         $this->assertSame('2026-09-12', $releases[19]['date']);
         $this->assertSame('2026-09-12', $releases[20]['date']);
         $this->assertSame('2026-09-12', $releases[21]['date']);
@@ -52,12 +52,12 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-09-12', $releases[26]['date']);
         $this->assertSame('2026-09-12', $releases[27]['date']);
         $this->assertSame('2026-09-12', $releases[28]['date']);
-        $this->assertSame('2026-09-06', $releases[29]['date']);
+        $this->assertSame('2026-09-12', $releases[29]['date']);
         $this->assertSame('2026-09-06', $releases[30]['date']);
         $this->assertSame('2026-09-06', $releases[31]['date']);
-        $this->assertSame('2026-09-03', $releases[32]['date']);
-        $this->assertSame('2026-08-30', $releases[33]['date']);
-        $this->assertSame('2026-08-29', $releases[34]['date']);
+        $this->assertSame('2026-09-06', $releases[32]['date']);
+        $this->assertSame('2026-09-03', $releases[33]['date']);
+        $this->assertSame('2026-08-30', $releases[34]['date']);
         $this->assertSame('2026-08-29', $releases[35]['date']);
         $this->assertSame('2026-08-29', $releases[36]['date']);
         $this->assertSame('2026-08-29', $releases[37]['date']);
@@ -66,7 +66,7 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-29', $releases[40]['date']);
         $this->assertSame('2026-08-29', $releases[41]['date']);
         $this->assertSame('2026-08-29', $releases[42]['date']);
-        $this->assertSame('2026-08-28', $releases[43]['date']);
+        $this->assertSame('2026-08-29', $releases[43]['date']);
         $this->assertSame('2026-08-28', $releases[44]['date']);
         $this->assertSame('2026-08-28', $releases[45]['date']);
         $this->assertSame('2026-08-28', $releases[46]['date']);
@@ -76,24 +76,24 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-28', $releases[50]['date']);
         $this->assertSame('2026-08-28', $releases[51]['date']);
         $this->assertSame('2026-08-28', $releases[52]['date']);
-        $this->assertSame('2026-08-25', $releases[53]['date']);
+        $this->assertSame('2026-08-28', $releases[53]['date']);
         $this->assertSame('2026-08-25', $releases[54]['date']);
         $this->assertSame('2026-08-25', $releases[55]['date']);
         $this->assertSame('2026-08-25', $releases[56]['date']);
         $this->assertSame('2026-08-25', $releases[57]['date']);
         $this->assertSame('2026-08-25', $releases[58]['date']);
         $this->assertSame('2026-08-25', $releases[59]['date']);
-        $this->assertSame('2026-08-24', $releases[60]['date']);
+        $this->assertSame('2026-08-25', $releases[60]['date']);
         $this->assertSame('2026-08-24', $releases[61]['date']);
         $this->assertSame('2026-08-24', $releases[62]['date']);
         $this->assertSame('2026-08-24', $releases[63]['date']);
         $this->assertSame('2026-08-24', $releases[64]['date']);
         $this->assertSame('2026-08-24', $releases[65]['date']);
-        $this->assertSame('2026-08-23', $releases[66]['date']);
-        $this->assertSame('2026-08-22', $releases[67]['date']);
+        $this->assertSame('2026-08-24', $releases[66]['date']);
+        $this->assertSame('2026-08-23', $releases[67]['date']);
         $this->assertSame('2026-08-22', $releases[68]['date']);
         $this->assertSame('2026-08-22', $releases[69]['date']);
-        $this->assertSame('2026-08-20', $releases[70]['date']);
+        $this->assertSame('2026-08-22', $releases[70]['date']);
         $this->assertSame('2026-08-20', $releases[71]['date']);
         $this->assertSame('2026-08-20', $releases[72]['date']);
         $this->assertSame('2026-08-20', $releases[73]['date']);
@@ -103,78 +103,74 @@ class ReleaseHistoryCommandTest extends TestCase
         $this->assertSame('2026-08-20', $releases[77]['date']);
         $this->assertSame('2026-08-20', $releases[78]['date']);
         $this->assertSame('2026-08-20', $releases[79]['date']);
-        $this->assertSame('2026-08-19', $releases[80]['date']);
+        $this->assertSame('2026-08-20', $releases[80]['date']);
         $this->assertSame('2026-08-19', $releases[81]['date']);
         $this->assertSame('2026-08-19', $releases[82]['date']);
         $this->assertSame('2026-08-19', $releases[83]['date']);
-        $this->assertSame('2026-08-14', $releases[84]['date']);
+        $this->assertSame('2026-08-19', $releases[84]['date']);
         $this->assertSame('2026-08-14', $releases[85]['date']);
-        $this->assertSame('2026-08-11', $releases[86]['date']);
-        $this->assertSame('2026-08-10', $releases[87]['date']);
+        $this->assertSame('2026-08-14', $releases[86]['date']);
+        $this->assertSame('2026-08-11', $releases[87]['date']);
         $this->assertSame('2026-08-10', $releases[88]['date']);
         $this->assertSame('2026-08-10', $releases[89]['date']);
-        $this->assertSame('2026-08-09', $releases[90]['date']);
+        $this->assertSame('2026-08-10', $releases[90]['date']);
         $this->assertSame('2026-08-09', $releases[91]['date']);
         $this->assertSame('2026-08-09', $releases[92]['date']);
-        $this->assertSame('2026-08-08', $releases[93]['date']);
-        $this->assertSame('2026-08-07', $releases[94]['date']);
-        $this->assertSame('2026-08-06', $releases[95]['date']);
-        $this->assertSame('2026-08-05', $releases[96]['date']);
+        $this->assertSame('2026-08-09', $releases[93]['date']);
+        $this->assertSame('2026-08-08', $releases[94]['date']);
+        $this->assertSame('2026-08-07', $releases[95]['date']);
+        $this->assertSame('2026-08-06', $releases[96]['date']);
         $this->assertSame('2026-08-05', $releases[97]['date']);
         $this->assertSame('2026-08-05', $releases[98]['date']);
-        $this->assertSame('2026-07-28', $releases[99]['date']);
-        $this->assertSame('2026-07-27', $releases[100]['date']);
+        $this->assertSame('2026-08-05', $releases[99]['date']);
+        $this->assertSame('2026-07-28', $releases[100]['date']);
         $this->assertSame('2026-07-27', $releases[101]['date']);
         $this->assertSame('2026-07-27', $releases[102]['date']);
         $this->assertSame('2026-07-27', $releases[103]['date']);
-        $this->assertSame('2026-07-24', $releases[104]['date']);
+        $this->assertSame('2026-07-27', $releases[104]['date']);
         $this->assertSame('2026-07-24', $releases[105]['date']);
         $this->assertSame('2026-07-24', $releases[106]['date']);
         $this->assertSame('2026-07-24', $releases[107]['date']);
         $this->assertSame('2026-07-24', $releases[108]['date']);
         $this->assertSame('2026-07-24', $releases[109]['date']);
         $this->assertSame('2026-07-24', $releases[110]['date']);
+        $this->assertSame('2026-07-24', $releases[111]['date']);
 
-        foreach (array_slice($releases, 104) as $release) {
+        foreach (array_slice($releases, 105) as $release) {
             $this->assertSame('2026-07-24', $release['date']);
         }
 
-        foreach (array_slice($releases, 103) as $release) {
+        foreach (array_slice($releases, 105) as $release) {
             $this->assertStringContainsString('reconstructed from merged pull request', $release['provenance']);
         }
 
         $current = $repository->current();
         $this->assertSame('stable', $current['channel']);
-        $this->assertSame('patch', $current['type']);
+        $this->assertSame('minor', $current['type']);
         $this->assertSame(
             [
                 [
-                    'label' => 'Issue #279',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/279',
+                    'label' => 'Issue #281',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/281',
                 ],
                 [
-                    'label' => 'Issue #280',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/issues/280',
-                ],
-                [
-                    'label' => 'Pull request #297',
-                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/297',
+                    'label' => 'Pull request #298',
+                    'url' => 'https://github.com/APESCIC/MyAPES-Account/pull/298',
                 ],
             ],
             $current['references'],
         );
         $currentText = strtolower(json_encode($current, JSON_THROW_ON_ERROR));
         foreach ([
-            'architecture map for core, modules, and plugins',
-            'contributor documentation',
-            'issue #279',
-            'issue #280',
-            'pull request #297',
+            'structure layout: core, modules, and plugins skeletons',
+            'polymorphic aliases',
+            'issue #281',
+            'pull request #298',
         ] as $requiredReleaseText) {
             $this->assertStringContainsString($requiredReleaseText, $currentText);
         }
 
-        $desertRelease = $releases[83];
+        $desertRelease = $releases[84];
         $this->assertSame('minor', $desertRelease['type']);
         $desertText = strtolower(json_encode($desertRelease, JSON_THROW_ON_ERROR));
         foreach ([
@@ -191,7 +187,7 @@ class ReleaseHistoryCommandTest extends TestCase
         }
         $this->assertStringNotContainsString('pull request', $desertText);
 
-        $apesCicRelease = $releases[87];
+        $apesCicRelease = $releases[88];
         $this->assertSame('minor', $apesCicRelease['type']);
         $this->assertSame(
             [[
@@ -205,7 +201,7 @@ class ReleaseHistoryCommandTest extends TestCase
             strtolower(implode(' ', $apesCicRelease['known_limitations'])),
         );
 
-        $phaseB = $releases[98];
+        $phaseB = $releases[99];
         $this->assertStringContainsString(
             'issue #11',
             strtolower(implode(' ', $phaseB['known_limitations'])),
@@ -223,7 +219,7 @@ class ReleaseHistoryCommandTest extends TestCase
     public function test_validation_command_accepts_the_bootstrap_history(): void
     {
         $this->artisan('myapes:changelog-validate')
-            ->expectsOutputToContain('Release history is valid at v0.36.2')
+            ->expectsOutputToContain('Release history is valid at v0.37.0')
             ->assertSuccessful();
     }
 

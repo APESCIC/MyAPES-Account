@@ -369,7 +369,7 @@ class ShelterCaseWorkflowTest extends TestCase
             ->latest('id')
             ->firstOrFail();
         $this->assertSame($staff->id, $audit->user_id);
-        $this->assertSame(ShelterCase::class, $audit->auditable_type);
+        $this->assertSame('case', $audit->auditable_type);
     }
 
     public function test_close_only_actor_can_use_only_closed_boundary_transitions(): void
@@ -509,7 +509,7 @@ class ShelterCaseWorkflowTest extends TestCase
         $this->assertNull($case->fresh()->assigned_to);
         $audits = AuditLog::query()
             ->where('event', 'authorization.assignment_denied')
-            ->where('auditable_type', ShelterCase::class)
+            ->where('auditable_type', 'case')
             ->where('auditable_id', $case->id)
             ->get();
         $this->assertCount(2, $audits);
@@ -608,7 +608,7 @@ class ShelterCaseWorkflowTest extends TestCase
             },
         );
         foreach (AuditLog::query()
-            ->where('auditable_type', ShelterCase::class)
+            ->where('auditable_type', 'case')
             ->where('auditable_id', $case->id)
             ->get() as $audit) {
             $this->assertStringNotContainsString(

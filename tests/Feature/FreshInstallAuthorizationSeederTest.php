@@ -39,7 +39,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
             'source' => RoleSource::SOURCE_SYSTEM,
         ]);
         $this->assertDatabaseHas('model_has_roles', [
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
             'role_id' => $serviceRole->id,
         ]);
@@ -204,7 +204,7 @@ class FreshInstallAuthorizationSeederTest extends TestCase
         }
 
         $unprovenancedPivotCount = DB::table('model_has_roles')
-            ->where('model_type', User::class)
+            ->where('model_type', 'user')
             ->whereIn('model_id', $users->pluck('id'))
             ->whereNotExists(function ($query): void {
                 $query

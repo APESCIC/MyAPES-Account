@@ -175,7 +175,7 @@ class AdminMaintenanceManagementTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'maintenance.activation_succeeded',
             'user_id' => $administrator->id,
-            'auditable_type' => MaintenanceWindow::class,
+            'auditable_type' => 'maintenance_window',
             'auditable_id' => $window->id,
         ]);
         $this->assertSame(

@@ -32,7 +32,12 @@ class AuthorizationCompatibilityDatabaseGuard
 
     private const PERMISSION_DELETE_TRIGGER = 'model_permissions_no_direct_delete';
 
-    private const USER_MODEL_EXPRESSION = 'CHAR(65, 112, 112, 92, 77, 111, 100, 101, 108, 115, 92, 85, 115, 101, 114)';
+    /**
+     * Morph alias for App\Models\User after #281 Relation::enforceMorphMap().
+     * Encoded as CHAR(...) so trigger SQL stays free of quote-escaping hazards.
+     * Bytes: u(117) s(115) e(101) r(114) => "user".
+     */
+    private const USER_MODEL_EXPRESSION = 'CHAR(117, 115, 101, 114)';
 
     public function install(bool $force = false): void
     {

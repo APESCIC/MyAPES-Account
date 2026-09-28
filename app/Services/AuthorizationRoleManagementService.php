@@ -371,7 +371,7 @@ class AuthorizationRoleManagementService
     {
         $userIds = DB::table(config('permission.table_names.model_has_roles'))
             ->where('role_id', $role->id)
-            ->where('model_type', User::class)
+            ->where('model_type', (new User)->getMorphClass())
             ->pluck('model_id')
             ->map(static fn (mixed $id): int => (int) $id)
             ->all();

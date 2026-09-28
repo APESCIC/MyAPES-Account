@@ -26,6 +26,14 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/",
+            "Modules\\ApesCic\\": "modules/apes-cic/src/",
+            "Modules\\PetCareClinic\\": "modules/pet-care-clinic/src/",
+            "Modules\\ShelterRescue\\": "modules/shelter-rescue/src/",
+            "Plugins\\Tickets\\": "plugins/tickets/src/",
+            "Plugins\\Cases\\": "plugins/cases/src/",
+            "Plugins\\Recruitment\\": "plugins/recruitment/src/",
+            "Plugins\\Consultations\\": "plugins/consultations/src/",
+            "Plugins\\PetProfiles\\": "plugins/pet-profiles/src/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

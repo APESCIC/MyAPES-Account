@@ -1,0 +1,1 @@
+# Consultations plugin package (skeleton)

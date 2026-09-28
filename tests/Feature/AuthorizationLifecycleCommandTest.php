@@ -571,7 +571,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         $this->assertDatabaseHas('model_has_roles', [
             'model_id' => $local->id,
             'role_id' => $serviceRoleId,
-            'model_type' => User::class,
+            'model_type' => 'user',
         ]);
         $this->assertTrue(
             app(AuthorizationCompatibilityDatabaseGuard::class)
@@ -616,7 +616,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $staff->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $superAdmin->id,
         ]);
 
@@ -645,7 +645,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
             [$superAdminRole->id],
             DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                ->where('model_has_roles.model_type', User::class)
+                ->where('model_has_roles.model_type', 'user')
                 ->where('model_has_roles.model_id', $superAdmin->id)
                 ->where('roles.is_protected', true)
                 ->orderBy('model_has_roles.role_id')
@@ -660,7 +660,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $custom->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $superAdmin->id,
         ]);
     }
@@ -962,7 +962,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $role->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $local->id,
         ]);
 
@@ -1327,7 +1327,7 @@ class AuthorizationLifecycleCommandTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $custom->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $missing->id,
         ]);
 

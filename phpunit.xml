@@ -11,10 +11,27 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Architecture">
+            <directory>tests/Architecture</directory>
+        </testsuite>
+        <testsuite name="Modules">
+            <directory>modules/apes-cic/tests</directory>
+            <directory>modules/pet-care-clinic/tests</directory>
+            <directory>modules/shelter-rescue/tests</directory>
+        </testsuite>
+        <testsuite name="Plugins">
+            <directory>plugins/tickets/tests</directory>
+            <directory>plugins/cases/tests</directory>
+            <directory>plugins/recruitment/tests</directory>
+            <directory>plugins/consultations/tests</directory>
+            <directory>plugins/pet-profiles/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
             <directory>app</directory>
+            <directory>modules</directory>
+            <directory>plugins</directory>
         </include>
     </source>
     <php>

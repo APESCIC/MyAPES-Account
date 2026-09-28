@@ -43,7 +43,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $response = $this->actingAs($owner)->post(route('apes-cic.cases.store'), [
             'category' => 'formal_complaint',
-                'sub_category' => 'service_complaint',
+            'sub_category' => 'service_complaint',
             'priority' => 'urgent',
             'title' => 'Service complaint',
             'details' => 'Please investigate this service experience.',
@@ -179,7 +179,7 @@ class ApesCicCasesWorkflowTest extends TestCase
         $ticket = SupportTicket::query()->create([
             'user_id' => $owner->id,
             'service_area' => 'operations_facilities',
-                'sub_category' => 'premises',
+            'sub_category' => 'premises',
             'subject' => 'Terminal ticket',
             'priority' => 'medium',
             'status' => 'resolved',
@@ -208,7 +208,7 @@ class ApesCicCasesWorkflowTest extends TestCase
         $ticket = SupportTicket::query()->create([
             'user_id' => $owner->id,
             'service_area' => 'operations_facilities',
-                'sub_category' => 'premises',
+            'sub_category' => 'premises',
             'subject' => 'Terminal relabel ticket',
             'priority' => 'medium',
             'status' => 'resolved',
@@ -284,7 +284,7 @@ class ApesCicCasesWorkflowTest extends TestCase
         Notification::assertNothingSent();
         $this->assertDatabaseMissing('audit_logs', [
             'event' => 'shelter.case.updated',
-            'auditable_type' => ShelterCase::class,
+            'auditable_type' => 'case',
             'auditable_id' => $apesCase->id,
         ]);
     }
@@ -305,7 +305,7 @@ class ApesCicCasesWorkflowTest extends TestCase
         Notification::assertNothingSent();
         $this->assertSame(0, AuditLog::query()
             ->where('event', 'apes_cic.case.updated')
-            ->where('auditable_type', ShelterCase::class)
+            ->where('auditable_type', 'case')
             ->where('auditable_id', $case->id)
             ->count());
     }
@@ -336,7 +336,7 @@ class ApesCicCasesWorkflowTest extends TestCase
         Notification::assertNothingSent();
         $this->assertSame(0, AuditLog::query()
             ->where('event', 'apes_cic.case.updated')
-            ->where('auditable_type', ShelterCase::class)
+            ->where('auditable_type', 'case')
             ->where('auditable_id', $case->id)
             ->count());
     }
@@ -449,7 +449,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
             'category' => 'welfare_concern',
-                'sub_category' => 'animal_welfare',
+            'sub_category' => 'animal_welfare',
             'priority' => 'high',
             'status' => 'resolved',
         ])->assertRedirect(route('apes-cic.cases.show', $case));
@@ -460,7 +460,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->patch(route('apes-cic.cases.update', $case), [
             'category' => 'welfare_concern',
-                'sub_category' => 'animal_welfare',
+            'sub_category' => 'animal_welfare',
             'priority' => 'high',
             'status' => 'closed',
         ])->assertRedirect(route('apes-cic.cases.show', $case));
@@ -474,7 +474,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->patch(route('apes-cic.cases.update', $case), [
             'category' => 'welfare_concern',
-                'sub_category' => 'animal_welfare',
+            'sub_category' => 'animal_welfare',
             'priority' => 'medium',
             'status' => 'in_progress',
         ])->assertRedirect(route('apes-cic.cases.show', $case));
@@ -697,7 +697,7 @@ class ApesCicCasesWorkflowTest extends TestCase
                 'user_id' => $owner->id,
                 'assigned_to' => null,
                 'service_area' => 'operations_facilities',
-            'sub_category' => 'premises',
+                'sub_category' => 'premises',
                 'subject' => "Internal note with {$label} change",
                 'priority' => 'medium',
                 'status' => 'open',
@@ -813,7 +813,7 @@ class ApesCicCasesWorkflowTest extends TestCase
         Notification::assertNothingSent();
         $this->assertSame(0, AuditLog::query()
             ->where('event', 'apes_cic.ticket.updated')
-            ->where('auditable_type', SupportTicket::class)
+            ->where('auditable_type', 'support_ticket')
             ->where('auditable_id', $ticket->id)
             ->count());
     }
@@ -1013,7 +1013,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->actingAs($owner)->patch(route('apes-cic.cases.update', $case), [
             'category' => 'welfare_concern',
-                'sub_category' => 'animal_welfare',
+            'sub_category' => 'animal_welfare',
             'priority' => 'urgent',
             'status' => 'in_progress',
         ])->assertForbidden();
@@ -1038,7 +1038,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
             'category' => 'operations_governance',
-                'sub_category' => 'operational_matter',
+            'sub_category' => 'operational_matter',
             'priority' => 'high',
             'status' => 'in_progress',
         ])->assertForbidden();
@@ -1080,7 +1080,7 @@ class ApesCicCasesWorkflowTest extends TestCase
 
         $this->actingAs($staff)->patch(route('apes-cic.cases.update', $case), [
             'category' => 'general_escalated',
-                'sub_category' => 'escalated_from_ticket',
+            'sub_category' => 'escalated_from_ticket',
             'priority' => 'medium',
             'status' => 'resolved',
         ])->assertForbidden();
@@ -1122,7 +1122,7 @@ class ApesCicCasesWorkflowTest extends TestCase
             'assigned_to' => null,
             'case_type' => null,
             'category' => 'general_escalated',
-                'sub_category' => 'escalated_from_ticket',
+            'sub_category' => 'escalated_from_ticket',
             'priority' => 'medium',
             'status' => 'open',
             'title' => 'General APES CIC case',
