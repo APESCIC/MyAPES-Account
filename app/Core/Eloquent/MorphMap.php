@@ -20,12 +20,12 @@ use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Plugins\PetProfiles\Models\PetProfile;
 
 /**
  * Stable morph aliases for polymorphic columns (#281).
  *
  * Aliases stay fixed when models later move into Core / Modules / Plugins namespaces.
+ * Pet Profiles (#291) is referenced by string FQCN so Core does not import plugin packages.
  */
 final class MorphMap
 {
@@ -43,7 +43,8 @@ final class MorphMap
             'support_attachment' => SupportAttachment::class,
             'case' => ShelterCase::class,
             'case_update' => CaseUpdate::class,
-            'pet_profile' => PetProfile::class,
+            // String FQCN keeps Core free of plugin package imports (#291).
+            'pet_profile' => 'Plugins\\PetProfiles\\Models\\PetProfile',
             'consultation' => PetCareConsultation::class,
             'recruitment_role' => RecruitmentRole::class,
             'recruitment_application' => RecruitmentApplication::class,
