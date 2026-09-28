@@ -1,0 +1,25 @@
+<?php
+
+use App\Core\Extensions\Modules\ModuleManifest;
+use App\Core\Extensions\Modules\ModuleStaffArea;
+
+/**
+ * {{ name }} module package manifest.
+ *
+ * Live prefix {{ prefix }} and route names {{ routeName }}.* stay stable.
+ * Compose plugins via enablement — do not hard-code plugin controllers here.
+ */
+return new ModuleManifest(
+    slug: '{{ slug }}',
+    name: '{{ name }}',
+    description: '{{ name }} organisation area.',
+    routePrefix: '{{ prefix }}',
+    routeNamePrefix: '{{ routeName }}.',
+    hubRouteName: '{{ hubRoute }}',
+    icon: 'building-2',
+    sortOrder: 100,
+    staffArea: new ModuleStaffArea('{{ hubRoute }}'),
+    plugins: [],
+    hubView: '{{ slug }}::hub',
+    packagePath: __DIR__,
+);

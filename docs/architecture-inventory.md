@@ -2,7 +2,9 @@
 
 Generated from `php artisan route:list --json --except-vendor` on v0.36.0 (`8b9882d`, 126 routes; v0.36.1 did not change `routes/web.php`) and a walk of `app/`, migrations, views, tests, and config, then updated for the v0.36.1 staff navigation view. Reviewed against [ADR 0001](adr/0001-core-modules-plugins.md) and [architecture.md](architecture.md).
 
-This is a map for later children of [#278](https://github.com/APESCIC/MyAPES-Account/issues/278). It does not move files. Target paths are the [#281](https://github.com/APESCIC/MyAPES-Account/issues/281) layout. Live URLs and permission strings stay ([ADR 0001](adr/0001-core-modules-plugins.md)).
+**Status after Structure Waves 5–8 (v0.37.x):** Pet Profiles, Tickets, Cases, Recruitment, and Consultations live under `plugins/<slug>`. Module packages live under `modules/<slug>`. Architecture tests **hard-fail** in CI (#294). Generators: `make:module` / `make:plugin` (#295). See [developer-guide.md](developer-guide.md). Historical rows below retain pre-move paths as a migration map; prefer package paths for new work.
+
+This was the map for children of [#278](https://github.com/APESCIC/MyAPES-Account/issues/278). Live URLs and permission strings stay ([ADR 0001](adr/0001-core-modules-plugins.md)).
 
 There is no `app/Livewire` directory and no Livewire dependency.
 

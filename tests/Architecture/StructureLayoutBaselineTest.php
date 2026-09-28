@@ -6,40 +6,14 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Report-only architecture baseline for #294 (folded lightly into #281).
- *
- * These checks document the intended layout. They do not fail CI yet — hard-fail
- * lands when Structure moves are complete (Wave 8).
+ * @deprecated Replaced by StructureArchitectureHardFailTest (#294 Wave 8).
+ * Kept as a thin alias so older docs that cite the report group still resolve.
  */
-#[Group('architecture-report')]
+#[Group('architecture')]
 class StructureLayoutBaselineTest extends TestCase
 {
-    public function test_reports_core_modules_and_plugins_trees_exist(): void
+    public function test_defers_to_hard_fail_suite(): void
     {
-        $root = dirname(__DIR__, 2);
-        $missing = [];
-
-        foreach ([
-            $root.'/app/Core',
-            $root.'/modules/apes-cic',
-            $root.'/modules/pet-care-clinic',
-            $root.'/modules/shelter-rescue',
-            $root.'/plugins/tickets',
-            $root.'/plugins/cases',
-            $root.'/plugins/recruitment',
-            $root.'/plugins/consultations',
-            $root.'/plugins/pet-profiles',
-        ] as $path) {
-            if (! is_dir($path)) {
-                $missing[] = $path;
-            }
-        }
-
-        // Soft assertion: print gaps without failing the suite when empty.
-        if ($missing !== []) {
-            fwrite(STDERR, "[architecture-report] Missing layout paths:\n- ".implode("\n- ", $missing)."\n");
-        }
-
-        $this->addToAssertionCount(1);
+        $this->assertTrue(class_exists(StructureArchitectureHardFailTest::class));
     }
 }

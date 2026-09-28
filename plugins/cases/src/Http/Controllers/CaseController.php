@@ -6,6 +6,7 @@ use App\Core\Accounts\User;
 use App\Core\Extensions\Modules\ModuleContext;
 use App\Http\Controllers\Controller;
 use App\Modules\ModuleInstanceDefinition;
+use App\Rules\EligibleRecordOwner;
 use App\Rules\EligibleStaffAssignee;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
@@ -23,7 +24,6 @@ use Plugins\Cases\Models\ShelterCase;
 use Plugins\Cases\Notifications\ApesCicCaseUpdatedNotification;
 use Plugins\Cases\Notifications\ShelterCaseUpdatedNotification;
 use Plugins\PetProfiles\Contracts\PetProfilesContract;
-use Plugins\Tickets\Rules\EligibleTicketOwner;
 use Plugins\PetProfiles\Support\StaffPetCreateReturn;
 
 class CaseController extends Controller
@@ -309,7 +309,7 @@ class CaseController extends Controller
             $rules['user_id'] = [
                 'required',
                 'integer',
-                new EligibleTicketOwner,
+                new EligibleRecordOwner,
             ];
         }
         if ($attachmentRequested) {
@@ -742,5 +742,4 @@ class CaseController extends Controller
             $recipient->notify(new ShelterCaseUpdatedNotification($case, $actor, $eventLabel));
         }
     }
-
 }

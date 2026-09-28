@@ -1,0 +1,7 @@
+<?php
+
+return [
+    'name' => '{{ name }}',
+    'description' => '{{ name }} plugin.',
+    'keywords' => ['{{ slug }}', '{{ name }}'],
+];

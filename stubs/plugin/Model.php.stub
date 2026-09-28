@@ -1,0 +1,22 @@
+<?php
+
+namespace Plugins\{{ studly }}\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class {{ model }} extends Model
+{
+    use HasFactory;
+
+    protected $table = '{{ table }}';
+
+    /**
+     * @var list<string>
+     */
+    protected $fillable = [
+        'title',
+        'sub_core_key',
+        'user_id',
+    ];
+}
