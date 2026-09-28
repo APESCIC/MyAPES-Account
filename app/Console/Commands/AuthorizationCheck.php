@@ -41,7 +41,7 @@ class AuthorizationCheck extends Command
             "Permission matrix: ok ({$result['permissions']} permissions)",
         );
         $this->components->info(
-            "Grant counts: ok (roles={$snapshot['role_grants']}, direct={$snapshot['direct_grants']}, sources={$snapshot['permission_sources']})",
+            "Grant counts: ok (roles={$snapshot['role_grants']}, direct={$snapshot['direct_grants']}, sources={$snapshot['provenance_rows']})",
         );
         $this->components->info(
             "Directory mappings: ok ({$result['immutable_mappings']} immutable)",

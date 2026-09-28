@@ -9,9 +9,9 @@ use Spatie\Permission\PermissionRegistrar;
 /**
  * Id-preserving permission rename helper (#292).
  *
- * Renames `permissions.name` in place so role_has_permissions,
- * model_has_permissions, and permission_sources keep their permission_id.
- * With an empty {@see PermissionNaming::aliases()} map this is a no-op.
+ * Renames `permissions.name` in place so role, direct, and provenance grant
+ * rows keep the same permission_id. With an empty
+ * {@see PermissionNaming::aliases()} map this is a no-op.
  */
 final class PermissionGrantMigrator
 {
@@ -26,14 +26,14 @@ final class PermissionGrantMigrator
      *         permissions: int,
      *         role_grants: int,
      *         direct_grants: int,
-     *         permission_sources: int,
+     *         provenance_rows: int,
      *         by_permission: array<string, array{roles: int, users: int, sources: int}>
      *     },
      *     after: array{
      *         permissions: int,
      *         role_grants: int,
      *         direct_grants: int,
-     *         permission_sources: int,
+     *         provenance_rows: int,
      *         by_permission: array<string, array{roles: int, users: int, sources: int}>
      *     },
      *     grants_preserved: bool

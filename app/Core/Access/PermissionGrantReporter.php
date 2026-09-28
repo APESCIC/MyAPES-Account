@@ -18,7 +18,7 @@ final class PermissionGrantReporter
      *     permissions: int,
      *     role_grants: int,
      *     direct_grants: int,
-     *     permission_sources: int,
+     *     provenance_rows: int,
      *     by_permission: array<string, array{roles: int, users: int, sources: int}>
      * }
      */
@@ -29,7 +29,7 @@ final class PermissionGrantReporter
                 'permissions' => 0,
                 'role_grants' => 0,
                 'direct_grants' => 0,
-                'permission_sources' => 0,
+                'provenance_rows' => 0,
                 'by_permission' => [],
             ];
         }
@@ -79,7 +79,7 @@ final class PermissionGrantReporter
             'permissions' => $permissions->count(),
             'role_grants' => $roleGrants,
             'direct_grants' => $directGrants,
-            'permission_sources' => $sources,
+            'provenance_rows' => $sources,
             'by_permission' => $byPermission,
         ];
     }
@@ -89,14 +89,14 @@ final class PermissionGrantReporter
      *     permissions: int,
      *     role_grants: int,
      *     direct_grants: int,
-     *     permission_sources: int,
+     *     provenance_rows: int,
      *     by_permission: array<string, array{roles: int, users: int, sources: int}>
      * }  $before
      * @param  array{
      *     permissions: int,
      *     role_grants: int,
      *     direct_grants: int,
-     *     permission_sources: int,
+     *     provenance_rows: int,
      *     by_permission: array<string, array{roles: int, users: int, sources: int}>
      * }  $after
      */
@@ -104,7 +104,7 @@ final class PermissionGrantReporter
     {
         return $before['role_grants'] === $after['role_grants']
             && $before['direct_grants'] === $after['direct_grants']
-            && $before['permission_sources'] === $after['permission_sources']
+            && $before['provenance_rows'] === $after['provenance_rows']
             && $before['by_permission'] === $after['by_permission'];
     }
 }

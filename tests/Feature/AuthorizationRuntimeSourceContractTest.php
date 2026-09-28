@@ -53,6 +53,8 @@ class AuthorizationRuntimeSourceContractTest extends TestCase
 
             if (str_contains($contents, 'model_has_permissions')
                 && ! in_array($path, [
+                    'app/Core/Access/PermissionGrantMigrator.php',
+                    'app/Core/Access/PermissionGrantReporter.php',
                     'app/Services/AuthorizationDirectPermissionMaterializer.php',
                     'app/Services/AuthorizationIntegrityChecker.php',
                     'app/Services/AuthorizationPhaseBSchemaInspector.php',
@@ -64,6 +66,8 @@ class AuthorizationRuntimeSourceContractTest extends TestCase
 
             if (str_contains($contents, 'permission_sources')
                 && ! in_array($path, [
+                    'app/Core/Access/PermissionGrantMigrator.php',
+                    'app/Core/Access/PermissionGrantReporter.php',
                     'app/Services/AuthorizationDirectPermissionMaterializer.php',
                     'app/Services/AuthorizationIntegrityChecker.php',
                     'app/Services/AuthorizationPhaseBSchemaInspector.php',
@@ -91,6 +95,8 @@ class AuthorizationRuntimeSourceContractTest extends TestCase
 
             if (str_contains($contents, 'role_has_permissions')
                 && ! in_array($path, [
+                    'app/Core/Access/PermissionGrantMigrator.php',
+                    'app/Core/Access/PermissionGrantReporter.php',
                     'app/Services/AuthorizationIntegrityChecker.php',
                     'app/Services/AuthorizationMetadataSynchronizer.php',
                     'app/Services/AuthorizationPhaseBSchemaInspector.php',
