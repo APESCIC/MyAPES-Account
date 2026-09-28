@@ -1366,28 +1366,31 @@ class AuthorizationCutoverGuardTest extends TestCase
             return;
         }
 
-        $triggers = DB::table('information_schema.triggers')
-            ->where('trigger_schema', DB::connection()->getDatabaseName())
-            ->where('action_statement', 'like', '%'.$current.'%')
-            ->get([
-                'trigger_name',
-                'event_object_table',
-                'action_timing',
-                'event_manipulation',
-                'action_statement',
-            ]);
+        // Alias columns: MySQL information_schema may expose UPPERCASE
+        // attribute names when selected without aliases via the query builder.
+        $triggers = collect(DB::select(
+            'SELECT trigger_name AS name,
+                    event_object_table AS table_name,
+                    action_timing AS timing,
+                    event_manipulation AS event_name,
+                    action_statement AS definition
+             FROM information_schema.triggers
+             WHERE trigger_schema = DATABASE()
+               AND action_statement LIKE ?',
+            ['%'.$current.'%'],
+        ));
 
         foreach ($triggers as $trigger) {
-            $name = (string) $trigger->trigger_name;
+            $name = (string) $trigger->name;
             DB::unprepared("DROP TRIGGER {$name}");
             DB::unprepared(
                 "CREATE TRIGGER {$name}
-                 {$trigger->action_timing} {$trigger->event_manipulation}
-                 ON {$trigger->event_object_table}
+                 {$trigger->timing} {$trigger->event_name}
+                 ON {$trigger->table_name}
                  FOR EACH ROW ".str_replace(
                     $current,
                     $legacy,
-                    (string) $trigger->action_statement,
+                    (string) $trigger->definition,
                 ),
             );
         }
