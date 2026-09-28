@@ -12,20 +12,16 @@ use App\Core\Accounts\UserProfile;
 use App\Core\Attachments\SupportAttachment;
 use App\Core\Extensions\Models\ModuleInstallation;
 use App\Core\Maintenance\MaintenanceWindow;
-use App\Models\CaseUpdate;
 use App\Models\PetCareConsultation;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
-use App\Models\SupportTicketMessage;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * Stable morph aliases for polymorphic columns (#281).
  *
  * Aliases stay fixed when models later move into Core / Modules / Plugins namespaces.
- * Pet Profiles (#291) is referenced by string FQCN so Core does not import plugin packages.
+ * Plugin models are referenced by string FQCN so Core does not import plugin packages.
  */
 final class MorphMap
 {
@@ -38,12 +34,12 @@ final class MorphMap
             'user' => User::class,
             'user_profile' => UserProfile::class,
             'staff_profile' => StaffProfile::class,
-            'support_ticket' => SupportTicket::class,
-            'support_ticket_message' => SupportTicketMessage::class,
+            // String FQCNs keep Core free of plugin package imports (#289 / #291).
+            'support_ticket' => 'Plugins\\Tickets\\Models\\SupportTicket',
+            'support_ticket_message' => 'Plugins\\Tickets\\Models\\SupportTicketMessage',
             'support_attachment' => SupportAttachment::class,
-            'case' => ShelterCase::class,
-            'case_update' => CaseUpdate::class,
-            // String FQCN keeps Core free of plugin package imports (#291).
+            'case' => 'Plugins\\Cases\\Models\\ShelterCase',
+            'case_update' => 'Plugins\\Cases\\Models\\CaseUpdate',
             'pet_profile' => 'Plugins\\PetProfiles\\Models\\PetProfile',
             'consultation' => PetCareConsultation::class,
             'recruitment_role' => RecruitmentRole::class,

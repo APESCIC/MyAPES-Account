@@ -4,12 +4,12 @@ use App\Contracts\ModuleLifecycleManager;
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
-use App\Models\SupportTicket;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleInstanceLock;
 use App\Services\ModuleRollbackCompatibilityChecker;
 use App\Services\PrivilegedMutationAuthorizer;
 use Illuminate\Contracts\Console\Kernel;
+use Plugins\Tickets\Models\SupportTicket;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 

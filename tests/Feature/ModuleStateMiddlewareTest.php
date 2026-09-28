@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
-use App\Models\ShelterCase;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleInstanceLock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Plugins\Cases\Models\ShelterCase;
 use Plugins\PetProfiles\Models\PetProfile;
 use Tests\TestCase;
 

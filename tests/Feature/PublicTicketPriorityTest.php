@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Core\Accounts\User;
-use App\Models\SupportTicket;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class PublicTicketPriorityTest extends TestCase

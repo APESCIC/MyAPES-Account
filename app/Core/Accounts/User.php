@@ -140,7 +140,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function supportTickets(): HasMany
     {
-        return $this->hasMany(SupportTicket::class);
+        // String FQCN keeps Core free of plugin package imports (#289).
+        return $this->hasMany('Plugins\\Tickets\\Models\\SupportTicket');
     }
 
     public function suspendedBy(): BelongsTo

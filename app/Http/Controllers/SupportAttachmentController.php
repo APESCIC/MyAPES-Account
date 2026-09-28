@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Core\Attachments\SupportAttachment;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Tickets\Models\SupportTicket;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupportAttachmentController extends Controller

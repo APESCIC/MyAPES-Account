@@ -8,20 +8,22 @@ use App\Core\Extensions\Plugins\PluginManifest;
 use App\Core\Extensions\Plugins\PluginNavigationItem;
 use App\Core\Extensions\Plugins\PluginServiceProvider;
 use App\Core\Extensions\Plugins\PluginSettingsSchema;
-use App\Models\ShelterCase;
-use App\Modules\Activity\CaseRecentActivityProvider;
-use App\Modules\Analytics\CaseAnalyticsProvider;
-use App\Modules\Attention\CaseAttentionProvider;
-use App\Modules\Detectors\ShelterCaseActiveRecordDetector;
-use App\Modules\Summaries\ShelterCaseSummaryProvider;
-use App\Policies\ShelterCasePolicy;
 use Illuminate\Support\Facades\Gate;
+use Plugins\Cases\Dashboard\CaseAnalyticsProvider;
+use Plugins\Cases\Dashboard\CaseAttentionProvider;
+use Plugins\Cases\Dashboard\CaseRecentActivityProvider;
+use Plugins\Cases\Dashboard\ShelterCaseActiveRecordDetector;
+use Plugins\Cases\Dashboard\ShelterCaseSummaryProvider;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Cases\Policies\ShelterCasePolicy;
 
 class CasesServiceProvider extends PluginServiceProvider
 {
     public function boot(): void
     {
         parent::boot();
+
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'cases');
 
         Gate::policy(ShelterCase::class, ShelterCasePolicy::class);
     }
@@ -49,7 +51,7 @@ class CasesServiceProvider extends PluginServiceProvider
                 $a::staff('close', 'Close cases'),
                 $a::staffDelete('delete', 'Delete cases'),
             ],
-            // Shelter cases need Pet Profiles; APES CIC cases do not (#286).
+            // Shelter cases need Pet Profiles; APES CIC cases do not (#286 / #289).
             dependencies: [
                 new PluginDependency('pet-profiles', onlyModules: ['shelter-rescue']),
             ],
@@ -73,6 +75,10 @@ class CasesServiceProvider extends PluginServiceProvider
             recentActivityProvider: CaseRecentActivityProvider::class,
             analyticsProvider: CaseAnalyticsProvider::class,
             attentionProvider: CaseAttentionProvider::class,
+            staffRouteFiles: [
+                dirname(__DIR__).'/routes/apes-cic.php',
+                dirname(__DIR__).'/routes/shelter.php',
+            ],
         );
     }
 }

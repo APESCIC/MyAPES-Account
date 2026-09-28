@@ -16,8 +16,8 @@ There is no `app/Livewire` directory and no Livewire dependency.
 
 | Coupling | Why it is awkward | Child |
 | --- | --- | --- |
-| `App\Http\Controllers\ApesCic\TicketController` | One class and `resources/views/apes-cic/tickets/*` serve `/apes-cic/tickets`, `/shelter/tickets`, and `/petcare/tickets`. | #289 |
-| `App\Models\ShelterCase` | Table `shelter_cases` stores Shelter cases and APES CIC cases. The area is `sub_core_key`. | #289 |
+| `Plugins\Tickets\Http\Controllers\TicketController` | One class and `resources/views/apes-cic/tickets/*` serve `/apes-cic/tickets`, `/shelter/tickets`, and `/petcare/tickets`. | #289 |
+| `Plugins\Cases\Models\ShelterCase` | Table `shelter_cases` stores Shelter cases and APES CIC cases. The area is `sub_core_key`. | #289 |
 | `Shelter\CaseController` → `ApesCic\CaseUpdateController` | Shelter case updates post to the APES CIC controller. | #289 |
 | Two pet profile controllers | `Shelter\PetProfileController` and `PetCare\PetProfileController` are parallel copies over one `PetProfile` model. | #291 |
 | `AppServiceProvider` | Registers every plugin policy and calls `ModuleSettingsService::recruitmentPublicBoardEnabled()`. | #282 |

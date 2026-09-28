@@ -8,13 +8,13 @@ use App\Core\Accounts\Role;
 use App\Core\Accounts\RoleSource;
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
-use App\Models\SupportTicket;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleMaterializer;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleProjectionCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class AdminAnalyticsDashboardTest extends TestCase

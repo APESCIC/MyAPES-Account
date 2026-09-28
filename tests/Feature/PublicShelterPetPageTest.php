@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
-use App\Models\ShelterCase;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\Cases\Models\ShelterCase;
 use Plugins\PetProfiles\Models\PetProfile;
 use Tests\TestCase;
 

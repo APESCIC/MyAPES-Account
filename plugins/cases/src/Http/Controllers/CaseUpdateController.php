@@ -1,0 +1,141 @@
+<?php
+
+namespace Plugins\Cases\Http\Controllers;
+
+use App\Core\Accounts\User;
+use App\Core\Extensions\Modules\ModuleContext;
+use App\Http\Controllers\Controller;
+use App\Modules\ModuleInstanceDefinition;
+use App\Services\AuditLogger;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
+use Plugins\Cases\CasesArea;
+use Plugins\Cases\Models\CaseUpdate;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Cases\Notifications\ApesCicCaseUpdatedNotification;
+use Plugins\Cases\Notifications\ShelterCaseUpdatedNotification;
+use Plugins\PetProfiles\Contracts\PetProfilesContract;
+
+class CaseUpdateController extends Controller
+{
+    public function __construct(
+        private readonly ModuleContext $moduleContext,
+        private readonly PetProfilesContract $petProfiles,
+    ) {}
+
+    public function store(
+        Request $request,
+        ShelterCase $case,
+        AuditLogger $auditLogger,
+    ): RedirectResponse {
+        $instance = $this->instance($request);
+        $area = $this->area();
+        $prefix = $area->permissionPrefix();
+        if ($area->isShelter()) {
+            $domain = $this->petProfiles->domainForModule($area->moduleSlug);
+            $case = ShelterCase::query()
+                ->forSubCore($area->moduleSlug)
+                ->visibleTo($request->user(), $area->moduleSlug)
+                ->whereKey($case->getKey())
+                ->whereHas(
+                    'petProfile',
+                    static fn ($pets) => $pets->where('service_domain', $domain),
+                )
+                ->firstOrFail();
+        } else {
+            abort_unless(
+                $case->sub_core_key === $instance->subCore->key,
+                404,
+            );
+        }
+        Gate::authorize('view', $case);
+        Gate::authorize($prefix.'comment-own');
+
+        if ($case->status === 'closed') {
+            throw ValidationException::withMessages([
+                'body' => 'Reopen the case before adding another update.',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'body' => ['required', 'string'],
+            'visibility' => [
+                'nullable',
+                Rule::in([
+                    CaseUpdate::VISIBILITY_PUBLIC,
+                    CaseUpdate::VISIBILITY_INTERNAL,
+                ]),
+            ],
+        ]);
+        $isStaffViewer = $request->user()->can($prefix.'view-all');
+        $visibility = $isStaffViewer
+            ? ($validated['visibility'] ?? CaseUpdate::VISIBILITY_PUBLIC)
+            : CaseUpdate::VISIBILITY_PUBLIC;
+        $case->updates()->create([
+            'user_id' => $request->user()->id,
+            'body' => $validated['body'],
+            'visibility' => $visibility,
+        ]);
+        if ($visibility === CaseUpdate::VISIBILITY_PUBLIC) {
+            $case->touch();
+        }
+
+        $recipients = User::query()
+            ->eligibleStaff()
+            ->withAuthorizationPermission($prefix.'view-all')
+            ->get();
+        if ($visibility === CaseUpdate::VISIBILITY_PUBLIC
+            && $case->user?->can('view', $case)) {
+            $recipients->push($case->user);
+        }
+        if ($area->isShelter()
+            && $visibility === CaseUpdate::VISIBILITY_INTERNAL) {
+            $recipients = $recipients->reject(
+                fn (User $recipient): bool => $recipient->id === $case->user_id,
+            );
+        }
+        $recipients->unique('id')
+            ->reject(fn (User $recipient): bool => $recipient->id === $request->user()->id)
+            ->each(fn (User $recipient) => $recipient->notify(
+                $area->isShelter()
+                    ? new ShelterCaseUpdatedNotification(
+                        $case,
+                        $request->user(),
+                        'updated',
+                    )
+                    : new ApesCicCaseUpdatedNotification(
+                        $case,
+                        $request->user(),
+                        'updated',
+                        $instance->subCore->key,
+                        $area->showRouteName(),
+                    ),
+            ));
+
+        $auditLogger->record("{$area->auditEventPrefix}.update_added", $request->user(), $case, [
+            'sub_core_key' => $case->sub_core_key,
+            'module_key' => $instance->module->key,
+            'visibility' => $visibility,
+        ]);
+
+        return redirect()->route($area->showRouteName(), $case)
+            ->with('status', 'Case update added.');
+    }
+
+    private function instance(Request $request): ModuleInstanceDefinition
+    {
+        return $this->moduleContext->pluginInstance('cases');
+    }
+
+    private function area(): CasesArea
+    {
+        $slug = $this->moduleContext->slug()
+            ?? throw new InvalidArgumentException('Missing module context for cases.');
+
+        return CasesArea::forModule($slug);
+    }
+}

@@ -6,8 +6,6 @@ use App\Core\Accounts\User;
 use App\Core\Attachments\SupportAttachment;
 use App\Core\Eloquent\MorphMap;
 use App\Core\Providers\CoreServiceProvider;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use App\Services\AuditLogger;
 use App\Support\AuthorizationCompatibilityDatabaseGuard;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -17,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Modules\ApesCic\ApesCicServiceProvider;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Tickets\Models\SupportTicket;
 use Plugins\Tickets\TicketsServiceProvider;
 use Tests\TestCase;
 

@@ -7,20 +7,22 @@ use App\Core\Extensions\Plugins\PluginManifest;
 use App\Core\Extensions\Plugins\PluginNavigationItem;
 use App\Core\Extensions\Plugins\PluginServiceProvider;
 use App\Core\Extensions\Plugins\PluginSettingsSchema;
-use App\Models\SupportTicket;
-use App\Modules\Activity\SupportTicketRecentActivityProvider;
-use App\Modules\Analytics\SupportTicketAnalyticsProvider;
-use App\Modules\Attention\SupportTicketAttentionProvider;
-use App\Modules\Detectors\SupportTicketActiveRecordDetector;
-use App\Modules\Summaries\SupportTicketSummaryProvider;
-use App\Policies\SupportTicketPolicy;
 use Illuminate\Support\Facades\Gate;
+use Plugins\Tickets\Dashboard\SupportTicketActiveRecordDetector;
+use Plugins\Tickets\Dashboard\SupportTicketAnalyticsProvider;
+use Plugins\Tickets\Dashboard\SupportTicketAttentionProvider;
+use Plugins\Tickets\Dashboard\SupportTicketRecentActivityProvider;
+use Plugins\Tickets\Dashboard\SupportTicketSummaryProvider;
+use Plugins\Tickets\Models\SupportTicket;
+use Plugins\Tickets\Policies\SupportTicketPolicy;
 
 class TicketsServiceProvider extends PluginServiceProvider
 {
     public function boot(): void
     {
         parent::boot();
+
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'tickets');
 
         Gate::policy(SupportTicket::class, SupportTicketPolicy::class);
     }
@@ -69,6 +71,11 @@ class TicketsServiceProvider extends PluginServiceProvider
             recentActivityProvider: SupportTicketRecentActivityProvider::class,
             analyticsProvider: SupportTicketAnalyticsProvider::class,
             attentionProvider: SupportTicketAttentionProvider::class,
+            staffRouteFiles: [
+                dirname(__DIR__).'/routes/apes-cic.php',
+                dirname(__DIR__).'/routes/shelter.php',
+                dirname(__DIR__).'/routes/petcare.php',
+            ],
         );
     }
 }

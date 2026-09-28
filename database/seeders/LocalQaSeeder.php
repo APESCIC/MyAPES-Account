@@ -8,11 +8,8 @@ use App\Core\Accounts\StaffProfile;
 use App\Core\Accounts\User;
 use App\Core\Accounts\UserProfile;
 use App\Core\Attachments\SupportAttachment;
-use App\Models\CaseUpdate;
 use App\Models\PetCareConsultation;
 use App\Models\RecruitmentRole;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use App\Services\AuthorizationMetadataSynchronizer;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleManagementService;
@@ -23,7 +20,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 use LogicException;
+use Plugins\Cases\Models\CaseUpdate;
+use Plugins\Cases\Models\ShelterCase;
 use Plugins\PetProfiles\Models\PetProfile;
+use Plugins\Tickets\Models\SupportTicket;
 
 class LocalQaSeeder extends Seeder
 {
