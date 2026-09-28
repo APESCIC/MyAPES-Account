@@ -70,7 +70,7 @@ class PetCareConsultationWorkflowTest extends TestCase
 
         $audit = AuditLog::query()
             ->where('event', 'petcare.consultation.created')
-            ->where('auditable_type', PetCareConsultation::class)
+            ->where('auditable_type', 'consultation')
             ->where('auditable_id', $consultation->id)
             ->firstOrFail();
         $this->assertArrayHasKey('sub_core_key', $audit->context);
@@ -572,7 +572,7 @@ class PetCareConsultationWorkflowTest extends TestCase
             ->assertForbidden();
         $denial = AuditLog::query()
             ->where('event', 'authorization.assignment_denied')
-            ->where('auditable_type', PetCareConsultation::class)
+            ->where('auditable_type', 'consultation')
             ->where('auditable_id', $ownerProbeConsultation->id)
             ->firstOrFail();
         $denialKeys = array_keys($denial->context);
@@ -800,7 +800,7 @@ class PetCareConsultationWorkflowTest extends TestCase
 
         $audit = AuditLog::query()
             ->where('event', 'petcare.consultation.updated')
-            ->where('auditable_type', PetCareConsultation::class)
+            ->where('auditable_type', 'consultation')
             ->where('auditable_id', $consultation->id)
             ->latest('id')
             ->firstOrFail();

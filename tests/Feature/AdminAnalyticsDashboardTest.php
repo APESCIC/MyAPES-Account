@@ -324,7 +324,7 @@ class AdminAnalyticsDashboardTest extends TestCase
         AuditLog::query()->create([
             'user_id' => $superAdmin->id,
             'event' => 'authorization.role_updated',
-            'auditable_type' => Role::class,
+            'auditable_type' => 'role',
             'auditable_id' => 1,
             'ip_address' => '127.0.0.1',
             'user_agent' => 'PHPUnit',

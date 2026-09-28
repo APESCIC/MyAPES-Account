@@ -66,6 +66,9 @@ grep -qx './config/permission.php' build/archive-list.txt
 grep -qx './database/migrations/2026_07_28_000000_create_permission_tables.php' build/archive-list.txt
 grep -qx './database/migrations/2026_07_28_000100_cut_over_authorization_domain.php' build/archive-list.txt
 grep -qx './database/migrations/2026_08_06_000000_create_module_installations_table.php' build/archive-list.txt
+grep -qx './database/migrations/2026_07_28_000200_rewrite_morph_type_fqcns_to_aliases.php' build/archive-list.txt
+grep -qx './app/Core/Providers/CoreServiceProvider.php' build/archive-list.txt
+grep -qx './app/Core/Eloquent/MorphMap.php' build/archive-list.txt
 grep -qx './app/Console/Commands/AuthorizationPreflight.php' build/archive-list.txt
 grep -qx './app/Console/Commands/DirectorySync.php' build/archive-list.txt
 grep -qx './app/Console/Commands/AuthorizationSync.php' build/archive-list.txt
@@ -75,6 +78,14 @@ grep -qx './app/Console/Commands/ModulesSync.php' build/archive-list.txt
 grep -qx './app/Console/Commands/ModulesCheck.php' build/archive-list.txt
 grep -qx './app/Console/Commands/ModulesRollbackCheck.php' build/archive-list.txt
 grep -qx './app/Services/ModuleRollbackCompatibilityChecker.php' build/archive-list.txt
+grep -qx './modules/apes-cic/src/ApesCicServiceProvider.php' build/archive-list.txt
+grep -qx './modules/pet-care-clinic/src/PetCareClinicServiceProvider.php' build/archive-list.txt
+grep -qx './modules/shelter-rescue/src/ShelterRescueServiceProvider.php' build/archive-list.txt
+grep -qx './plugins/tickets/src/TicketsServiceProvider.php' build/archive-list.txt
+grep -qx './plugins/cases/src/CasesServiceProvider.php' build/archive-list.txt
+grep -qx './plugins/recruitment/src/RecruitmentServiceProvider.php' build/archive-list.txt
+grep -qx './plugins/consultations/src/ConsultationsServiceProvider.php' build/archive-list.txt
+grep -qx './plugins/pet-profiles/src/PetProfilesServiceProvider.php' build/archive-list.txt
 grep -qx './scripts/deploy/activate-release.sh' build/archive-list.txt
 grep -qx './scripts/deploy/rollback-release.sh' build/archive-list.txt
 grep -qx './scripts/deploy/cloudron-app.conf' build/archive-list.txt

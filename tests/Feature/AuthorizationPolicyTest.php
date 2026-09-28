@@ -213,7 +213,7 @@ class AuthorizationPolicyTest extends TestCase
         Notification::assertNothingSent();
         $this->assertDatabaseMissing('audit_logs', [
             'event' => 'shelter.case.updated',
-            'auditable_type' => ShelterCase::class,
+            'auditable_type' => 'case',
             'auditable_id' => $case->id,
         ]);
     }

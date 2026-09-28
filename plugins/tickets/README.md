@@ -1,0 +1,1 @@
+# Tickets plugin package (skeleton)

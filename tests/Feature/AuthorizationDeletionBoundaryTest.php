@@ -37,7 +37,7 @@ class AuthorizationDeletionBoundaryTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
         $this->assertDatabaseMissing('role_sources', ['user_id' => $user->id]);
         $this->assertDatabaseMissing('model_has_roles', [
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
     }
@@ -52,7 +52,7 @@ class AuthorizationDeletionBoundaryTest extends TestCase
         $guard->drop();
         DB::table('model_has_permissions')->insert([
             'permission_id' => $permission->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
         $guard->install();
@@ -65,11 +65,11 @@ class AuthorizationDeletionBoundaryTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
         $this->assertDatabaseMissing('role_sources', ['user_id' => $user->id]);
         $this->assertDatabaseMissing('model_has_roles', [
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
         $this->assertDatabaseMissing('model_has_permissions', [
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
     }
@@ -116,7 +116,7 @@ class AuthorizationDeletionBoundaryTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $role->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
     }

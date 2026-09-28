@@ -352,7 +352,7 @@ class AuthorizationCutoverConcurrencyTest extends TestCase
         ]);
         DB::table('model_has_roles')->insert([
             'role_id' => $customRoleId,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $userId,
         ]);
 
@@ -680,7 +680,7 @@ class AuthorizationCutoverConcurrencyTest extends TestCase
             [$expectedRole],
             DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                ->where('model_has_roles.model_type', User::class)
+                ->where('model_has_roles.model_type', 'user')
                 ->where('model_has_roles.model_id', $userId)
                 ->where('roles.guard_name', 'web')
                 ->where('roles.is_protected', true)
@@ -696,7 +696,7 @@ class AuthorizationCutoverConcurrencyTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $customRoleId,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $userId,
         ]);
         $this->assertSame(

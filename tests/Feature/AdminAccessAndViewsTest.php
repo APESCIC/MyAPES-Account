@@ -112,7 +112,7 @@ class AdminAccessAndViewsTest extends TestCase
         AuditLog::query()->create([
             'user_id' => $administrator->id,
             'event' => 'authorization.test_history',
-            'auditable_type' => User::class,
+            'auditable_type' => 'user',
             'auditable_id' => $target->id,
             'context' => [
                 'target_user_id' => $target->id,

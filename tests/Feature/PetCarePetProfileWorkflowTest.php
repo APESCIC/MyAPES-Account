@@ -59,7 +59,7 @@ class PetCarePetProfileWorkflowTest extends TestCase
 
         $createdAudit = AuditLog::query()
             ->where('event', 'petcare.pet_profile.created')
-            ->where('auditable_type', PetProfile::class)
+            ->where('auditable_type', 'pet_profile')
             ->where('auditable_id', $pet->id)
             ->firstOrFail();
         $this->assertSame([
@@ -89,7 +89,7 @@ class PetCarePetProfileWorkflowTest extends TestCase
 
         $updatedAudit = AuditLog::query()
             ->where('event', 'petcare.pet_profile.updated')
-            ->where('auditable_type', PetProfile::class)
+            ->where('auditable_type', 'pet_profile')
             ->where('auditable_id', $pet->id)
             ->firstOrFail();
         $this->assertSame([

@@ -48,7 +48,7 @@ class AuthorizationRoleMaterializerTest extends TestCase
 
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $role->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
         $this->assertSame(
@@ -310,7 +310,7 @@ class AuthorizationRoleMaterializerTest extends TestCase
         $guard->drop();
         DB::table('model_has_roles')
             ->where('role_id', $role->id)
-            ->where('model_type', User::class)
+            ->where('model_type', 'user')
             ->where('model_id', $user->id)
             ->delete();
         $guard->install();
@@ -329,7 +329,7 @@ class AuthorizationRoleMaterializerTest extends TestCase
         ]);
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $role->id,
-            'model_type' => User::class,
+            'model_type' => 'user',
             'model_id' => $user->id,
         ]);
     }

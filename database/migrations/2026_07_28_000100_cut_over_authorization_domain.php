@@ -640,7 +640,7 @@ return new class extends Migration
                     ->map(static fn (mixed $id): int => (int) $id)
                     ->all();
                 $protectedPivotRoleIds = DB::table('model_has_roles')
-                    ->where('model_type', User::class)
+                    ->where('model_type', (new User)->getMorphClass())
                     ->where('model_id', $user->id)
                     ->whereIn('role_id', $protectedRoleIds)
                     ->orderBy('role_id')
@@ -668,7 +668,7 @@ return new class extends Migration
             ->values()
             ->all();
         $pivotPairs = DB::table('model_has_roles')
-            ->where('model_type', User::class)
+            ->where('model_type', (new User)->getMorphClass())
             ->get(['model_id', 'role_id'])
             ->map(
                 static fn (object $pivot): string => $pivot->model_id
