@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\ModuleRecentActivityProvider;
 use App\Contracts\ModuleRegistry;
+use App\Core\Extensions\Modules\ModulePackageRegistry;
 use App\Services\ModuleDashboardAttentionService;
 use App\Services\ModuleDashboardSummaryService;
 use Illuminate\Contracts\View\View;
@@ -15,6 +16,7 @@ class SubCoreController extends Controller
     public function show(
         Request $request,
         ModuleRegistry $registry,
+        ModulePackageRegistry $modulePackages,
         ModuleNavigationProvider $navigation,
         ModuleDashboardSummaryService $summaries,
         ModuleDashboardAttentionService $attention,
@@ -39,7 +41,15 @@ class SubCoreController extends Controller
             $activity = $activity->concat($provider->recent($instance, $user, 5));
         }
 
-        return view('sub-cores.show', [
+        $hubView = 'sub-cores.show';
+        if ($modulePackages->has($subCoreKey)) {
+            $candidate = $modulePackages->module($subCoreKey)->hubView;
+            if (view()->exists($candidate)) {
+                $hubView = $candidate;
+            }
+        }
+
+        return view($hubView, [
             'subCore' => $registry->subCore($subCoreKey),
             'modules' => $modules,
             'summaryGroup' => $summaryGroup,
