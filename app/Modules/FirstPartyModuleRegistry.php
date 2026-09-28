@@ -3,6 +3,7 @@
 namespace App\Modules;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Access\PermissionNaming;
 use App\Core\Extensions\Modules\ModuleManifest;
 use App\Core\Extensions\Modules\ModulePackageRegistry;
 use App\Core\Extensions\Plugins\PluginAbility;
@@ -288,7 +289,11 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
 
         foreach ($this->shippedInstances() as $instance) {
             foreach ($instance->module->abilities as $ability) {
-                $name = "{$instance->subCore->key}.{$instance->module->key}.{$ability->ability}";
+                $name = PermissionNaming::pluginPermission(
+                    $instance->subCore->key,
+                    $instance->module->key,
+                    $ability->ability,
+                );
                 $permissions[$name] = new ModulePermissionDescriptor(
                     $name,
                     $instance->subCore->key,

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Core\Access\PermissionGrantReporter;
 use App\Exceptions\AuthorizationLifecycleException;
 use App\Services\AuthorizationIntegrityChecker;
 use Illuminate\Console\Command;
@@ -13,8 +14,10 @@ class AuthorizationCheck extends Command
 
     protected $description = 'Read-only verification of authorization integrity';
 
-    public function handle(AuthorizationIntegrityChecker $checker): int
-    {
+    public function handle(
+        AuthorizationIntegrityChecker $checker,
+        PermissionGrantReporter $grants,
+    ): int {
         try {
             $result = $checker->check();
         } catch (AuthorizationLifecycleException $exception) {
@@ -31,9 +34,14 @@ class AuthorizationCheck extends Command
             return self::FAILURE;
         }
 
+        $snapshot = $grants->snapshot();
+
         $this->components->info('Authorization schema: ok');
         $this->components->info(
             "Permission matrix: ok ({$result['permissions']} permissions)",
+        );
+        $this->components->info(
+            "Grant counts: ok (roles={$snapshot['role_grants']}, direct={$snapshot['direct_grants']}, sources={$snapshot['permission_sources']})",
         );
         $this->components->info(
             "Directory mappings: ok ({$result['immutable_mappings']} immutable)",

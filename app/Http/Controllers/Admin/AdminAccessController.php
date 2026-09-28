@@ -348,6 +348,7 @@ class AdminAccessController extends Controller
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'group' => ['nullable', 'string', 'max:64'],
+            'layer' => ['nullable', 'string', 'max:32'],
         ]);
 
         $query = Permission::query()
@@ -371,6 +372,13 @@ class AdminAccessController extends Controller
         }
 
         $allMatching = $query->orderBy('name')->get();
+
+        if (isset($filters['layer']) && $filters['layer'] !== '') {
+            $layer = $filters['layer'];
+            $allMatching = $allMatching->filter(
+                fn (Permission $permission): bool => PermissionDescriptions::layer($permission->name) === $layer,
+            )->values();
+        }
 
         if (isset($filters['group']) && $filters['group'] !== '') {
             $group = $filters['group'];
@@ -399,6 +407,7 @@ class AdminAccessController extends Controller
             'activeTab' => 'permissions',
             'permissions' => $permissions,
             'filters' => $filters,
+            'layers' => PermissionDescriptions::layersFor($profile->permissions()),
             'groups' => PermissionDescriptions::groupsFor($profile->permissions()),
         ]);
     }

@@ -2,8 +2,13 @@
 
 namespace App\Support;
 
+use App\Core\Access\PermissionNaming;
+
 /**
  * Human-readable titles and descriptions for code-owned permission keys.
+ *
+ * Catalogue `group` stays for finer labels (Accounts, Directory, …). Structure
+ * layer (Core / Module / Plugin) comes from {@see PermissionNaming} (#292).
  */
 final class PermissionDescriptions
 {
@@ -108,6 +113,11 @@ final class PermissionDescriptions
         return 'Other';
     }
 
+    public static function layer(string $permission): string
+    {
+        return PermissionNaming::layer($permission);
+    }
+
     /**
      * @return array<int, string>
      */
@@ -120,7 +130,9 @@ final class PermissionDescriptions
 
         $matches = [];
         foreach (self::CATALOGUE as $key => $meta) {
-            $haystack = strtolower($key.' '.$meta['title'].' '.$meta['description'].' '.$meta['group']);
+            $haystack = strtolower(
+                $key.' '.$meta['title'].' '.$meta['description'].' '.$meta['group'].' '.self::layer($key),
+            );
             if (str_contains($haystack, $needle)) {
                 $matches[] = $key;
             }
@@ -130,6 +142,8 @@ final class PermissionDescriptions
     }
 
     /**
+     * Catalogue subgroup labels (Accounts, Directory, plugin pair headlines).
+     *
      * @return array<int, string>
      */
     public static function groupsFor(iterable $permissionNames): array
@@ -146,7 +160,17 @@ final class PermissionDescriptions
     }
 
     /**
-     * @return array{title: string, description: string, group: string}
+     * Structure layers for Access UI filters (#292).
+     *
+     * @return array<int, string>
+     */
+    public static function layersFor(iterable $permissionNames): array
+    {
+        return PermissionNaming::layersFor($permissionNames);
+    }
+
+    /**
+     * @return array{title: string, description: string, group: string, layer: string}
      */
     public static function meta(string $permission): array
     {
@@ -154,6 +178,7 @@ final class PermissionDescriptions
             'title' => self::title($permission),
             'description' => self::description($permission),
             'group' => self::group($permission),
+            'layer' => self::layer($permission),
         ];
     }
 
