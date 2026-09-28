@@ -6,7 +6,6 @@ use App\Core\Extensions\Modules\ModulePackageRegistry;
 use App\Core\Extensions\Plugins\PluginRegistry;
 use App\Core\Extensions\Plugins\PluginSettingsSchema;
 use App\Modules\ModuleSettingsDescriptor;
-use App\Support\ModuleSettingsDefaults;
 use InvalidArgumentException;
 
 /**
@@ -103,6 +102,8 @@ final class ModuleSettingsRegistry
     }
 
     /**
+     * Resolve settings defaults from the owning module package (#284).
+     *
      * @return array<string, mixed>|null
      */
     public function defaults(string $subCoreKey, string $moduleKey): ?array
@@ -111,12 +112,19 @@ final class ModuleSettingsRegistry
             return null;
         }
 
-        return match ($moduleKey) {
-            'tickets' => $subCoreKey === 'apes-cic' ? ModuleSettingsDefaults::ticketsForApesCic() : null,
-            'cases' => $subCoreKey === 'apes-cic' ? ModuleSettingsDefaults::casesForApesCic() : null,
-            'recruitment' => $subCoreKey === 'apes-cic' ? ModuleSettingsDefaults::recruitmentForApesCic() : null,
-            default => throw new InvalidArgumentException("No defaults for configurable module [{$moduleKey}]."),
-        };
+        if (! $this->modules->has($subCoreKey)) {
+            return null;
+        }
+
+        $defaults = $this->modules->module($subCoreKey)->defaultsFor($moduleKey);
+
+        if ($defaults === null) {
+            throw new InvalidArgumentException(
+                "No defaults for configurable plugin [{$moduleKey}] on module [{$subCoreKey}].",
+            );
+        }
+
+        return $defaults;
     }
 
     private function toDescriptor(

@@ -262,6 +262,12 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
     }
 
     /**
+     * Build enablement dependencies from the plugin manifest (#284–#286).
+     *
+     * Only shipped module×plugin cells carry deps. PluginDependency::onlyModules
+     * keeps historical narrower deps (Cases → Pet Profiles under shelter-rescue
+     * only; APES CIC cases do not).
+     *
      * @return list<ModuleDependency>
      */
     private function instanceDependencies(
@@ -269,17 +275,27 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
         string $moduleKey,
         PluginRegistry $plugins,
     ): array {
-        // Preserve historical per-enablement deps that are narrower than the
-        // plugin-level dependency graph (apes-cic cases do not need pet-profiles).
-        return match ("{$subCoreKey}:{$moduleKey}") {
-            'shelter-rescue:cases' => [
-                new ModuleDependency('shelter-rescue', 'pet-profiles'),
-            ],
-            'pet-care-clinic:consultations' => [
-                new ModuleDependency('pet-care-clinic', 'pet-profiles'),
-            ],
-            default => [],
-        };
+        if (! $plugins->has($moduleKey)) {
+            return [];
+        }
+
+        $plugin = $plugins->plugin($moduleKey);
+
+        if (! $plugin->isShippedFor($subCoreKey)) {
+            return [];
+        }
+
+        $dependencies = [];
+
+        foreach ($plugin->dependencies as $dependency) {
+            if (! $dependency->appliesTo($subCoreKey)) {
+                continue;
+            }
+
+            $dependencies[] = new ModuleDependency($subCoreKey, $dependency->pluginSlug);
+        }
+
+        return $dependencies;
     }
 
     /** @return array<string, ModulePermissionDescriptor> */

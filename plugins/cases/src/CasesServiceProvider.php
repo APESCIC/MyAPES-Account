@@ -3,6 +3,7 @@
 namespace Plugins\Cases;
 
 use App\Core\Extensions\Plugins\PluginAbilityFactory;
+use App\Core\Extensions\Plugins\PluginDependency;
 use App\Core\Extensions\Plugins\PluginManifest;
 use App\Core\Extensions\Plugins\PluginNavigationItem;
 use App\Core\Extensions\Plugins\PluginServiceProvider;
@@ -48,8 +49,10 @@ class CasesServiceProvider extends PluginServiceProvider
                 $a::staff('close', 'Close cases'),
                 $a::staffDelete('delete', 'Delete cases'),
             ],
-            // Per-module deps (shelter-rescue → pet-profiles) stay in the matrix builder;
-            // apes-cic cases do not require pet-profiles.
+            // Shelter cases need Pet Profiles; APES CIC cases do not (#286).
+            dependencies: [
+                new PluginDependency('pet-profiles', onlyModules: ['shelter-rescue']),
+            ],
             navigation: [
                 new PluginNavigationItem('Cases', 'apes-cic.cases.index', 'briefcase-business', 20, moduleSlug: 'apes-cic'),
                 new PluginNavigationItem('Cases', 'shelter.cases.index', 'house', 30, moduleSlug: 'shelter-rescue'),
