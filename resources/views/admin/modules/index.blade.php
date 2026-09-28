@@ -9,89 +9,83 @@
         <div>
             <p class="eyebrow">First-party capability registry</p>
             <h1>Admin plugins</h1>
-            <p>Review shipped code, dependencies and guarded installation state across every permanent Service.</p>
+            <p>Each plugin lists version, compatible modules, dependencies, and per-module enablement toggles. Settings links stay on each enablement.</p>
         </div>
     </header>
 
     <div class="module-registry" role="region" aria-label="Plugin compatibility and lifecycle registry">
-        @foreach($subCores as $subCore)
+        @foreach($plugins as $pluginRow)
             @php
-                $shippedRows = [];
-                $unavailableChips = [];
-
-                foreach ($modules as $module) {
-                    $cell = $cells[$subCore->key.':'.$module->key];
-                    $definition = $cell['definition'];
-
-                    if ($definition->isShipped()) {
-                        $shippedRows[] = [
-                            'module' => $module,
-                            'cell' => $cell,
-                            'definition' => $definition,
-                        ];
-                    } else {
-                        $unavailableChips[] = [
-                            'module' => $module,
-                            'definition' => $definition,
-                        ];
-                    }
-                }
+                $pluginDef = $pluginRow['definition'];
+                $compatible = implode(', ', $pluginRow['compatible_modules']);
+                $pluginDeps = $pluginRow['dependencies'] === []
+                    ? 'None'
+                    : implode(', ', $pluginRow['dependencies']);
             @endphp
-
-            <section class="module-registry__subcore" aria-labelledby="module-subcore-{{ $subCore->key }}">
+            <section class="module-registry__subcore" aria-labelledby="plugin-{{ $pluginDef->key }}">
                 <header class="module-registry__subcore-header">
-                    <h2 id="module-subcore-{{ $subCore->key }}">{{ $subCore->name }}</h2>
-                    <p class="module-registry__subcore-key"><code>{{ $subCore->key }}</code></p>
+                    <h2 id="plugin-{{ $pluginDef->key }}">{{ $pluginDef->name }}</h2>
+                    <p class="module-registry__subcore-key">
+                        <code>{{ $pluginDef->key }}</code>
+                        · v{{ $pluginRow['manifest_version'] }}
+                        · Compatible: {{ $compatible }}
+                        · Depends on: {{ $pluginDeps }}
+                    </p>
+                    <p class="muted">{{ $pluginDef->description }}</p>
                 </header>
 
-                @if($shippedRows !== [])
-                    <ul class="module-registry__rows">
-                        @foreach($shippedRows as $row)
-                            @php
-                                $module = $row['module'];
-                                $cell = $row['cell'];
-                                $definition = $row['definition'];
-                                $installation = $cell['installation'];
-                                $status = $definition->codeStatus;
-                                $action = $installation === null
-                                    ? 'install'
-                                    : ($installation->enabled ? 'disable' : 'enable');
-                                $stateClass = $installation === null
+                <ul class="module-registry__rows">
+                    @foreach($pluginRow['cells'] as $cell)
+                        @php
+                            $subCore = $cell['sub_core'];
+                            $definition = $cell['definition'];
+                            $installation = $cell['installation'];
+                            $status = $definition->codeStatus;
+                            $shipped = $definition->isShipped();
+                            $action = $installation === null
+                                ? 'install'
+                                : ($installation->enabled ? 'disable' : 'enable');
+                            $stateClass = ! $shipped
+                                ? $status->value
+                                : ($installation === null
                                     ? $status->value
-                                    : ($installation->enabled ? 'enabled' : 'disabled');
-                                $stateLabel = $installation
+                                    : ($installation->enabled ? 'enabled' : 'disabled'));
+                            $stateLabel = ! $shipped
+                                ? $status->label()
+                                : ($installation
                                     ? ($installation->enabled ? 'Enabled' : 'Disabled')
-                                    : 'Available';
-                                $dependencySummary = collect($cell['dependencies'])
-                                    ->map(fn (array $dependency): string => $dependency['key'].' ('.($dependency['enabled'] ? 'Enabled' : 'Unavailable').')')
-                                    ->implode(', ');
-                                if ($dependencySummary === '') {
-                                    $dependencySummary = 'None';
-                                }
-                                $transitionLabel = $cell['transition_at']?->format('Y-m-d H:i') ?? 'Release default';
-                                $actorLabel = $cell['actor_id'] ?? 'System';
-                                $settingsDescriptor = $cell['settings'];
-                                $supportsSettings = $settingsDescriptor->supportsSettings;
-                                $recordCount = (int) $cell['active_record_count'];
-                                $depsLabel = $dependencySummary === 'None' ? 'None' : $dependencySummary;
-                            @endphp
+                                    : 'Available');
+                            $dependencySummary = collect($cell['dependencies'])
+                                ->map(fn (array $dependency): string => $dependency['key'].' ('.($dependency['enabled'] ? 'Enabled' : 'Unavailable').')')
+                                ->implode(', ');
+                            if ($dependencySummary === '') {
+                                $dependencySummary = 'None';
+                            }
+                            $transitionLabel = $cell['transition_at']?->format('Y-m-d H:i') ?? 'Release default';
+                            $actorLabel = $cell['actor_id'] ?? 'System';
+                            $settingsDescriptor = $cell['settings'];
+                            $supportsSettings = $settingsDescriptor->supportsSettings;
+                            $recordCount = (int) ($cell['active_record_count'] ?? 0);
+                            $depsLabel = $dependencySummary === 'None' ? 'None' : $dependencySummary;
+                        @endphp
 
-                            <li
-                                class="module-registry__row module-registry__row--shipped module-registry__row--{{ $stateClass }}"
-                                data-module-cell="{{ $definition->key() }}"
-                                data-code-status="{{ $status->value }}"
-                            >
-                                <div class="module-registry__status-rail" aria-hidden="true"></div>
-                                <div class="module-registry__card-body">
-                                    <div class="module-registry__row-main">
-                                        <div class="module-registry__row-title">
-                                            <span class="module-registry__module-name">{{ $module->name }}</span>
-                                            <small>v{{ $module->version }}</small>
-                                        </div>
-                                        <strong class="module-state module-state--{{ $stateClass }}">{{ $stateLabel }}</strong>
+                        <li
+                            class="module-registry__row module-registry__row--{{ $shipped ? 'shipped' : 'unavailable' }} module-registry__row--{{ $stateClass }}"
+                            data-module-cell="{{ $definition->key() }}"
+                            data-code-status="{{ $status->value }}"
+                        >
+                            <div class="module-registry__status-rail" aria-hidden="true"></div>
+                            <div class="module-registry__card-body">
+                                <div class="module-registry__row-main">
+                                    <div class="module-registry__row-title">
+                                        <span class="module-registry__module-name">{{ $subCore->name }}</span>
+                                        <small><code>{{ $subCore->key }}</code></small>
                                     </div>
+                                    <strong class="module-state module-state--{{ $stateClass }}">{{ $stateLabel }}</strong>
+                                </div>
 
-                                    <ul class="module-registry__metric-bar" aria-label="Plugin metrics">
+                                @if($shipped)
+                                    <ul class="module-registry__metric-bar" aria-label="Plugin metrics for {{ $subCore->name }}">
                                         <li>
                                             <span class="module-registry__metric-label">Records</span>
                                             <strong>{{ $recordCount }}</strong>
@@ -126,7 +120,7 @@
                                                 <summary>Manage</summary>
                                                 <form
                                                     method="post"
-                                                    action="{{ route('admin.modules.transition', [$subCore->key, $module->key]) }}"
+                                                    action="{{ route('admin.modules.transition', [$subCore->key, $pluginDef->key]) }}"
                                                     class="module-action-form"
                                                     data-module-action-form
                                                 >
@@ -150,34 +144,11 @@
                                             </details>
                                         @endcan
                                     </div>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-
-                @if($unavailableChips !== [])
-                    <div class="module-registry__unavailable">
-                        <p class="module-registry__unavailable-label muted">Not compatible with this Service</p>
-                        <ul class="module-registry__chips" aria-label="Unavailable plugin types for {{ $subCore->name }}">
-                            @foreach($unavailableChips as $chip)
-                                @php
-                                    $module = $chip['module'];
-                                    $definition = $chip['definition'];
-                                    $status = $definition->codeStatus;
-                                @endphp
-                                <li
-                                    class="module-registry__chip"
-                                    data-module-cell="{{ $definition->key() }}"
-                                    data-code-status="{{ $status->value }}"
-                                >
-                                    <strong class="module-state module-state--{{ $status->value }}">{{ $status->label() }}</strong>
-                                    <span>{{ $module->name }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+                                @endif
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
             </section>
         @endforeach
     </div>

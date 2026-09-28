@@ -9,7 +9,7 @@
         <div>
             <p class="eyebrow">Organisation areas</p>
             <h1>Admin modules</h1>
-            <p>Enable or disable entire organisation areas. Disabled modules hide from navigation and return 404 for their routes.</p>
+            <p>Enable or disable entire organisation areas. Each module lists its shipped plugins and their enablement state. Plugin toggles live on Admin → Plugins.</p>
         </div>
     </header>
 
@@ -19,6 +19,7 @@
                 $manifest = $row['manifest'];
                 $record = $row['record'];
                 $enabled = (bool) $record->enabled;
+                $plugins = $row['plugins'];
             @endphp
             <li class="module-registry__row module-registry__row--shipped module-registry__row--{{ $enabled ? 'enabled' : 'disabled' }}">
                 <div>
@@ -26,6 +27,19 @@
                     <p class="muted"><code>{{ $manifest->slug }}</code> · {{ $manifest->routePrefix }}</p>
                     <p>{{ $manifest->description }}</p>
                     <p class="muted">State: {{ $enabled ? 'Enabled' : 'Disabled' }}</p>
+                    @if($plugins !== [])
+                        <ul class="module-registry__chips" aria-label="Plugins for {{ $manifest->name }}">
+                            @foreach($plugins as $plugin)
+                                <li class="module-registry__chip">
+                                    <strong class="module-state module-state--{{ $plugin['enabled'] ? 'enabled' : 'disabled' }}">
+                                        {{ $plugin['enabled'] ? 'On' : 'Off' }}
+                                    </strong>
+                                    <span>{{ $plugin['name'] }}</span>
+                                    <code class="muted">{{ $plugin['key'] }}</code>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
                 @can('admin.modules.manage')
                     <form method="post" action="{{ route('admin.organisation-modules.transition', $manifest->slug) }}">

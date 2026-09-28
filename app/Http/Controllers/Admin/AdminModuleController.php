@@ -9,6 +9,7 @@ use App\Modules\ModuleSettingsDescriptor;
 use App\Services\AuditLogger;
 use App\Services\ModuleAdministrationCatalogue;
 use App\Services\ModuleSettingsService;
+use App\Services\PluginAdministrationCatalogue;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +19,14 @@ use Illuminate\Validation\ValidationException;
 
 class AdminModuleController extends Controller
 {
-    public function index(ModuleAdministrationCatalogue $catalogue): View
-    {
-        return view('admin.modules.index', $catalogue->matrix());
+    public function index(
+        ModuleAdministrationCatalogue $catalogue,
+        PluginAdministrationCatalogue $plugins,
+    ): View {
+        return view('admin.modules.index', [
+            ...$catalogue->matrix(),
+            ...$plugins->byPlugin(),
+        ]);
     }
 
     public function editSettings(

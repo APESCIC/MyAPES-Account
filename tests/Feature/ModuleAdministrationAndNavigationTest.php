@@ -125,8 +125,7 @@ class ModuleAdministrationAndNavigationTest extends TestCase
         $response->assertSee('module-registry__subcore', false);
         $response->assertSee('module-registry__row--shipped', false);
         $response->assertSee('module-registry__rows', false);
-        $response->assertSee('module-registry__chip', false);
-        $response->assertSeeText('Not compatible with this Service');
+        $response->assertSee('Compatible:', false);
         $response->assertSee(route('admin.modules.settings.edit', ['apes-cic', 'tickets']));
         $response->assertSeeText('Settings');
         $this->assertSame(

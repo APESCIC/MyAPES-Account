@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Runtime enablement row for an organisation-area module (#283).
  *
- * Distinct from plugin enablement (`module_installations`).
+ * Distinct from plugin enablement (`module_plugins`).
  */
 class OrganisationModule extends Model
 {

@@ -31,7 +31,7 @@ class ApesCicModuleFoundationTest extends TestCase
             'sub_category',
             'affected_website_key',
         ]));
-        $this->assertTrue(Schema::hasTable('module_settings'));
+        $this->assertTrue(Schema::hasTable('module_plugin_settings'));
         $this->assertTrue(Schema::hasTable('support_attachments'));
         $this->assertTrue(Schema::hasColumns('case_updates', [
             'id',

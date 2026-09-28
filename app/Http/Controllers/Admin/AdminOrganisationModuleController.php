@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Core\Extensions\Models\OrganisationModule;
 use App\Core\Extensions\Modules\ModulePackageRegistry;
+use App\Core\Extensions\Plugins\PluginEnablement;
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogger;
+use App\Services\ModuleAdministrationCatalogue;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,8 +20,12 @@ use Illuminate\Http\Request;
  */
 class AdminOrganisationModuleController extends Controller
 {
-    public function index(ModulePackageRegistry $modules): View
-    {
+    public function index(
+        ModulePackageRegistry $modules,
+        ModuleAdministrationCatalogue $catalogue,
+        PluginEnablement $enablement,
+    ): View {
+        $matrix = $catalogue->matrix();
         $rows = [];
 
         foreach ($modules->modules() as $manifest) {
@@ -31,9 +37,24 @@ class AdminOrganisationModuleController extends Controller
                 ],
             );
 
+            $pluginSummaries = [];
+            foreach ($matrix['modules'] as $pluginDef) {
+                $cell = $matrix['cells'][$manifest->slug.':'.$pluginDef->key] ?? null;
+                if ($cell === null || ! $cell['definition']->isShipped()) {
+                    continue;
+                }
+
+                $pluginSummaries[] = [
+                    'key' => $pluginDef->key,
+                    'name' => $pluginDef->name,
+                    'enabled' => $enablement->isEnabled($manifest->slug, $pluginDef->key),
+                ];
+            }
+
             $rows[] = [
                 'manifest' => $manifest,
                 'record' => $row,
+                'plugins' => $pluginSummaries,
             ];
         }
 

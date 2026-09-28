@@ -34,7 +34,7 @@ class ModuleInstallationSynchronizer
                 $created = 0;
                 $existing = 0;
                 $now = now();
-                $states = DB::table('module_installations')
+                $states = DB::table('module_plugins')
                     ->orderBy('sub_core_key')
                     ->orderBy('module_key')
                     ->lockForUpdate()
@@ -57,7 +57,7 @@ class ModuleInstallationSynchronizer
                         ->every(
                             static fn (string $dependency): bool => ($states[$dependency] ?? false) === true,
                         );
-                    $inserted = DB::table('module_installations')->insertOrIgnore([
+                    $inserted = DB::table('module_plugins')->insertOrIgnore([
                         'sub_core_key' => $instance->subCore->key,
                         'module_key' => $instance->module->key,
                         'enabled' => $enabled,
@@ -78,7 +78,7 @@ class ModuleInstallationSynchronizer
                     } else {
                         $existing++;
                         $states[$instance->key()] = (bool) DB::table(
-                            'module_installations',
+                            'module_plugins',
                         )
                             ->where('sub_core_key', $instance->subCore->key)
                             ->where('module_key', $instance->module->key)

@@ -119,7 +119,7 @@ class PluginSettingsRegistryTest extends TestCase
 
     public function test_super_admin_can_view_and_save_recruitment_settings(): void
     {
-        $this->assertDatabaseHas('module_settings', [
+        $this->assertDatabaseHas('module_plugin_settings', [
             'sub_core_key' => 'apes-cic',
             'module_key' => 'recruitment',
         ]);

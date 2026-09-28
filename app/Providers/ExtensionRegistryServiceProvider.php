@@ -9,6 +9,7 @@ use App\Core\Extensions\Modules\ModuleContext;
 use App\Core\Extensions\Modules\ModulePackageRegistry;
 use App\Core\Extensions\Navigation\PublicNavigationRegistry;
 use App\Core\Extensions\Navigation\StaffPluginNavigationRegistry;
+use App\Core\Extensions\Plugins\PluginEnablement;
 use App\Core\Extensions\Plugins\PluginRegistry;
 use App\Modules\FirstPartyModuleRegistry;
 use App\Services\AuthorizationProfile;
@@ -41,6 +42,7 @@ class ExtensionRegistryServiceProvider extends ServiceProvider
             ModuleLifecycleManager::class,
             DatabaseModuleLifecycleManager::class,
         );
+        $this->app->singleton(PluginEnablement::class);
         $this->app->bind(
             ModuleNavigationProvider::class,
             RegistryModuleNavigationProvider::class,

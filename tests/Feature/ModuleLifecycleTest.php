@@ -126,7 +126,7 @@ class ModuleLifecycleTest extends TestCase
             }
         }
 
-        $this->assertDatabaseCount('module_installations', 9);
+        $this->assertDatabaseCount('module_plugins', 9);
     }
 
     public function test_install_recreates_an_available_shipped_instance_with_actor_provenance(): void
@@ -169,7 +169,7 @@ class ModuleLifecycleTest extends TestCase
             $this->assertSame('transition_failed', $exception->reason);
         }
 
-        $this->assertDatabaseMissing('module_installations', [
+        $this->assertDatabaseMissing('module_plugins', [
             'sub_core_key' => 'apes-cic',
             'module_key' => 'tickets',
         ]);

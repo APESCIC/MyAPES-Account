@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureAccountReady;
 use App\Http\Middleware\EnsureAuthorizationContext;
 use App\Http\Middleware\EnsureMaintenanceRecoveryAccess;
 use App\Http\Middleware\EnsureModuleAvailable;
+use App\Http\Middleware\EnsurePluginEnabled;
 use App\Http\Middleware\EnsureServiceSelected;
 use App\Http\Middleware\RevalidateDirectoryAccess;
 use App\Services\MaintenanceResponseFactory;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'authorization.context' => EnsureAuthorizationContext::class,
             'directory.current' => RevalidateDirectoryAccess::class,
             'module.available' => EnsureModuleAvailable::class,
+            'plugin.enabled' => EnsurePluginEnabled::class,
             'maintenance.recovery' => EnsureMaintenanceRecoveryAccess::class,
             'account.ready' => EnsureAccountReady::class,
             'service.selected' => EnsureServiceSelected::class,

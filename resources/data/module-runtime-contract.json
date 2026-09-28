@@ -25,6 +25,26 @@
     "recruitment",
     "tickets"
   ],
+  "enablements": {
+    "shipped": [
+      "apes-cic:cases",
+      "apes-cic:recruitment",
+      "apes-cic:tickets",
+      "pet-care-clinic:consultations",
+      "pet-care-clinic:pet-profiles",
+      "pet-care-clinic:tickets",
+      "shelter-rescue:cases",
+      "shelter-rescue:pet-profiles",
+      "shelter-rescue:tickets"
+    ],
+    "legacy_visible": [
+      "apes-cic:tickets",
+      "pet-care-clinic:consultations",
+      "pet-care-clinic:pet-profiles",
+      "shelter-rescue:cases",
+      "shelter-rescue:pet-profiles"
+    ]
+  },
   "shipped_instances": [
     "apes-cic:cases",
     "apes-cic:recruitment",

@@ -144,7 +144,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
     public function test_v0131_target_rejects_the_synchronized_post_v0131_installations_without_mutating_state(): void
     {
         $target = $this->v0131Release();
-        $before = DB::table('module_installations')->orderBy('id')->get();
+        $before = DB::table('module_plugins')->orderBy('id')->get();
         $beforeInstances = ModuleInstallation::query()
             ->orderBy('sub_core_key')
             ->orderBy('module_key')
@@ -174,7 +174,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
         $this->assertEquals(
             $before,
-            DB::table('module_installations')->orderBy('id')->get(),
+            DB::table('module_plugins')->orderBy('id')->get(),
         );
 
         $this->artisan('myapes:modules:rollback-check', [
@@ -187,7 +187,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
         $this->assertEquals(
             $before,
-            DB::table('module_installations')->orderBy('id')->get(),
+            DB::table('module_plugins')->orderBy('id')->get(),
         );
         $this->assertSame(
             $beforeInstances,
@@ -212,7 +212,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             'enabled' => false,
             'disabled_at' => now(),
         ])->save();
-        $before = DB::table('module_installations')->orderBy('id')->get();
+        $before = DB::table('module_plugins')->orderBy('id')->get();
 
         try {
             app(ModuleRollbackCompatibilityChecker::class)->check($target);
@@ -223,7 +223,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
         $this->assertEquals(
             $before,
-            DB::table('module_installations')->orderBy('id')->get(),
+            DB::table('module_plugins')->orderBy('id')->get(),
         );
 
         $this->artisan('myapes:modules:rollback-check', [
@@ -236,7 +236,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
 
         $this->assertEquals(
             $before,
-            DB::table('module_installations')->orderBy('id')->get(),
+            DB::table('module_plugins')->orderBy('id')->get(),
         );
         $this->assertFalse($petCareTickets->refresh()->enabled);
         $this->assertNotNull($petCareTickets->disabled_at);

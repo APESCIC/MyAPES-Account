@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Per-module plugin enablement row (#288).
+ *
+ * Stored in `module_plugins`. Legacy column names `sub_core_key` / `module_key`
+ * remain; use {@see module()} / {@see plugin()} for Structure vocabulary.
+ */
 #[Fillable([
     'sub_core_key',
     'module_key',
@@ -21,6 +27,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class ModuleInstallation extends Model
 {
+    protected $table = 'module_plugins';
+
     protected function casts(): array
     {
         return [
@@ -30,6 +38,16 @@ class ModuleInstallation extends Model
             'enabled_at' => 'datetime',
             'disabled_at' => 'datetime',
         ];
+    }
+
+    public function module(): string
+    {
+        return (string) $this->sub_core_key;
+    }
+
+    public function plugin(): string
+    {
+        return (string) $this->module_key;
     }
 
     public function instanceKey(): string

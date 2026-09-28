@@ -7,6 +7,7 @@ use App\Core\Accounts\DirectoryGroup;
 use App\Core\Accounts\DirectoryGroupRoleMapping;
 use App\Core\Accounts\Permission;
 use App\Core\Accounts\Role;
+use App\Core\Extensions\Plugins\PluginEnablement;
 use App\Http\Controllers\Controller;
 use App\Jobs\RunDirectorySync;
 use App\Services\AuditLogger;
@@ -467,9 +468,12 @@ class AdminAccessController extends Controller
      */
     private function assignablePermissionNames(AuthorizationProfile $profile): array
     {
+        $enablement = app(PluginEnablement::class);
+
         return array_values(array_filter(
             $profile->permissions(),
-            fn (string $permission): bool => ! $profile->isSuperAdminOnlyPermission($permission),
+            fn (string $permission): bool => ! $profile->isSuperAdminOnlyPermission($permission)
+                && $enablement->isOfferedInAccessEditors($permission),
         ));
     }
 }
