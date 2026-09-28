@@ -9,6 +9,7 @@ use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Support\AuthorizationCompatibilityDatabaseGuard;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -124,6 +125,44 @@ class StructureLayoutMorphMapTest extends TestCase
         ]);
     }
 
+    public function test_morph_rewrite_migration_updates_provenanced_role_pivots(): void
+    {
+        $user = User::factory()->create([
+            'legacy_access_level' => 'staff',
+        ]);
+
+        $this->assertDatabaseHas('model_has_roles', [
+            'model_id' => $user->id,
+            'model_type' => 'user',
+        ]);
+        $this->assertTrue(
+            DB::table('role_sources')->where('user_id', $user->id)->exists(),
+        );
+
+        $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
+        $guard->drop();
+
+        DB::table('model_has_roles')
+            ->where('model_id', $user->id)
+            ->update(['model_type' => User::class]);
+
+        $guard->install();
+        $this->rewriteUserMorphExpressionInTriggersToLegacyFqcn();
+
+        // Live Cloudron failure mode: UPDATE of provenanced model_type is blocked
+        // unless auth triggers are dropped for the rewrite window (#302).
+        $migration = require database_path(
+            'migrations/2026_07_28_000200_rewrite_morph_type_fqcns_to_aliases.php',
+        );
+        $migration->up();
+
+        $this->assertDatabaseHas('model_has_roles', [
+            'model_id' => $user->id,
+            'model_type' => 'user',
+        ]);
+        $this->assertTrue($guard->isInstalled());
+    }
+
     public function test_structure_package_skeletons_exist(): void
     {
         $this->assertTrue(File::isDirectory(base_path('app/Core')));
@@ -153,6 +192,54 @@ class StructureLayoutMorphMapTest extends TestCase
             foreach ($replacements as $from => $to) {
                 DB::table($table)->where($column, $from)->update([$column => $to]);
             }
+        }
+    }
+
+    private function rewriteUserMorphExpressionInTriggersToLegacyFqcn(): void
+    {
+        $current = 'CHAR(117, 115, 101, 114)';
+        $legacy = 'CHAR(65, 112, 112, 92, 77, 111, 100, 101, 108, 115, 92, 85, 115, 101, 114)';
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $triggers = DB::table('sqlite_master')
+                ->where('type', 'trigger')
+                ->where('sql', 'like', '%'.$current.'%')
+                ->get(['name', 'sql']);
+
+            foreach ($triggers as $trigger) {
+                DB::unprepared('DROP TRIGGER '.((string) $trigger->name));
+                DB::unprepared(str_replace($current, $legacy, (string) $trigger->sql));
+            }
+
+            return;
+        }
+
+        $triggers = collect(DB::select(
+            'SELECT trigger_name AS name,
+                    event_object_table AS table_name,
+                    action_timing AS timing,
+                    event_manipulation AS event_name,
+                    action_statement AS definition
+             FROM information_schema.triggers
+             WHERE trigger_schema = DATABASE()
+               AND action_statement LIKE ?',
+            ['%'.$current.'%'],
+        ));
+
+        foreach ($triggers as $trigger) {
+            $name = (string) $trigger->name;
+            DB::unprepared("DROP TRIGGER {$name}");
+            DB::unprepared(
+                "CREATE TRIGGER {$name}
+                 {$trigger->timing} {$trigger->event_name}
+                 ON {$trigger->table_name}
+                 FOR EACH ROW ".str_replace(
+                    $current,
+                    $legacy,
+                    (string) $trigger->definition,
+                ),
+            );
         }
     }
 }
