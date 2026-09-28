@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Access\PermissionNaming;
 use App\Core\Accounts\Permission;
 use App\Core\Accounts\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -24,6 +25,8 @@ class ApplicationAuthorizationGate
         if ($user->suspended_at !== null) {
             return false;
         }
+
+        $ability = PermissionNaming::resolve($ability);
 
         if (! $this->profile->isApplicationPermission($ability)) {
             return null;

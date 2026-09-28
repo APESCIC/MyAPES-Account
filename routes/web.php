@@ -277,7 +277,7 @@ Route::middleware([
             });
         Route::middleware(['plugin.enabled:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
             ->group(function (): void {
-                Route::get('pet-profiles', static fn () => redirect()->route('shelter.pets.index'))
+                Route::get('pet-profiles', static fn () => redirect()->route('shelter.pets.index', [], 301))
                     ->name('pet-profiles');
                 Route::get('pets/{pet}/photo', [ShelterPetProfileController::class, 'photo'])
                     ->defaults('subCoreKey', 'shelter-rescue')
@@ -325,7 +325,7 @@ Route::middleware([
             });
         Route::middleware(['plugin.enabled:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
-                Route::get('pet-profiles', static fn () => redirect()->route('petcare.pets.index'))
+                Route::get('pet-profiles', static fn () => redirect()->route('petcare.pets.index', [], 301))
                     ->name('pet-profiles');
                 Route::get('pets/{pet}/photo', [PetCarePetProfileController::class, 'photo'])
                     ->defaults('subCoreKey', 'pet-care-clinic')
@@ -347,17 +347,17 @@ Route::middleware([
         ->name('superadmin.')
         ->middleware('admin.denial-audit')
         ->group(function (): void {
-            // Legacy Super Admin shell URLs collapse into the unified Admin area (#252).
-            Route::get('/', fn () => redirect()->route('admin.index', request()->query()))
+            // Legacy Super Admin shell URLs collapse into the unified Admin area (#252 / #293 → 301).
+            Route::get('/', fn () => redirect()->route('admin.index', request()->query(), 301))
                 ->middleware('can:superadmin.access')
                 ->name('index');
-            Route::get('/groups', fn () => redirect()->route('admin.groups.index'))
+            Route::get('/groups', fn () => redirect()->route('admin.groups.index', [], 301))
                 ->middleware('can:admin.groups.view')
                 ->name('groups');
-            Route::get('/plugins', fn () => redirect()->route('admin.modules.index'))
+            Route::get('/plugins', fn () => redirect()->route('admin.modules.index', [], 301))
                 ->middleware('can:admin.modules.view')
                 ->name('plugins');
-            Route::get('/modules', fn () => redirect()->route('admin.modules.index'))
+            Route::get('/modules', fn () => redirect()->route('admin.modules.index', [], 301))
                 ->middleware('can:admin.modules.view')
                 ->name('modules');
         });
@@ -425,19 +425,19 @@ Route::middleware([
                 ->middleware('can:admin.roles.manage')
                 ->name('access.job-roles.destroy');
 
-            Route::get('/groups', fn () => redirect()->route('admin.access.index', ['tab' => 'groups']))
+            Route::get('/groups', fn () => redirect()->route('admin.access.index', ['tab' => 'groups'], 301))
                 ->middleware('can:admin.groups.view')
                 ->name('groups.index');
             Route::get('/groups/{directoryGroup}', [AdminGroupController::class, 'show'])
                 ->middleware('can:admin.groups.view')
                 ->name('groups.show');
-            Route::get('/roles', fn () => redirect()->route('admin.access.index', ['tab' => 'job-roles']))
+            Route::get('/roles', fn () => redirect()->route('admin.access.index', ['tab' => 'job-roles'], 301))
                 ->middleware('can:admin.roles.view')
                 ->name('roles.index');
-            Route::get('/roles/{role}', fn (string $role) => redirect()->route('admin.access.job-roles.show', $role))
+            Route::get('/roles/{role}', fn (string $role) => redirect()->route('admin.access.job-roles.show', $role, 301))
                 ->middleware('can:admin.roles.view')
                 ->name('roles.show');
-            Route::get('/permissions', fn () => redirect()->route('admin.access.index', ['tab' => 'permissions']))
+            Route::get('/permissions', fn () => redirect()->route('admin.access.index', ['tab' => 'permissions'], 301))
                 ->middleware('can:admin.permissions.view')
                 ->name('permissions.index');
 

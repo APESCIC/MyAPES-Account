@@ -112,17 +112,22 @@ Examples: `modules/apes-cic` → `Modules\ApesCic`, `plugins/pet-profiles` → `
 
 ## Permissions
 
-Stored names stay. See [ADR 0001](adr/0001-core-modules-plugins.md) for the full rule.
+Stored names stay. See [ADR 0001](adr/0001-core-modules-plugins.md). Enforced in code by `App\Core\Access\PermissionNaming` ([#292](https://github.com/APESCIC/MyAPES-Account/issues/292)).
 
-- Plugin abilities are already `{module}.{plugin}.{ability}` (the old `{subCore}.{module}.{ability}`). Example: `apes-cic.recruitment.review-applications`. Leave them.
-- Core abilities stay `admin.*` and `superadmin.access`. Do not rename them to `core.*` in this epic.
-- There is no module-only permission and no `plugin.*` global permission today. Do not add a second name for an ability that already exists.
+| Layer | Pattern | Status |
+| --- | --- | --- |
+| Core | `admin.*`, `superadmin.access`, `staff.access`, `volunteer.access`, `student.access` | **Keep.** Do not rename to `core.*` in this epic. |
+| Plugin in a module | `{module}.{plugin}.{ability}` | **Keep.** Example: `apes-cic.recruitment.review-applications`. Built via `PermissionNaming::pluginPermission()`. |
+| Module-only | `{module}.{ability}` | Reserved. None exist today. |
+| Plugin global | `plugin.{plugin}.{ability}` | Not used. Do not invent a second name for module-scoped abilities. |
 
-A rename, if one is ever required, updates the `permissions` row in place so existing role, user, and group grants keep the same id ([#292](https://github.com/APESCIC/MyAPES-Account/issues/292)).
+Access → Permissions groups the catalogue by **Core / Module / Plugin**. Finer catalogue labels (Accounts, Directory, …) remain as a secondary filter.
+
+Grant preservation: `PermissionGrantMigrator` renames `permissions.name` in place (same id) when an alias map is populated; `PermissionGrantReporter` snapshots role/direct/source grant counts and is printed by `myapes:authorization-check`. The alias map is empty while ADR prefers zero renames.
 
 ## URLs
 
-Live URLs stay. Packages may own the route files later; the URI and the route name do not change unless [#293](https://github.com/APESCIC/MyAPES-Account/issues/293) adds a 301 from the old URL.
+Live URLs stay. Documented and tabled in `App\Core\Http\LegacyRedirectTable` ([#293](https://github.com/APESCIC/MyAPES-Account/issues/293)).
 
 | Kind | Pattern today | Decision |
 | --- | --- | --- |
@@ -131,7 +136,9 @@ Live URLs stay. Packages may own the route files later; the URI and the route na
 | Plugin inside a module | `/{prefix}/tickets`, `/cases`, `/pets`, `/consultations`, `/apes-cic/recruitment` | Keep. `/pets` stays the pet-profiles path |
 | Public plugin | `/recruitment`, `/recruitment/applications*` | Keep. No module prefix |
 | Admin plugin settings | `/admin/modules/{subCoreKey}/{moduleKey}/settings` | Keep |
-| Legacy | `/superadmin/*` → Admin | Keep the redirects |
+| Legacy | `/superadmin/*`, `/admin/{groups,roles,permissions}`, `/{prefix}/pet-profiles` | **301** permanent redirects to canonical Admin / pets URLs |
+
+Placeholder rows in `LegacyRedirectTable` record paths that Waves 5–7 will move into package route files without changing the URI. A 301 is registered only when a path actually moves.
 
 ## What is out of this document
 
