@@ -11,20 +11,22 @@ use App\Core\Extensions\Plugins\PluginManifest;
 use App\Core\Extensions\Plugins\PluginNavigationItem;
 use App\Core\Extensions\Plugins\PluginServiceProvider;
 use App\Core\Extensions\Plugins\PluginSettingsSchema;
-use App\Models\RecruitmentApplication;
-use App\Models\RecruitmentRole;
-use App\Modules\Detectors\RecruitmentActiveRecordDetector;
-use App\Policies\RecruitmentApplicationPolicy;
-use App\Policies\RecruitmentRolePolicy;
 use App\Services\ModuleCatalogueProjection;
 use App\Services\ModuleSettingsService;
 use Illuminate\Support\Facades\Gate;
+use Plugins\Recruitment\Dashboard\RecruitmentActiveRecordDetector;
+use Plugins\Recruitment\Models\RecruitmentApplication;
+use Plugins\Recruitment\Models\RecruitmentRole;
+use Plugins\Recruitment\Policies\RecruitmentApplicationPolicy;
+use Plugins\Recruitment\Policies\RecruitmentRolePolicy;
 
 class RecruitmentServiceProvider extends PluginServiceProvider
 {
     public function boot(): void
     {
         parent::boot();
+
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'recruitment');
 
         Gate::policy(RecruitmentRole::class, RecruitmentRolePolicy::class);
         Gate::policy(RecruitmentApplication::class, RecruitmentApplicationPolicy::class);
@@ -71,7 +73,13 @@ class RecruitmentServiceProvider extends PluginServiceProvider
             translationNamespace: 'recruitment',
             searchKeywordsKey: 'recruitment::plugin.keywords',
             activeRecordDetector: RecruitmentActiveRecordDetector::class,
-            publicRouteFiles: [],
+            publicRouteFiles: [
+                dirname(__DIR__).'/routes/public.php',
+                dirname(__DIR__).'/routes/public-auth.php',
+            ],
+            staffRouteFiles: [
+                dirname(__DIR__).'/routes/apes-cic.php',
+            ],
         );
     }
 

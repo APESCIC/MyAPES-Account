@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Core\Accounts\User;
-use App\Models\RecruitmentApplication;
-use App\Models\RecruitmentRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Plugins\Recruitment\Models\RecruitmentApplication;
+use Plugins\Recruitment\Models\RecruitmentRole;
 
 /**
  * @extends Factory<RecruitmentApplication>

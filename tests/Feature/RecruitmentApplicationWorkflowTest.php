@@ -4,14 +4,14 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
-use App\Models\RecruitmentApplication;
-use App\Models\RecruitmentRole;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
+use Plugins\Recruitment\Models\RecruitmentApplication;
+use Plugins\Recruitment\Models\RecruitmentRole;
 use Tests\TestCase;
 
 class RecruitmentApplicationWorkflowTest extends TestCase

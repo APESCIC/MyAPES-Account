@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
-use App\Models\RecruitmentRole;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Database\Seeders\LocalQaSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\Recruitment\Models\RecruitmentRole;
 use Tests\TestCase;
 
 class PublicRecruitmentBoardTest extends TestCase

@@ -70,8 +70,8 @@ From `FirstPartyModuleRegistry` on this commit. Nine of fifteen area × feature 
 | app/Http/Controllers/Admin/StaffAdminController.php | Core | app/Core/Http/Controllers/Admin/StaffAdminController.php | Admin shell or auth. Permission middleware stays admin.* / superadmin.access. |
 | app/Http/Controllers/ApesCic/CaseController.php | Plugin:cases | plugins/cases/src/Http/Controllers/CaseController.php | APES CIC cases. Shares ShelterCase with Shelter. #289. |
 | app/Http/Controllers/ApesCic/CaseUpdateController.php | Plugin:cases | plugins/cases/src/Http/Controllers/CaseUpdateController.php | Also mounted on /shelter/cases/{case}/updates. #289. |
-| app/Http/Controllers/ApesCic/RecruitmentApplicationController.php | Plugin:recruitment | plugins/recruitment/src/Http/Controllers/RecruitmentApplicationController.php | Staff review on module apes-cic. #290. |
-| app/Http/Controllers/ApesCic/RecruitmentRoleController.php | Plugin:recruitment | plugins/recruitment/src/Http/Controllers/RecruitmentRoleController.php | Staff CRUD on module apes-cic. RecruitmentRole is not Spatie Role. #290. Moves after v0.36 staff IA. |
+| plugins/recruitment/src/Http/Controllers/RecruitmentApplicationController.php | Plugin:recruitment | (moved #290) | Staff review on module apes-cic. |
+| plugins/recruitment/src/Http/Controllers/RecruitmentRoleController.php | Plugin:recruitment | (moved #290) | Staff CRUD on module apes-cic. RecruitmentRole is not Spatie Role. |
 | app/Http/Controllers/ApesCic/TicketController.php | Plugin:tickets | plugins/tickets/src/Http/Controllers/TicketController.php | Serves /apes-cic, /shelter, and /petcare tickets, and renders apes-cic.tickets views for all three. Split the hard-coded area in #289. |
 | app/Http/Controllers/Auth/OidcAuthController.php | Core | app/Core/Http/Controllers/Auth/OidcAuthController.php | Admin shell or auth. Permission middleware stays admin.* / superadmin.access. |
 | app/Http/Controllers/Auth/PublicAuthController.php | Core | app/Core/Http/Controllers/Auth/PublicAuthController.php | Admin shell or auth. Permission middleware stays admin.* / superadmin.access. |
@@ -81,11 +81,11 @@ From `FirstPartyModuleRegistry` on this commit. Nine of fifteen area × feature 
 | app/Http/Controllers/DashboardController.php | Core | app/Core/Http/Controllers/DashboardController.php | Account, profile, dashboard, health, or change log. |
 | app/Http/Controllers/HealthController.php | Core | app/Core/Http/Controllers/HealthController.php | Account, profile, dashboard, health, or change log. |
 | app/Http/Controllers/OnboardingController.php | Core | app/Core/Http/Controllers/OnboardingController.php | Account, profile, dashboard, health, or change log. |
-| app/Http/Controllers/PetCare/ConsultationController.php | Plugin:consultations | plugins/consultations/src/Http/Controllers/ConsultationController.php | Module pet-care-clinic. Depends on pet profiles. #290. |
+| plugins/consultations/src/Http/Controllers/ConsultationController.php | Plugin:consultations | (moved #290) | Module pet-care-clinic. Depends on pet profiles. Live `/petcare/consultations*`. |
 | app/Http/Controllers/PetCare/PetProfileController.php | Plugin:pet-profiles | plugins/pet-profiles/src/Http/Controllers/PetProfileController.php | Module pet-care-clinic. Two controllers until #291 folds them behind ModuleContext. |
 | app/Http/Controllers/ProfileController.php | Core | app/Core/Http/Controllers/ProfileController.php | Account, profile, dashboard, health, or change log. |
-| app/Http/Controllers/PublicRecruitmentApplicationController.php | Plugin:recruitment | plugins/recruitment/src/Http/Controllers/PublicRecruitmentApplicationController.php | Public apply and my applications. #290. |
-| app/Http/Controllers/RecruitmentBoardController.php | Plugin:recruitment | plugins/recruitment/src/Http/Controllers/RecruitmentBoardController.php | Public /recruitment. No module prefix. Gated by apes-cic recruitment enablement. #290. |
+| plugins/recruitment/src/Http/Controllers/PublicRecruitmentApplicationController.php | Plugin:recruitment | (moved #290) | Public apply and my applications. |
+| plugins/recruitment/src/Http/Controllers/RecruitmentBoardController.php | Plugin:recruitment | (moved #290) | Public /recruitment. No module prefix. Gated by apes-cic recruitment enablement. |
 | app/Http/Controllers/Shelter/CaseController.php | Plugin:cases | plugins/cases/src/Http/Controllers/ShelterCaseController.php | Shelter cases. Reuses ApesCic CaseUpdateController. #289. |
 | app/Http/Controllers/Shelter/PetProfileController.php | Plugin:pet-profiles | plugins/pet-profiles/src/Http/Controllers/PetProfileController.php | Module shelter-rescue. Sibling of the Pet Care controller. #291. |
 | app/Http/Controllers/SubCoreController.php | Core | app/Core/Modules/ModuleHubController.php | One hub controller for all three modules (sub-cores.show). Becomes per-module hubs in #284–#286. Name is the old vocabulary. |
@@ -110,10 +110,10 @@ From `FirstPartyModuleRegistry` on this commit. Nine of fifteen area × feature 
 | app/Models/OidcLinkIntent.php | Core | app/Core/Accounts/OidcLinkIntent.php | Account, access, audit, maintenance, or consent model. Morph users before any namespace move (#281). |
 | app/Models/Permission.php | Core | app/Core/Accounts/Permission.php | Account, access, audit, maintenance, or consent model. Morph users before any namespace move (#281). |
 | app/Models/PermissionSource.php | Core | app/Core/Accounts/PermissionSource.php | Account, access, audit, maintenance, or consent model. Morph users before any namespace move (#281). |
-| app/Models/PetCareConsultation.php | Plugin:consultations | plugins/consultations/src/Models/Consultation.php | Table pet_care_consultations. #290. |
+| plugins/consultations/src/Models/PetCareConsultation.php | Plugin:consultations | (moved #290) | Table pet_care_consultations. Class name kept. |
 | app/Models/PetProfile.php | Plugin:pet-profiles | plugins/pet-profiles/src/Models/PetProfile.php | Shared by Pet Care Clinic and Shelter. #291. |
-| app/Models/RecruitmentApplication.php | Plugin:recruitment | plugins/recruitment/src/Models/RecruitmentApplication.php | #290. |
-| app/Models/RecruitmentRole.php | Plugin:recruitment | plugins/recruitment/src/Models/RecruitmentRole.php | Vacancy. Never Spatie Role. #290. |
+| plugins/recruitment/src/Models/RecruitmentApplication.php | Plugin:recruitment | (moved #290) | |
+| plugins/recruitment/src/Models/RecruitmentRole.php | Plugin:recruitment | (moved #290) | Vacancy. Never Spatie Role. |
 | app/Models/Role.php | Core | app/Core/Accounts/Role.php | Account, access, audit, maintenance, or consent model. Morph users before any namespace move (#281). |
 | app/Models/RoleSource.php | Core | app/Core/Accounts/RoleSource.php | Account, access, audit, maintenance, or consent model. Morph users before any namespace move (#281). |
 | app/Models/ShelterCase.php | Plugin:cases | plugins/cases/src/Models/CaseRecord.php | Table shelter_cases. Also stores APES CIC cases via sub_core_key. Do not rename the table for tidiness. #289. |
