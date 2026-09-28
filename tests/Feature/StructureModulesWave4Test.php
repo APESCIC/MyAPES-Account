@@ -141,9 +141,12 @@ class StructureModulesWave4Test extends TestCase
         $this->assertFileDoesNotExist(app_path('Http/Controllers/ApesCic/TicketController.php'));
         $this->assertFileDoesNotExist(app_path('Http/Controllers/Shelter/CaseController.php'));
 
-        // Wave 7 (#290) still owns Recruitment + Consultations moves.
-        $this->assertFileExists(app_path('Http/Controllers/PetCare/ConsultationController.php'));
-        $this->assertFileDoesNotExist(base_path('plugins/consultations/src/Http/Controllers/ConsultationController.php'));
+        // Wave 7 (#290): Recruitment + Consultations moved into plugins/.
+        $this->assertFileExists(base_path('plugins/consultations/src/Http/Controllers/ConsultationController.php'));
+        $this->assertFileExists(base_path('plugins/recruitment/src/Http/Controllers/RecruitmentRoleController.php'));
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/PetCare/ConsultationController.php'));
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/ApesCic/RecruitmentRoleController.php'));
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/RecruitmentBoardController.php'));
 
         // Controllers must not land inside organisation module packages.
         $this->assertFileDoesNotExist(base_path('modules/apes-cic/src/Http/Controllers/TicketController.php'));

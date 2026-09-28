@@ -4,13 +4,13 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleSetting;
-use App\Models\RecruitmentRole;
 use App\Modules\ModuleSettingsDescriptor;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleSettingsRegistry;
 use App\Services\ModuleSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\Recruitment\Models\RecruitmentRole;
 use Tests\TestCase;
 
 class PluginSettingsRegistryTest extends TestCase

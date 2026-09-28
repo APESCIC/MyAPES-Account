@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
-use App\Models\PetCareConsultation;
 use App\Modules\ModuleAttentionItem;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
@@ -12,6 +11,7 @@ use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\ViewErrorBag;
 use Plugins\Cases\Models\ShelterCase;
+use Plugins\Consultations\Models\PetCareConsultation;
 use Plugins\PetProfiles\Models\PetProfile;
 use Plugins\Tickets\Models\SupportTicket;
 use Spatie\Permission\Models\Permission;

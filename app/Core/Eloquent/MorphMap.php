@@ -12,9 +12,6 @@ use App\Core\Accounts\UserProfile;
 use App\Core\Attachments\SupportAttachment;
 use App\Core\Extensions\Models\ModuleInstallation;
 use App\Core\Maintenance\MaintenanceWindow;
-use App\Models\PetCareConsultation;
-use App\Models\RecruitmentApplication;
-use App\Models\RecruitmentRole;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
@@ -34,16 +31,16 @@ final class MorphMap
             'user' => User::class,
             'user_profile' => UserProfile::class,
             'staff_profile' => StaffProfile::class,
-            // String FQCNs keep Core free of plugin package imports (#289 / #291).
+            // String FQCNs keep Core free of plugin package imports (#289 / #290 / #291).
             'support_ticket' => 'Plugins\\Tickets\\Models\\SupportTicket',
             'support_ticket_message' => 'Plugins\\Tickets\\Models\\SupportTicketMessage',
             'support_attachment' => SupportAttachment::class,
             'case' => 'Plugins\\Cases\\Models\\ShelterCase',
             'case_update' => 'Plugins\\Cases\\Models\\CaseUpdate',
             'pet_profile' => 'Plugins\\PetProfiles\\Models\\PetProfile',
-            'consultation' => PetCareConsultation::class,
-            'recruitment_role' => RecruitmentRole::class,
-            'recruitment_application' => RecruitmentApplication::class,
+            'consultation' => 'Plugins\\Consultations\\Models\\PetCareConsultation',
+            'recruitment_role' => 'Plugins\\Recruitment\\Models\\RecruitmentRole',
+            'recruitment_application' => 'Plugins\\Recruitment\\Models\\RecruitmentApplication',
             'maintenance_window' => MaintenanceWindow::class,
             'role' => Role::class,
             'permission' => Permission::class,
