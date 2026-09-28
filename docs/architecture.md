@@ -108,7 +108,7 @@ plugins/<slug>/src/...               Plugins\<Studly>\
 plugins/<slug>/{routes,resources/views,lang,config,database/migrations,database/factories,tests}
 ```
 
-Examples: `modules/apes-cic` → `Modules\ApesCic`, `plugins/pet-profiles` → `Plugins\PetProfiles`. One service provider per module and per plugin, discovered from the registries. Core providers stay in `bootstrap/providers.php`. Module packages own `module.php` manifests (nav, hub route, live prefix, enabled flag, composed plugins, settings defaults). Plugin feature models remain under `App\Models` until Waves 5–7.
+Examples: `modules/apes-cic` → `Modules\ApesCic`, `plugins/pet-profiles` → `Plugins\PetProfiles`. One service provider per module and per plugin, discovered from the registries. Core providers stay in `bootstrap/providers.php`. Module packages own `module.php` manifests (nav, hub route, live prefix, enabled flag, composed plugins, settings defaults). Pet Profiles model/controller/views live under `plugins/pet-profiles` (#291); other plugin feature models remain under `App\Models` until Waves 6–7.
 
 ## Permissions
 

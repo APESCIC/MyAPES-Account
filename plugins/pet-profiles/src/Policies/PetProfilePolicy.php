@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Policies;
+namespace Plugins\PetProfiles\Policies;
 
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Services\ModuleState;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class PetProfilePolicy
 {

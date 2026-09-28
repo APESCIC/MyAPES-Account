@@ -14,13 +14,13 @@ use App\Core\Extensions\Models\ModuleInstallation;
 use App\Core\Maintenance\MaintenanceWindow;
 use App\Models\CaseUpdate;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Plugins\PetProfiles\Models\PetProfile;
 
 /**
  * Stable morph aliases for polymorphic columns (#281).

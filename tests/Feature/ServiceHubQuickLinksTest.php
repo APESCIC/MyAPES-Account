@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Models\SupportTicket;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\PetProfiles\Models\PetProfile;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;

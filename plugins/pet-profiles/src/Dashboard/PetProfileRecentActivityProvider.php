@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Modules\Activity;
+namespace Plugins\PetProfiles\Dashboard;
 
 use App\Contracts\ModuleRecentActivityProvider;
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Modules\ModuleInstanceDefinition;
 use App\Modules\ModuleRecentActivityItem;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class PetProfileRecentActivityProvider implements ModuleRecentActivityProvider
 {

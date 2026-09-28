@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Detectors;
+namespace Plugins\PetProfiles\Dashboard;
 
 use App\Contracts\ModuleActiveRecordDetector;
-use App\Models\PetProfile;
 use App\Modules\ModuleInstanceDefinition;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class PetProfileActiveRecordDetector implements ModuleActiveRecordDetector
 {

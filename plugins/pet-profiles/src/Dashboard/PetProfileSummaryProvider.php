@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Modules\Summaries;
+namespace Plugins\PetProfiles\Dashboard;
 
 use App\Contracts\ModuleAggregateSummaryProvider;
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Modules\ModuleInstanceDefinition;
 use App\Modules\ModuleSummary;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class PetProfileSummaryProvider implements ModuleAggregateSummaryProvider
 {

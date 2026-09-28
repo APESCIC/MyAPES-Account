@@ -31,12 +31,12 @@
         <div class="panel" id="create">
             <h2>Create consultation</h2>
             @if($showEmptyPetSelect)
-                @include('partials.staff-empty-pet-select')
+                @include('pet-profiles::partials.staff-empty-pet-select')
             @else
                 <form method="post" action="{{ route('petcare.consultations.store') }}">
                 @csrf
                 <div class="row">
-                    @include('partials.pet-profile-select')
+                    @include('pet-profiles::partials.pet-profile-select')
                     <div>
                         <label>Scheduled for <span class="muted">(dd/mm/yyyy)</span></label>
                         <input type="text" name="scheduled_for" placeholder="dd/mm/yyyy HH:mm:ss" autocomplete="off">

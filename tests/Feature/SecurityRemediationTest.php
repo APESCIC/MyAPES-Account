@@ -9,7 +9,6 @@ use App\Core\Accounts\Role;
 use App\Core\Accounts\RoleSource;
 use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Notifications\ConsultationUpdatedNotification;
@@ -20,6 +19,7 @@ use App\Services\AuthorizationRoleMaterializer;
 use App\Services\DirectoryRoleSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Plugins\PetProfiles\Models\PetProfile;
 use Tests\TestCase;
 
 class SecurityRemediationTest extends TestCase

@@ -8,12 +8,12 @@ use App\Core\Accounts\Permission;
 use App\Core\Accounts\Role;
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
-use App\Models\PetProfile;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Plugins\PetProfiles\Models\PetProfile;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 

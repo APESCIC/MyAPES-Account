@@ -5,7 +5,6 @@ namespace App\Http\Controllers\ApesCic;
 use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
 use App\Models\CaseUpdate;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Modules\ModuleInstanceDefinition;
 use App\Notifications\ApesCicCaseUpdatedNotification;
@@ -17,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class CaseUpdateController extends Controller
 {

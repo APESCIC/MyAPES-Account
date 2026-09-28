@@ -31,12 +31,12 @@
         <div class="panel" id="create">
             <h2>Create case</h2>
             @if($showEmptyPetSelect)
-                @include('partials.staff-empty-pet-select')
+                @include('pet-profiles::partials.staff-empty-pet-select')
             @else
                 <form method="post" action="{{ route('shelter.cases.store') }}">
                 @csrf
                 <div class="row">
-                    @include('partials.pet-profile-select')
+                    @include('pet-profiles::partials.pet-profile-select')
                     <div>
                         <label>Case type</label>
                         <select name="case_type">@foreach(['adoption','surrender','rescue','fostering'] as $type)<option value="{{ $type }}">{{ $type }}</option>@endforeach</select>

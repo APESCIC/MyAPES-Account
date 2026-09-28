@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
-use App\Support\StaffPetCreateReturn;
 use PHPUnit\Framework\TestCase;
+use Plugins\PetProfiles\Support\StaffPetCreateReturn;
 
 class StaffPetCreateReturnTest extends TestCase
 {

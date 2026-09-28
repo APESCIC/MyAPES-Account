@@ -10,7 +10,6 @@ use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Modules\Detectors\SupportTicketActiveRecordDetector;
@@ -21,6 +20,7 @@ use App\Services\ModuleInstanceLock;
 use App\Services\ModuleProjectionCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Plugins\PetProfiles\Models\PetProfile;
 use RuntimeException;
 use Tests\TestCase;
 

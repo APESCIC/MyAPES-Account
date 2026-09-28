@@ -4,8 +4,8 @@ namespace App\Policies;
 
 use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Services\ModuleState;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class PetCareConsultationPolicy
 {

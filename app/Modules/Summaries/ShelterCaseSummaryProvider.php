@@ -4,10 +4,10 @@ namespace App\Modules\Summaries;
 
 use App\Contracts\ModuleAggregateSummaryProvider;
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Modules\ModuleInstanceDefinition;
 use App\Modules\ModuleSummary;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class ShelterCaseSummaryProvider implements ModuleAggregateSummaryProvider
 {

@@ -19,12 +19,10 @@ use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PetCare\ConsultationController;
-use App\Http\Controllers\PetCare\PetProfileController as PetCarePetProfileController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicRecruitmentApplicationController;
 use App\Http\Controllers\RecruitmentBoardController;
 use App\Http\Controllers\Shelter\CaseController;
-use App\Http\Controllers\Shelter\PetProfileController as ShelterPetProfileController;
 use App\Http\Controllers\SubCoreController;
 use App\Http\Controllers\SupportAttachmentController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -277,15 +275,7 @@ Route::middleware([
             });
         Route::middleware(['plugin.enabled:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
             ->group(function (): void {
-                Route::get('pet-profiles', static fn () => redirect()->route('shelter.pets.index', [], 301))
-                    ->name('pet-profiles');
-                Route::get('pets/{pet}/photo', [ShelterPetProfileController::class, 'photo'])
-                    ->defaults('subCoreKey', 'shelter-rescue')
-                    ->defaults('moduleKey', 'pet-profiles')
-                    ->name('pets.photo');
-                Route::resource('pets', ShelterPetProfileController::class)
-                    ->only(['index', 'store', 'show', 'update'])
-                    ->parameters(['pets' => 'pet']);
+                require base_path('plugins/pet-profiles/routes/shelter.php');
             });
         Route::middleware(['plugin.enabled:shelter-rescue,cases', 'service.selected:shelter-rescue'])
             ->group(function (): void {
@@ -325,15 +315,7 @@ Route::middleware([
             });
         Route::middleware(['plugin.enabled:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
-                Route::get('pet-profiles', static fn () => redirect()->route('petcare.pets.index', [], 301))
-                    ->name('pet-profiles');
-                Route::get('pets/{pet}/photo', [PetCarePetProfileController::class, 'photo'])
-                    ->defaults('subCoreKey', 'pet-care-clinic')
-                    ->defaults('moduleKey', 'pet-profiles')
-                    ->name('pets.photo');
-                Route::resource('pets', PetCarePetProfileController::class)
-                    ->only(['index', 'store', 'show', 'update'])
-                    ->parameters(['pets' => 'pet']);
+                require base_path('plugins/pet-profiles/routes/petcare.php');
             });
         Route::middleware(['plugin.enabled:pet-care-clinic,consultations', 'service.selected:pet-care-clinic'])
             ->group(function (): void {

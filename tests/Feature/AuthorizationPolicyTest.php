@@ -7,13 +7,13 @@ use App\Core\Accounts\Role;
 use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Services\AuthorizationProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
+use Plugins\PetProfiles\Models\PetProfile;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 

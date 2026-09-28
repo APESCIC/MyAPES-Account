@@ -16,7 +16,6 @@ use App\Core\Accounts\User;
 use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Notifications\ConsultationUpdatedNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleMaterializer;
@@ -25,6 +24,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
+use Plugins\PetProfiles\Models\PetProfile;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
