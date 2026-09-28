@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Services\AuditLogger;
 use Closure;
 use Illuminate\Auth\Access\AuthorizationException;

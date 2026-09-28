@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
-use App\Models\ModuleInstallation;
 use JsonException;
 
 class ModuleRollbackCompatibilityChecker
@@ -151,7 +151,9 @@ class ModuleRollbackCompatibilityChecker
      *     sub_cores: array<int, string>,
      *     module_types: array<int, string>,
      *     shipped_instances: array<int, string>,
-     *     legacy_visible_instances: array<int, string>
+     *     legacy_visible_instances: array<int, string>,
+     *     modules?: array<int, string>,
+     *     plugins?: array<int, string>
      * }
      */
     private function readManifest(string $path): array
@@ -176,9 +178,8 @@ class ModuleRollbackCompatibilityChecker
         ];
 
         if (! is_array($decoded)
-            || count($decoded) !== count($required)
             || array_diff($required, array_keys($decoded)) !== []
-            || $decoded['schema_version'] !== 1
+            || ! in_array($decoded['schema_version'], [1, 2], true)
             || ! is_string($decoded['application_version'])
             || preg_match('/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/D', $decoded['application_version']) !== 1
             || ! $this->isSafeKeyList($decoded['sub_cores'])
@@ -195,7 +196,8 @@ class ModuleRollbackCompatibilityChecker
                 $decoded['sub_cores'],
                 $decoded['module_types'],
             )
-            || array_diff($decoded['legacy_visible_instances'], $decoded['shipped_instances']) !== []) {
+            || array_diff($decoded['legacy_visible_instances'], $decoded['shipped_instances']) !== []
+            || ! $this->schemaVersionFieldsAreValid($decoded)) {
             throw new ModuleLifecycleException(
                 'target_manifest_invalid',
                 'Module rollback compatibility failed.',
@@ -203,6 +205,43 @@ class ModuleRollbackCompatibilityChecker
         }
 
         return $decoded;
+    }
+
+    /**
+     * @param  array<string, mixed>  $decoded
+     */
+    private function schemaVersionFieldsAreValid(array $decoded): bool
+    {
+        if ($decoded['schema_version'] === 1) {
+            return count(array_diff(array_keys($decoded), [
+                'schema_version',
+                'application_version',
+                'sub_cores',
+                'module_types',
+                'shipped_instances',
+                'legacy_visible_instances',
+            ])) === 0;
+        }
+
+        // schema_version 2 adds modules + plugins aliases for the Structure line.
+        if (! isset($decoded['modules'], $decoded['plugins'])
+            || ! $this->isSafeKeyList($decoded['modules'])
+            || ! $this->isSafeKeyList($decoded['plugins'])
+            || $decoded['modules'] !== $decoded['sub_cores']
+            || $decoded['plugins'] !== $decoded['module_types']) {
+            return false;
+        }
+
+        return count(array_diff(array_keys($decoded), [
+            'schema_version',
+            'application_version',
+            'modules',
+            'plugins',
+            'sub_cores',
+            'module_types',
+            'shipped_instances',
+            'legacy_visible_instances',
+        ])) === 0;
     }
 
     private function isSafeKeyList(mixed $values): bool

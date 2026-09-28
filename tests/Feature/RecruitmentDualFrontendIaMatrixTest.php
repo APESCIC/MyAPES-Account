@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\ModuleInstallation;
-use App\Models\Permission;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
-use App\Models\Role;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleSettingsService;

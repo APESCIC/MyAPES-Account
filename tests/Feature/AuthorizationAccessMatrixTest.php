@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\User;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\DirectoryRoleSynchronizer;
 use App\Support\DirectoryGroupPrefix;

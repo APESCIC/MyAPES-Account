@@ -2,15 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Models\Permission;
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleMaterializer;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\SessionAuthorizationContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ModulePermissionGateTest extends TestCase
@@ -121,7 +122,7 @@ class ModulePermissionGateTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('moduleDeleteAbilityProvider')]
+    #[DataProvider('moduleDeleteAbilityProvider')]
     public function test_volunteer_and_student_lack_module_delete_abilities(
         string $protectedRole,
         bool $canDelete,

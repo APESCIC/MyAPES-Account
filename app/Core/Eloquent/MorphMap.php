@@ -2,24 +2,24 @@
 
 namespace App\Core\Eloquent;
 
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroupRoleMapping;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\StaffProfile;
+use App\Core\Accounts\User;
+use App\Core\Accounts\UserProfile;
+use App\Core\Attachments\SupportAttachment;
+use App\Core\Extensions\Models\ModuleInstallation;
+use App\Core\Maintenance\MaintenanceWindow;
 use App\Models\CaseUpdate;
-use App\Models\DirectoryGroup;
-use App\Models\DirectoryGroupRoleMapping;
-use App\Models\MaintenanceWindow;
-use App\Models\ModuleInstallation;
-use App\Models\Permission;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
-use App\Models\Role;
 use App\Models\ShelterCase;
-use App\Models\StaffProfile;
-use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
-use App\Models\User;
-use App\Models\UserProfile;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**

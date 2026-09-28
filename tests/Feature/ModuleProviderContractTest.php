@@ -7,13 +7,13 @@ use App\Contracts\ModuleAnalyticsProvider;
 use App\Contracts\ModuleAttentionProvider;
 use App\Contracts\ModuleRecentActivityProvider;
 use App\Contracts\ModuleRegistry;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\CaseUpdate;
-use App\Models\ModuleInstallation;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Modules\Activity\PetProfileRecentActivityProvider;
 use App\Modules\Activity\SupportTicketRecentActivityProvider;
 use App\Modules\Analytics\PetProfileAnalyticsProvider;
@@ -67,7 +67,10 @@ class ModuleProviderContractTest extends TestCase
             ));
         }
 
-        $this->assertNull($registry->module('pet-profiles')->recentActivityProvider);
+        $this->assertSame(
+            PetProfileRecentActivityProvider::class,
+            $registry->module('pet-profiles')->recentActivityProvider,
+        );
         $this->assertNull($registry->module('recruitment')->recentActivityProvider);
     }
 

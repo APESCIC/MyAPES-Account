@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\User;
 use App\Exceptions\AuthorizationLifecycleException;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
-use App\Models\AuthorizationState;
-use App\Models\User;
 use App\Support\AuthorizationCompatibilityDatabaseGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

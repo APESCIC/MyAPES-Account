@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\ModuleRegistry;
-use App\Models\AuditLog;
-use App\Models\ModuleInstallation;
-use App\Models\Permission;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\PetProfile;
-use App\Models\Role;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleDashboardSummaryService;
 use App\Services\ModuleInstallationSynchronizer;

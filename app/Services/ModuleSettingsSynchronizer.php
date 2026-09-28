@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\ModuleSetting;
+use App\Core\Extensions\Models\ModuleSetting;
 use App\Support\ModuleSettingsDefaults;
 use Illuminate\Support\Facades\DB;
 

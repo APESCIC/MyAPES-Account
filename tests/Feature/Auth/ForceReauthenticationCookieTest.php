@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
+use App\Core\Accounts\User;
+use App\Core\Auth\OidcIdentity;
 use App\Exceptions\DirectoryUnavailable;
 use App\Http\Cookies\OidcReauthenticationCookie;
-use App\Models\User;
 use App\Services\LdapGroupResolver;
 use App\Services\LdapUserResolver;
 use Carbon\CarbonImmutable;

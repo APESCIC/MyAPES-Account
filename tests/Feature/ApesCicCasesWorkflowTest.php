@@ -3,14 +3,14 @@
 namespace Tests\Feature;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Http\Controllers\ApesCic\TicketController;
-use App\Models\AuditLog;
 use App\Models\CaseUpdate;
-use App\Models\ModuleInstallation;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Notifications\ApesCicCaseUpdatedNotification;
 use App\Notifications\TicketUpdatedNotification;
 use App\Services\AuthorizationProfile;

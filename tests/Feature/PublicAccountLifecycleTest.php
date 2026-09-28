@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Contracts\ModuleNavigationProvider;
+use App\Core\Accounts\User;
 use App\Models\SupportTicket;
-use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;

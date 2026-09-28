@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Core\Accounts\User;
 use App\Models\RecruitmentRole;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

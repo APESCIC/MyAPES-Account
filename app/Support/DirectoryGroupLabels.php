@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Models\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroup;
 
 /**
  * Labels Cloudron directory catalogue entries for admin UI clarity.

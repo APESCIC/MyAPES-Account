@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Core\Accounts\User;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
-use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DirectoryRoleSynchronizer;
 use App\Services\DirectoryUserSynchronizer;

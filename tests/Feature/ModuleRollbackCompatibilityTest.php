@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
-use App\Models\ModuleInstallation;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleRollbackCompatibilityChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,8 +57,8 @@ class ModuleRollbackCompatibilityTest extends TestCase
             flags: JSON_THROW_ON_ERROR,
         );
 
-        $this->assertSame('0.37.3', trim((string) file_get_contents(base_path('VERSION'))));
-        $this->assertSame('0.37.3', $manifest['application_version']);
+        $this->assertSame('0.37.4', trim((string) file_get_contents(base_path('VERSION'))));
+        $this->assertSame('0.37.4', $manifest['application_version']);
         $this->assertSame([
             'apes-cic:cases',
             'apes-cic:recruitment',
@@ -82,7 +82,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             ->check(base_path());
         $this->assertSame('manifest', $result['contract']);
         $this->assertSame(9, $result['installations']);
-        $this->assertSame('0.37.3', $result['target_version']);
+        $this->assertSame('0.37.4', $result['target_version']);
     }
 
     public function test_a_legacy_target_without_a_manifest_requires_exactly_five_enabled_baselines(): void
@@ -334,7 +334,7 @@ class ModuleRollbackCompatibilityTest extends TestCase
             true,
             flags: JSON_THROW_ON_ERROR,
         );
-        $this->assertSame('0.37.3', $manifest['application_version']);
+        $this->assertSame('0.37.4', $manifest['application_version']);
         file_put_contents(
             $target.'/resources/data/module-runtime-contract.json',
             json_encode([
@@ -342,6 +342,8 @@ class ModuleRollbackCompatibilityTest extends TestCase
                 'schema_version' => $manifest['schema_version'],
                 'module_types' => $manifest['module_types'],
                 'sub_cores' => $manifest['sub_cores'],
+                'modules' => $manifest['modules'] ?? $manifest['sub_cores'],
+                'plugins' => $manifest['plugins'] ?? $manifest['module_types'],
                 'legacy_visible_instances' => $manifest['legacy_visible_instances'],
                 'shipped_instances' => $manifest['shipped_instances'],
             ], JSON_THROW_ON_ERROR),

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Auth\DirectoryUserProfile;
-use App\Models\StaffProfile;
-use App\Models\User;
+use App\Core\Accounts\StaffProfile;
+use App\Core\Accounts\User;
+use App\Core\Auth\DirectoryUserProfile;
 
 final class StaffProfileDirectorySynchronizer
 {

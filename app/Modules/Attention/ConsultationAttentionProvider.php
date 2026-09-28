@@ -3,8 +3,8 @@
 namespace App\Modules\Attention;
 
 use App\Contracts\ModuleAttentionProvider;
+use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
-use App\Models\User;
 use App\Modules\ModuleAttentionItem;
 use App\Modules\ModuleInstanceDefinition;
 

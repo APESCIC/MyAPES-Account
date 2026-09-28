@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\User;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
-use App\Models\User;
 use App\Notifications\ShelterCaseUpdatedNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;

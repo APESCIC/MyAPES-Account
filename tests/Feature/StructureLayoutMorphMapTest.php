@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\User;
+use App\Core\Attachments\SupportAttachment;
 use App\Core\Eloquent\MorphMap;
 use App\Core\Providers\CoreServiceProvider;
 use App\Models\ShelterCase;
-use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Services\AuditLogger;
 use App\Support\AuthorizationCompatibilityDatabaseGuard;
 use Illuminate\Database\Eloquent\Relations\Relation;

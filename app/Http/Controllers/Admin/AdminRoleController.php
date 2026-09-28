@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
 use App\Http\Controllers\Controller;
-use App\Models\Permission;
-use App\Models\Role;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleManagementService;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
@@ -180,7 +181,7 @@ class AdminRoleController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Permission>
+     * @return Collection<int, Permission>
      */
     private function assignablePermissions(AuthorizationProfile $profile)
     {

@@ -2,118 +2,23 @@
 
 namespace App\Providers;
 
-use App\Contracts\MaintenanceModeGateway;
-use App\Contracts\ModuleNavigationProvider;
-use App\Contracts\OidcIdentityProvider;
-use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
-use App\Models\RecruitmentApplication;
-use App\Models\RecruitmentRole;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
-use App\Models\User;
-use App\Policies\PetCareConsultationPolicy;
-use App\Policies\PetProfilePolicy;
-use App\Policies\RecruitmentApplicationPolicy;
-use App\Policies\RecruitmentRolePolicy;
-use App\Policies\ShelterCasePolicy;
-use App\Policies\SupportTicketPolicy;
-use App\Services\ApplicationAuthorizationGate;
-use App\Services\JumbojettOidcIdentityProvider;
-use App\Services\LaravelMaintenanceModeGateway;
-use App\Services\ModuleCatalogueProjection;
-use App\Services\ModuleSettingsService;
-use App\Support\MascotTips;
-use App\Support\ReleaseHistoryRepository;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Str;
-use Illuminate\View\View as IlluminateView;
 
+/**
+ * Application skeleton provider (#282).
+ *
+ * Domain bootstrapping lives on Core* and ExtensionRegistry providers.
+ * Plugin policies and public nav contributions live on plugin packages.
+ */
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        $this->app->bind(OidcIdentityProvider::class, JumbojettOidcIdentityProvider::class);
-        $this->app->bind(MaintenanceModeGateway::class, LaravelMaintenanceModeGateway::class);
-        $this->app->singleton(ReleaseHistoryRepository::class);
+        //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        Gate::policy(SupportTicket::class, SupportTicketPolicy::class);
-        Gate::policy(ShelterCase::class, ShelterCasePolicy::class);
-        Gate::policy(PetProfile::class, PetProfilePolicy::class);
-        Gate::policy(
-            PetCareConsultation::class,
-            PetCareConsultationPolicy::class,
-        );
-        Gate::policy(RecruitmentRole::class, RecruitmentRolePolicy::class);
-        Gate::policy(RecruitmentApplication::class, RecruitmentApplicationPolicy::class);
-
-        Gate::before(
-            static fn (User $user, string $ability): ?bool => app(
-                ApplicationAuthorizationGate::class,
-            )->authorize($user, $ability),
-        );
-
-        View::composer(['layouts.app', 'auth.landing'], function (IlluminateView $view): void {
-            $view->with('appVersion', app(ReleaseHistoryRepository::class)->version());
-            $view->with('mascotTip', app(MascotTips::class)->forCurrentRequest());
-            $view->with(
-                'moduleNavigation',
-                auth()->check()
-                    ? app(ModuleNavigationProvider::class)->forUser(auth()->user())
-                    : [],
-            );
-            $publicRecruitmentEnabled = false;
-            try {
-                $publicRecruitmentEnabled = app(ModuleSettingsService::class)
-                    ->recruitmentPublicBoardEnabled();
-            } catch (\Throwable) {
-                $publicRecruitmentEnabled = false;
-            }
-            $view->with('publicRecruitmentEnabled', $publicRecruitmentEnabled);
-
-            $staffRecruitmentManageEnabled = false;
-            try {
-                $staffRecruitmentManageEnabled = in_array(
-                    'apes-cic:recruitment',
-                    app(ModuleCatalogueProjection::class)->enabledInstanceKeys(),
-                    true,
-                );
-            } catch (\Throwable) {
-                $staffRecruitmentManageEnabled = false;
-            }
-            $view->with('staffRecruitmentManageEnabled', $staffRecruitmentManageEnabled);
-        });
-
-        RateLimiter::for('public-login', function (Request $request): Limit {
-            $email = Str::lower((string) $request->input('login'));
-
-            return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
-        });
-
-        RateLimiter::for('public-password-reset', function (Request $request): Limit {
-            $email = Str::lower((string) $request->input('email'));
-
-            return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
-        });
-
-        RateLimiter::for('public-password-change', function (Request $request): Limit {
-            $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
-
-            return Limit::perMinute(5)->by(Str::transliterate($userId.'|'.$request->ip()));
-        });
+        //
     }
 }

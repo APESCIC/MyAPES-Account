@@ -268,7 +268,7 @@
                     <td><code>{{ $source->getRelation('permission')->name }}</code></td>
                     <td>{{ $source->source }}</td>
                     <td>
-                        @if($source->source === \App\Models\PermissionSource::SOURCE_SYSTEM && $source->actor === null)
+                        @if($source->source === \App\Core\Accounts\PermissionSource::SOURCE_SYSTEM && $source->actor === null)
                             System
                         @elseif($source->actor !== null)
                             Account {{ $source->actor->id }}

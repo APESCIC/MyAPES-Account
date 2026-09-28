@@ -2,8 +2,8 @@
 
 namespace App\Contracts;
 
-use App\Auth\OidcFlow;
-use App\Auth\OidcIdentity;
+use App\Core\Auth\OidcFlow;
+use App\Core\Auth\OidcIdentity;
 use Illuminate\Http\RedirectResponse;
 
 interface OidcIdentityProvider

@@ -2,9 +2,9 @@
 
 namespace App\Policies;
 
+use App\Core\Accounts\User;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
-use App\Models\User;
 use App\Services\ModuleState;
 
 class RecruitmentApplicationPolicy

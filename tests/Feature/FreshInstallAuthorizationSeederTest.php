@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Models\CaseUpdate;
-use App\Models\Role;
-use App\Models\RoleSource;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Services\AuthorizationAccountSynchronizer;
 use App\Services\AuthorizationMetadataSynchronizer;
 use App\Services\AuthorizationProfile;

@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\AuthorizationState;
-use App\Models\DirectorySyncRun;
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\DirectorySyncRun;
 use Illuminate\Contracts\Console\Kernel;
 use Tests\Support\DirectorySyncTimeoutProbeJob;
 

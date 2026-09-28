@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Contracts\ModuleAttentionProvider;
 use App\Contracts\ModuleRegistry;
+use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Modules\ModuleAttentionItem;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;

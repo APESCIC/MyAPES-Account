@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Exceptions\AuthorizationMutationDenied;
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

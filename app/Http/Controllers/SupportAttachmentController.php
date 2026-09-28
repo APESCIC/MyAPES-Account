@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Core\Attachments\SupportAttachment;
 use App\Models\ShelterCase;
-use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;

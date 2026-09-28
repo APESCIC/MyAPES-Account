@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroupRoleMapping;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
 use App\Http\Controllers\Controller;
 use App\Jobs\RunDirectorySync;
-use App\Models\DirectoryGroup;
-use App\Models\DirectoryGroupRoleMapping;
-use App\Models\Permission;
-use App\Models\Role;
 use App\Services\AuditLogger;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleManagementService;

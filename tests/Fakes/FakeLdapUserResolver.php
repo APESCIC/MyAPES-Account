@@ -2,7 +2,7 @@
 
 namespace Tests\Fakes;
 
-use App\Auth\DirectoryUserProfile;
+use App\Core\Auth\DirectoryUserProfile;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Services\LdapUserResolver;
 use App\Support\DirectoryGroupPrefix;

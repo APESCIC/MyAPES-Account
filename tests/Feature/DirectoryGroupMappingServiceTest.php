@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroupRoleMapping;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
 use App\Exceptions\AuthorizationMutationDenied;
-use App\Models\DirectoryGroup;
-use App\Models\DirectoryGroupRoleMapping;
-use App\Models\Role;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\DirectoryGroupMappingService;
 use App\Services\DirectoryRoleSynchronizer;

@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\ModuleInstallation;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentRole;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Auth\Access\AuthorizationException;

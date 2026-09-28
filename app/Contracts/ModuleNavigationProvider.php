@@ -2,7 +2,7 @@
 
 namespace App\Contracts;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Modules\ModuleNavigationItem;
 use App\Modules\SubCoreNavigation;
 

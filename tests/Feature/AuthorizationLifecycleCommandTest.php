@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
-use App\Models\AuthorizationState;
-use App\Models\DirectoryGroup;
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
 use App\Services\AuthorizationActivationSynchronizer;
 use App\Services\AuthorizationPreflightChecker;
 use App\Services\AuthorizationRoleMaterializer;

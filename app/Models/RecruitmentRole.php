@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Core\Accounts\User;
 use Database\Factories\RecruitmentRoleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;

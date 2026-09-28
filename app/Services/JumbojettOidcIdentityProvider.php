@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Auth\OidcFlow;
-use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
+use App\Core\Auth\OidcFlow;
+use App\Core\Auth\OidcIdentity;
 use App\Exceptions\OidcProviderException;
 use Illuminate\Http\RedirectResponse;
 use Throwable;

@@ -2,9 +2,8 @@
 
 namespace App\Services;
 
-use App\Auth\DirectoryUserProfile;
+use App\Core\Auth\DirectoryUserProfile;
 use App\Exceptions\DirectoryIdentityNotFound;
-use App\Exceptions\DirectoryUnavailable;
 use App\Support\DirectoryGroupPrefix;
 use Illuminate\Support\Str;
 

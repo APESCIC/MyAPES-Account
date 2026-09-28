@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\ContactConsentEvent;
-use App\Models\OidcLinkIntent;
-use App\Models\User;
-use App\Models\UserContactPreference;
-use App\Models\UserServiceSelection;
+use App\Core\Accounts\ContactConsentEvent;
+use App\Core\Accounts\OidcLinkIntent;
+use App\Core\Accounts\User;
+use App\Core\Accounts\UserContactPreference;
+use App\Core\Accounts\UserServiceSelection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

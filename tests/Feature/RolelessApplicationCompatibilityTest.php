@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
-use App\Models\User;
+use App\Core\Accounts\User;
+use App\Core\Auth\OidcIdentity;
 use App\Services\LdapGroupResolver;
 use App\Services\LdapUserResolver;
 use App\Support\AccessCompatibilityDatabaseGuard;

@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Contracts\ModuleAggregateSummaryProvider;
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\ModuleRegistry;
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Modules\ModuleSummaryGroup;
 
 class ModuleDashboardSummaryService

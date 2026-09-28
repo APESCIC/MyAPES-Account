@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\AuditLog;
-use App\Models\User;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\User;
 use Illuminate\Database\Eloquent\Model;
 
 class AuditLogger

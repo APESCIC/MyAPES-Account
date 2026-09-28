@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Contracts\MaintenanceModeGateway;
-use App\Models\AuditLog;
-use App\Models\MaintenanceWindow;
-use App\Models\User;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\User;
+use App\Core\Maintenance\MaintenanceWindow;
 use App\Services\AuthorizationProfile;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;

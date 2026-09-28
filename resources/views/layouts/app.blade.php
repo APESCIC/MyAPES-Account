@@ -101,37 +101,39 @@
                             $routePrefix = str($subCoreNavigation->subCore->routeName)
                                 ->before('.')
                                 ->toString();
-                            $active = request()->routeIs($routePrefix.'.*')
-                                && ! request()->routeIs('apes-cic.recruitment.*');
+                            $staffPluginPatterns = collect($staffPluginNavigation ?? [])
+                                ->pluck('routeIsPattern')
+                                ->all();
+                            $active = request()->routeIs($routePrefix.'.*');
+                            foreach ($staffPluginPatterns as $pattern) {
+                                if (request()->routeIs($pattern)) {
+                                    $active = false;
+                                    break;
+                                }
+                            }
                         @endphp
                         <a href="{{ route($subCoreNavigation->subCore->routeName) }}" @class(['primary-nav__link', 'is-active' => $active]) @if($active) aria-current="page" @endif>
                             <i data-lucide="{{ $subCoreNavigation->subCore->icon }}" aria-hidden="true"></i>
                             <span>{{ $subCoreNavigation->subCore->name }}</span>
                         </a>
                     @endforeach
-                    @if($staffRecruitmentManageEnabled)
-                        @canany([
-                            'apes-cic.recruitment.view-all',
-                            'apes-cic.recruitment.create',
-                            'apes-cic.recruitment.update',
-                            'apes-cic.recruitment.delete',
-                            'apes-cic.recruitment.review-applications',
-                        ])
+                    @foreach($staffPluginNavigation ?? [] as $staffPluginNav)
+                        @canany($staffPluginNav->abilities)
                             @php
-                                $staffRecruitmentNavActive = request()->routeIs('apes-cic.recruitment.*');
-                                $staffRecruitmentHome = (
-                                    auth()->user()->can('apes-cic.recruitment.view-all')
-                                    || auth()->user()->can('apes-cic.recruitment.view-own')
-                                )
-                                    ? route('apes-cic.recruitment.index')
-                                    : route('apes-cic.recruitment.applications.index');
+                                $staffPluginNavActive = request()->routeIs($staffPluginNav->routeIsPattern);
+                                $canUseHome = $staffPluginNav->homeAbility === null
+                                    || auth()->user()->can($staffPluginNav->homeAbility)
+                                    || auth()->user()->can(str_replace('.view-all', '.view-own', (string) $staffPluginNav->homeAbility));
+                                $staffPluginHome = $canUseHome
+                                    ? route($staffPluginNav->homeRouteName)
+                                    : route($staffPluginNav->fallbackRouteName ?? $staffPluginNav->homeRouteName);
                             @endphp
-                            <a href="{{ $staffRecruitmentHome }}" @class(['primary-nav__link', 'is-active' => $staffRecruitmentNavActive]) @if($staffRecruitmentNavActive) aria-current="page" @endif>
-                                <i data-lucide="clipboard-list" aria-hidden="true"></i>
-                                <span>Recruit manage</span>
+                            <a href="{{ $staffPluginHome }}" @class(['primary-nav__link', 'is-active' => $staffPluginNavActive]) @if($staffPluginNavActive) aria-current="page" @endif>
+                                <i data-lucide="{{ $staffPluginNav->icon }}" aria-hidden="true"></i>
+                                <span>{{ $staffPluginNav->label }}</span>
                             </a>
                         @endcanany
-                    @endif
+                    @endforeach
                     @canany([
                         'admin.access',
                         'admin.analytics.view',
@@ -152,12 +154,12 @@
                         </a>
                     @endcanany
                 @else
-                    @if($publicRecruitmentEnabled)
-                        <a href="{{ route('recruitment.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.*')]) @if(request()->routeIs('recruitment.*')) aria-current="page" @endif>
-                            <i data-lucide="briefcase" aria-hidden="true"></i>
-                            <span>Recruitment</span>
+                    @foreach($publicPluginNavigation ?? [] as $publicPluginNav)
+                        <a href="{{ route($publicPluginNav->routeName) }}" @class(['primary-nav__link', 'is-active' => request()->routeIs($publicPluginNav->routeIsPattern)]) @if(request()->routeIs($publicPluginNav->routeIsPattern)) aria-current="page" @endif>
+                            <i data-lucide="{{ $publicPluginNav->icon }}" aria-hidden="true"></i>
+                            <span>{{ $publicPluginNav->label }}</span>
                         </a>
-                    @endif
+                    @endforeach
                     <a href="{{ route('public.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.login')]) @if(request()->routeIs('public.login')) aria-current="page" @endif>
                         <i data-lucide="log-in" aria-hidden="true"></i>
                         <span>Public Login</span>
@@ -172,12 +174,12 @@
                     </a>
                 @endauth
                 @auth
-                    @if($publicRecruitmentEnabled)
-                        <a href="{{ route('recruitment.index') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('recruitment.*')]) @if(request()->routeIs('recruitment.*')) aria-current="page" @endif>
-                            <i data-lucide="briefcase" aria-hidden="true"></i>
-                            <span>Recruitment</span>
+                    @foreach($publicPluginNavigation ?? [] as $publicPluginNav)
+                        <a href="{{ route($publicPluginNav->routeName) }}" @class(['primary-nav__link', 'is-active' => request()->routeIs($publicPluginNav->routeIsPattern)]) @if(request()->routeIs($publicPluginNav->routeIsPattern)) aria-current="page" @endif>
+                            <i data-lucide="{{ $publicPluginNav->icon }}" aria-hidden="true"></i>
+                            <span>{{ $publicPluginNav->label }}</span>
                         </a>
-                    @endif
+                    @endforeach
                 @endauth
             </nav>
 
@@ -299,9 +301,9 @@
         <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
     </div>
     <nav class="site-footer__links" aria-label="Legal and help">
-        @if($publicRecruitmentEnabled)
-            <a href="{{ route('recruitment.index') }}" @if (request()->routeIs('recruitment.*')) aria-current="page" @endif>Recruitment</a>
-        @endif
+        @foreach($publicPluginNavigation ?? [] as $publicPluginNav)
+            <a href="{{ route($publicPluginNav->routeName) }}" @if (request()->routeIs($publicPluginNav->routeIsPattern)) aria-current="page" @endif>{{ $publicPluginNav->label }}</a>
+        @endforeach
         <a href="{{ route('privacy') }}" @if (request()->routeIs('privacy')) aria-current="page" @endif>Privacy</a>
         <a href="{{ route('cookies') }}" @if (request()->routeIs('cookies')) aria-current="page" @endif>Cookies</a>
         <a href="{{ route('help') }}" @if (request()->routeIs('help')) aria-current="page" @endif>Help</a>

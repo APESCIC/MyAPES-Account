@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\StaffProfile;
+use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OnboardingController;
-use App\Models\AuditLog;
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\StaffProfile;
-use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\AuthorizationMutationService;
 use App\Services\AuthorizationProfile;

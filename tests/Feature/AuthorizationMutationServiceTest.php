@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\DirectoryGroup;
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationMutationService;
 use App\Services\AuthorizationProfile;
 use App\Services\DirectoryRoleSynchronizer;

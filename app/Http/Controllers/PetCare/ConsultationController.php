@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\PetCare;
 
+use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
-use App\Models\User;
 use App\Notifications\ConsultationUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
 use App\Rules\UkDateTimeFormat;

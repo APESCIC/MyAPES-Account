@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationProfile;
 use App\Services\SessionAuthorizationContext;
 use Closure;

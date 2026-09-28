@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Core\Accounts\User;
+use App\Core\Attachments\SupportAttachment;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;

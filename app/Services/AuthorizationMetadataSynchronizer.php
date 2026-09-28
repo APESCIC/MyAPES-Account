@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroupRoleMapping;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
 use App\Exceptions\AuthorizationLifecycleException;
-use App\Models\DirectoryGroup;
-use App\Models\DirectoryGroupRoleMapping;
-use App\Models\Permission;
-use App\Models\Role;
 use App\Support\DefaultJobRoles;
 use App\Support\DirectoryImmutableMappings;
 use App\Support\DirectoryLegacyGroupAliases;

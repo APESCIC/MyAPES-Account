@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\DirectoryGroup;
-use App\Models\Role;
-use App\Models\User;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
 use App\Support\DefaultJobRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

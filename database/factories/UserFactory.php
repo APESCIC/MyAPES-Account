@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationAccountSynchronizer;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleMaterializer;
@@ -18,6 +18,8 @@ use InvalidArgumentException;
  */
 class UserFactory extends Factory
 {
+    protected $model = User::class;
+
     /**
      * The current password being used by the factory.
      */

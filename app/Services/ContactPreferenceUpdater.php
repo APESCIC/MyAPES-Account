@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\UserContactPreference;
+use App\Core\Accounts\User;
+use App\Core\Accounts\UserContactPreference;
 use Illuminate\Support\Facades\DB;
 
 class ContactPreferenceUpdater

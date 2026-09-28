@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\DirectorySyncRun;
+use App\Core\Accounts\DirectorySyncRun;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;

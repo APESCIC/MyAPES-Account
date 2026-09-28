@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Permission;
-use App\Models\PermissionSource;
-use App\Models\Role;
-use App\Models\User;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\PermissionSource;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationDirectPermissionMaterializer;
 use App\Services\AuthorizationProfile;
 use Illuminate\Database\Migrations\Migration;

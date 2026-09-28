@@ -2,18 +2,18 @@
 
 namespace Database\Seeders;
 
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\StaffProfile;
+use App\Core\Accounts\User;
+use App\Core\Accounts\UserProfile;
+use App\Core\Attachments\SupportAttachment;
 use App\Models\CaseUpdate;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\RecruitmentRole;
-use App\Models\Role;
-use App\Models\RoleSource;
 use App\Models\ShelterCase;
-use App\Models\StaffProfile;
-use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
-use App\Models\User;
-use App\Models\UserProfile;
 use App\Services\AuthorizationMetadataSynchronizer;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleManagementService;

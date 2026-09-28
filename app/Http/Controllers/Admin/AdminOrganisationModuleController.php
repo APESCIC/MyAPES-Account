@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Core\Extensions\Models\OrganisationModule;
+use App\Core\Extensions\Modules\ModulePackageRegistry;
+use App\Http\Controllers\Controller;
+use App\Services\AuditLogger;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+
+/**
+ * Admin page for organisation-area module enablement (#283).
+ *
+ * Distinct from Admin → Plugins (`admin.modules.*`), which manages plugin
+ * enablement per module.
+ */
+class AdminOrganisationModuleController extends Controller
+{
+    public function index(ModulePackageRegistry $modules): View
+    {
+        $rows = [];
+
+        foreach ($modules->modules() as $manifest) {
+            $row = OrganisationModule::query()->firstOrCreate(
+                ['slug' => $manifest->slug],
+                [
+                    'enabled' => $manifest->enabledByDefault,
+                    'enabled_at' => $manifest->enabledByDefault ? now() : null,
+                ],
+            );
+
+            $rows[] = [
+                'manifest' => $manifest,
+                'record' => $row,
+            ];
+        }
+
+        usort(
+            $rows,
+            static fn (array $left, array $right): int => $left['manifest']->sortOrder
+                <=> $right['manifest']->sortOrder,
+        );
+
+        return view('admin.organisation-modules.index', [
+            'rows' => $rows,
+        ]);
+    }
+
+    public function transition(
+        Request $request,
+        string $slug,
+        ModulePackageRegistry $modules,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        abort_unless($modules->has($slug), 404);
+
+        $validated = $request->validate([
+            'action' => ['required', 'in:enable,disable'],
+        ]);
+
+        $enable = $validated['action'] === 'enable';
+        $record = OrganisationModule::query()->firstOrNew(['slug' => $slug]);
+        $record->enabled = $enable;
+
+        if ($enable) {
+            $record->enabled_at = now();
+            $record->enabled_by = $request->user()?->id;
+            $record->disabled_at = null;
+            $record->disabled_by = null;
+        } else {
+            $record->disabled_at = now();
+            $record->disabled_by = $request->user()?->id;
+        }
+
+        $record->save();
+
+        $audit->record(
+            $enable ? 'organisation_module.enabled' : 'organisation_module.disabled',
+            $request->user(),
+            null,
+            ['slug' => $slug],
+        );
+
+        return redirect()
+            ->route('admin.organisation-modules.index')
+            ->with('status', $enable
+                ? "Module [{$slug}] enabled."
+                : "Module [{$slug}] disabled.");
+    }
+}

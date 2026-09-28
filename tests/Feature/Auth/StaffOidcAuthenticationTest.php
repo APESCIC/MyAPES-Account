@@ -2,14 +2,14 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Auth\OidcIdentity;
 use App\Contracts\OidcIdentityProvider;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
+use App\Core\Auth\OidcIdentity;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
 use App\Http\Middleware\RevalidateDirectoryAccess;
-use App\Models\AuditLog;
-use App\Models\RoleSource;
-use App\Models\User;
 use App\Services\LdapGroupResolver;
 use App\Services\LdapUserResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;

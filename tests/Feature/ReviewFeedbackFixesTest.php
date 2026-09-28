@@ -2,12 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\PetCareConsultation;
+use App\Core\Accounts\User;
 use App\Models\PetProfile;
-use App\Models\ShelterCase;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

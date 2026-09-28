@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\ModuleSetting;
-use App\Models\User;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleSetting;
 use App\Modules\ModuleSettingsDescriptor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;

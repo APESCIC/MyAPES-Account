@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\DirectorySyncRun;
+use App\Core\Accounts\DirectorySyncRun;
 use App\Services\DirectoryCatalogueSynchronizer;
 use App\Services\DirectorySyncTerminalFailureRecorder;
 use App\Services\ManualDirectorySyncQueueResolver;

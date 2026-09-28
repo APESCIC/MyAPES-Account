@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\DirectorySyncRun;
+use App\Core\Accounts\User;
 use App\Exceptions\DirectorySyncInProgress;
 use App\Exceptions\DirectoryUnavailable;
 use App\Jobs\RunDirectorySync;
-use App\Models\AuthorizationState;
-use App\Models\DirectorySyncRun;
-use App\Models\User;
 use App\Services\DirectoryCatalogueSynchronizer;
 use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;

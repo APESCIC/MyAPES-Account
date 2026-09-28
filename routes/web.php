@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminAccessController;
 use App\Http\Controllers\Admin\AdminGroupController;
 use App\Http\Controllers\Admin\AdminMaintenanceController;
 use App\Http\Controllers\Admin\AdminModuleController;
+use App\Http\Controllers\Admin\AdminOrganisationModuleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\ApesCic\CaseController as ApesCicCaseController;
@@ -439,6 +440,13 @@ Route::middleware([
             Route::get('/permissions', fn () => redirect()->route('admin.access.index', ['tab' => 'permissions']))
                 ->middleware('can:admin.permissions.view')
                 ->name('permissions.index');
+
+            Route::get('/organisation-modules', [AdminOrganisationModuleController::class, 'index'])
+                ->middleware('can:admin.modules.view')
+                ->name('organisation-modules.index');
+            Route::post('/organisation-modules/{slug}/transition', [AdminOrganisationModuleController::class, 'transition'])
+                ->middleware('can:admin.modules.manage')
+                ->name('organisation-modules.transition');
 
             Route::get('/modules', [AdminModuleController::class, 'index'])
                 ->middleware('can:admin.modules.view')

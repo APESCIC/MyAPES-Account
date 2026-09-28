@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Support\ChangeLogPresenter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;

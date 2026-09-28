@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 

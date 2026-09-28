@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationPermissionSynchronizer;
 use App\Services\AuthorizationPhaseBSchemaInspector;
 use App\Support\AccessCompatibilityDatabaseGuard;

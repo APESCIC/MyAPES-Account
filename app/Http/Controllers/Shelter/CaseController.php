@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Shelter;
 
+use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
-use App\Models\User;
 use App\Notifications\ShelterCaseUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
 use App\Services\AssignmentAuthorization;
