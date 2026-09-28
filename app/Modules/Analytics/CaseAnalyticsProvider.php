@@ -3,7 +3,6 @@
 namespace App\Modules\Analytics;
 
 use App\Contracts\ModuleAnalyticsProvider;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Modules\ModuleAnalyticsSnapshot;
 use App\Modules\ModuleInstanceDefinition;
@@ -11,6 +10,7 @@ use App\Services\ModuleState;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class CaseAnalyticsProvider implements ModuleAnalyticsProvider
 {

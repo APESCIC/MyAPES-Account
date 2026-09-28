@@ -1,43 +1,61 @@
 <?php
 
-namespace App\Http\Controllers\PetCare;
+namespace Plugins\PetProfiles\Http\Controllers;
 
+use App\Core\Extensions\Modules\ModuleContext;
 use App\Http\Controllers\Controller;
-use App\Models\PetProfile;
 use App\Services\AuditLogger;
-use App\Services\PetProfilePhotoResponder;
 use App\Services\SecureUploadService;
-use App\Support\StaffPetCreateReturn;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Plugins\PetProfiles\Models\PetProfile;
+use Plugins\PetProfiles\PetProfilePhotoResponder;
+use Plugins\PetProfiles\PetProfilesArea;
+use Plugins\PetProfiles\Support\StaffPetCreateReturn;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PetProfileController extends Controller
 {
+    public function __construct(
+        private readonly ModuleContext $moduleContext,
+    ) {}
+
     public function index(): View
     {
+        $area = $this->area();
         $user = request()->user();
-        Gate::authorize('viewAny', PetProfile::class);
+        if ($area->requireIndexAbility) {
+            abort_unless(
+                $user->can($area->permission('view-own'))
+                    || $user->can($area->permission('view-all')),
+                403,
+            );
+        } else {
+            Gate::authorize('viewAny', PetProfile::class);
+        }
+
         $query = PetProfile::query()
-            ->where('service_domain', PetProfile::DOMAIN_PETCARE)
-            ->visibleTo($user, PetProfile::DOMAIN_PETCARE)
+            ->where('service_domain', $area->serviceDomain)
+            ->visibleTo($user, $area->serviceDomain)
             ->latest();
 
-        return view('petcare.pets.index', [
+        return view('pet-profiles::pets.index', [
             'pets' => $query->paginate(20)->fragment('list'),
-            'canCreatePet' => $user->can('pet-care-clinic.pet-profiles.create'),
+            'canCreatePet' => $user->can($area->permission('create')),
             'returnTo' => StaffPetCreateReturn::requestedKey(request('return_to')),
+            'area' => $area,
         ]);
     }
 
     public function store(
         Request $request,
         SecureUploadService $secureUploadService,
-        AuditLogger $auditLogger
+        AuditLogger $auditLogger,
     ): RedirectResponse {
-        Gate::authorize('pet-care-clinic.pet-profiles.create');
+        $area = $this->area();
+        Gate::authorize($area->permission('create'));
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -51,7 +69,7 @@ class PetProfileController extends Controller
 
         $pet = new PetProfile([
             ...$validated,
-            'service_domain' => PetProfile::DOMAIN_PETCARE,
+            'service_domain' => $area->serviceDomain,
             'user_id' => $request->user()->id,
         ]);
 
@@ -64,11 +82,15 @@ class PetProfileController extends Controller
         }
 
         $pet->save();
-        $auditLogger->record('petcare.pet_profile.created', $request->user(), $pet, [
+
+        $meta = [
             'has_photo' => $request->hasFile('photo'),
-            'sub_core_key' => 'pet-care-clinic',
-            'module_key' => 'pet-profiles',
-        ]);
+        ];
+        if ($area->moduleSlug === 'pet-care-clinic') {
+            $meta['sub_core_key'] = 'pet-care-clinic';
+            $meta['module_key'] = 'pet-profiles';
+        }
+        $auditLogger->record("{$area->auditEventPrefix}.created", $request->user(), $pet, $meta);
 
         $continueUrl = StaffPetCreateReturn::continueUrl(
             $request->input('return_to'),
@@ -77,19 +99,30 @@ class PetProfileController extends Controller
 
         if ($continueUrl !== null) {
             return redirect($continueUrl)
-                ->with('status', 'Your pet has been saved.');
+                ->with('status', $area->createFlash);
         }
 
-        return redirect()->route('petcare.pets.show', $pet);
+        $redirect = redirect()->route($area->showRouteName(), $pet);
+        if ($area->flashOnCreateRedirect) {
+            $redirect->with('status', $area->createFlash);
+        }
+
+        return $redirect;
     }
 
     public function show(PetProfile $pet): View
     {
-        $this->authorizeDomainPet($pet, PetProfile::DOMAIN_PETCARE, 'view');
+        $area = $this->area();
+        $this->authorizeDomainPet($pet, $area->serviceDomain, 'view');
 
-        return view('petcare.pets.show', [
+        if ($area->showOwnerMeta) {
+            $pet->loadMissing('user');
+        }
+
+        return view('pet-profiles::pets.show', [
             'pet' => $pet,
             'canUpdatePet' => Gate::allows('update', $pet),
+            'area' => $area,
         ]);
     }
 
@@ -97,16 +130,19 @@ class PetProfileController extends Controller
         PetProfile $pet,
         PetProfilePhotoResponder $photos,
     ): StreamedResponse {
-        return $photos->response($pet, PetProfile::DOMAIN_PETCARE);
+        $area = $this->area();
+
+        return $photos->response($pet, $area->serviceDomain);
     }
 
     public function update(
         Request $request,
         PetProfile $pet,
         SecureUploadService $secureUploadService,
-        AuditLogger $auditLogger
+        AuditLogger $auditLogger,
     ): RedirectResponse {
-        $this->authorizeDomainPet($pet, PetProfile::DOMAIN_PETCARE, 'update');
+        $area = $this->area();
+        $this->authorizeDomainPet($pet, $area->serviceDomain, 'update');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -131,13 +167,30 @@ class PetProfileController extends Controller
         }
 
         $pet->update($validated);
-        $auditLogger->record('petcare.pet_profile.updated', $request->user(), $pet, [
-            'photo_replaced' => $request->hasFile('photo'),
-            'sub_core_key' => 'pet-care-clinic',
-            'module_key' => 'pet-profiles',
-        ]);
 
-        return redirect()->route('petcare.pets.show', $pet)->with('status', 'Pet profile updated.');
+        $meta = [
+            'photo_replaced' => $request->hasFile('photo'),
+        ];
+        if ($area->moduleSlug === 'pet-care-clinic') {
+            $meta['sub_core_key'] = 'pet-care-clinic';
+            $meta['module_key'] = 'pet-profiles';
+        }
+        $auditLogger->record("{$area->auditEventPrefix}.updated", $request->user(), $pet, $meta);
+
+        return redirect()->route($area->showRouteName(), $pet)
+            ->with('status', $area->updateFlash);
+    }
+
+    private function area(): PetProfilesArea
+    {
+        $slug = $this->moduleContext->slug()
+            ?? abort(404);
+
+        try {
+            return PetProfilesArea::forModule($slug);
+        } catch (\InvalidArgumentException) {
+            abort(404);
+        }
     }
 
     private function authorizeDomainPet(

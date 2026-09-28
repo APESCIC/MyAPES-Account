@@ -4,10 +4,10 @@ namespace App\Modules\Attention;
 
 use App\Contracts\ModuleAttentionProvider;
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Modules\ModuleAttentionItem;
 use App\Modules\ModuleInstanceDefinition;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class CaseAttentionProvider implements ModuleAttentionProvider
 {

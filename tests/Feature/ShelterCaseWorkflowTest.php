@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\AuditLog;
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Notifications\ShelterCaseUpdatedNotification;
 use App\Services\AuthorizationProfile;
@@ -14,6 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
+use Plugins\PetProfiles\Models\PetProfile;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;

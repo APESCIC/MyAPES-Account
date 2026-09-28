@@ -7,19 +7,30 @@ use App\Core\Extensions\Plugins\PluginManifest;
 use App\Core\Extensions\Plugins\PluginNavigationItem;
 use App\Core\Extensions\Plugins\PluginServiceProvider;
 use App\Core\Extensions\Plugins\PluginSettingsSchema;
-use App\Models\PetProfile;
-use App\Modules\Activity\PetProfileRecentActivityProvider;
-use App\Modules\Analytics\PetProfileAnalyticsProvider;
-use App\Modules\Detectors\PetProfileActiveRecordDetector;
-use App\Modules\Summaries\PetProfileSummaryProvider;
-use App\Policies\PetProfilePolicy;
 use Illuminate\Support\Facades\Gate;
+use Plugins\PetProfiles\Contracts\PetProfilesContract;
+use Plugins\PetProfiles\Dashboard\PetProfileActiveRecordDetector;
+use Plugins\PetProfiles\Dashboard\PetProfileAnalyticsProvider;
+use Plugins\PetProfiles\Dashboard\PetProfileRecentActivityProvider;
+use Plugins\PetProfiles\Dashboard\PetProfileSummaryProvider;
+use Plugins\PetProfiles\Models\PetProfile;
+use Plugins\PetProfiles\Policies\PetProfilePolicy;
+use Plugins\PetProfiles\Services\PetProfiles;
 
 class PetProfilesServiceProvider extends PluginServiceProvider
 {
+    public function register(): void
+    {
+        parent::register();
+
+        $this->app->singleton(PetProfilesContract::class, PetProfiles::class);
+    }
+
     public function boot(): void
     {
         parent::boot();
+
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'pet-profiles');
 
         Gate::policy(PetProfile::class, PetProfilePolicy::class);
     }
@@ -57,6 +68,10 @@ class PetProfilesServiceProvider extends PluginServiceProvider
             summaryProvider: PetProfileSummaryProvider::class,
             recentActivityProvider: PetProfileRecentActivityProvider::class,
             analyticsProvider: PetProfileAnalyticsProvider::class,
+            staffRouteFiles: [
+                dirname(__DIR__).'/routes/shelter.php',
+                dirname(__DIR__).'/routes/petcare.php',
+            ],
         );
     }
 }

@@ -1,17 +1,38 @@
 @extends('layouts.app')
 
-@section('title', 'APES Pet Care Clinic Pet: '.$pet->name)
+@section('title', $area->showOwnerMeta
+    ? $area->showTitlePrefix.' #'.$pet->id.': '.$pet->name
+    : $area->showTitlePrefix.': '.$pet->name)
 
 @section('content')
+    @if($area->showOwnerMeta)
+        @inject('ukDateTime', \App\Support\UkDateTime::class)
+    @endif
     <div class="panel">
-        <span class="service-label apes-petcare">APES Pet Care Clinic</span>
+        <span class="service-label {{ $area->serviceLabelClass }}">{{ $area->serviceLabel }}</span>
         <h1>{{ $pet->name }}</h1>
         <p class="muted">{{ $pet->species }} | Age: {{ $pet->age_years ?? 'n/a' }} | {{ $pet->sex }} | {{ $pet->neutering_status }}</p>
+        @if($area->showOwnerMeta)
+            <dl class="ticket-meta">
+                <div>
+                    <dt>Owner</dt>
+                    <dd>{{ $pet->user?->name ?? '—' }}@if($pet->user)<br><small class="muted">{{ $pet->user->email }}</small>@endif</dd>
+                </div>
+                <div>
+                    <dt>Created</dt>
+                    <dd>{{ $ukDateTime->formatDate($pet->created_at) ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt>ID</dt>
+                    <dd>#{{ $pet->id }}</dd>
+                </div>
+            </dl>
+        @endif
         @if($pet->photo_path)
-            <img src="{{ route('petcare.pets.photo', $pet) }}" alt="{{ $pet->name }}" class="record-photo">
+            <img src="{{ route($area->photoRouteName(), $pet) }}" alt="{{ $pet->name }}" class="record-photo">
         @endif
         @if($canUpdatePet)
-        <form method="post" action="{{ route('petcare.pets.update', $pet) }}" enctype="multipart/form-data" class="stack-spaced">
+            <form method="post" action="{{ route($area->updateRouteName(), $pet) }}" enctype="multipart/form-data" class="stack-spaced">
             @csrf
             @method('put')
             <div class="row">
@@ -28,11 +49,11 @@
             <textarea name="health_issues">{{ $pet->health_issues }}</textarea>
             <div class="actions">
                 <button type="submit">Update pet profile</button>
-                <a href="{{ route('petcare.pets.index') }}">Back</a>
+                <a href="{{ route($area->indexRouteName()) }}">Back</a>
             </div>
-        </form>
+            </form>
         @else
-            <a href="{{ route('petcare.pets.index') }}">Back</a>
+            <a href="{{ route($area->indexRouteName()) }}">Back</a>
         @endif
     </div>
 @endsection

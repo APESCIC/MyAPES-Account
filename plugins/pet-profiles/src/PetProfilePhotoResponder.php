@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace Plugins\PetProfiles;
 
-use App\Models\PetProfile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Plugins\PetProfiles\Models\PetProfile;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class PetProfilePhotoResponder

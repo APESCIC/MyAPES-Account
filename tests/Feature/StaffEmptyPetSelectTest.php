@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Core\Accounts\User;
-use App\Models\PetProfile;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
-use App\Support\StaffPetCreateReturn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Plugins\PetProfiles\Models\PetProfile;
+use Plugins\PetProfiles\Support\StaffPetCreateReturn;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;

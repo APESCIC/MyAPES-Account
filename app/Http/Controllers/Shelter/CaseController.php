@@ -4,19 +4,20 @@ namespace App\Http\Controllers\Shelter;
 
 use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Notifications\ShelterCaseUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
-use App\Support\StaffPetCreateReturn;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Plugins\PetProfiles\Contracts\PetProfilesContract;
+use Plugins\PetProfiles\Models\PetProfile;
+use Plugins\PetProfiles\Support\StaffPetCreateReturn;
 
 class CaseController extends Controller
 {
@@ -24,10 +25,15 @@ class CaseController extends Controller
 
     public const STATUSES = ['open', 'in_review', 'closed'];
 
+    public function __construct(
+        private readonly PetProfilesContract $petProfiles,
+    ) {}
+
     public function index(): View
     {
         $user = request()->user();
         Gate::authorize('viewAny', ShelterCase::class);
+        $domain = $this->petProfiles->domainForModule('shelter-rescue');
         $query = ShelterCase::query()
             ->forSubCore(ShelterCase::SUB_CORE_SHELTER_RESCUE)
             ->visibleTo($user)
@@ -35,17 +41,13 @@ class CaseController extends Controller
                 'petProfile',
                 static fn ($pets) => $pets->where(
                     'service_domain',
-                    PetProfile::DOMAIN_SHELTER,
+                    $domain,
                 ),
             )
             ->with(['petProfile', 'assignedTo'])
             ->latest();
 
-        $petProfiles = PetProfile::query()
-            ->where('service_domain', PetProfile::DOMAIN_SHELTER)
-            ->visibleTo($user, PetProfile::DOMAIN_SHELTER)
-            ->orderBy('name')
-            ->get();
+        $petProfiles = $this->petProfiles->visibleOrdered($user, $domain);
 
         return view('shelter.cases.index', [
             'cases' => $query->paginate(20)->fragment('list'),
@@ -69,10 +71,12 @@ class CaseController extends Controller
         $selectedPet = $request->validate([
             'pet_profile_id' => ['required', 'integer'],
         ]);
-        $pet = PetProfile::query()
-            ->where('service_domain', PetProfile::DOMAIN_SHELTER)
-            ->visibleTo($request->user(), PetProfile::DOMAIN_SHELTER)
-            ->findOrFail($selectedPet['pet_profile_id']);
+        $domain = $this->petProfiles->domainForModule('shelter-rescue');
+        $pet = $this->petProfiles->findVisibleOrFail(
+            $request->user(),
+            $domain,
+            (int) $selectedPet['pet_profile_id'],
+        );
         Gate::authorize('view', $pet);
         Gate::authorize('createShelterCase', $pet);
 

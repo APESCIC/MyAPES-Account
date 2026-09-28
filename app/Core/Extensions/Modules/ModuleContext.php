@@ -6,7 +6,6 @@ use App\Contracts\ModuleRegistry;
 use App\Modules\ModuleInstanceDefinition;
 use App\Services\ModuleRouteContext;
 use App\Services\ModuleSettingsService;
-use Illuminate\Http\Request;
 use InvalidArgumentException;
 
 /**
@@ -21,12 +20,11 @@ final class ModuleContext
         private readonly ModulePackageRegistry $modules,
         private readonly ModuleRegistry $registry,
         private readonly ModuleRouteContext $routeContext,
-        private readonly Request $request,
     ) {}
 
     public function slug(): ?string
     {
-        $subCoreKey = $this->request->route('subCoreKey');
+        $subCoreKey = request()->route('subCoreKey');
 
         return is_string($subCoreKey) ? $subCoreKey : null;
     }
@@ -52,7 +50,7 @@ final class ModuleContext
      */
     public function pluginInstance(string $pluginSlug): ModuleInstanceDefinition
     {
-        return $this->routeContext->resolve($this->request, $pluginSlug);
+        return $this->routeContext->resolve(request(), $pluginSlug);
     }
 
     /**

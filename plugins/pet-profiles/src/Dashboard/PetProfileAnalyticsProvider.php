@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Modules\Analytics;
+namespace Plugins\PetProfiles\Dashboard;
 
 use App\Contracts\ModuleAnalyticsProvider;
-use App\Models\PetProfile;
 use App\Modules\ModuleAnalyticsSnapshot;
 use App\Modules\ModuleInstanceDefinition;
 use App\Services\ModuleState;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
+use Plugins\PetProfiles\Models\PetProfile;
 
 class PetProfileAnalyticsProvider implements ModuleAnalyticsProvider
 {

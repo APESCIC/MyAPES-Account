@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace Plugins\PetProfiles\Support;
 
 use App\Core\Accounts\User;
 use App\Services\AuthorizationProfile;

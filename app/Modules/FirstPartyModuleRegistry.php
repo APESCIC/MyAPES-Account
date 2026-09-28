@@ -9,11 +9,11 @@ use App\Core\Extensions\Modules\ModulePackageRegistry;
 use App\Core\Extensions\Plugins\PluginAbility;
 use App\Core\Extensions\Plugins\PluginManifest;
 use App\Core\Extensions\Plugins\PluginRegistry;
-use App\Modules\Activity\PetProfileRecentActivityProvider;
-use App\Modules\Analytics\PetProfileAnalyticsProvider;
 use App\Services\ModuleRegistryValidator;
 use App\Support\ReleaseHistoryRepository;
 use InvalidArgumentException;
+use Plugins\PetProfiles\Dashboard\PetProfileAnalyticsProvider;
+use Plugins\PetProfiles\Dashboard\PetProfileRecentActivityProvider;
 
 /**
  * Compatibility adapter that builds the legacy ModuleRegistry view from

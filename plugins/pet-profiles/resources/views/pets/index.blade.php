@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Shelter Pet Profiles')
+@section('title', $area->indexTitle)
 
 @section('content')
     <div class="panel">
-        <span class="service-label apes-shelter">APES Shelter and Rescue</span>
+        <span class="service-label {{ $area->serviceLabelClass }}">{{ $area->serviceLabel }}</span>
         <h1>Pet profiles</h1>
     </div>
     <div class="panel" id="list">
@@ -25,7 +25,7 @@
                         <td>{{ $pet->species }}</td>
                         <td>{{ $pet->age_years }}</td>
                         <td>{{ $pet->sex }}</td>
-                        <td><a href="{{ route('shelter.pets.show', $pet) }}">Open</a></td>
+                        <td><a href="{{ route($area->showRouteName(), $pet) }}">Open</a></td>
                     </tr>
                 @endforeach
                 </tbody>
@@ -39,7 +39,7 @@
             @if($returnTo)
                 <p class="muted">After you save this pet, you will return to the form you started.</p>
             @endif
-            <form method="post" action="{{ route('shelter.pets.store') }}" enctype="multipart/form-data">
+            <form method="post" action="{{ route($area->storeRouteName()) }}" enctype="multipart/form-data">
             @csrf
             @if($returnTo)
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">

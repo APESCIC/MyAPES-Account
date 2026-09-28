@@ -5,13 +5,11 @@ namespace App\Http\Controllers\PetCare;
 use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Notifications\ConsultationUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
 use App\Rules\UkDateTimeFormat;
 use App\Services\AssignmentAuthorization;
 use App\Services\AuditLogger;
-use App\Support\StaffPetCreateReturn;
 use App\Support\UkDateTime;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -19,10 +17,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Plugins\PetProfiles\Contracts\PetProfilesContract;
+use Plugins\PetProfiles\Support\StaffPetCreateReturn;
 
 class ConsultationController extends Controller
 {
-    public function __construct(private readonly UkDateTime $ukDateTime) {}
+    public function __construct(
+        private readonly UkDateTime $ukDateTime,
+        private readonly PetProfilesContract $petProfiles,
+    ) {}
 
     public function index(): View
     {
@@ -34,11 +37,8 @@ class ConsultationController extends Controller
             ->with(['petProfile', 'assignedTo'])
             ->latest();
 
-        $petProfiles = PetProfile::query()
-            ->where('service_domain', PetProfile::DOMAIN_PETCARE)
-            ->visibleTo($user, PetProfile::DOMAIN_PETCARE)
-            ->orderBy('name')
-            ->get();
+        $domain = $this->petProfiles->domainForModule('pet-care-clinic');
+        $petProfiles = $this->petProfiles->visibleOrdered($user, $domain);
 
         return view('petcare.consultations.index', [
             'consultations' => $query->paginate(20)->fragment('list'),
@@ -66,10 +66,12 @@ class ConsultationController extends Controller
         ]);
         $validated = $this->normalizeValidatedSchedule($validated);
 
-        $pet = PetProfile::query()
-            ->where('service_domain', PetProfile::DOMAIN_PETCARE)
-            ->visibleTo($request->user(), PetProfile::DOMAIN_PETCARE)
-            ->findOrFail($validated['pet_profile_id']);
+        $domain = $this->petProfiles->domainForModule('pet-care-clinic');
+        $pet = $this->petProfiles->findVisibleOrFail(
+            $request->user(),
+            $domain,
+            (int) $validated['pet_profile_id'],
+        );
 
         $consultation = PetCareConsultation::create([
             ...$validated,

@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
-use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\PetProfiles\Models\PetProfile;
 use Tests\TestCase;
 
 class PublicShelterPetPageTest extends TestCase
