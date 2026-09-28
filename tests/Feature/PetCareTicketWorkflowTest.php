@@ -54,7 +54,7 @@ class PetCareTicketWorkflowTest extends TestCase
             $this->assertSame('pet-care-clinic', $route->defaults['subCoreKey'] ?? null);
             $this->assertSame('tickets', $route->defaults['moduleKey'] ?? null);
             $this->assertContains(
-                'module.available:pet-care-clinic,tickets',
+                'plugin.enabled:pet-care-clinic,tickets',
                 $route->gatherMiddleware(),
             );
             $this->assertContains(

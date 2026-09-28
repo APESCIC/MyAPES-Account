@@ -179,7 +179,7 @@ class ShelterCaseWorkflowTest extends TestCase
             $route->gatherMiddleware(),
         );
         $this->assertContains(
-            'module.available:shelter-rescue,cases',
+            'plugin.enabled:shelter-rescue,cases',
             $route->gatherMiddleware(),
         );
         $this->assertFalse(Route::getRoutes()->hasNamedRoute(
