@@ -503,6 +503,21 @@ class AuthorizationCutoverGuardTest extends TestCase
         }
     }
 
+    public function test_guard_accepts_legacy_user_fqcn_morph_expression_during_cutover(): void
+    {
+        $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
+        $this->assertTrue($guard->isInstalled());
+
+        $this->rewriteUserMorphExpressionInTriggersToLegacyFqcn();
+
+        try {
+            $this->assertTrue($guard->isInstalled());
+        } finally {
+            $guard->drop();
+            $guard->install();
+        }
+    }
+
     public function test_guard_detects_the_previous_generation_installation(): void
     {
         $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
@@ -1329,6 +1344,53 @@ class AuthorizationCutoverGuardTest extends TestCase
                 $definition,
             ),
         );
+    }
+
+    private function rewriteUserMorphExpressionInTriggersToLegacyFqcn(): void
+    {
+        $current = 'CHAR(117, 115, 101, 114)';
+        $legacy = 'CHAR(65, 112, 112, 92, 77, 111, 100, 101, 108, 115, 92, 85, 115, 101, 114)';
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $triggers = DB::table('sqlite_master')
+                ->where('type', 'trigger')
+                ->where('sql', 'like', '%'.$current.'%')
+                ->get(['name', 'sql']);
+
+            foreach ($triggers as $trigger) {
+                DB::unprepared('DROP TRIGGER '.((string) $trigger->name));
+                DB::unprepared(str_replace($current, $legacy, (string) $trigger->sql));
+            }
+
+            return;
+        }
+
+        $triggers = DB::table('information_schema.triggers')
+            ->where('trigger_schema', DB::connection()->getDatabaseName())
+            ->where('action_statement', 'like', '%'.$current.'%')
+            ->get([
+                'trigger_name',
+                'event_object_table',
+                'action_timing',
+                'event_manipulation',
+                'action_statement',
+            ]);
+
+        foreach ($triggers as $trigger) {
+            $name = (string) $trigger->trigger_name;
+            DB::unprepared("DROP TRIGGER {$name}");
+            DB::unprepared(
+                "CREATE TRIGGER {$name}
+                 {$trigger->action_timing} {$trigger->event_manipulation}
+                 ON {$trigger->event_object_table}
+                 FOR EACH ROW ".str_replace(
+                    $current,
+                    $legacy,
+                    (string) $trigger->action_statement,
+                ),
+            );
+        }
     }
 
     private function downgradeAuthorizationGuardToPreviousGeneration(): void

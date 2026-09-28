@@ -39,6 +39,13 @@ class AuthorizationCompatibilityDatabaseGuard
      */
     private const USER_MODEL_EXPRESSION = 'CHAR(117, 115, 101, 114)';
 
+    /**
+     * Pre-#281 FQCN expression still present on live DBs until migrate rewrites
+     * triggers. Preflight must accept either form before the atomic switch.
+     * Bytes: App\Models\User.
+     */
+    private const LEGACY_USER_MODEL_EXPRESSION = 'CHAR(65, 112, 112, 92, 77, 111, 100, 101, 108, 115, 92, 85, 115, 101, 114)';
+
     public function install(bool $force = false): void
     {
         $driver = $this->driverName();
@@ -182,8 +189,8 @@ class AuthorizationCompatibilityDatabaseGuard
             }
 
             foreach ($expected as $name => $definition) {
-                if ($this->normalizeDefinition((string) $actual[$name]->sql)
-                    !== $this->normalizeDefinition($definition)) {
+                if ($this->normalizeDefinitionForComparison((string) $actual[$name]->sql)
+                    !== $this->normalizeDefinitionForComparison($definition)) {
                     return false;
                 }
             }
@@ -220,8 +227,8 @@ class AuthorizationCompatibilityDatabaseGuard
                 if ((string) $trigger->table_name !== $definition['table']
                     || strtoupper((string) $trigger->timing) !== $definition['timing']
                     || strtoupper((string) $trigger->event_name) !== $definition['event']
-                    || $this->normalizeDefinition((string) $trigger->definition)
-                        !== $this->normalizeDefinition($definition['body'])) {
+                    || $this->normalizeDefinitionForComparison((string) $trigger->definition)
+                        !== $this->normalizeDefinitionForComparison($definition['body'])) {
                     return false;
                 }
             }
@@ -1058,6 +1065,19 @@ class AuthorizationCompatibilityDatabaseGuard
         $normalized = strtolower(str_replace('`', '', trim($definition)));
 
         return preg_replace('/\s+/', ' ', $normalized) ?? '';
+    }
+
+    /**
+     * Treat legacy FQCN and morph-alias USER_MODEL CHAR() forms as equivalent
+     * so preflight against a not-yet-migrated Phase B database still passes.
+     */
+    private function normalizeDefinitionForComparison(string $definition): string
+    {
+        $normalized = $this->normalizeDefinition($definition);
+        $legacy = $this->normalizeDefinition(self::LEGACY_USER_MODEL_EXPRESSION);
+        $current = $this->normalizeDefinition(self::USER_MODEL_EXPRESSION);
+
+        return str_replace($legacy, $current, $normalized);
     }
 
     private function compactDefinition(string $definition): string
