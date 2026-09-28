@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Core\Extensions\Modules\ModulePackageRegistry;
+use App\Core\Extensions\Plugins\PluginRegistry;
+use App\Core\Extensions\Plugins\PluginSettingsSchema;
 use App\Modules\ModuleSettingsDescriptor;
 use App\Support\ModuleSettingsDefaults;
 use InvalidArgumentException;
@@ -9,70 +12,59 @@ use InvalidArgumentException;
 /**
  * Single source of truth for per-plugin settings metadata and defaults.
  *
- * Admin Plugins index, ModuleSettingsService, and AdminModuleController
- * consume this registry instead of hardcoding module keys in Blade or controllers.
+ * Built from plugin manifests (#287). Keeps the ModuleSettingsDescriptor
+ * shape for Admin Plugins pages until enablement moves (#288).
  */
 final class ModuleSettingsRegistry
 {
+    private const PLUGIN_ORDER = [
+        'tickets' => 10,
+        'cases' => 20,
+        'recruitment' => 30,
+        'pet-profiles' => 40,
+        'consultations' => 50,
+    ];
+
+    public function __construct(
+        private readonly PluginRegistry $plugins,
+        private readonly ModulePackageRegistry $modules,
+    ) {}
+
     /**
      * @return list<ModuleSettingsDescriptor>
      */
     public function descriptors(): array
     {
-        return [
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'apes-cic',
-                moduleKey: 'tickets',
-                supportsSettings: true,
-                schema: ModuleSettingsDescriptor::SCHEMA_WEBSITES_CATEGORIES,
-                groupKey: 'service_areas',
-                groupLabel: 'Service areas',
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'apes-cic',
-                moduleKey: 'cases',
-                supportsSettings: true,
-                schema: ModuleSettingsDescriptor::SCHEMA_WEBSITES_CATEGORIES,
-                groupKey: 'categories',
-                groupLabel: 'Case categories',
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'apes-cic',
-                moduleKey: 'recruitment',
-                supportsSettings: true,
-                schema: ModuleSettingsDescriptor::SCHEMA_RECRUITMENT_BOARD,
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'shelter-rescue',
-                moduleKey: 'pet-profiles',
-                supportsSettings: false,
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'shelter-rescue',
-                moduleKey: 'cases',
-                supportsSettings: false,
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'shelter-rescue',
-                moduleKey: 'tickets',
-                supportsSettings: false,
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'pet-care-clinic',
-                moduleKey: 'pet-profiles',
-                supportsSettings: false,
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'pet-care-clinic',
-                moduleKey: 'consultations',
-                supportsSettings: false,
-            ),
-            new ModuleSettingsDescriptor(
-                subCoreKey: 'pet-care-clinic',
-                moduleKey: 'tickets',
-                supportsSettings: false,
-            ),
-        ];
+        $descriptors = [];
+
+        foreach ($this->plugins->plugins() as $plugin) {
+            foreach ($plugin->shippedModules as $moduleSlug) {
+                $schema = $plugin->settingsFor($moduleSlug);
+                $descriptors[] = $this->toDescriptor($moduleSlug, $plugin->slug, $schema);
+            }
+        }
+
+        $moduleOrder = [];
+        foreach (array_values($this->modules->modules()) as $index => $manifest) {
+            $moduleOrder[$manifest->slug] = $manifest->sortOrder;
+        }
+
+        usort(
+            $descriptors,
+            static function (ModuleSettingsDescriptor $left, ModuleSettingsDescriptor $right) use ($moduleOrder): int {
+                $byModule = ($moduleOrder[$left->subCoreKey] ?? 999)
+                    <=> ($moduleOrder[$right->subCoreKey] ?? 999);
+
+                if ($byModule !== 0) {
+                    return $byModule;
+                }
+
+                return (self::PLUGIN_ORDER[$left->moduleKey] ?? 99)
+                    <=> (self::PLUGIN_ORDER[$right->moduleKey] ?? 99);
+            },
+        );
+
+        return $descriptors;
     }
 
     public function descriptor(string $subCoreKey, string $moduleKey): ModuleSettingsDescriptor
@@ -125,5 +117,24 @@ final class ModuleSettingsRegistry
             'recruitment' => $subCoreKey === 'apes-cic' ? ModuleSettingsDefaults::recruitmentForApesCic() : null,
             default => throw new InvalidArgumentException("No defaults for configurable module [{$moduleKey}]."),
         };
+    }
+
+    private function toDescriptor(
+        string $moduleSlug,
+        string $pluginSlug,
+        PluginSettingsSchema $schema,
+    ): ModuleSettingsDescriptor {
+        return new ModuleSettingsDescriptor(
+            subCoreKey: $moduleSlug,
+            moduleKey: $pluginSlug,
+            supportsSettings: $schema->supportsSettings,
+            schema: $schema->schema,
+            settingsRouteName: $schema->settingsRouteName,
+            viewPermission: $schema->viewPermission,
+            managePermission: $schema->managePermission,
+            navLabel: $schema->navLabel,
+            groupKey: $schema->groupKey,
+            groupLabel: $schema->groupLabel,
+        );
     }
 }

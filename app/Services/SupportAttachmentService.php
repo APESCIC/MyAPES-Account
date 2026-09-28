@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\SupportAttachment;
-use App\Models\User;
+use App\Core\Accounts\User;
+use App\Core\Attachments\SupportAttachment;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;

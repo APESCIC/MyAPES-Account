@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Extensions\Modules\ModulePackageRegistry;
 use App\Services\ServiceEntitlement;
 use Closure;
 use Illuminate\Http\Request;
@@ -13,11 +14,16 @@ class EnsureServiceSelected
     public function __construct(
         private readonly ServiceEntitlement $entitlement,
         private readonly ModuleRegistry $registry,
+        private readonly ModulePackageRegistry $modulePackages,
     ) {}
 
     /** @param Closure(Request): Response $next */
     public function handle(Request $request, Closure $next, string $subCoreKey): Response
     {
+        if (! $this->modulePackages->isEnabled($subCoreKey)) {
+            abort(404);
+        }
+
         try {
             $service = $this->registry->subCore($subCoreKey);
         } catch (\InvalidArgumentException) {

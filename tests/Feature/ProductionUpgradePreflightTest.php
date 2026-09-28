@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\User;
 use App\Exceptions\DirectoryUnavailable;
-use App\Models\User;
 use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapGroupResolver;
 use App\Support\DirectoryGroupPrefix;

@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Auth\DirectoryUserProfile;
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
+use App\Core\Auth\DirectoryUserProfile;
 use App\Services\AuthorizationProfile;
 use App\Services\DirectoryRoleSynchronizer;
 use App\Services\DirectoryUserSynchronizer;

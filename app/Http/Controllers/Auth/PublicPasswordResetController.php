@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\LocalPublicPasswordResetService;
 use App\Services\SessionAuthorizationContext;

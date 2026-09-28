@@ -3,9 +3,9 @@
 namespace App\Modules\Attention;
 
 use App\Contracts\ModuleAttentionProvider;
+use App\Core\Accounts\User;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
-use App\Models\User;
 use App\Modules\ModuleAttentionItem;
 use App\Modules\ModuleInstanceDefinition;
 

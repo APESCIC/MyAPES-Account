@@ -1,8 +1,11 @@
 <?php
 
+use App\Core\Providers\CoreAccessServiceProvider;
+use App\Core\Providers\CoreAdminServiceProvider;
+use App\Core\Providers\CoreAuthServiceProvider;
 use App\Core\Providers\CoreServiceProvider;
 use App\Providers\AppServiceProvider;
-use App\Providers\ModuleServiceProvider;
+use App\Providers\ExtensionRegistryServiceProvider;
 use Modules\ApesCic\ApesCicServiceProvider;
 use Modules\PetCareClinic\PetCareClinicServiceProvider;
 use Modules\ShelterRescue\ShelterRescueServiceProvider;
@@ -14,7 +17,10 @@ use Plugins\Tickets\TicketsServiceProvider;
 
 return [
     CoreServiceProvider::class,
-    ModuleServiceProvider::class,
+    CoreAuthServiceProvider::class,
+    CoreAccessServiceProvider::class,
+    CoreAdminServiceProvider::class,
+    ExtensionRegistryServiceProvider::class,
     AppServiceProvider::class,
     ApesCicServiceProvider::class,
     PetCareClinicServiceProvider::class,

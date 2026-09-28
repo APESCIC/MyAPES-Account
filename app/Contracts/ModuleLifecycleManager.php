@@ -2,8 +2,8 @@
 
 namespace App\Contracts;
 
-use App\Models\ModuleInstallation;
-use App\Models\User;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 
 interface ModuleLifecycleManager
 {

@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\DirectorySyncRun;
 use App\Exceptions\DirectorySyncInProgress;
 use App\Exceptions\DirectoryUnavailable;
-use App\Models\AuthorizationState;
-use App\Models\DirectoryGroup;
-use App\Models\DirectorySyncRun;
 use App\Support\DirectoryGroupPrefix;
 use App\Support\DirectoryLegacyGroupAliases;
 use Illuminate\Support\Facades\DB;

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Permission;
-use App\Models\PermissionSource;
-use App\Models\User;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\PermissionSource;
+use App\Core\Accounts\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 

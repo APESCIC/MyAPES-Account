@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\User;
 use App\Exceptions\AuthorizationMutationDenied;
-use App\Models\AuthorizationState;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 

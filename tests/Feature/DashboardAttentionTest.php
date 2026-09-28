@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\ModuleInstallation;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\PetCareConsultation;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Modules\ModuleAttentionItem;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;

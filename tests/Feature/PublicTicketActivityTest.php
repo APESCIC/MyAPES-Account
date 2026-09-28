@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\User;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -86,7 +86,7 @@
                     <td><strong>{{ $user->name }}</strong><br><span class="muted">{{ $user->email }}</span></td>
                     <td>
                         {{ $identityTypes[$user->identity_type] ?? 'Unknown' }}
-                        @if($user->identity_type === \App\Models\User::IDENTITY_CLOUDRON_OIDC && blank($user->oidc_sub))
+                        @if($user->identity_type === \App\Core\Accounts\User::IDENTITY_CLOUDRON_OIDC && blank($user->oidc_sub))
                             <br><span class="status">Pending first login</span>
                         @endif
                     </td>

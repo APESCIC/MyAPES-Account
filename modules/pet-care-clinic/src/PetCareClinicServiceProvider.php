@@ -2,20 +2,25 @@
 
 namespace Modules\PetCareClinic;
 
-use Illuminate\Support\ServiceProvider;
+use App\Core\Extensions\Modules\ModuleManifest;
+use App\Core\Extensions\Modules\ModuleServiceProvider;
+use App\Core\Extensions\Modules\ModuleStaffArea;
 
-/**
- * Pet Care Clinic module package skeleton (#281). Controllers and routes move in later Structure children.
- */
-class PetCareClinicServiceProvider extends ServiceProvider
+class PetCareClinicServiceProvider extends ModuleServiceProvider
 {
-    public function register(): void
+    protected function manifest(): ModuleManifest
     {
-        //
-    }
-
-    public function boot(): void
-    {
-        //
+        return new ModuleManifest(
+            slug: 'pet-care-clinic',
+            name: 'APES Pet Care Clinic',
+            description: 'Pet care records and clinical consultations.',
+            routePrefix: '/petcare',
+            routeNamePrefix: 'petcare.',
+            hubRouteName: 'petcare.index',
+            icon: 'heart-pulse',
+            sortOrder: 30,
+            staffArea: new ModuleStaffArea('petcare.index'),
+            plugins: ['pet-profiles', 'consultations', 'tickets'],
+        );
     }
 }

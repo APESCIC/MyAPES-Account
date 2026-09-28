@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StaffProfile;
+use App\Core\Accounts\StaffProfile;
 use App\Services\AuditLogger;
 use App\Services\AuthorizationProfile;
 use App\Services\ContactPreferenceUpdater;

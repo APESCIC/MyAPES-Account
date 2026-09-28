@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\AuthorizationState;
-use App\Models\DirectorySyncRun;
-use App\Models\User;
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\DirectorySyncRun;
+use App\Core\Accounts\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 

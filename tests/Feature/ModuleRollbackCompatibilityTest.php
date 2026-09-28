@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
-use App\Models\ModuleInstallation;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleRollbackCompatibilityChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -342,6 +342,8 @@ class ModuleRollbackCompatibilityTest extends TestCase
                 'schema_version' => $manifest['schema_version'],
                 'module_types' => $manifest['module_types'],
                 'sub_cores' => $manifest['sub_cores'],
+                'modules' => $manifest['modules'] ?? $manifest['sub_cores'],
+                'plugins' => $manifest['plugins'] ?? $manifest['module_types'],
                 'legacy_visible_instances' => $manifest['legacy_visible_instances'],
                 'shipped_instances' => $manifest['shipped_instances'],
             ], JSON_THROW_ON_ERROR),

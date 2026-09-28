@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Support\ChangeLogPresenter;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;

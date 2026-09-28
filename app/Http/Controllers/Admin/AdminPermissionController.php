@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Core\Accounts\Permission;
 use App\Http\Controllers\Controller;
-use App\Models\Permission;
 use App\Services\AuthorizationProfile;
 use App\Support\PermissionDescriptions;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AdminPermissionController extends Controller
 {
@@ -47,7 +48,7 @@ class AdminPermissionController extends Controller
 
         $page = max(1, (int) $request->query('page', 1));
         $perPage = 50;
-        $permissions = new \Illuminate\Pagination\LengthAwarePaginator(
+        $permissions = new LengthAwarePaginator(
             $allMatching->forPage($page, $perPage)->values(),
             $allMatching->count(),
             $perPage,

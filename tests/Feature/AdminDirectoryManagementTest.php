@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroupRoleMapping;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
 use App\Jobs\RunDirectorySync;
-use App\Models\AuditLog;
-use App\Models\DirectoryGroup;
-use App\Models\DirectoryGroupRoleMapping;
-use App\Models\Role;
-use App\Models\User;
 use App\Support\DefaultJobRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;

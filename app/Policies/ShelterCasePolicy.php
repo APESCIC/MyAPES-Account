@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
+use App\Core\Accounts\User;
 use App\Models\ShelterCase;
-use App\Models\User;
 use App\Services\ModuleState;
 
 class ShelterCasePolicy

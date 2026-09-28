@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\ModuleInstallation;
+use App\Core\Extensions\Models\ModuleInstallation;
 use Illuminate\Support\Facades\Cache;
 
 class ModuleCatalogueProjection

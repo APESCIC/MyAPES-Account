@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Support\PrivacyNotice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

@@ -98,7 +98,7 @@ Do not call an Access job role, or Spatie's `Role`, a recruitment role. Do not c
 
 ## Folder layout (proposal for #281)
 
-Approved by [ADR 0001](adr/0001-core-modules-plugins.md). Not created yet.
+Approved by [ADR 0001](adr/0001-core-modules-plugins.md). Skeletons landed in #281; Wave 1 (#282–#283/#287) filled Core contracts and moved Core accounts/auth into `app/Core`.
 
 ```
 app/Core/...                         App\Core\
@@ -108,9 +108,7 @@ plugins/<slug>/src/...               Plugins\<Studly>\
 plugins/<slug>/{routes,resources/views,lang,config,database/migrations,database/factories,tests}
 ```
 
-Examples: `modules/apes-cic` → `Modules\ApesCic`, `plugins/pet-profiles` → `Plugins\PetProfiles`. One service provider per module and per plugin, discovered from the registries. Core providers stay in `bootstrap/providers.php`. `App\` stays for the Laravel skeleton until a class actually moves.
-
-Before any model moves, Core calls `Relation::enforceMorphMap()` with stable aliases (`user`, `support_ticket`, `case`, `pet_profile`, `consultation`, `recruitment_role`, `recruitment_application`, …) and rewrites stored FQCN values. That is [#281](https://github.com/APESCIC/MyAPES-Account/issues/281). The inventory lists `auditable_type`, `attachable_type`, `notifiable_type`, and Spatie `model_type`.
+Examples: `modules/apes-cic` → `Modules\ApesCic`, `plugins/pet-profiles` → `Plugins\PetProfiles`. One service provider per module and per plugin, discovered from the registries. Core providers stay in `bootstrap/providers.php`. Plugin feature models remain under `App\Models` until Waves 5–7.
 
 ## Permissions
 

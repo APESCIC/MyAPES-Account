@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Core\Accounts\DirectorySyncRun;
 use App\Exceptions\DirectorySyncInProgress;
 use App\Exceptions\DirectoryUnavailable;
-use App\Models\DirectorySyncRun;
 use App\Services\DirectoryCatalogueSynchronizer;
 use Illuminate\Console\Command;
 use Throwable;

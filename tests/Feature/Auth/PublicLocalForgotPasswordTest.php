@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\AuditLog;
-use App\Models\User;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationProfile;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;

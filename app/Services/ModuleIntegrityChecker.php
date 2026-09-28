@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Accounts\Permission;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
-use App\Models\ModuleInstallation;
-use App\Models\Permission;
 use Illuminate\Support\Facades\Schema;
 
 class ModuleIntegrityChecker

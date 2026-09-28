@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;

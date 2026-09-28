@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\ModuleRegistry;
-use App\Models\Permission;
-use App\Models\User;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 

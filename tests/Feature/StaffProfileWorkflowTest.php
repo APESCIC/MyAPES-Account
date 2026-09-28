@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\StaffProfile;
-use App\Models\User;
+use App\Core\Accounts\StaffProfile;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;

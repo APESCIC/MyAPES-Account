@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\DirectoryGroup;
-use App\Models\DirectoryGroupRoleMapping;
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\DirectoryGroupRoleMapping;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationRoleMaterializer;
 use App\Services\DirectoryRoleSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;

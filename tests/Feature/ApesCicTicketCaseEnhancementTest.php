@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\ModuleSetting;
+use App\Core\Accounts\User;
+use App\Core\Attachments\SupportAttachment;
+use App\Core\Extensions\Models\ModuleSetting;
 use App\Models\ShelterCase;
-use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleSettingsService;

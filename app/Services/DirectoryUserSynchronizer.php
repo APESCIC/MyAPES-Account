@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Auth\DirectoryUserProfile;
-use App\Models\User;
+use App\Core\Accounts\User;
+use App\Core\Auth\DirectoryUserProfile;
 use App\Support\DirectoryGroupPrefix;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

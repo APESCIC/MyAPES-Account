@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\ModuleSetting;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleSetting;
 use App\Models\RecruitmentRole;
-use App\Models\User;
 use App\Modules\ModuleSettingsDescriptor;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;

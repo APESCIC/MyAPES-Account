@@ -41,14 +41,14 @@
                 <a href="{{ route('staff.login') }}">Staff Login</a>
             </div>
         </div>
-        @if($publicRecruitmentEnabled)
+        @foreach($publicPluginNavigation ?? [] as $publicPluginNav)
             <div class="panel">
-                <h2>Open roles</h2>
+                <h2>{{ $publicPluginNav->label === 'Recruitment' ? 'Open roles' : $publicPluginNav->label }}</h2>
                 <p class="muted">Browse staff, volunteering, and student opportunities with APES CIC.</p>
                 <div class="actions">
-                    <a href="{{ route('recruitment.index') }}">View open roles</a>
+                    <a href="{{ route($publicPluginNav->routeName) }}">View open roles</a>
                 </div>
             </div>
-        @endif
+        @endforeach
     </div>
 @endsection

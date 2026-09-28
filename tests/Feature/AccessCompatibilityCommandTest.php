@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Support\AccessCompatibilityDatabaseGuard;
 use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migration;

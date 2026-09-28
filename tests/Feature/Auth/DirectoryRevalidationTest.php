@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Core\Accounts\DirectorySyncRun;
+use App\Core\Accounts\User;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
 use App\Http\Middleware\RevalidateDirectoryAccess;
-use App\Models\DirectorySyncRun;
-use App\Models\User;
 use App\Services\LdapGroupResolver;
 use App\Services\SessionAuthorizationContext;
 use Carbon\CarbonImmutable;

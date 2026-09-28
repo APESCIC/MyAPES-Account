@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Services\AdminAnalyticsAggregator;
 use App\Services\AuthorizationProfile;
 use Illuminate\Contracts\View\View;

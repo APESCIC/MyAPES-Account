@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Contracts\ModuleAnalyticsProvider;
 use App\Contracts\ModuleRegistry;
-use App\Models\AuditLog;
-use App\Models\ModuleInstallation;
-use App\Models\User;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Modules\ModuleCodeStatus;
 use App\Support\ReleaseHistoryRepository;
 use Illuminate\Support\Carbon;

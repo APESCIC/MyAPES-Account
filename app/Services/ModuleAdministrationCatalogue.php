@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Contracts\ModuleActiveRecordDetector;
 use App\Contracts\ModuleRegistry;
-use App\Models\ModuleInstallation;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Modules\ModuleDefinition;
 use App\Modules\SubCoreDefinition;
 

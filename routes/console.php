@@ -1,8 +1,8 @@
 <?php
 
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\DirectorySyncRun;
 use App\Jobs\RunDirectorySync;
-use App\Models\AuditLog;
-use App\Models\DirectorySyncRun;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;

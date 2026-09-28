@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\ApesCic;
 
+use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
 use App\Models\ShelterCase;
-use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
 use App\Notifications\ApesCicCaseUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;

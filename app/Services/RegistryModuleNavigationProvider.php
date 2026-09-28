@@ -4,7 +4,8 @@ namespace App\Services;
 
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\ModuleRegistry;
-use App\Models\User;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Modules\ModulePackageRegistry;
 use App\Modules\ModuleNavigationItem;
 use App\Modules\SubCoreNavigation;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class RegistryModuleNavigationProvider implements ModuleNavigationProvider
 {
     public function __construct(
         private readonly ModuleRegistry $registry,
+        private readonly ModulePackageRegistry $modulePackages,
         private readonly ModuleCatalogueProjection $projection,
         private readonly ServiceEntitlement $entitlement,
         private readonly Request $request,
@@ -23,6 +25,10 @@ class RegistryModuleNavigationProvider implements ModuleNavigationProvider
         $navigation = [];
 
         foreach ($this->registry->subCores() as $subCore) {
+            if (! $this->modulePackages->isEnabled($subCore->key)) {
+                continue;
+            }
+
             if (! $this->entitlement->allows($user, $subCore->key, $this->request)) {
                 continue;
             }
@@ -45,6 +51,10 @@ class RegistryModuleNavigationProvider implements ModuleNavigationProvider
 
     public function forSubCore(User $user, string $subCoreKey): array
     {
+        if (! $this->modulePackages->isEnabled($subCoreKey)) {
+            return [];
+        }
+
         $enabled = array_flip($this->projection->enabledInstanceKeys());
         $items = [];
 

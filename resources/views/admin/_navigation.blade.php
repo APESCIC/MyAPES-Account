@@ -10,6 +10,7 @@
         <a href="{{ route('admin.access.index') }}" @if(request()->routeIs('admin.access.*', 'admin.groups.*', 'admin.roles.*', 'admin.permissions.*')) aria-current="page" @endif>Access</a>
     @endcanany
     @can('admin.modules.view')
+        <a href="{{ route('admin.organisation-modules.index') }}" @if(request()->routeIs('admin.organisation-modules.*')) aria-current="page" @endif>Modules</a>
         <a href="{{ route('admin.modules.index') }}" @if(request()->routeIs('admin.modules.*')) aria-current="page" @endif>Plugins</a>
     @endcan
     @can('admin.maintenance.manage')

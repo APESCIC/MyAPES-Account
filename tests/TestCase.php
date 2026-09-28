@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Services\SessionAuthorizationContext;
 use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Contracts\Foundation\MaintenanceMode;

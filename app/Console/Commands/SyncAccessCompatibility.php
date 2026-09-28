@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Support\AccessCompatibilityDatabaseGuard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;

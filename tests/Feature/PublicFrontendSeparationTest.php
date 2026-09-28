@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\User;
 use App\Http\Controllers\Auth\PublicAuthController;
-use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;

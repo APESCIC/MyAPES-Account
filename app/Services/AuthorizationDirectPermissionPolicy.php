@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Permission;
-use App\Models\User;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\User;
 use Illuminate\Database\Eloquent\Collection;
 use InvalidArgumentException;
 use Spatie\Permission\WildcardPermission;

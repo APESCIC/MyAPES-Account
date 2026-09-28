@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\ApesCic;
 
+use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
-use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
 use App\Notifications\TicketUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;

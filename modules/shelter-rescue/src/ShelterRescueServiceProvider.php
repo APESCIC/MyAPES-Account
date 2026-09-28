@@ -2,20 +2,25 @@
 
 namespace Modules\ShelterRescue;
 
-use Illuminate\Support\ServiceProvider;
+use App\Core\Extensions\Modules\ModuleManifest;
+use App\Core\Extensions\Modules\ModuleServiceProvider;
+use App\Core\Extensions\Modules\ModuleStaffArea;
 
-/**
- * Shelter and Rescue module package skeleton (#281). Controllers and routes move in later Structure children.
- */
-class ShelterRescueServiceProvider extends ServiceProvider
+class ShelterRescueServiceProvider extends ModuleServiceProvider
 {
-    public function register(): void
+    protected function manifest(): ModuleManifest
     {
-        //
-    }
-
-    public function boot(): void
-    {
-        //
+        return new ModuleManifest(
+            slug: 'shelter-rescue',
+            name: 'APES Shelter and Rescue',
+            description: 'Animal rescue, shelter and rehabilitation services.',
+            routePrefix: '/shelter',
+            routeNamePrefix: 'shelter.',
+            hubRouteName: 'shelter.index',
+            icon: 'house',
+            sortOrder: 20,
+            staffArea: new ModuleStaffArea('shelter.index'),
+            plugins: ['pet-profiles', 'cases', 'tickets'],
+        );
     }
 }

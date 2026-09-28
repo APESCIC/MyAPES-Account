@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Auth\DirectoryAuthorizationResult;
-use App\Models\DirectoryGroup;
-use App\Models\Role;
-use App\Models\RoleSource;
-use App\Models\User;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
+use App\Core\Auth\DirectoryAuthorizationResult;
 use App\Support\DirectoryGroupPrefix;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;

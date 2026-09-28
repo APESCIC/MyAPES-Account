@@ -91,7 +91,7 @@ Ship order vs neighbors: **v0.35 → v0.36 → v0.37 Structure → v0.38 Languag
 
 #### Plugin settings registry contract
 
-Single source of truth: `App\Services\ModuleSettingsRegistry` + `App\Modules\ModuleSettingsDescriptor`.
+Single source of truth: plugin package manifests (`App\Core\Extensions\Plugins\PluginManifest` + `PluginSettingsSchema`) collected by `PluginRegistry`. `App\Services\ModuleSettingsRegistry` adapts those manifests into `App\Modules\ModuleSettingsDescriptor` for Admin Plugins pages (same URLs, permissions, and stored values as v0.35).
 
 | Field | Purpose |
 | --- | --- |

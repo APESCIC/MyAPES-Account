@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\PermissionSource;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
 use App\Exceptions\AuthorizationLifecycleException;
-use App\Models\AuthorizationState;
-use App\Models\Permission;
-use App\Models\PermissionSource;
-use App\Models\RoleSource;
-use App\Models\User;
 use App\Support\DirectoryImmutableMappings;
 use App\Support\DirectoryLegacyGroupAliases;
 use Illuminate\Support\Facades\DB;

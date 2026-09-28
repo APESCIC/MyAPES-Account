@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Exceptions\ModuleLifecycleException;
-use App\Models\ModuleInstallation;
 
 class ModuleState
 {

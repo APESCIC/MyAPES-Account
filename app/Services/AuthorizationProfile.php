@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\ModuleRegistry;
-use App\Models\User;
+use App\Core\Accounts\User;
 use Illuminate\Support\Facades\Schema;
 
 class AuthorizationProfile

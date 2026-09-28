@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
 use App\Exceptions\AuthorizationMutationDenied;
-use App\Models\Permission;
-use App\Models\Role;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;

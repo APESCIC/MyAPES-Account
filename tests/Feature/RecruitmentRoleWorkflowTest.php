@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Contracts\ModuleRegistry;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
 use App\Models\RecruitmentRole;
-use App\Models\Role;
-use App\Models\User;
 use App\Modules\Detectors\RecruitmentActiveRecordDetector;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;

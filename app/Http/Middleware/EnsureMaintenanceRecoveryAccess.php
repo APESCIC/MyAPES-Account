@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Services\AuditLogger;
 use App\Services\MaintenanceResponseFactory;
 use Closure;

@@ -2,8 +2,8 @@
 
 namespace Tests\Support;
 
-use App\Models\AuthorizationState;
-use App\Models\DirectorySyncRun;
+use App\Core\Accounts\AuthorizationState;
+use App\Core\Accounts\DirectorySyncRun;
 use App\Services\DirectorySyncTerminalFailureRecorder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;

@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Contracts\MaintenanceModeGateway;
+use App\Core\Accounts\User;
+use App\Core\Maintenance\MaintenanceWindow;
 use App\Exceptions\MaintenanceTransitionException;
-use App\Models\MaintenanceWindow;
-use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Collection;

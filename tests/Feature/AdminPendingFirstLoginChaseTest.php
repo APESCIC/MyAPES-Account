@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
-use App\Models\User;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\User;
 use App\Notifications\PendingFirstLoginChaseNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\LocalPublicPasswordResetService;

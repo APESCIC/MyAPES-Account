@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Contracts\ModuleAggregateSummaryProvider;
 use App\Contracts\ModuleRegistry;
-use App\Models\ModuleInstallation;
-use App\Models\Permission;
+use App\Core\Accounts\Permission;
+use App\Core\Accounts\Role;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\PetProfile;
-use App\Models\Role;
-use App\Models\User;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;

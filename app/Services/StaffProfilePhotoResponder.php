@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\StaffProfile;
+use App\Core\Accounts\StaffProfile;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 

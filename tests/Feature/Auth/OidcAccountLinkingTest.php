@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Services\AuthorizationProfile;
 use App\Services\SessionAuthorizationContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;

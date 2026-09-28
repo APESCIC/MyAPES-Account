@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Auth\OidcFlow;
 use App\Contracts\OidcIdentityProvider;
+use App\Core\Accounts\User;
+use App\Core\Auth\OidcFlow;
 use App\Exceptions\DirectoryIdentityNotFound;
 use App\Exceptions\DirectoryUnavailable;
 use App\Exceptions\OidcProviderException;
 use App\Http\Controllers\Controller;
 use App\Http\Cookies\OidcReauthenticationCookie;
-use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\DirectoryRoleSynchronizer;
 use App\Services\DirectoryUserSynchronizer;
 use App\Services\LdapUserResolver;
 use App\Services\MaintenanceResponseFactory;
-use App\Services\StaffProfileDirectorySynchronizer;
 use App\Services\SessionAuthorizationContext;
+use App\Services\StaffProfileDirectorySynchronizer;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

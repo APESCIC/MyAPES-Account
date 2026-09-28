@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Auth\DirectoryUserProfile;
+use App\Core\Accounts\DirectoryGroup;
+use App\Core\Accounts\User;
+use App\Core\Auth\DirectoryUserProfile;
 use App\Exceptions\DirectoryUnavailable;
 use App\Jobs\RunDirectorySync;
-use App\Models\DirectoryGroup;
-use App\Models\User;
 use App\Services\LdapUserResolver;
 use App\Support\UkDateTime;
 use Illuminate\Foundation\Testing\RefreshDatabase;

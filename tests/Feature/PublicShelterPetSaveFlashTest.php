@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Core\Accounts\User;
 use App\Models\PetProfile;
-use App\Models\User;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
-use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 

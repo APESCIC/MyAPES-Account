@@ -5,8 +5,9 @@ namespace App\Services;
 use App\Contracts\ModuleAttentionProvider;
 use App\Contracts\ModuleNavigationProvider;
 use App\Contracts\ModuleRegistry;
-use App\Models\User;
+use App\Core\Accounts\User;
 use App\Modules\ModuleAttentionItem;
+use App\Modules\ModuleNavigationItem;
 
 class ModuleDashboardAttentionService
 {
@@ -41,7 +42,7 @@ class ModuleDashboardAttentionService
     }
 
     /**
-     * @param  array<int, \App\Modules\ModuleNavigationItem>  $modules
+     * @param  array<int, ModuleNavigationItem>  $modules
      * @return array<int, ModuleAttentionItem>
      */
     private function collectForModules(User $user, array $modules, int $limit): array

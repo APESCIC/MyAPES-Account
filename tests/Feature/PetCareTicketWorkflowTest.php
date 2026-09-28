@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
-use App\Models\ModuleInstallation;
-use App\Models\RoleSource;
+use App\Core\Accounts\AuditLog;
+use App\Core\Accounts\RoleSource;
+use App\Core\Accounts\User;
+use App\Core\Extensions\Models\ModuleInstallation;
 use App\Models\SupportTicket;
-use App\Models\User;
 use App\Notifications\TicketUpdatedNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleMaterializer;
@@ -525,7 +525,7 @@ class PetCareTicketWorkflowTest extends TestCase
             ->protectedRole(AuthorizationProfile::ROLE_STAFF)
             ->create(['suspended_at' => now(), 'suspension_reason' => 'test']);
         $permissionOnly = User::factory()->create();
-        $permissionOnlyRole = \App\Models\Role::query()->create([
+        $permissionOnlyRole = \App\Core\Accounts\Role::query()->create([
             'name' => 'petcare-ticket-helper',
             'guard_name' => 'web',
             'is_protected' => false,

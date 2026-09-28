@@ -3,9 +3,9 @@
 namespace App\Modules\Summaries;
 
 use App\Contracts\ModuleAggregateSummaryProvider;
+use App\Core\Accounts\User;
 use App\Models\PetProfile;
 use App\Models\ShelterCase;
-use App\Models\User;
 use App\Modules\ModuleInstanceDefinition;
 use App\Modules\ModuleSummary;
 
