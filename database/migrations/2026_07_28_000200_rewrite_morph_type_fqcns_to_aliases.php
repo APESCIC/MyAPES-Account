@@ -33,29 +33,36 @@ return new class extends Migration
             $fqcnToAlias[$class] = $alias;
         }
 
-        foreach ($this->columns as [$table, $column]) {
-            $this->rewriteColumn($table, $column, $fqcnToAlias);
-        }
-
-        // Rebuild auth DB triggers so they match the morph alias ("user"), not the old FQCN.
-        if (class_exists(AuthorizationCompatibilityDatabaseGuard::class)
-            && Schema::hasTable('model_has_roles')) {
-            app(AuthorizationCompatibilityDatabaseGuard::class)->upgrade();
-        }
+        // Auth pivot triggers reject model_type UPDATEs on provenanced rows.
+        // Drop them for the rewrite window, then reinstall with the alias CHAR.
+        $this->rewriteWithAuthTriggersSuspended($fqcnToAlias);
     }
 
     public function down(): void
     {
-        $aliasToFqcn = MorphMap::aliases();
+        $this->rewriteWithAuthTriggersSuspended(MorphMap::aliases());
+    }
 
-        foreach ($this->columns as [$table, $column]) {
-            $this->rewriteColumn($table, $column, $aliasToFqcn);
-        }
+    /**
+     * @param  array<string, string>  $replacements
+     */
+    private function rewriteWithAuthTriggersSuspended(array $replacements): void
+    {
+        $guard = null;
 
         if (class_exists(AuthorizationCompatibilityDatabaseGuard::class)
             && Schema::hasTable('model_has_roles')) {
-            // Reinstall with current code expression (still alias-based after this release).
-            app(AuthorizationCompatibilityDatabaseGuard::class)->upgrade();
+            $guard = app(AuthorizationCompatibilityDatabaseGuard::class);
+            $guard->drop();
+        }
+
+        try {
+            foreach ($this->columns as [$table, $column]) {
+                $this->rewriteColumn($table, $column, $replacements);
+            }
+        } finally {
+            // Rebuild triggers so they match the morph alias ("user"), not the old FQCN.
+            $guard?->upgrade();
         }
     }
 
