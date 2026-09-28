@@ -117,7 +117,7 @@ class AuthorizationProfile
 
         $matrix = self::BASE_PERMISSION_MATRIX;
 
-        if (Schema::hasTable('module_installations')) {
+        if (Schema::hasTable('module_plugins') || Schema::hasTable('module_installations')) {
             foreach ($this->modules->permissions() as $permission) {
                 foreach ($permission->defaultRoles as $role) {
                     $matrix[$role][] = $permission->name;

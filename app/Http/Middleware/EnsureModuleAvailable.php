@@ -2,18 +2,18 @@
 
 namespace App\Http\Middleware;
 
-use App\Exceptions\ModuleLifecycleException;
-use App\Services\ModuleInstanceLock;
-use App\Services\ModuleState;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @deprecated Prefer {@see EnsurePluginEnabled} / middleware alias `plugin.enabled`.
+ *             Kept as a thin wrapper until plugin route moves (#289–#291) finish.
+ */
 class EnsureModuleAvailable
 {
     public function __construct(
-        private readonly ModuleState $state,
-        private readonly ModuleInstanceLock $lock,
+        private readonly EnsurePluginEnabled $pluginEnabled,
     ) {}
 
     public function handle(
@@ -22,29 +22,11 @@ class EnsureModuleAvailable
         string $subCoreKey,
         string $moduleKey,
     ): Response {
-        try {
-            $this->state->assertEnabled($subCoreKey, $moduleKey);
-
-            if ($request->isMethodSafe()) {
-                return $next($request);
-            }
-
-            return $this->lock->run(
-                $subCoreKey,
-                $moduleKey,
-                function () use (
-                    $request,
-                    $next,
-                    $subCoreKey,
-                    $moduleKey,
-                ): Response {
-                    $this->state->assertEnabled($subCoreKey, $moduleKey);
-
-                    return $next($request);
-                },
-            );
-        } catch (ModuleLifecycleException) {
-            abort(404);
-        }
+        return $this->pluginEnabled->handle(
+            $request,
+            $next,
+            $subCoreKey,
+            $moduleKey,
+        );
     }
 }

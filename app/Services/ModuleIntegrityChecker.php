@@ -18,7 +18,7 @@ class ModuleIntegrityChecker
     /** @return array{installations: int, permissions: int} */
     public function check(): array
     {
-        if (! Schema::hasTable('module_installations')) {
+        if (! Schema::hasTable('module_plugins')) {
             throw new ModuleLifecycleException('module_schema');
         }
 

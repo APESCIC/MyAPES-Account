@@ -17,7 +17,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
 
     public function test_the_portable_installation_schema_records_lifecycle_actors_and_transitions(): void
     {
-        $this->assertTrue(Schema::hasColumns('module_installations', [
+        $this->assertTrue(Schema::hasColumns('module_plugins', [
             'id',
             'sub_core_key',
             'module_key',
@@ -39,7 +39,7 @@ class ModuleInstallationSynchronizationTest extends TestCase
         $result = app(ModuleInstallationSynchronizer::class)->synchronize();
 
         $this->assertSame(['created' => 4, 'existing' => 5], $result);
-        $this->assertDatabaseCount('module_installations', 9);
+        $this->assertDatabaseCount('module_plugins', 9);
         $this->assertSame([
             'apes-cic:cases',
             'apes-cic:recruitment',
@@ -109,8 +109,8 @@ class ModuleInstallationSynchronizationTest extends TestCase
             ['created' => 1, 'existing' => 8],
             $synchronizer->synchronize(),
         );
-        $this->assertDatabaseCount('module_installations', 9);
-        $this->assertDatabaseHas('module_installations', [
+        $this->assertDatabaseCount('module_plugins', 9);
+        $this->assertDatabaseHas('module_plugins', [
             'sub_core_key' => 'shelter-rescue',
             'module_key' => 'tickets',
         ]);

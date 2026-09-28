@@ -369,7 +369,7 @@ class ModuleRegistryTest extends TestCase
         $registry->shouldReceive('permissions')->once()->andReturn([]);
         Schema::shouldReceive('hasTable')
             ->once()
-            ->with('module_installations')
+            ->with('module_plugins')
             ->andReturnTrue();
         $profile = new AuthorizationProfile($registry);
 

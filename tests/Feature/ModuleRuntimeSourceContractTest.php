@@ -20,7 +20,7 @@ class ModuleRuntimeSourceContractTest extends TestCase
             $contents = File::get($path);
             $hasRawMutation = str_contains(
                 $contents,
-                "DB::table('module_installations')",
+                "DB::table('module_plugins')",
             );
             $hasModelMutation = str_contains(
                 $contents,

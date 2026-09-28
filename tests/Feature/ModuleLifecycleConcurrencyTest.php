@@ -187,7 +187,7 @@ class ModuleLifecycleConcurrencyTest extends TestCase
             $this->waitSuccessfully($holder);
         }
 
-        $this->assertDatabaseMissing('module_installations', [
+        $this->assertDatabaseMissing('module_plugins', [
             'sub_core_key' => 'shelter-rescue',
             'module_key' => 'cases',
         ]);

@@ -219,11 +219,11 @@ class ApesCicTicketCaseEnhancementTest extends TestCase
 
     public function test_module_settings_seed_on_sync_and_super_admin_can_save(): void
     {
-        $this->assertDatabaseHas('module_settings', [
+        $this->assertDatabaseHas('module_plugin_settings', [
             'sub_core_key' => 'apes-cic',
             'module_key' => 'tickets',
         ]);
-        $this->assertDatabaseHas('module_settings', [
+        $this->assertDatabaseHas('module_plugin_settings', [
             'sub_core_key' => 'apes-cic',
             'module_key' => 'cases',
         ]);

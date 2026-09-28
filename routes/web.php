@@ -40,7 +40,7 @@ Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/cookies', 'legal.cookies')->name('cookies');
 Route::view('/help', 'legal.help')->name('help');
 Route::view('/terms', 'legal.terms')->name('terms');
-Route::middleware('module.available:apes-cic,recruitment')->group(function (): void {
+Route::middleware('plugin.enabled:apes-cic,recruitment')->group(function (): void {
     Route::get('/recruitment', [RecruitmentBoardController::class, 'index'])
         ->name('recruitment.index');
     Route::get('/recruitment/{recruitmentRole}', [RecruitmentBoardController::class, 'show'])
@@ -143,7 +143,7 @@ Route::middleware([
         ->name('profile.password.update');
     Route::get('/profile/staff-photo', [ProfileController::class, 'staffPhoto'])->name('profile.staff-photo');
 
-    Route::middleware('module.available:apes-cic,recruitment')->group(function (): void {
+    Route::middleware('plugin.enabled:apes-cic,recruitment')->group(function (): void {
         Route::get('/recruitment/applications', [PublicRecruitmentApplicationController::class, 'index'])
             ->name('recruitment.applications.index');
         Route::get('/recruitment/applications/{recruitmentApplication}', [PublicRecruitmentApplicationController::class, 'show'])
@@ -160,7 +160,7 @@ Route::middleware([
             ->defaults('subCoreKey', 'apes-cic')
             ->middleware('service.selected:apes-cic')
             ->name('index');
-        Route::middleware(['module.available:apes-cic,tickets', 'service.selected:apes-cic'])
+        Route::middleware(['plugin.enabled:apes-cic,tickets', 'service.selected:apes-cic'])
             ->group(function (): void {
                 Route::get('tickets', [TicketController::class, 'index'])
                     ->defaults('subCoreKey', 'apes-cic')
@@ -183,7 +183,7 @@ Route::middleware([
                     ->defaults('moduleKey', 'tickets')
                     ->name('tickets.destroy');
             });
-        Route::middleware(['module.available:apes-cic,cases', 'service.selected:apes-cic'])
+        Route::middleware(['plugin.enabled:apes-cic,cases', 'service.selected:apes-cic'])
             ->group(function (): void {
                 Route::get('cases', [ApesCicCaseController::class, 'index'])
                     ->defaults('subCoreKey', 'apes-cic')
@@ -210,7 +210,7 @@ Route::middleware([
                     ->defaults('moduleKey', 'cases')
                     ->name('cases.updates.store');
             });
-        Route::middleware(['module.available:apes-cic,recruitment', 'service.selected:apes-cic'])
+        Route::middleware(['plugin.enabled:apes-cic,recruitment', 'service.selected:apes-cic'])
             ->group(function (): void {
                 Route::get('recruitment', [RecruitmentRoleController::class, 'index'])
                     ->defaults('subCoreKey', 'apes-cic')
@@ -256,7 +256,7 @@ Route::middleware([
             ->defaults('subCoreKey', 'shelter-rescue')
             ->middleware('service.selected:shelter-rescue')
             ->name('index');
-        Route::middleware(['module.available:shelter-rescue,tickets', 'service.selected:shelter-rescue'])
+        Route::middleware(['plugin.enabled:shelter-rescue,tickets', 'service.selected:shelter-rescue'])
             ->group(function (): void {
                 Route::get('tickets', [TicketController::class, 'index'])
                     ->defaults('subCoreKey', 'shelter-rescue')
@@ -275,7 +275,7 @@ Route::middleware([
                     ->defaults('moduleKey', 'tickets')
                     ->name('tickets.update');
             });
-        Route::middleware(['module.available:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
+        Route::middleware(['plugin.enabled:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
             ->group(function (): void {
                 Route::get('pet-profiles', static fn () => redirect()->route('shelter.pets.index'))
                     ->name('pet-profiles');
@@ -287,7 +287,7 @@ Route::middleware([
                     ->only(['index', 'store', 'show', 'update'])
                     ->parameters(['pets' => 'pet']);
             });
-        Route::middleware(['module.available:shelter-rescue,cases', 'service.selected:shelter-rescue'])
+        Route::middleware(['plugin.enabled:shelter-rescue,cases', 'service.selected:shelter-rescue'])
             ->group(function (): void {
                 Route::resource('cases', CaseController::class)
                     ->only(['index', 'store', 'show', 'update'])
@@ -304,7 +304,7 @@ Route::middleware([
             ->defaults('subCoreKey', 'pet-care-clinic')
             ->middleware('service.selected:pet-care-clinic')
             ->name('index');
-        Route::middleware(['module.available:pet-care-clinic,tickets', 'service.selected:pet-care-clinic'])
+        Route::middleware(['plugin.enabled:pet-care-clinic,tickets', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
                 Route::get('tickets', [TicketController::class, 'index'])
                     ->defaults('subCoreKey', 'pet-care-clinic')
@@ -323,7 +323,7 @@ Route::middleware([
                     ->defaults('moduleKey', 'tickets')
                     ->name('tickets.update');
             });
-        Route::middleware(['module.available:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
+        Route::middleware(['plugin.enabled:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
                 Route::get('pet-profiles', static fn () => redirect()->route('petcare.pets.index'))
                     ->name('pet-profiles');
@@ -335,7 +335,7 @@ Route::middleware([
                     ->only(['index', 'store', 'show', 'update'])
                     ->parameters(['pets' => 'pet']);
             });
-        Route::middleware(['module.available:pet-care-clinic,consultations', 'service.selected:pet-care-clinic'])
+        Route::middleware(['plugin.enabled:pet-care-clinic,consultations', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
                 Route::resource('consultations', ConsultationController::class)
                     ->only(['index', 'store', 'show', 'update'])

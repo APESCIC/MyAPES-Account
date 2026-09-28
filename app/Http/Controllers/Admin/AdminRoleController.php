@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Core\Accounts\Permission;
 use App\Core\Accounts\Role;
+use App\Core\Extensions\Plugins\PluginEnablement;
 use App\Http\Controllers\Controller;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleManagementService;
@@ -198,9 +199,12 @@ class AdminRoleController extends Controller
      */
     private function assignablePermissionNames(AuthorizationProfile $profile): array
     {
+        $enablement = app(PluginEnablement::class);
+
         return array_values(array_filter(
             $profile->permissions(),
-            fn (string $permission): bool => ! $profile->isSuperAdminOnlyPermission($permission),
+            fn (string $permission): bool => ! $profile->isSuperAdminOnlyPermission($permission)
+                && $enablement->isOfferedInAccessEditors($permission),
         ));
     }
 }

@@ -223,7 +223,7 @@ class ModuleRollbackCompatibilityChecker
             ])) === 0;
         }
 
-        // schema_version 2 adds modules + plugins aliases for the Structure line.
+        // schema_version 2 adds modules + plugins aliases and enablements (#288).
         if (! isset($decoded['modules'], $decoded['plugins'])
             || ! $this->isSafeKeyList($decoded['modules'])
             || ! $this->isSafeKeyList($decoded['plugins'])
@@ -232,7 +232,7 @@ class ModuleRollbackCompatibilityChecker
             return false;
         }
 
-        return count(array_diff(array_keys($decoded), [
+        $allowedKeys = [
             'schema_version',
             'application_version',
             'modules',
@@ -241,7 +241,28 @@ class ModuleRollbackCompatibilityChecker
             'module_types',
             'shipped_instances',
             'legacy_visible_instances',
-        ])) === 0;
+            'enablements',
+        ];
+
+        if (count(array_diff(array_keys($decoded), $allowedKeys)) !== 0) {
+            return false;
+        }
+
+        if (! isset($decoded['enablements']) || ! is_array($decoded['enablements'])) {
+            return true;
+        }
+
+        $enablements = $decoded['enablements'];
+
+        if (! isset($enablements['shipped'], $enablements['legacy_visible'])
+            || ! $this->isSafeInstanceList($enablements['shipped'])
+            || ! $this->isSafeInstanceList($enablements['legacy_visible'])
+            || $enablements['shipped'] !== $decoded['shipped_instances']
+            || $enablements['legacy_visible'] !== $decoded['legacy_visible_instances']) {
+            return false;
+        }
+
+        return count(array_diff(array_keys($enablements), ['shipped', 'legacy_visible'])) === 0;
     }
 
     private function isSafeKeyList(mixed $values): bool

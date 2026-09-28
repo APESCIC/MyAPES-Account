@@ -26,16 +26,17 @@ class ModuleStateMiddlewareTest extends TestCase
     public function test_every_existing_module_route_uses_the_authoritative_state_middleware(): void
     {
         $expected = [
-            'apes-cic.tickets.' => 'module.available:apes-cic,tickets',
-            'apes-cic.cases.' => 'module.available:apes-cic,cases',
-            'apes-cic.recruitment.' => 'module.available:apes-cic,recruitment',
-            'shelter.pets.' => 'module.available:shelter-rescue,pet-profiles',
-            'shelter.pet-profiles' => 'module.available:shelter-rescue,pet-profiles',
-            'shelter.cases.' => 'module.available:shelter-rescue,cases',
-            'petcare.pets.' => 'module.available:pet-care-clinic,pet-profiles',
-            'petcare.pet-profiles' => 'module.available:pet-care-clinic,pet-profiles',
-            'petcare.tickets.' => 'module.available:pet-care-clinic,tickets',
-            'petcare.consultations.' => 'module.available:pet-care-clinic,consultations',
+            'apes-cic.tickets.' => 'plugin.enabled:apes-cic,tickets',
+            'apes-cic.cases.' => 'plugin.enabled:apes-cic,cases',
+            'apes-cic.recruitment.' => 'plugin.enabled:apes-cic,recruitment',
+            'shelter.pets.' => 'plugin.enabled:shelter-rescue,pet-profiles',
+            'shelter.pet-profiles' => 'plugin.enabled:shelter-rescue,pet-profiles',
+            'shelter.cases.' => 'plugin.enabled:shelter-rescue,cases',
+            'shelter.tickets.' => 'plugin.enabled:shelter-rescue,tickets',
+            'petcare.pets.' => 'plugin.enabled:pet-care-clinic,pet-profiles',
+            'petcare.pet-profiles' => 'plugin.enabled:pet-care-clinic,pet-profiles',
+            'petcare.tickets.' => 'plugin.enabled:pet-care-clinic,tickets',
+            'petcare.consultations.' => 'plugin.enabled:pet-care-clinic,consultations',
         ];
 
         foreach (Route::getRoutes() as $route) {

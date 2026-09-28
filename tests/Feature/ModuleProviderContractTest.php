@@ -1025,7 +1025,7 @@ class ModuleProviderContractTest extends TestCase
                     $sql = strtolower(trim($query['query']));
 
                     return str_starts_with($sql, 'select')
-                        && str_contains($sql, 'module_installations');
+                        && str_contains($sql, 'module_plugins');
                 });
         } finally {
             DB::disableQueryLog();
