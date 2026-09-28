@@ -67,7 +67,10 @@ class ModuleProviderContractTest extends TestCase
             ));
         }
 
-        $this->assertNull($registry->module('pet-profiles')->recentActivityProvider);
+        $this->assertSame(
+            PetProfileRecentActivityProvider::class,
+            $registry->module('pet-profiles')->recentActivityProvider,
+        );
         $this->assertNull($registry->module('recruitment')->recentActivityProvider);
     }
 

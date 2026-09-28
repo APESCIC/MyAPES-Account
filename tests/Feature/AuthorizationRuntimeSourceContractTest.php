@@ -78,7 +78,7 @@ class AuthorizationRuntimeSourceContractTest extends TestCase
                         'permission.table_names.model_has_roles',
                     ))
                 && ! in_array($path, [
-                    'app/Models/User.php',
+                    'app/Core/Accounts/User.php',
                     'app/Services/AuthorizationIntegrityChecker.php',
                     'app/Services/AuthorizationPhaseBSchemaInspector.php',
                     'app/Services/AuthorizationPreflightChecker.php',
@@ -104,7 +104,7 @@ class AuthorizationRuntimeSourceContractTest extends TestCase
 
             if (str_contains($contents, 'role_sources')
                 && ! in_array($path, [
-                    'app/Models/User.php',
+                    'app/Core/Accounts/User.php',
                     'app/Services/AuthorizationIntegrityChecker.php',
                     'app/Services/AuthorizationPhaseBSchemaInspector.php',
                     'app/Services/AuthorizationPreflightChecker.php',
