@@ -9,17 +9,17 @@ use App\Core\Accounts\Role;
 use App\Core\Accounts\RoleSource;
 use App\Core\Accounts\User;
 use App\Models\PetCareConsultation;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use App\Notifications\ConsultationUpdatedNotification;
-use App\Notifications\ShelterCaseUpdatedNotification;
-use App\Notifications\TicketUpdatedNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleMaterializer;
 use App\Services\DirectoryRoleSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Cases\Notifications\ShelterCaseUpdatedNotification;
 use Plugins\PetProfiles\Models\PetProfile;
+use Plugins\Tickets\Models\SupportTicket;
+use Plugins\Tickets\Notifications\TicketUpdatedNotification;
 use Tests\TestCase;
 
 class SecurityRemediationTest extends TestCase

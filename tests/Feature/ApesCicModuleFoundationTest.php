@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Core\Accounts\User;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class ApesCicModuleFoundationTest extends TestCase

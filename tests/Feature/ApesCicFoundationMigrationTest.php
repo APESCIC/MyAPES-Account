@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class ApesCicFoundationMigrationTest extends TestCase

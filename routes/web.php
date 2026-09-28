@@ -7,11 +7,8 @@ use App\Http\Controllers\Admin\AdminModuleController;
 use App\Http\Controllers\Admin\AdminOrganisationModuleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
-use App\Http\Controllers\ApesCic\CaseController as ApesCicCaseController;
-use App\Http\Controllers\ApesCic\CaseUpdateController as ApesCicCaseUpdateController;
 use App\Http\Controllers\ApesCic\RecruitmentApplicationController;
 use App\Http\Controllers\ApesCic\RecruitmentRoleController;
-use App\Http\Controllers\ApesCic\TicketController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
 use App\Http\Controllers\Auth\PublicPasswordResetController;
@@ -22,7 +19,6 @@ use App\Http\Controllers\PetCare\ConsultationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicRecruitmentApplicationController;
 use App\Http\Controllers\RecruitmentBoardController;
-use App\Http\Controllers\Shelter\CaseController;
 use App\Http\Controllers\SubCoreController;
 use App\Http\Controllers\SupportAttachmentController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -160,53 +156,11 @@ Route::middleware([
             ->name('index');
         Route::middleware(['plugin.enabled:apes-cic,tickets', 'service.selected:apes-cic'])
             ->group(function (): void {
-                Route::get('tickets', [TicketController::class, 'index'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.index');
-                Route::post('tickets', [TicketController::class, 'store'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.store');
-                Route::get('tickets/{ticket}', [TicketController::class, 'show'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.show');
-                Route::match(['put', 'patch'], 'tickets/{ticket}', [TicketController::class, 'update'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.update');
-                Route::delete('tickets/{ticket}', [TicketController::class, 'destroy'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.destroy');
+                require base_path('plugins/tickets/routes/apes-cic.php');
             });
         Route::middleware(['plugin.enabled:apes-cic,cases', 'service.selected:apes-cic'])
             ->group(function (): void {
-                Route::get('cases', [ApesCicCaseController::class, 'index'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'cases')
-                    ->name('cases.index');
-                Route::post('cases', [ApesCicCaseController::class, 'store'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'cases')
-                    ->name('cases.store');
-                Route::get('cases/{case}', [ApesCicCaseController::class, 'show'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'cases')
-                    ->name('cases.show');
-                Route::match(['put', 'patch'], 'cases/{case}', [ApesCicCaseController::class, 'update'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'cases')
-                    ->name('cases.update');
-                Route::delete('cases/{case}', [ApesCicCaseController::class, 'destroy'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'cases')
-                    ->name('cases.destroy');
-                Route::post('cases/{case}/updates', [ApesCicCaseUpdateController::class, 'store'])
-                    ->defaults('subCoreKey', 'apes-cic')
-                    ->defaults('moduleKey', 'cases')
-                    ->name('cases.updates.store');
+                require base_path('plugins/cases/routes/apes-cic.php');
             });
         Route::middleware(['plugin.enabled:apes-cic,recruitment', 'service.selected:apes-cic'])
             ->group(function (): void {
@@ -256,22 +210,7 @@ Route::middleware([
             ->name('index');
         Route::middleware(['plugin.enabled:shelter-rescue,tickets', 'service.selected:shelter-rescue'])
             ->group(function (): void {
-                Route::get('tickets', [TicketController::class, 'index'])
-                    ->defaults('subCoreKey', 'shelter-rescue')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.index');
-                Route::post('tickets', [TicketController::class, 'store'])
-                    ->defaults('subCoreKey', 'shelter-rescue')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.store');
-                Route::get('tickets/{ticket}', [TicketController::class, 'show'])
-                    ->defaults('subCoreKey', 'shelter-rescue')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.show');
-                Route::match(['put', 'patch'], 'tickets/{ticket}', [TicketController::class, 'update'])
-                    ->defaults('subCoreKey', 'shelter-rescue')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.update');
+                require base_path('plugins/tickets/routes/shelter.php');
             });
         Route::middleware(['plugin.enabled:shelter-rescue,pet-profiles', 'service.selected:shelter-rescue'])
             ->group(function (): void {
@@ -279,13 +218,7 @@ Route::middleware([
             });
         Route::middleware(['plugin.enabled:shelter-rescue,cases', 'service.selected:shelter-rescue'])
             ->group(function (): void {
-                Route::resource('cases', CaseController::class)
-                    ->only(['index', 'store', 'show', 'update'])
-                    ->parameters(['cases' => 'case']);
-                Route::post('cases/{case}/updates', [ApesCicCaseUpdateController::class, 'store'])
-                    ->defaults('subCoreKey', 'shelter-rescue')
-                    ->defaults('moduleKey', 'cases')
-                    ->name('cases.updates.store');
+                require base_path('plugins/cases/routes/shelter.php');
             });
     });
 
@@ -296,22 +229,7 @@ Route::middleware([
             ->name('index');
         Route::middleware(['plugin.enabled:pet-care-clinic,tickets', 'service.selected:pet-care-clinic'])
             ->group(function (): void {
-                Route::get('tickets', [TicketController::class, 'index'])
-                    ->defaults('subCoreKey', 'pet-care-clinic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.index');
-                Route::post('tickets', [TicketController::class, 'store'])
-                    ->defaults('subCoreKey', 'pet-care-clinic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.store');
-                Route::get('tickets/{ticket}', [TicketController::class, 'show'])
-                    ->defaults('subCoreKey', 'pet-care-clinic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.show');
-                Route::match(['put', 'patch'], 'tickets/{ticket}', [TicketController::class, 'update'])
-                    ->defaults('subCoreKey', 'pet-care-clinic')
-                    ->defaults('moduleKey', 'tickets')
-                    ->name('tickets.update');
+                require base_path('plugins/tickets/routes/petcare.php');
             });
         Route::middleware(['plugin.enabled:pet-care-clinic,pet-profiles', 'service.selected:pet-care-clinic'])
             ->group(function (): void {

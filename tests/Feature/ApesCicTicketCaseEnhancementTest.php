@@ -5,14 +5,14 @@ namespace Tests\Feature;
 use App\Core\Accounts\User;
 use App\Core\Attachments\SupportAttachment;
 use App\Core\Extensions\Models\ModuleSetting;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use App\Services\ModuleSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class ApesCicTicketCaseEnhancementTest extends TestCase

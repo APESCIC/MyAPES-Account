@@ -7,12 +7,12 @@ use App\Core\Accounts\Permission;
 use App\Core\Accounts\Role;
 use App\Core\Accounts\RoleSource;
 use App\Core\Accounts\User;
-use App\Models\SupportTicket;
 use App\Services\AuthorizationProfile;
 use App\Services\AuthorizationRoleMaterializer;
 use App\Support\AuthorizationCompatibilityDatabaseGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class AuthorizationQueryScopeTest extends TestCase

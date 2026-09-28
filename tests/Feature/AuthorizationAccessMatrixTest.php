@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\DirectoryGroup;
 use App\Core\Accounts\User;
-use App\Models\SupportTicket;
 use App\Services\AuthorizationProfile;
 use App\Services\DirectoryRoleSynchronizer;
 use App\Support\DirectoryGroupPrefix;
@@ -12,6 +11,7 @@ use App\Support\DirectoryLegacyGroupAliases;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class AuthorizationAccessMatrixTest extends TestCase

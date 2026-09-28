@@ -6,13 +6,13 @@ use App\Contracts\ModuleRegistry;
 use App\Modules\ModuleCodeStatus;
 use App\Modules\ModuleDependency;
 use App\Modules\ModuleInstanceDefinition;
-use App\Modules\Summaries\SupportTicketSummaryProvider;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleRegistryValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use Mockery;
+use Plugins\Tickets\Dashboard\SupportTicketSummaryProvider;
 use Tests\TestCase;
 
 class ModuleRegistryTest extends TestCase

@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\AuditLog;
 use App\Core\Accounts\User;
-use App\Models\ShelterCase;
-use App\Notifications\ShelterCaseUpdatedNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\ModuleInstallationSynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,6 +11,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Cases\Notifications\ShelterCaseUpdatedNotification;
 use Plugins\PetProfiles\Models\PetProfile;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;

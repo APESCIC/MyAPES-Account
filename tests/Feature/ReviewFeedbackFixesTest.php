@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Core\Accounts\User;
-use App\Models\SupportTicket;
-use App\Models\SupportTicketMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Plugins\PetProfiles\Models\PetProfile;
+use Plugins\Tickets\Models\SupportTicket;
+use Plugins\Tickets\Models\SupportTicketMessage;
 use Tests\TestCase;
 
 class ReviewFeedbackFixesTest extends TestCase

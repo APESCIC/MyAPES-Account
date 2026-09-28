@@ -5,9 +5,6 @@ namespace Tests\Feature;
 use App\Core\Accounts\Role;
 use App\Core\Accounts\RoleSource;
 use App\Core\Accounts\User;
-use App\Models\CaseUpdate;
-use App\Models\ShelterCase;
-use App\Models\SupportTicket;
 use App\Services\AuthorizationAccountSynchronizer;
 use App\Services\AuthorizationMetadataSynchronizer;
 use App\Services\AuthorizationProfile;
@@ -18,6 +15,9 @@ use Database\Seeders\LocalQaSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use LogicException;
+use Plugins\Cases\Models\CaseUpdate;
+use Plugins\Cases\Models\ShelterCase;
+use Plugins\Tickets\Models\SupportTicket;
 use Tests\TestCase;
 
 class FreshInstallAuthorizationSeederTest extends TestCase
