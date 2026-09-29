@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
+use App\Rules\AvailablePublicEmail;
+use App\Rules\Username;
 use App\Services\AuditLogger;
 use App\Services\AuthorizationAccountSynchronizer;
 use App\Services\AuthorizationProfile;
@@ -93,7 +95,7 @@ class PublicAuthController extends Controller
             ]);
 
             return back()
-                ->withErrors([$credentialField => 'The provided credentials do not match our records.'])
+                ->withErrors([$credentialField => __('auth.failed')])
                 ->onlyInput($credentialField);
         }
 
@@ -150,12 +152,8 @@ class PublicAuthController extends Controller
         ]);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'username' => [
-                'required', 'string', 'min:3', 'max:30',
-                'regex:/^[a-z0-9](?:[a-z0-9._-]{1,28}[a-z0-9])$/',
-                'unique:users,username',
-            ],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'username' => ['required', 'string', new Username],
+            'email' => ['required', 'string', 'email', 'max:255', new AvailablePublicEmail],
             'password' => ['required', 'confirmed', Password::defaults()],
             'services' => ['required', 'array', 'min:1'],
             'services.*' => [
@@ -164,7 +162,7 @@ class PublicAuthController extends Controller
             ],
             'registration_consent' => ['accepted'],
         ], [
-            'registration_consent.accepted' => 'You must accept the terms of use and privacy notice to create an account.',
+            'registration_consent.accepted' => __('auth.register.consent_required'),
         ]);
 
         $user = DB::transaction(function () use ($validated): User {

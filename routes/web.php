@@ -115,8 +115,8 @@ Route::middleware([
             $request->user()->sendEmailVerificationNotification();
         }
 
-        return back()->with('status', 'Verification link sent.');
-    })->middleware('throttle:6,1')->name('verification.send');
+        return back()->with('status', __('auth.verify_email.sent'));
+    })->middleware('throttle:verification-resend')->name('verification.send');
 
     Route::get('/onboarding', [OnboardingController::class, 'edit'])->name('onboarding.edit');
     Route::put('/onboarding', [OnboardingController::class, 'update'])->name('onboarding.update');
@@ -135,7 +135,10 @@ Route::middleware([
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     // Step-up (#233): password.confirm via account.step-up. Wire later children
-    // (username #227, email #228, MFA #231/#232) with the same middleware alias.
+    // (email #228, MFA #231/#232) with the same middleware alias. Username #227 uses it here.
+    Route::put('/profile/username', [ProfileController::class, 'updateUsername'])
+        ->middleware(['account.step-up', 'throttle:public-username-change'])
+        ->name('profile.username.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])
         ->middleware(['account.step-up', 'throttle:public-password-change'])
         ->name('profile.password.update');

@@ -196,6 +196,13 @@ return [
     |
     */
 
+    'username' => [
+        'length' => 'The username must be between :min and :max characters.',
+        'format' => 'The username may only use letters, numbers, dots, underscores, and hyphens, and must start and end with a letter or number.',
+        'reserved' => 'That username is reserved. Please choose another.',
+        'unique' => 'That username is already taken. Please choose another.',
+    ],
+
     'attributes' => [
         'email' => 'email address',
         'username' => 'username',

@@ -16,15 +16,18 @@
 
             <label for="email">{{ __('auth.common.email') }}</label>
             <input id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required>
+            <p class="muted">{{ __('auth.register.email_guidance') }}</p>
 
             <label for="username">{{ __('auth.common.username') }}</label>
-            <input id="username" type="text" name="username" value="{{ old('username') }}" autocomplete="username" minlength="3" maxlength="30" required>
+            <input id="username" type="text" name="username" value="{{ old('username') }}" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9](?:[A-Za-z0-9._-]{1,28}[A-Za-z0-9])" required>
+            <p class="muted">{{ __('auth.register.username_guidance') }}</p>
 
             <label for="password">{{ __('auth.common.password') }}</label>
-            <input id="password" type="password" name="password" autocomplete="new-password" required>
+            <input id="password" type="password" name="password" autocomplete="new-password" minlength="12" required>
+            <p class="muted">{{ __('auth.register.password_guidance') }}</p>
 
             <label for="password_confirmation">{{ __('auth.register.confirm_password') }}</label>
-            <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" required>
+            <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" minlength="12" required>
 
             <fieldset>
                 <legend>{{ __('auth.register.services_legend') }}</legend>
