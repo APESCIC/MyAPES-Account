@@ -3,13 +3,13 @@
 namespace Plugins\Recruitment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Plugins\Recruitment\Models\RecruitmentRole;
 use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Plugins\Recruitment\Models\RecruitmentRole;
 
 class RecruitmentRoleController extends Controller
 {
@@ -49,7 +49,7 @@ class RecruitmentRoleController extends Controller
 
         return redirect()
             ->route('apes-cic.recruitment.show', $role)
-            ->with('status', 'Recruitment role saved.');
+            ->with('status', __('recruitment::staff.flash.recruitment_role_saved'));
     }
 
     public function show(RecruitmentRole $recruitmentRole): View
@@ -85,7 +85,7 @@ class RecruitmentRoleController extends Controller
 
         return redirect()
             ->route('apes-cic.recruitment.show', $recruitmentRole)
-            ->with('status', 'Recruitment role saved.');
+            ->with('status', __('recruitment::staff.flash.recruitment_role_saved'));
     }
 
     public function publish(
@@ -108,7 +108,7 @@ class RecruitmentRoleController extends Controller
 
         return redirect()
             ->route('apes-cic.recruitment.show', $recruitmentRole)
-            ->with('status', 'Recruitment role is now open.');
+            ->with('status', __('recruitment::staff.flash.recruitment_role_is_now_open'));
     }
 
     public function close(
@@ -130,7 +130,7 @@ class RecruitmentRoleController extends Controller
 
         return redirect()
             ->route('apes-cic.recruitment.show', $recruitmentRole)
-            ->with('status', 'Recruitment role closed.');
+            ->with('status', __('recruitment::staff.flash.recruitment_role_closed'));
     }
 
     /**

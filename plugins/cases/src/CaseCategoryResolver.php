@@ -124,7 +124,7 @@ class CaseCategoryResolver
         $sub = $this->findSubcategory($subCoreKey, $category, $subCategory);
         if ($sub === null) {
             throw ValidationException::withMessages([
-                'sub_category' => 'Choose a valid subcategory for the selected category.',
+                'sub_category' => __('cases::ui.validation.choose_a_valid_subcategory_for_the_selected_category'),
             ]);
         }
 
@@ -134,17 +134,17 @@ class CaseCategoryResolver
         if ($requiresWebsite) {
             if ($websiteKey === null || $websiteKey === '') {
                 throw ValidationException::withMessages([
-                    'affected_website_key' => 'Select which website or system is involved.',
+                    'affected_website_key' => __('cases::ui.validation.select_which_website_or_system_is_involved'),
                 ]);
             }
             if (! in_array($websiteKey, $websiteKeys, true)) {
                 throw ValidationException::withMessages([
-                    'affected_website_key' => 'Select a valid website.',
+                    'affected_website_key' => __('cases::ui.validation.select_a_valid_website'),
                 ]);
             }
         } elseif ($websiteKey !== null && $websiteKey !== '' && ! in_array($websiteKey, $websiteKeys, true)) {
             throw ValidationException::withMessages([
-                'affected_website_key' => 'Select a valid website.',
+                'affected_website_key' => __('cases::ui.validation.select_a_valid_website'),
             ]);
         }
 

@@ -4,8 +4,6 @@ namespace Plugins\Consultations\Http\Controllers;
 
 use App\Core\Accounts\User;
 use App\Http\Controllers\Controller;
-use Plugins\Consultations\Models\PetCareConsultation;
-use Plugins\Consultations\Notifications\ConsultationUpdatedNotification;
 use App\Rules\EligibleStaffAssignee;
 use App\Rules\UkDateTimeFormat;
 use App\Services\AssignmentAuthorization;
@@ -17,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Plugins\Consultations\Models\PetCareConsultation;
+use Plugins\Consultations\Notifications\ConsultationUpdatedNotification;
 use Plugins\PetProfiles\Contracts\PetProfilesContract;
 use Plugins\PetProfiles\Support\StaffPetCreateReturn;
 
@@ -141,7 +141,7 @@ class ConsultationController extends Controller
         $changes = $this->requestedChanges($request, $consultation);
         if (! in_array(true, $changes, true)) {
             throw ValidationException::withMessages([
-                'consultation' => 'No consultation changes were requested.',
+                'consultation' => __('consultations::ui.validation.no_consultation_changes_were_requested'),
             ]);
         }
 
@@ -200,7 +200,7 @@ class ConsultationController extends Controller
             'module_key' => 'consultations',
         ]);
 
-        return redirect()->route('petcare.consultations.show', $consultation)->with('status', 'Consultation updated.');
+        return redirect()->route('petcare.consultations.show', $consultation)->with('status', __('consultations::ui.flash.consultation_updated'));
     }
 
     private function notifyConsultationStakeholders(PetCareConsultation $consultation, User $actor, string $eventLabel): void

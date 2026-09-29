@@ -3,8 +3,6 @@
 namespace Plugins\Recruitment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Plugins\Recruitment\Models\RecruitmentApplication;
-use Plugins\Recruitment\Models\RecruitmentRole;
 use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Plugins\Recruitment\Models\RecruitmentApplication;
+use Plugins\Recruitment\Models\RecruitmentRole;
 
 class RecruitmentApplicationController extends Controller
 {
@@ -126,7 +126,7 @@ class RecruitmentApplicationController extends Controller
 
         if ($allowedTransitions === []) {
             throw ValidationException::withMessages([
-                'status' => 'This application can no longer be reviewed.',
+                'status' => __('recruitment::staff.validation.this_application_can_no_longer_be_reviewed'),
             ]);
         }
 
@@ -149,7 +149,7 @@ class RecruitmentApplicationController extends Controller
 
         return redirect()
             ->route('apes-cic.recruitment.applications.show', $recruitmentApplication)
-            ->with('status', 'Application review saved.');
+            ->with('status', __('recruitment::staff.flash.application_review_saved'));
     }
 
     /**

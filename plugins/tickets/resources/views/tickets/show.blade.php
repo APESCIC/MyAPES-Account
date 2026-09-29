@@ -10,11 +10,11 @@
 
         <dl class="ticket-meta">
             <div>
-                <dt>Owner</dt>
+                <dt>{{ __('tickets::ui.index.blade.owner') }}</dt>
                 <dd>{{ $ticket->user?->name ?? '—' }}@if($ticket->user)<br><small class="muted">{{ $ticket->user->email }}</small>@endif</dd>
             </div>
             <div>
-                <dt>Assigned staff</dt>
+                <dt>{{ __('tickets::ui.show.blade.assigned_staff') }}</dt>
                 <dd>
                     @if($revealAssigneeIdentity)
                         {{ $ticket->assignedTo?->name ?? 'Unassigned' }}
@@ -24,7 +24,7 @@
                 </dd>
             </div>
             <div>
-                <dt>Service area</dt>
+                <dt>{{ __('tickets::ui.index.blade.service_area') }}</dt>
                 <dd>
                     @if($usesHierarchicalCategories)
                         {{ $categoryResolver->labelForArea($ticket->sub_core_key, $ticket->service_area) }}
@@ -35,22 +35,22 @@
             </div>
             @if($usesHierarchicalCategories && $ticket->sub_category)
                 <div>
-                    <dt>Subcategory</dt>
+                    <dt>{{ __('tickets::ui.index.blade.subcategory') }}</dt>
                     <dd>{{ $categoryResolver->labelForSubcategory($ticket->sub_core_key, $ticket->service_area, $ticket->sub_category) }}</dd>
                 </div>
             @endif
             @if($usesHierarchicalCategories && $ticket->affected_website_key)
                 <div>
-                    <dt>Affected website</dt>
+                    <dt>{{ __('tickets::ui.index.blade.affected_website') }}</dt>
                     <dd>{{ $categoryResolver->labelForWebsite($ticket->sub_core_key, $ticket->affected_website_key) }}</dd>
                 </div>
             @endif
             <div>
-                <dt>Status</dt>
+                <dt>{{ __('tickets::ui.index.blade.status') }}</dt>
                 <dd><span class="status">{{ $ticket->status }}</span></dd>
             </div>
             <div>
-                <dt>Priority</dt>
+                <dt>{{ __('tickets::ui.index.blade.priority') }}</dt>
                 <dd>{{ $ticket->priority }}</dd>
             </div>
         </dl>
@@ -62,7 +62,7 @@
                 @if($canUpdateTicket)
                     <div class="row">
                         <div>
-                            <label for="status">Status</label>
+                            <label for="status">{{ __('tickets::ui.index.blade.status') }}</label>
                             <select id="status" name="status">
                                 @foreach(['open', 'in_progress', 'resolved', 'closed'] as $status)
                                     @continue(in_array($status, ['resolved', 'closed'], true) && ! $canCloseTicket && $ticket->status !== $status)
@@ -71,7 +71,7 @@
                             </select>
                         </div>
                         <div>
-                            <label for="priority">Priority</label>
+                            <label for="priority">{{ __('tickets::ui.index.blade.priority') }}</label>
                             <select id="priority" name="priority">
                                 @foreach($priorities as $priority)
                                     <option value="{{ $priority }}" @selected($ticket->priority === $priority)>{{ $priority }}</option>
@@ -81,20 +81,20 @@
                     </div>
                 @endif
                 @if($canCommentTicket)
-                    <label for="message">Add message</label>
+                    <label for="message">{{ __('tickets::ui.show.blade.add_message') }}</label>
                     <textarea id="message" name="message"></textarea>
                     @if($canChooseVisibility)
-                        <label for="visibility">Visibility</label>
+                        <label for="visibility">{{ __('tickets::ui.show.blade.visibility') }}</label>
                         <select id="visibility" name="visibility">
-                            <option value="public">Public</option>
-                            <option value="internal">Internal staff only</option>
+                            <option value="public">{{ __('tickets::ui.show.blade.public') }}</option>
+                            <option value="internal">{{ __('tickets::ui.show.blade.internal_staff_only') }}</option>
                         </select>
                     @endif
                 @endif
                 @if($allowsAttachments && $canCommentTicket)
-                    <label for="screenshots">Add screenshots</label>
+                    <label for="screenshots">{{ __('tickets::ui.show.blade.add_screenshots') }}</label>
                     <input id="screenshots" name="screenshots[]" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-                    <label for="screencast">Add screencast</label>
+                    <label for="screencast">{{ __('tickets::ui.show.blade.add_screencast') }}</label>
                     <input id="screencast" name="screencast" type="file" accept="video/mp4,video/webm">
                 @endif
                 <div class="actions">
@@ -108,7 +108,7 @@
                 @method('put')
                 <div class="row">
                     <div>
-                        <label for="user_id">Owner</label>
+                        <label for="user_id">{{ __('tickets::ui.index.blade.owner') }}</label>
                         <select id="user_id" name="user_id">
                             @foreach($ownerCandidates as $ownerCandidate)
                                 <option value="{{ $ownerCandidate->id }}" @selected((int) $ticket->user_id === (int) $ownerCandidate->id)>
@@ -118,40 +118,40 @@
                         </select>
                     </div>
                     <div>
-                        <label for="assigned_to">Assigned staff</label>
+                        <label for="assigned_to">{{ __('tickets::ui.show.blade.assigned_staff') }}</label>
                         <select id="assigned_to" name="assigned_to">
-                            <option value="">Unassigned</option>
+                            <option value="">{{ __('tickets::ui.show.blade.unassigned') }}</option>
                             @foreach($staffUsers as $staffUser)
                                 <option value="{{ $staffUser->id }}" @selected((int)$ticket->assigned_to === (int)$staffUser->id)>{{ $staffUser->name }}</option>
                             @endforeach
                         </select>
                     </div>
                 </div>
-                <button type="submit">Update ownership</button>
+                <button type="submit">{{ __('tickets::ui.show.blade.update_ownership') }}</button>
             </form>
         @endif
         <div class="actions">
-            <a href="{{ route($ticketService->routePrefix.'.index') }}">Back</a>
+            <a href="{{ route($ticketService->routePrefix.'.index') }}">{{ __('tickets::ui.show.blade.back') }}</a>
         </div>
         @if($ticketService->supportsDelete && auth()->user()->can('delete', $ticket))
             <form method="post" action="{{ route($ticketService->routePrefix.'.destroy', $ticket) }}" onsubmit="return confirm('Delete this ticket?')">
                 @csrf
                 @method('delete')
-                <button type="submit" class="danger-btn">Delete ticket</button>
+                <button type="submit" class="danger-btn">{{ __('tickets::ui.show.blade.delete_ticket') }}</button>
             </form>
         @endif
     </div>
 
     @if($ticket->attachments->isNotEmpty())
         <div class="panel">
-            <h2>Attachments</h2>
+            <h2>{{ __('tickets::ui.show.blade.attachments') }}</h2>
             <ul class="attachment-list">
                 @foreach($ticket->attachments as $attachment)
                     <li>
                         <strong>{{ $attachment->kind }}</strong>
                         — {{ $attachment->original_name }}
                         <span class="muted">({{ number_format($attachment->size_bytes / 1024, 1) }} KB)</span>
-                        <a href="{{ route('support.attachments.download', $attachment) }}">Open</a>
+                        <a href="{{ route('support.attachments.download', $attachment) }}">{{ __('tickets::ui.index.blade.open') }}</a>
                     </li>
                 @endforeach
             </ul>
@@ -159,9 +159,9 @@
     @endif
 
     <div class="panel" data-ticket-activity>
-        <h2>Activity</h2>
+        <h2>{{ __('tickets::ui.show.blade.activity') }}</h2>
         @if($canCommentTicket && ! $canUpdateTicket)
-            <p class="muted" data-ticket-activity-hint>You can add an update (comment) to this ticket.</p>
+            <p class="muted" data-ticket-activity-hint>{{ __('tickets::ui.show.blade.you_can_add_an_update_comment_to_this_ticket') }}</p>
         @endif
         <div class="item-divider" data-ticket-activity-opener>
             <strong>{{ ($activityOpenerUser ?? $ticket->user)?->name ?? '—' }}</strong>

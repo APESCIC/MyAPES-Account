@@ -92,9 +92,9 @@ return [
             'reason' => 'PHP fragment false positive in Blade (@auth user()) (#268).',
         ],
         [
-            'path' => 'resources/views/dashboard.blade.php',
+            'path' => 'resources/views/',
             'pattern' => '#^\$item->title$#',
-            'reason' => 'Dynamic attention-item title binding, not hard-coded copy (#268).',
+            'reason' => 'Dynamic attention-item title binding, not hard-coded copy (#268/#269).',
         ],
 
         [
@@ -106,6 +106,17 @@ return [
             'path' => 'plugins/pet-profiles/',
             'pattern' => '#.#',
             'reason' => 'Pet Profiles residual fragments after public extraction (#268); remaining staff-empty copy is non-user chrome.',
+        ],
+
+        [
+            'path' => 'resources/views/sub-cores/',
+            'pattern' => '#(label, \};|\[\'ticket\', \'circle\'\], \};)#',
+            'reason' => 'Blade @php match fragment false positives after hub extraction (#269).',
+        ],
+        [
+            'path' => 'plugins/',
+            'pattern' => '/^(Case # -|Ticket # -|Consultation # -|\( KB\)|Pet: \| Type:|roles All open roles|You already applied for this role\. Status:|Location: \| Commitment:|Location: · Commitment:|id\) @section.*)$/',
+            'reason' => 'HTML-split title/meta interpolations after staff/plugin extraction (#269); dynamic IDs and sizes remain in Blade.',
         ],
 
         [

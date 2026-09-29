@@ -61,7 +61,7 @@ class PublicRecruitmentApplicationController extends Controller
 
         if ($existing !== null) {
             throw ValidationException::withMessages([
-                'statement' => 'You have already applied for this role. Each person may apply once.',
+                'statement' => __('recruitment::public.validation.you_have_already_applied_for_this_role_each_person_may_'),
             ]);
         }
 

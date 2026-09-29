@@ -127,7 +127,9 @@ class HardCodedStringInventoryTest extends TestCase
             $this->assertArrayHasKey('totals', $payload);
             $this->assertArrayHasKey('findings', $payload);
             $this->assertArrayHasKey('all', $payload['totals']);
-            $this->assertGreaterThan(0, $payload['totals']['all']);
+            // Wave 2 extraction (#271/#270/#268/#269) clears hard-coded inventory findings.
+            $this->assertSame(0, $payload['totals']['all']);
+            $this->assertIsArray($payload['findings']);
             $this->assertStringContainsString('Hard-coded UI string inventory', File::get($markdown));
         } finally {
             foreach ([$markdown, $json] as $path) {
