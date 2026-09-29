@@ -6,15 +6,15 @@ use App\Services\Localisation\TranslationKeyChecker;
 use Illuminate\Console\Command;
 
 /**
- * Report-only translation key check for Language #276 (hard-fail lands in Wave 4).
+ * Translation key check for Language #276 — missing keys hard-fail when requested.
  */
 class LangCheckCommand extends Command
 {
     protected $signature = 'lang:check
-                            {--fail-on-missing : Exit non-zero when missing keys are found (Wave 4; off by default)}
+                            {--fail-on-missing : Exit non-zero when missing keys are found}
                             {--json : Print machine JSON to stdout}';
 
-    protected $description = 'Report missing/unused translation keys and hard-coded string counts (#276 report-only)';
+    protected $description = 'Report missing/unused translation keys; optionally fail on missing (#276)';
 
     public function handle(TranslationKeyChecker $checker): int
     {
@@ -23,7 +23,7 @@ class LangCheckCommand extends Command
         if ($this->option('json')) {
             $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}');
         } else {
-            $this->info('Translation key check (report-only until Language Wave 4 / #276 hard-fail)');
+            $this->info('Translation key check (#276)');
             $this->table(
                 ['Metric', 'Count'],
                 [

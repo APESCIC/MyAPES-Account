@@ -32,6 +32,7 @@
                 <button type="submit">{{ __('public.profile.edit.blade.save_profile') }}</button>
             </div>
         </form>
+        <x-locale-switcher />
     </div>
 
     <div class="panel" id="account-email">

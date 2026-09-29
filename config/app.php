@@ -86,6 +86,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Supported Locales (#275)
+    |--------------------------------------------------------------------------
+    |
+    | Locales users may select. Only en_GB ships today; add further locales
+    | (for example 'cy' => 'Cymraeg') when translations exist. The language
+    | switcher renders only when this map has more than one entry.
+    |
+    */
+
+    'supported_locales' => [
+        'en_GB' => 'English (UK)',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

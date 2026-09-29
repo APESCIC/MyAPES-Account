@@ -6,8 +6,9 @@ return [
     | Translation key check (#276)
     |--------------------------------------------------------------------------
     |
-    | Report-only in Wave 1. Flip fail-on-missing in CI during Wave 4 after
-    | string extraction. Reuses hard-coded inventory roots ideas from #266.
+    | CI runs `php artisan lang:check --fail-on-missing`. Unused keys are
+    | reported but never fail the build. Reuses hard-coded inventory roots
+    | ideas from #266.
     |
     */
 

@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureModuleAvailable;
 use App\Http\Middleware\EnsurePluginEnabled;
 use App\Http\Middleware\EnsureServiceSelected;
 use App\Http\Middleware\RevalidateDirectoryAccess;
+use App\Http\Middleware\SetLocale;
 use App\Services\MaintenanceResponseFactory;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -44,6 +45,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(
             fn (): string => route('dashboard'),
         );
+
+        $middleware->web(append: [
+            SetLocale::class,
+        ]);
 
         $middleware->alias([
             'admin.denial-audit' => AuditAdminAuthorizationDenial::class,

@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\PublicAuthController;
 use App\Http\Controllers\Auth\PublicPasswordResetController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RobotsTxtController;
@@ -28,6 +29,10 @@ Route::middleware('guest')->group(function (): void {
 
 Route::get('/robots.txt', RobotsTxtController::class)->name('robots');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+
+Route::post('/locale', [LocaleController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('locale.store');
 
 Route::get('/change-log', ChangeLogController::class)->name('change-log.index');
 Route::view('/privacy', 'legal.privacy')->name('privacy');

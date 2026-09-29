@@ -29,6 +29,7 @@ use Spatie\Permission\Traits\HasRoles;
     'identity_type',
     'name',
     'email',
+    'locale',
     'password',
     'onboarding_completed_at',
     'ldap_groups',
@@ -83,10 +84,13 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function preferredLocale(): string
     {
         $locale = $this->attributes['locale'] ?? null;
+        $supported = array_keys(config('app.supported_locales', ['en_GB' => 'English (UK)']));
 
-        return is_string($locale) && $locale !== ''
-            ? $locale
-            : 'en_GB';
+        if (is_string($locale) && $locale !== '' && in_array($locale, $supported, true)) {
+            return $locale;
+        }
+
+        return in_array('en_GB', $supported, true) ? 'en_GB' : ($supported[0] ?? 'en_GB');
     }
 
     public static function bootHasRoles(): void
