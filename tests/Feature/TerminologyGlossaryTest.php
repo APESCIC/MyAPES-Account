@@ -77,8 +77,10 @@ class TerminologyGlossaryTest extends TestCase
         $navigation = file_get_contents(resource_path('views/admin/_navigation.blade.php'));
 
         $this->assertIsString($navigation);
-        $this->assertStringContainsString('>Plugins</a>', $navigation);
-        $this->assertStringContainsString('>Modules</a>', $navigation);
+        $this->assertStringContainsString("__('admin.nav.plugins')", $navigation);
+        $this->assertStringContainsString("__('admin.nav.modules')", $navigation);
+        $this->assertSame('Plugins', __('admin.nav.plugins'));
+        $this->assertSame('Modules', __('admin.nav.modules'));
         $this->assertStringNotContainsString('Super Admin', $navigation);
     }
 }
