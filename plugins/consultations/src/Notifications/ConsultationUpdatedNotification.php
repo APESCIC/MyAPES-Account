@@ -3,9 +3,9 @@
 namespace Plugins\Consultations\Notifications;
 
 use App\Core\Accounts\User;
-use Plugins\Consultations\Models\PetCareConsultation;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Plugins\Consultations\Models\PetCareConsultation;
 
 class ConsultationUpdatedNotification extends Notification
 {
@@ -31,10 +31,18 @@ class ConsultationUpdatedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("APES Pet Care Clinic consultation #{$this->consultation->id} {$this->eventLabel}")
-            ->line("Consultation #{$this->consultation->id} ({$this->consultation->subject}) was {$this->eventLabel} by {$this->actor->name}.")
-            ->line("Status: {$this->consultation->status}")
-            ->action('Open consultation', route('petcare.consultations.show', $this->consultation));
+            ->subject(__('mail.consultation_updated.subject', [
+                'id' => $this->consultation->id,
+                'event' => $this->eventLabel,
+            ]))
+            ->line(__('mail.consultation_updated.line_body', [
+                'id' => $this->consultation->id,
+                'subject' => $this->consultation->subject,
+                'event' => $this->eventLabel,
+                'actor' => $this->actor->name,
+            ]))
+            ->line(__('mail.consultation_updated.line_status', ['status' => $this->consultation->status]))
+            ->action(__('mail.consultation_updated.action'), route('petcare.consultations.show', $this->consultation));
     }
 
     /**

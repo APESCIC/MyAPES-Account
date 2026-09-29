@@ -61,7 +61,7 @@ class OidcAuthController extends Controller
             $auditLogger->record('auth.oidc_provider_unavailable', context: [
                 'reason' => 'provider_unavailable',
             ]);
-            abort(503, 'Cloudron sign-in is temporarily unavailable.');
+            abort(503, __('auth.oidc.unavailable'));
         }
     }
 
@@ -83,17 +83,17 @@ class OidcAuthController extends Controller
             $auditLogger->record('auth.oidc_provider_unavailable', context: [
                 'reason' => 'provider_unavailable',
             ]);
-            abort(503, 'Cloudron sign-in is temporarily unavailable.');
+            abort(503, __('auth.oidc.unavailable'));
         }
 
         if ($identity->email === null) {
             $auditLogger->record('auth.oidc_missing_email');
-            abort(403, 'Authenticated identity did not include an email address.');
+            abort(403, __('auth.oidc.missing_email'));
         }
 
         if ($identity->subject === null) {
             $auditLogger->record('auth.oidc_missing_subject');
-            abort(403, 'Authenticated identity did not include a subject identifier.');
+            abort(403, __('auth.oidc.missing_subject'));
         }
 
         $email = Str::lower($identity->email);
@@ -119,7 +119,7 @@ class OidcAuthController extends Controller
                     $knownUser,
                     ['method' => SessionAuthorizationContext::METHOD_CLOUDRON_OIDC],
                 );
-                abort(403, 'This account is suspended.');
+                abort(403, __('auth.oidc.suspended'));
             }
         }
 
@@ -136,12 +136,12 @@ class OidcAuthController extends Controller
             $auditLogger->record('auth.oidc_access_denied', context: [
                 'reason' => 'identity_not_found',
             ]);
-            abort(403, 'Your Cloudron account does not have a MyAPES Account directory group.');
+            abort(403, __('auth.oidc.no_directory_group'));
         } catch (DirectoryUnavailable) {
             $auditLogger->record('auth.ldap_resolution_failed', null, null, [
                 'reason' => 'directory_unavailable',
             ]);
-            abort(503, 'Staff access verification is temporarily unavailable.');
+            abort(503, __('auth.oidc.directory_unavailable'));
         }
 
         $groups = $directoryProfile->groups;
@@ -160,7 +160,7 @@ class OidcAuthController extends Controller
                 'reason' => 'no_approved_group',
                 'group_count' => count($groups),
             ]);
-            abort(403, 'Your Cloudron account does not have a MyAPES Account directory group.');
+            abort(403, __('auth.oidc.no_directory_group'));
         }
 
         $user = $knownUser;
@@ -174,7 +174,7 @@ class OidcAuthController extends Controller
                 $auditLogger->record('auth.oidc_email_conflict', null, null, [
                     'reason' => 'email_already_in_use',
                 ]);
-                abort(403, 'An account with this email already exists. Use a different Cloudron or work email for staff access.');
+                abort(403, __('auth.oidc.email_conflict'));
             }
 
             $user = new User;
@@ -185,7 +185,7 @@ class OidcAuthController extends Controller
             $auditLogger->record('auth.oidc_email_conflict', $user, $user, [
                 'reason' => 'email_already_in_use',
             ]);
-            abort(403, 'An account with this email already exists. Use a different Cloudron or work email for staff access.');
+            abort(403, __('auth.oidc.email_conflict'));
         }
 
         $user->oidc_sub = $sub;
@@ -215,7 +215,7 @@ class OidcAuthController extends Controller
                 'reason' => 'eligibility_changed_before_reconciliation',
                 'group_count' => count($groups),
             ]);
-            abort(403, 'Your Cloudron account does not have a MyAPES Account directory group.');
+            abort(403, __('auth.oidc.no_directory_group'));
         }
 
         $user->refresh();

@@ -55,7 +55,7 @@ class RevalidateDirectoryAccess
                 'reason' => 'directory_unavailable',
             ]);
 
-            abort(503, 'Staff access verification is temporarily unavailable.');
+            abort(503, __('auth.oidc.directory_unavailable'));
         }
 
         $result = $this->roles->synchronize($user, $groups);

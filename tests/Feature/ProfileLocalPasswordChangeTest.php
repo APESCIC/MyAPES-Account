@@ -61,7 +61,7 @@ class ProfileLocalPasswordChangeTest extends TestCase
                 'password_confirmation' => self::NEW_PASSWORD,
             ])
             ->assertRedirect(route('profile.edit'))
-            ->assertSessionHas('status', 'Password updated.');
+            ->assertSessionHas('status', __('flash.password_updated'));
 
         $this->assertAuthenticatedAs($public);
         $this->assertSame('password', session('myapes.authentication_method'));

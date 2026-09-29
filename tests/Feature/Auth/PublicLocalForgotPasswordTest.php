@@ -16,7 +16,7 @@ class PublicLocalForgotPasswordTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const GENERIC_STATUS = 'If a local public account exists for that email, we have sent a password reset link.';
+    private const GENERIC_STATUS_KEY = 'passwords.request_status';
 
     private const NEW_PASSWORD = 'Correct-horse-42-reset!';
 
@@ -70,7 +70,7 @@ class PublicLocalForgotPasswordTest extends TestCase
                 'email' => 'LOCAL.PUBLIC.RESET@EXAMPLE.COM',
             ])
             ->assertRedirect(route('password.request'))
-            ->assertSessionHas('status', self::GENERIC_STATUS);
+            ->assertSessionHas('status', __(self::GENERIC_STATUS_KEY));
 
         Notification::assertSentTo($public, ResetPassword::class);
         $this->assertDatabaseHas('password_reset_tokens', [
@@ -197,7 +197,7 @@ class PublicLocalForgotPasswordTest extends TestCase
                     'email' => $refused->email,
                 ])
                 ->assertRedirect(route('password.request'))
-                ->assertSessionHas('status', self::GENERIC_STATUS);
+                ->assertSessionHas('status', __(self::GENERIC_STATUS_KEY));
 
             $refused->refresh();
             $this->assertTrue(Hash::check('password', $refused->password));
@@ -221,7 +221,7 @@ class PublicLocalForgotPasswordTest extends TestCase
                 'email' => 'nobody@example.com',
             ])
             ->assertRedirect(route('password.request'))
-            ->assertSessionHas('status', self::GENERIC_STATUS);
+            ->assertSessionHas('status', __(self::GENERIC_STATUS_KEY));
 
         Notification::assertNothingSent();
         $this->assertDatabaseCount('password_reset_tokens', 0);

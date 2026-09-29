@@ -28,17 +28,17 @@ Machine JSON (gitignored under storage): `storage/app/lang-inventory.json`.
 | [Public](#public-268) | 273 |
 | [APES CIC staff](#apes-cic-staff-269) | 13 |
 | [Admin shell](#admin-shell-270) | 425 |
-| [Auth / emails / notifications / flash / validation](#auth-emails-flash-validation-271) | 101 |
-| [Plugin: Cases](#plugin-cases) | 110 |
-| [Plugin: Tickets](#plugin-tickets) | 58 |
+| [Auth / emails / notifications / flash / validation](#auth-emails-flash-validation-271) | 0 |
+| [Plugin: Cases](#plugin-cases) | 100 |
+| [Plugin: Tickets](#plugin-tickets) | 53 |
 | [Plugin: Recruitment](#plugin-recruitment) | 117 |
-| [Plugin: Consultations](#plugin-consultations) | 36 |
+| [Plugin: Consultations](#plugin-consultations) | 32 |
 | [Plugin: Pet Profiles](#plugin-pet-profiles) | 33 |
 | [Other / unclassified](#other-unclassified) | 0 |
-| **All (inventory)** | **1166** |
+| **All (inventory)** | **1046** |
 | Allow-listed (omitted below) | 2 |
 
-_Generated at 2026-09-29T09:41:56+00:00_
+_Generated at 2026-09-29T10:18:15+00:00_
 
 <a id="public-268"></a>
 
@@ -790,111 +790,7 @@ Path anchor for children: `docs/i18n-inventory.md#admin-shell-270` — extractio
 
 Path anchor for children: `docs/i18n-inventory.md#auth-emails-flash-validation-271` — extraction [#271](https://github.com/APESCIC/MyAPES-Account/issues/271).
 
-| File | Line | Kind | Snippet | Suggested key | Target |
-| --- | ---: | --- | --- | --- | --- |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 64 | `php.abort` | Cloudron sign-in is temporarily unavailable. | `auth.oidc_auth_controller.cloudron_sign_in_is_temporarily_unavaila` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 86 | `php.abort` | Cloudron sign-in is temporarily unavailable. | `auth.oidc_auth_controller.cloudron_sign_in_is_temporarily_unavaila` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 91 | `php.abort` | Authenticated identity did not include an email address. | `auth.oidc_auth_controller.authenticated_identity_did_not_include_a` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 96 | `php.abort` | Authenticated identity did not include a subject identifier. | `auth.oidc_auth_controller.authenticated_identity_did_not_include_a` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 122 | `php.abort` | This account is suspended. | `auth.oidc_auth_controller.this_account_is_suspended` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 139 | `php.abort` | Your Cloudron account does not have a MyAPES Account directory group. | `auth.oidc_auth_controller.your_cloudron_account_does_not_have_a_my` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 144 | `php.abort` | Staff access verification is temporarily unavailable. | `auth.oidc_auth_controller.staff_access_verification_is_temporarily` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 163 | `php.abort` | Your Cloudron account does not have a MyAPES Account directory group. | `auth.oidc_auth_controller.your_cloudron_account_does_not_have_a_my` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 177 | `php.abort` | An account with this email already exists. Use a different Cloudron or work email for staff access. | `auth.oidc_auth_controller.an_account_with_this_email_already_exist` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 188 | `php.abort` | An account with this email already exists. Use a different Cloudron or work email for staff access. | `auth.oidc_auth_controller.an_account_with_this_email_already_exist` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/OidcAuthController.php` | 218 | `php.abort` | Your Cloudron account does not have a MyAPES Account directory group. | `auth.oidc_auth_controller.your_cloudron_account_does_not_have_a_my` | `lang/en_GB/auth.php` |
-| `app/Http/Controllers/Auth/PublicAuthController.php` | 313 | `php.flash` | Switched to QA {$roleLabel} ({$targetUser->email}). | `flash.public_auth_controller.switched_to_q_a_role_label_target_user_emai` | `lang/en_GB/flash.php` |
-| `app/Http/Controllers/ProfileController.php` | 75 | `php.flash` | Password updated. | `flash.profile_controller.password_updated` | `lang/en_GB/flash.php` |
-| `app/Http/Controllers/ProfileController.php` | 158 | `php.flash` | Profile updated. | `flash.profile_controller.profile_updated` | `lang/en_GB/flash.php` |
-| `app/Http/Controllers/ProfileController.php` | 222 | `php.flash` | Staff profile updated. | `flash.profile_controller.staff_profile_updated` | `lang/en_GB/flash.php` |
-| `app/Http/Middleware/RevalidateDirectoryAccess.php` | 58 | `php.abort` | Staff access verification is temporarily unavailable. | `auth.revalidate_directory_access.staff_access_verification_is_temporarily` | `lang/en_GB/auth.php` |
-| `app/Notifications/PendingFirstLoginChaseNotification.php` | 28 | `php.mail_line` | Complete your MyAPES Staff Login | `mail.pending_first_login_chase_notification.complete_your_my_a_p_e_s_staff_login` | `lang/en_GB/mail.php` |
-| `app/Notifications/PendingFirstLoginChaseNotification.php` | 29 | `php.mail_line` | Hello | `mail.pending_first_login_chase_notification.hello` | `lang/en_GB/mail.php` |
-| `app/Notifications/PendingFirstLoginChaseNotification.php` | 31 | `php.mail_line` | An APES administrator asked you to complete your first Staff Login so your Cloudron directory account can link to MyAPES Account. | `mail.pending_first_login_chase_notification.an_a_p_e_s_administrator_asked_you_to_compl` | `lang/en_GB/mail.php` |
-| `app/Notifications/PendingFirstLoginChaseNotification.php` | 34 | `php.mail_line` | Use Staff Login and continue with APES Cloudron. Your password and passkeys stay on Cloudron — this message is not a public password reset. | `mail.pending_first_login_chase_notification.use_staff_login_and_continue_with_a_p_e_s_c` | `lang/en_GB/mail.php` |
-| `app/Notifications/PendingFirstLoginChaseNotification.php` | 36 | `php.mail_line` | Open Staff Login | `mail.pending_first_login_chase_notification.open_staff_login` | `lang/en_GB/mail.php` |
-| `app/Notifications/PendingFirstLoginChaseNotification.php` | 38 | `php.mail_line` | If the button does not work, open this address: | `mail.pending_first_login_chase_notification.if_the_button_does_not_work_open_this_ad` | `lang/en_GB/mail.php` |
-| `app/Notifications/PendingFirstLoginChaseNotification.php` | 40 | `php.mail_line` | — MyAPES Account | `mail.pending_first_login_chase_notification.my_a_p_e_s_account` | `lang/en_GB/mail.php` |
-| `resources/views/auth/forgot-password.blade.php` | 3 | `blade.text` | Forgot password | `auth.forgot-password.forgot_password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/forgot-password.blade.php` | 8 | `blade.text` | Enter the email for your local public account. Directory and staff accounts should use Staff Login and Cloudron instead. | `auth.forgot-password.enter_the_email_for_your_local_public_ac` | `lang/en_GB/auth.php` |
-| `resources/views/auth/forgot-password.blade.php` | 12 | `blade.text` | Email | `auth.forgot-password.email` | `lang/en_GB/auth.php` |
-| `resources/views/auth/forgot-password.blade.php` | 16 | `blade.text` | Send reset link | `auth.forgot-password.send_reset_link` | `lang/en_GB/auth.php` |
-| `resources/views/auth/forgot-password.blade.php` | 17 | `blade.text` | Back to Public Login | `auth.forgot-password.back_to_public_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 8 | `blade.text` | Welcome to MyAPES Core | `auth.landing.welcome_to_my_a_p_e_s_core` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 11 | `blade.text` | APES CIC | `auth.landing.a_p_e_s_c_i_c` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 11 | `blade.text` | APES Pet Care Clinic | `auth.landing.a_p_e_s_pet_care_clinic` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 11 | `blade.text` | APES Shelter and Rescue | `auth.landing.a_p_e_s_shelter_and_rescue` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 11 | `blade.text` | Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic. | `auth.landing.access_support_tools_for_a_p_e_s_c_i_c_a_p_e_s_s` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 16 | `blade.text` | Organisational support ticketing for legal, HR, IT and web development assistance. | `auth.landing.organisational_support_ticketing_for_leg` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 20 | `blade.text` | Pet profile management and case workflows for rescue, adoption, surrender and fostering. | `auth.landing.pet_profile_management_and_case_workflow` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 24 | `blade.text` | Pet Profiles, Tickets, and Consultations for clinic planning and follow-up. | `auth.landing.pet_profiles_tickets_and_consultations_f` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 30 | `blade.text` | Public access | `auth.landing.public_access` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 31 | `blade.text` | For service users managing support, profiles, and pets. | `auth.landing.for_service_users_managing_support_profi` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 33 | `blade.text` | Public Login | `auth.landing.public_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 34 | `blade.text` | Register | `auth.landing.register` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 38 | `blade.text` | Staff access | `auth.landing.staff_access` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 39 | `blade.text` | APES staff and administrators should use Cloudron sign-in. | `auth.landing.a_p_e_s_staff_and_administrators_should_use` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 41 | `blade.text` | Staff Login | `auth.landing.staff_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 47 | `blade.text` | Browse staff, volunteering, and student opportunities with APES CIC. | `auth.landing.browse_staff_volunteering_and_student_op` | `lang/en_GB/auth.php` |
-| `resources/views/auth/landing.blade.php` | 49 | `blade.text` | View open roles | `auth.landing.view_open_roles` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 7 | `blade.attribute.alt` | Spike, the cartoon MyAPES bearded dragon mascot | `auth.login.spike_the_cartoon_my_a_p_e_s_bearded_dragon` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 8 | `blade.text` | Staff sign in | `auth.login.staff_sign_in` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 9 | `blade.text` | APES CIC | `auth.login.a_p_e_s_c_i_c` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 9 | `blade.text` | APES Pet Care Clinic | `auth.login.a_p_e_s_pet_care_clinic` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 9 | `blade.text` | APES Shelter and Rescue | `auth.login.a_p_e_s_shelter_and_rescue` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 9 | `blade.text` | Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic. | `auth.login.access_support_tools_for_a_p_e_s_c_i_c_a_p_e_s_s` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 13 | `blade.text` | Organisational support ticketing for legal, HR, IT and web development assistance. | `auth.login.organisational_support_ticketing_for_leg` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 17 | `blade.text` | Pet profile management and case workflows for rescue, adoption, surrender and fostering. | `auth.login.pet_profile_management_and_case_workflow` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 21 | `blade.text` | Pet Profiles, Tickets, and Consultations for clinic planning and follow-up. | `auth.login.pet_profiles_tickets_and_consultations_f` | `lang/en_GB/auth.php` |
-| `resources/views/auth/login.blade.php` | 25 | `blade.text` | Continue with APES Cloudron Login | `auth.login.continue_with_a_p_e_s_cloudron_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 3 | `blade.text` | Login | `auth.public-login.login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 3 | `blade.text` | Public Login | `auth.public-login.public_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 8 | `blade.text` | Sign in to access your services, profile, and pet records. | `auth.public-login.sign_in_to_access_your_services_profile` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 12 | `blade.text` | Username or email | `auth.public-login.username_or_email` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 15 | `blade.text` | Password | `auth.public-login.password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 19 | `blade.text` | Remember me | `auth.public-login.remember_me` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 24 | `blade.text` | Forgot password? | `auth.public-login.forgot_password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 25 | `blade.text` | Create account | `auth.public-login.create_account` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-login.blade.php` | 26 | `blade.text` | Staff Login | `auth.public-login.staff_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 3 | `blade.text` | Register | `auth.public-register.register` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 7 | `blade.text` | Create public account | `auth.public-register.create_public_account` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 8 | `blade.text` | Register to access services, your profile, and your pets. | `auth.public-register.register_to_access_services_your_profile` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 12 | `blade.text` | Full name | `auth.public-register.full_name` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 15 | `blade.text` | Email | `auth.public-register.email` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 18 | `blade.text` | Username | `auth.public-register.username` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 21 | `blade.text` | Password | `auth.public-register.password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 24 | `blade.text` | Confirm password | `auth.public-register.confirm_password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 28 | `blade.text` | Select at least one MyAPES service | `auth.public-register.select_at_least_one_my_a_p_e_s_service` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 38 | `blade.text` | Consent | `auth.public-register.consent` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 49 | `blade.text` | I have read and accept the | `auth.public-register.i_have_read_and_accept_the` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 50 | `blade.text` | terms of use | `auth.public-register.terms_of_use` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 51 | `blade.text` | and the | `auth.public-register.and_the` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 55 | `blade.text` | privacy notice | `auth.public-register.privacy_notice` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 59 | `blade.text` | You can also read the | `auth.public-register.you_can_also_read_the` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 60 | `blade.text` | cookie notice | `auth.public-register.cookie_notice` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 61 | `blade.text` | or open | `auth.public-register.or_open` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 62 | `blade.text` | Help | `auth.public-register.help` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 63 | `blade.text` | if you need a hand. | `auth.public-register.if_you_need_a_hand` | `lang/en_GB/auth.php` |
-| `resources/views/auth/public-register.blade.php` | 69 | `blade.text` | Already have an account? | `auth.public-register.already_have_an_account` | `lang/en_GB/auth.php` |
-| `resources/views/auth/reset-password.blade.php` | 3 | `blade.text` | Reset password | `auth.reset-password.reset_password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/reset-password.blade.php` | 8 | `blade.text` | Choose a new password for your local public account. | `auth.reset-password.choose_a_new_password_for_your_local_pub` | `lang/en_GB/auth.php` |
-| `resources/views/auth/reset-password.blade.php` | 14 | `blade.text` | Email | `auth.reset-password.email` | `lang/en_GB/auth.php` |
-| `resources/views/auth/reset-password.blade.php` | 17 | `blade.text` | New password | `auth.reset-password.new_password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/reset-password.blade.php` | 20 | `blade.text` | Confirm new password | `auth.reset-password.confirm_new_password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/reset-password.blade.php` | 25 | `blade.text` | Back to Public Login | `auth.reset-password.back_to_public_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/staff-login.blade.php` | 3 | `blade.text` | Staff Login | `auth.staff-login.staff_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/staff-login.blade.php` | 8 | `blade.text` | APES staff and administrators sign in via APES Cloudron. | `auth.staff-login.a_p_e_s_staff_and_administrators_sign_in_vi` | `lang/en_GB/auth.php` |
-| `resources/views/auth/staff-login.blade.php` | 11 | `blade.text` | Local QA mode: use seeded staff/admin credentials to sign in directly. | `auth.staff-login.local_q_a_mode_use_seeded_staff_admin_cre` | `lang/en_GB/auth.php` |
-| `resources/views/auth/staff-login.blade.php` | 14 | `blade.text` | Email | `auth.staff-login.email` | `lang/en_GB/auth.php` |
-| `resources/views/auth/staff-login.blade.php` | 17 | `blade.text` | Password | `auth.staff-login.password` | `lang/en_GB/auth.php` |
-| `resources/views/auth/staff-login.blade.php` | 21 | `blade.text` | Local Staff Login | `auth.staff-login.local_staff_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/staff-login.blade.php` | 27 | `blade.text` | Continue with APES Cloudron Login | `auth.staff-login.continue_with_a_p_e_s_cloudron_login` | `lang/en_GB/auth.php` |
-| `resources/views/auth/verify-email.blade.php` | 7 | `blade.text` | Verify your email | `auth.verify-email.verify_your_email` | `lang/en_GB/auth.php` |
-| `resources/views/auth/verify-email.blade.php` | 8 | `blade.text` | Use the signed link sent to your email before continuing account setup. | `auth.verify-email.use_the_signed_link_sent_to_your_email_b` | `lang/en_GB/auth.php` |
-| `resources/views/auth/verify-email.blade.php` | 12 | `blade.text` | Send another verification link | `auth.verify-email.send_another_verification_link` | `lang/en_GB/auth.php` |
-| `resources/views/auth/verify-email.blade.php` | 16 | `blade.text` | Log out | `auth.verify-email.log_out` | `lang/en_GB/auth.php` |
-
-**Section total:** 101
+_No hard-coded findings in this area (or all allow-listed)._
 
 <a id="plugin-cases"></a>
 
@@ -1004,18 +900,8 @@ Path anchor for children: `docs/i18n-inventory.md#plugin-cases` — extraction [
 | `plugins/cases/src/Http/Controllers/CaseController.php` | 705 | `php.flash` | Case updated. | `cases::flash.case_controller.case_updated` | `plugins/cases/lang/en_GB/flash.php` |
 | `plugins/cases/src/Http/Controllers/CaseUpdateController.php` | 60 | `php.validation_exception` | Reopen the case before adding another update. | `cases::ui.case_update_controller.reopen_the_case_before_adding_another_up` | `plugins/cases/lang/en_GB/ui.php` |
 | `plugins/cases/src/Http/Controllers/CaseUpdateController.php` | 126 | `php.flash` | Case update added. | `cases::flash.case_update_controller.case_update_added` | `plugins/cases/lang/en_GB/flash.php` |
-| `plugins/cases/src/Notifications/ApesCicCaseUpdatedNotification.php` | 28 | `php.mail_line` | APES CIC case #{$this->case->id} {$this->eventLabel} | `cases::mail.apes_cic_case_updated_notification.a_p_e_s_c_i_c_case_this_case_id_this_event_lab` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ApesCicCaseUpdatedNotification.php` | 29 | `php.mail_line` | Case #{$this->case->id} was {$this->eventLabel} by {$this->actor->name}. | `cases::mail.apes_cic_case_updated_notification.case_this_case_id_was_this_event_label_by` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ApesCicCaseUpdatedNotification.php` | 30 | `php.mail_line` | Status: {$this->case->status} | `cases::mail.apes_cic_case_updated_notification.status_this_case_status` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ApesCicCaseUpdatedNotification.php` | 31 | `php.mail_line` | Priority: {$this->case->priority} | `cases::mail.apes_cic_case_updated_notification.priority_this_case_priority` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ApesCicCaseUpdatedNotification.php` | 32 | `php.mail_line` | Open case | `cases::mail.apes_cic_case_updated_notification.open_case` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ShelterCaseUpdatedNotification.php` | 34 | `php.mail_line` | APES Shelter case #{$this->case->id} {$this->eventLabel} | `cases::mail.shelter_case_updated_notification.a_p_e_s_shelter_case_this_case_id_this_even` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ShelterCaseUpdatedNotification.php` | 35 | `php.mail_line` | Case #{$this->case->id} ({$this->case->title}) was {$this->eventLabel} by {$this->actor->name}. | `cases::mail.shelter_case_updated_notification.case_this_case_id_this_case_title_was_th` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ShelterCaseUpdatedNotification.php` | 36 | `php.mail_line` | Case type: {$this->case->case_type} | `cases::mail.shelter_case_updated_notification.case_type_this_case_case_type` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ShelterCaseUpdatedNotification.php` | 37 | `php.mail_line` | Status: {$this->case->status} | `cases::mail.shelter_case_updated_notification.status_this_case_status` | `plugins/cases/lang/en_GB/mail.php` |
-| `plugins/cases/src/Notifications/ShelterCaseUpdatedNotification.php` | 38 | `php.mail_line` | Open case | `cases::mail.shelter_case_updated_notification.open_case` | `plugins/cases/lang/en_GB/mail.php` |
 
-**Section total:** 110
+**Section total:** 100
 
 <a id="plugin-tickets"></a>
 
@@ -1074,17 +960,12 @@ Path anchor for children: `docs/i18n-inventory.md#plugin-tickets` — extraction
 | `plugins/tickets/src/Http/Controllers/TicketController.php` | 423 | `php.validation_exception` | Select a ticket change, add a message, or attach a file before submitting. | `tickets::ui.ticket_controller.select_a_ticket_change_add_a_message_or` | `plugins/tickets/lang/en_GB/ui.php` |
 | `plugins/tickets/src/Http/Controllers/TicketController.php` | 464 | `php.flash` | Your update has been saved. | `tickets::flash.ticket_controller.your_update_has_been_saved` | `plugins/tickets/lang/en_GB/flash.php` |
 | `plugins/tickets/src/Http/Controllers/TicketController.php` | 487 | `php.flash` | Ticket deleted. | `tickets::flash.ticket_controller.ticket_deleted` | `plugins/tickets/lang/en_GB/flash.php` |
-| `plugins/tickets/src/Notifications/TicketUpdatedNotification.php` | 37 | `php.mail_line` | {$this->serviceName} ticket #{$this->ticket->id} {$this->eventLabel} | `tickets::mail.ticket_updated_notification.this_service_name_ticket_this_ticket_id` | `plugins/tickets/lang/en_GB/mail.php` |
-| `plugins/tickets/src/Notifications/TicketUpdatedNotification.php` | 38 | `php.mail_line` | Ticket #{$this->ticket->id} ({$this->ticket->subject}) was {$this->eventLabel} by {$this->actor->name}. | `tickets::mail.ticket_updated_notification.ticket_this_ticket_id_this_ticket_subjec` | `plugins/tickets/lang/en_GB/mail.php` |
-| `plugins/tickets/src/Notifications/TicketUpdatedNotification.php` | 39 | `php.mail_line` | Status: {$this->ticket->status} | `tickets::mail.ticket_updated_notification.status_this_ticket_status` | `plugins/tickets/lang/en_GB/mail.php` |
-| `plugins/tickets/src/Notifications/TicketUpdatedNotification.php` | 40 | `php.mail_line` | Priority: {$this->ticket->priority} | `tickets::mail.ticket_updated_notification.priority_this_ticket_priority` | `plugins/tickets/lang/en_GB/mail.php` |
-| `plugins/tickets/src/Notifications/TicketUpdatedNotification.php` | 41 | `php.mail_line` | Open ticket | `tickets::mail.ticket_updated_notification.open_ticket` | `plugins/tickets/lang/en_GB/mail.php` |
 | `plugins/tickets/src/TicketCategoryResolver.php` | 127 | `php.validation_exception` | Choose a valid subcategory for the selected service area. | `tickets::ui.ticket_category_resolver.choose_a_valid_subcategory_for_the_selec` | `plugins/tickets/lang/en_GB/ui.php` |
 | `plugins/tickets/src/TicketCategoryResolver.php` | 137 | `php.validation_exception` | Select which website is affected. | `tickets::ui.ticket_category_resolver.select_which_website_is_affected` | `plugins/tickets/lang/en_GB/ui.php` |
 | `plugins/tickets/src/TicketCategoryResolver.php` | 142 | `php.validation_exception` | Select a valid website. | `tickets::ui.ticket_category_resolver.select_a_valid_website` | `plugins/tickets/lang/en_GB/ui.php` |
 | `plugins/tickets/src/TicketCategoryResolver.php` | 147 | `php.validation_exception` | Select a valid website. | `tickets::ui.ticket_category_resolver.select_a_valid_website` | `plugins/tickets/lang/en_GB/ui.php` |
 
-**Section total:** 58
+**Section total:** 53
 
 <a id="plugin-recruitment"></a>
 
@@ -1254,12 +1135,8 @@ Path anchor for children: `docs/i18n-inventory.md#plugin-consultations` — extr
 | `plugins/consultations/resources/views/show.blade.php` | 82 | `blade.text` | Back | `consultations::ui.show.back` | `plugins/consultations/lang/en_GB/ui.php` |
 | `plugins/consultations/src/Http/Controllers/ConsultationController.php` | 144 | `php.validation_exception` | No consultation changes were requested. | `consultations::ui.consultation_controller.no_consultation_changes_were_requested` | `plugins/consultations/lang/en_GB/ui.php` |
 | `plugins/consultations/src/Http/Controllers/ConsultationController.php` | 203 | `php.flash` | Consultation updated. | `consultations::flash.consultation_controller.consultation_updated` | `plugins/consultations/lang/en_GB/flash.php` |
-| `plugins/consultations/src/Notifications/ConsultationUpdatedNotification.php` | 34 | `php.mail_line` | APES Pet Care Clinic consultation #{$this->consultation->id} {$this->eventLabel} | `consultations::mail.consultation_updated_notification.a_p_e_s_pet_care_clinic_consultation_this_c` | `plugins/consultations/lang/en_GB/mail.php` |
-| `plugins/consultations/src/Notifications/ConsultationUpdatedNotification.php` | 35 | `php.mail_line` | Consultation #{$this->consultation->id} ({$this->consultation->subject}) was {$this->eventLabel} by {$this->actor->name}. | `consultations::mail.consultation_updated_notification.consultation_this_consultation_id_this_c` | `plugins/consultations/lang/en_GB/mail.php` |
-| `plugins/consultations/src/Notifications/ConsultationUpdatedNotification.php` | 36 | `php.mail_line` | Status: {$this->consultation->status} | `consultations::mail.consultation_updated_notification.status_this_consultation_status` | `plugins/consultations/lang/en_GB/mail.php` |
-| `plugins/consultations/src/Notifications/ConsultationUpdatedNotification.php` | 37 | `php.mail_line` | Open consultation | `consultations::mail.consultation_updated_notification.open_consultation` | `plugins/consultations/lang/en_GB/mail.php` |
 
-**Section total:** 36
+**Section total:** 32
 
 <a id="plugin-pet-profiles"></a>
 

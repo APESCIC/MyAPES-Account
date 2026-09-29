@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class PublicPasswordResetController extends Controller
 {
-    public const REQUEST_STATUS = 'If a local public account exists for that email, we have sent a password reset link.';
+    public const REQUEST_STATUS_KEY = 'passwords.request_status';
 
     public function __construct(
         private readonly LocalPublicPasswordResetService $resets,
@@ -62,7 +62,7 @@ class PublicPasswordResetController extends Controller
             );
         }
 
-        return back()->with('status', self::REQUEST_STATUS);
+        return back()->with('status', __(self::REQUEST_STATUS_KEY));
     }
 
     public function edit(Request $request, string $token): View

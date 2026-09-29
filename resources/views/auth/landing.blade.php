@@ -1,52 +1,52 @@
 @extends('layouts.app')
 
-@section('title', 'Welcome | MyAPES Core')
+@section('title', __('auth.landing.title'))
 
 @section('content')
     <div class="panel">
         <h1 class="welcome-heading">
-            Welcome to MyAPES Core
+            {{ __('auth.landing.heading') }}
             <img src="{{ asset('mascot/spike-welcome.png') }}" alt="" class="welcome-heading__mascot" width="1024" height="1024">
         </h1>
-        <p class="muted">Access support tools for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic.</p>
+        <p class="muted">{{ __('auth.common.support_tools_intro') }}</p>
         <x-mascot-tip />
         <div class="grid">
             <div class="panel panel-flat">
-                <span class="service-label apes-cic">APES CIC</span>
-                <p>Organisational support ticketing for legal, HR, IT and web development assistance.</p>
+                <span class="service-label apes-cic">{{ __('auth.common.apes_cic') }}</span>
+                <p>{{ __('auth.common.apes_cic_blurb') }}</p>
             </div>
             <div class="panel panel-flat">
-                <span class="service-label apes-shelter">APES Shelter and Rescue</span>
-                <p>Pet profile management and case workflows for rescue, adoption, surrender and fostering.</p>
+                <span class="service-label apes-shelter">{{ __('auth.common.apes_shelter') }}</span>
+                <p>{{ __('auth.common.apes_shelter_blurb') }}</p>
             </div>
             <div class="panel panel-flat">
-                <span class="service-label apes-petcare">APES Pet Care Clinic</span>
-                <p>Pet Profiles, Tickets, and Consultations for clinic planning and follow-up.</p>
+                <span class="service-label apes-petcare">{{ __('auth.common.apes_petcare') }}</span>
+                <p>{{ __('auth.common.apes_petcare_blurb') }}</p>
             </div>
         </div>
     </div>
     <div class="grid">
         <div class="panel">
-            <h2>Public access</h2>
-            <p class="muted">For service users managing support, profiles, and pets.</p>
+            <h2>{{ __('auth.landing.public_access') }}</h2>
+            <p class="muted">{{ __('auth.landing.public_access_blurb') }}</p>
             <div class="actions">
-                <a href="{{ route('public.login') }}">Public Login</a>
-                <a href="{{ route('public.register') }}">Register</a>
+                <a href="{{ route('public.login') }}">{{ __('auth.common.public_login') }}</a>
+                <a href="{{ route('public.register') }}">{{ __('auth.common.register') }}</a>
             </div>
         </div>
         <div class="panel">
-            <h2>Staff access</h2>
-            <p class="muted">APES staff and administrators should use Cloudron sign-in.</p>
+            <h2>{{ __('auth.landing.staff_access') }}</h2>
+            <p class="muted">{{ __('auth.landing.staff_access_blurb') }}</p>
             <div class="actions">
-                <a href="{{ route('staff.login') }}">Staff Login</a>
+                <a href="{{ route('staff.login') }}">{{ __('auth.common.staff_login') }}</a>
             </div>
         </div>
         @foreach($publicPluginNavigation ?? [] as $publicPluginNav)
             <div class="panel">
-                <h2>{{ $publicPluginNav->label === 'Recruitment' ? 'Open roles' : $publicPluginNav->label }}</h2>
-                <p class="muted">Browse staff, volunteering, and student opportunities with APES CIC.</p>
+                <h2>{{ $publicPluginNav->label === 'Recruitment' ? __('auth.landing.open_roles') : $publicPluginNav->label }}</h2>
+                <p class="muted">{{ __('auth.landing.open_roles_blurb') }}</p>
                 <div class="actions">
-                    <a href="{{ route($publicPluginNav->routeName) }}">View open roles</a>
+                    <a href="{{ route($publicPluginNav->routeName) }}">{{ __('auth.landing.view_open_roles') }}</a>
                 </div>
             </div>
         @endforeach
