@@ -74,19 +74,19 @@ Public Recruitment is the exception that has no module prefix. It is still the R
 
 ## Vocabulary
 
-[#267](https://github.com/APESCIC/MyAPES-Account/issues/267) will add `docs/glossary.md` and `lang/en_GB/terms.php`. That glossary is the single source for **UI wording**. This page is the source for **layer names**. Use the same words in both. Locale and key conventions: [localisation.md](localisation.md).
+UI wording lives in [glossary.md](glossary.md) and `lang/en_GB/terms.php` ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)). This page is the source for **layer names**. Use the same words in both. Locale and key conventions: [localisation.md](localisation.md). Deprecated synonyms for CI: `config/glossary.php`.
 
 | Canonical term | Meaning | Deprecated synonyms |
 | --- | --- | --- |
 | Core | The platform layer above | — |
 | Module | An organisation area | sub-core, service area, Service (when it means the area) |
-| Plugin | A reusable feature | module, module type (when it means the feature) |
+| Plugin | A reusable feature | module, module type (when it means a feature) |
 | Plugin enablement | One module with one plugin switched on | module instance |
 | Plugin settings | Per-enablement settings edited from Admin → Plugins | module settings |
 
 Do not call an Access job role, or Spatie's `Role`, a recruitment role. Do not call a recruitment vacancy a job role. `RecruitmentRole` is the vacancy.
 
-`docs/glossary.md` does not exist yet. Link to it from here when [#267](https://github.com/APESCIC/MyAPES-Account/issues/267) adds it. Until then, do not rename on-screen labels just to match this page. The Admin Plugins index already says Plugins; the code underneath still says module.
+The Admin Plugins index already says Plugins; the code underneath may still say module. Live URLs and stored permission strings stay until an explicit rename child.
 
 ## Rename map
 

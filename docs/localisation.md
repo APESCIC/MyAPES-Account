@@ -2,7 +2,7 @@
 
 MyAPES Account ships **UK English** as the only locale for the Language line (`v0.38.x`). Primary locale is `en_GB`; fallback is `en`.
 
-Related: glossary wording lands in [#267](https://github.com/APESCIC/MyAPES-Account/issues/267) (`docs/glossary.md` + `lang/en_GB/terms.php`). Architecture layer names stay in [architecture.md](architecture.md).
+Related: product wording in [glossary.md](glossary.md) and `lang/en_GB/terms.php` ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)); deprecated synonyms in `config/glossary.php`. Architecture layer names stay in [architecture.md](architecture.md).
 
 ## Locale configuration
 
@@ -28,7 +28,8 @@ lang/
     pagination.php
     passwords.php
     validation.php
-    # later waves: nav.php, admin.php, terms.php, seo.php, flash.php, …
+    terms.php         # canonical product labels (#267)
+    # later waves: nav.php, admin.php, seo.php, flash.php, …
   en/             # fallback (framework defaults; keep in sync structurally)
 ```
 
