@@ -28,7 +28,7 @@ class PublicLocalForgotPasswordTest extends TestCase
         $login->assertOk()
             ->assertSee('href="'.route('password.request').'"', false)
             ->assertSeeText('Forgot password')
-            ->assertSee('autocomplete="username"', false)
+            ->assertSee('autocomplete="username webauthn"', false)
             ->assertSee('autocomplete="current-password"', false);
         $this->assertDoesNotMatchRegularExpression(
             '/<(input|select|textarea)[^>]*(name="login"|id="login"|name="password"|id="password")[^>]*autocomplete="off"/i',
