@@ -14,8 +14,8 @@ return [
 
     'home' => [
         'title' => 'Welcome | MyAPES Account',
-        'description' => 'Sign in to MyAPES Account for APES CIC public services, or use Staff Login for directory accounts.',
-        'keywords' => 'MyAPES Account, sign in, APES CIC',
+        'description' => 'Sign in to MyAPES Account for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic public services, or use Staff Login for directory accounts.',
+        'keywords' => 'MyAPES Account, sign in, APES CIC, Pet Care Clinic',
     ],
 
     'privacy' => [
