@@ -10,6 +10,7 @@ use App\Services\AuditLogger;
 use App\Services\AuthorizationAccountSynchronizer;
 use App\Services\AuthorizationProfile;
 use App\Services\SessionAuthorizationContext;
+use App\Services\TotpTwoFactorService;
 use Database\Seeders\LocalQaSeeder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -99,21 +100,16 @@ class PublicAuthController extends Controller
                 ->onlyInput($credentialField);
         }
 
-        Auth::login($user, $request->boolean('remember'));
-
-        $request->session()->regenerate();
-
-        /** @var User $user */
-        $user = $request->user();
         if ($user->suspended_at !== null) {
-            $this->denyAuthenticatedLogin(
-                $request,
-                $user,
-                $auditLogger,
+            $auditLogger->record(
                 'auth.suspended_login_denied',
-                route('public.login'),
-                'This account is suspended.',
-                SessionAuthorizationContext::METHOD_PASSWORD,
+                $user,
+                $user,
+                [
+                    'method' => SessionAuthorizationContext::METHOD_PASSWORD,
+                    'redirect' => route('public.login'),
+                    'reason' => 'This account is suspended.',
+                ],
             );
 
             return redirect()
@@ -123,9 +119,6 @@ class PublicAuthController extends Controller
 
         if ($user->identity_type !== User::IDENTITY_LOCAL
             || $this->authorizationProfile->hasDirectoryProtectedEligibility($user)) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
             $auditLogger->record('auth.public_login_blocked_for_staff', $user, $user);
 
             return redirect()
@@ -133,6 +126,19 @@ class PublicAuthController extends Controller
                 ->withErrors([$credentialField => 'Staff and directory accounts must sign in using Staff Login.']);
         }
 
+        if ($user->hasEnabledTwoFactor()) {
+            $request->session()->put([
+                TotpTwoFactorService::SESSION_LOGIN_ID => $user->id,
+                TotpTwoFactorService::SESSION_LOGIN_REMEMBER => $request->boolean('remember'),
+            ]);
+
+            $auditLogger->record('auth.two_factor_challenge_required', $user, $user);
+
+            return redirect()->route('two-factor.login');
+        }
+
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
         $this->authorizationContext->recordPassword($request, $user);
         $auditLogger->record('auth.public_login_success', $user, $user);
 

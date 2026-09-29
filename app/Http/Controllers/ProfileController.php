@@ -12,6 +12,7 @@ use App\Services\SecureEmailChangeService;
 use App\Services\SecureUploadService;
 use App\Services\SessionAuthorizationContext;
 use App\Services\StaffProfilePhotoResponder;
+use App\Services\TotpTwoFactorService;
 use App\Services\UkPhoneNumber;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -33,6 +34,7 @@ class ProfileController extends Controller
         Request $request,
         LocalPublicPasswordResetService $passwordResets,
         SecureEmailChangeService $emailChanges,
+        TotpTwoFactorService $twoFactor,
     ): View {
         $user = $request->user();
 
@@ -44,6 +46,8 @@ class ProfileController extends Controller
         }
 
         $canChangeLocalEmail = $user->isLocalPasswordIdentity();
+        $canManageTwoFactor = $user->isLocalPasswordIdentity();
+        $plainRecoveryCodes = $request->session()->get(TotpTwoFactorService::SESSION_PLAIN_RECOVERY_CODES);
 
         return view('profile.edit', [
             'profile' => $user->profile,
@@ -53,6 +57,10 @@ class ProfileController extends Controller
             'canChangeLocalUsername' => $user->isLocalPasswordIdentity(),
             'canChangeLocalEmail' => $canChangeLocalEmail,
             'pendingEmailChange' => $canChangeLocalEmail ? $emailChanges->pendingFor($user) : null,
+            'canManageTwoFactor' => $canManageTwoFactor,
+            'twoFactorEnabled' => $canManageTwoFactor && $twoFactor->hasEnabledTwoFactor($user),
+            'twoFactorPending' => $canManageTwoFactor && $twoFactor->hasPendingEnrolment($user),
+            'plainRecoveryCodes' => is_array($plainRecoveryCodes) ? $plainRecoveryCodes : [],
         ]);
     }
 

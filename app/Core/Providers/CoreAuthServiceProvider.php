@@ -4,6 +4,7 @@ namespace App\Core\Providers;
 
 use App\Contracts\OidcIdentityProvider;
 use App\Services\JumbojettOidcIdentityProvider;
+use App\Services\TotpTwoFactorService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -73,6 +74,24 @@ class CoreAuthServiceProvider extends ServiceProvider
             return [
                 Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
                 Limit::perMinute(3)->by(Str::transliterate('user|'.$userId)),
+            ];
+        });
+
+        RateLimiter::for('two-factor-manage', function (Request $request): array {
+            $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
+
+            return [
+                Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(5)->by(Str::transliterate('user|'.$userId)),
+            ];
+        });
+
+        RateLimiter::for('two-factor-challenge', function (Request $request): array {
+            $loginId = (string) $request->session()->get(TotpTwoFactorService::SESSION_LOGIN_ID, 'guest');
+
+            return [
+                Limit::perMinute(10)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(5)->by(Str::transliterate('login|'.$loginId)),
             ];
         });
 

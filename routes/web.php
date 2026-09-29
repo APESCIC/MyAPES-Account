@@ -12,6 +12,8 @@ use App\Http\Controllers\Auth\EmailChangeController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
 use App\Http\Controllers\Auth\PublicPasswordResetController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocaleController;
@@ -55,6 +57,13 @@ Route::middleware('guest')->controller(PublicAuthController::class)->group(funct
     Route::post('/login', 'login')->middleware('throttle:public-login')->name('public.login.submit');
     Route::get('/register', 'showRegister')->name('public.register');
     Route::post('/register', 'register')->name('public.register.submit');
+});
+
+Route::middleware('guest')->controller(TwoFactorChallengeController::class)->group(function (): void {
+    Route::get('/two-factor-challenge', 'create')->name('two-factor.login');
+    Route::post('/two-factor-challenge', 'store')
+        ->middleware('throttle:two-factor-challenge')
+        ->name('two-factor.login.store');
 });
 
 Route::middleware('guest')->controller(PublicPasswordResetController::class)->group(function (): void {
@@ -152,6 +161,20 @@ Route::middleware([
     Route::delete('/profile/email/pending', [EmailChangeController::class, 'destroy'])
         ->middleware(['throttle:public-email-change'])
         ->name('profile.email.cancel');
+    Route::get('/profile/two-factor', [TwoFactorController::class, 'show'])
+        ->name('two-factor.setup');
+    Route::post('/profile/two-factor', [TwoFactorController::class, 'store'])
+        ->middleware(['throttle:two-factor-manage'])
+        ->name('two-factor.enable');
+    Route::post('/profile/two-factor/confirm', [TwoFactorController::class, 'confirm'])
+        ->middleware(['throttle:two-factor-manage'])
+        ->name('two-factor.confirm');
+    Route::delete('/profile/two-factor', [TwoFactorController::class, 'destroy'])
+        ->middleware(['account.step-up', 'throttle:two-factor-manage'])
+        ->name('two-factor.disable');
+    Route::post('/profile/two-factor/recovery-codes', [TwoFactorController::class, 'regenerate'])
+        ->middleware(['account.step-up', 'throttle:two-factor-manage'])
+        ->name('two-factor.recovery.regenerate');
     Route::get('/profile/staff-photo', [ProfileController::class, 'staffPhoto'])->name('profile.staff-photo');
 
     Route::get('/user/confirm-password', [ConfirmPasswordController::class, 'show'])
