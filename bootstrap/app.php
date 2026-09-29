@@ -4,6 +4,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Middleware\AuditAdminAuthorizationDenial;
 use App\Http\Middleware\EnsureAccountReady;
 use App\Http\Middleware\EnsureAuthorizationContext;
+use App\Http\Middleware\EnsureLocalPasskeyIdentity;
 use App\Http\Middleware\EnsureMaintenanceRecoveryAccess;
 use App\Http\Middleware\EnsureModuleAvailable;
 use App\Http\Middleware\EnsurePluginEnabled;
@@ -60,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'maintenance.recovery' => EnsureMaintenanceRecoveryAccess::class,
             'account.ready' => EnsureAccountReady::class,
             'account.step-up' => EnsureRecentStepUp::class,
+            'passkeys.local' => EnsureLocalPasskeyIdentity::class,
             'service.selected' => EnsureServiceSelected::class,
         ]);
     })

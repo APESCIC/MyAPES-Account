@@ -35,6 +35,7 @@ import {
 } from 'lucide';
 import { initChangeLog } from './change-log.js';
 import { initAdminSearch } from './admin-search.js';
+import { initPasskeys } from './passkeys.js';
 
 const themeStorageKey = 'myapes-theme';
 const themeToggle = document.querySelector('[data-theme-toggle]');
@@ -112,6 +113,7 @@ createIcons({
 applyTheme(document.documentElement.dataset.theme);
 initChangeLog();
 initAdminSearch();
+initPasskeys();
 
 themeToggle?.addEventListener('click', () => {
     applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);
