@@ -44,7 +44,12 @@ final class SeoMeta
             ? $overrides['noindex']
             : self::shouldNoindex($request);
 
-        $canonical = self::canonicalUrl($request);
+        // Noindex responses (signed-in, admin, password, verify) must not embed
+        // request-path identifiers in canonical/og:url — keeps anti-enumeration
+        // 403 bodies identical across existing vs unknown IDs.
+        $canonical = $noindex
+            ? url('/')
+            : self::canonicalUrl($request);
 
         return new self(
             title: $title,

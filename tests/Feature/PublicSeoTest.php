@@ -82,28 +82,38 @@ class PublicSeoTest extends TestCase
         $user = User::factory()->create();
         $admin = User::factory()->accessLevel(User::ROLE_ADMIN)->create();
         $superAdmin = User::factory()->accessLevel(User::ROLE_SUPERADMIN)->create();
+        $homeCanonical = 'rel="canonical" href="'.e(url('/')).'"';
+        $homeOgUrl = 'property="og:url" content="'.e(url('/')).'"';
 
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('name="robots" content="noindex, nofollow"', false);
+            ->assertSee('name="robots" content="noindex, nofollow"', false)
+            ->assertSee($homeCanonical, false)
+            ->assertSee($homeOgUrl, false);
 
         $this->actingAs($admin)
             ->get(route('admin.index'))
             ->assertOk()
-            ->assertSee('name="robots" content="noindex, nofollow"', false);
+            ->assertSee('name="robots" content="noindex, nofollow"', false)
+            ->assertSee($homeCanonical, false)
+            ->assertSee($homeOgUrl, false);
 
         $this->actingAs($superAdmin)
             ->get(route('admin.modules.index'))
             ->assertOk()
-            ->assertSee('name="robots" content="noindex, nofollow"', false);
+            ->assertSee('name="robots" content="noindex, nofollow"', false)
+            ->assertSee($homeCanonical, false)
+            ->assertSee($homeOgUrl, false);
     }
 
     public function test_password_reset_form_is_noindex_for_guests(): void
     {
         $this->get('/forgot-password')
             ->assertOk()
-            ->assertSee('name="robots" content="noindex, nofollow"', false);
+            ->assertSee('name="robots" content="noindex, nofollow"', false)
+            ->assertSee('rel="canonical" href="'.e(url('/')).'"', false)
+            ->assertSee('property="og:url" content="'.e(url('/')).'"', false);
     }
 
     public function test_robots_txt_disallows_staff_paths_and_links_sitemap(): void

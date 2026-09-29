@@ -87,6 +87,11 @@ return [
     */
     'allowlist' => [
         [
+            'path' => 'resources/views/components/seo.blade.php',
+            'pattern' => '#.#',
+            'reason' => 'SEO head component @php plumbing only (#273); not user-facing copy.',
+        ],
+        [
             'path' => 'resources/views/',
             'pattern' => '#^user\(\)\);?$#',
             'reason' => 'PHP fragment false positive in Blade (@auth user()) (#268).',

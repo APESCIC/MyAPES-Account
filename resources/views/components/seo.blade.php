@@ -1,12 +1,16 @@
 {{-- SEO head tags (#273). Title/description/keywords come from @section yields. --}}
 @php
+    $seoTitle = trim($__env->yieldContent('title'));
+    $seoDescription = trim($__env->yieldContent('meta_description'));
+    $seoKeywords = trim($__env->yieldContent('meta_keywords'));
+    $seoNoindex = $__env->hasSection('seo_noindex')
+        ? filter_var(trim($__env->yieldContent('seo_noindex')), FILTER_VALIDATE_BOOLEAN)
+        : null;
     $seo = \App\Support\SeoMeta::fromRequest(request(), [
-        'title' => trim($__env->yieldContent('title')),
-        'description' => trim($__env->yieldContent('meta_description')),
-        'keywords' => trim($__env->yieldContent('meta_keywords')),
-        'noindex' => $__env->hasSection('seo_noindex')
-            ? filter_var(trim($__env->yieldContent('seo_noindex')), FILTER_VALIDATE_BOOLEAN)
-            : null,
+        'title' => $seoTitle,
+        'description' => $seoDescription,
+        'keywords' => $seoKeywords,
+        'noindex' => $seoNoindex,
     ]);
 @endphp
 <title>{{ $seo->title }}</title>
