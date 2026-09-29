@@ -1,5 +1,5 @@
 @php
-    $supportedLocales = config('app.supported_locales', ['en_GB' => 'English (UK)']);
+    $supportedLocales = config('app.supported_locales', []);
 @endphp
 @if(is_array($supportedLocales) && count($supportedLocales) > 1)
     <form method="post" action="{{ route('locale.store') }}" class="locale-switcher">
