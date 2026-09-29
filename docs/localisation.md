@@ -19,7 +19,19 @@ php artisan lang:inventory --write
   - [#269](https://github.com/APESCIC/MyAPES-Account/issues/269) → `docs/i18n-inventory.md#apes-cic-staff-269` (+ Cases / Tickets / Consultations / Recruitment staff)
   - [#270](https://github.com/APESCIC/MyAPES-Account/issues/270) → `docs/i18n-inventory.md#admin-shell-270`
   - [#271](https://github.com/APESCIC/MyAPES-Account/issues/271) → `docs/i18n-inventory.md#auth-emails-flash-validation-271`
-- [#276](https://github.com/APESCIC/MyAPES-Account/issues/276) should reuse the same scanner and allow-list (report-only until extraction finishes).
+- [#276](https://github.com/APESCIC/MyAPES-Account/issues/276) reuses the same scanner and allow-list. CI runs `php artisan lang:check` in **report-only** mode (does not fail yet); hard-fail lands in Wave 4 after extraction.
+
+## Translation key check (CI)
+
+```bash
+php artisan lang:check
+# Wave 4 only:
+php artisan lang:check --fail-on-missing
+```
+
+- Logic: `App\Services\Localisation\TranslationKeyChecker` (+ hard-coded count via `#266` scanner).
+- Config: `config/lang_check.php`.
+- Wired into `.github/workflows/test-cloudron.yml` as a non-failing step until Wave 4.
 
 ## Locale configuration
 
@@ -113,7 +125,7 @@ Rules:
 
 ## Plugin namespaces
 
-Each plugin declares `PluginManifest::$translationNamespace` (Structure). After [#272](https://github.com/APESCIC/MyAPES-Account/issues/272) loads translations:
+Each plugin declares `PluginManifest::$translationNamespace` (Structure). [#272](https://github.com/APESCIC/MyAPES-Account/issues/272) loads package trees via `PluginServiceProvider::loadTranslationsFrom`:
 
 | Namespace | Example |
 | --- | --- |
@@ -122,6 +134,12 @@ Each plugin declares `PluginManifest::$translationNamespace` (Structure). After 
 | `recruitment::` | `__('recruitment::roles.title')` |
 | `consultations::` | `__('consultations::plugin.name')` |
 | `pet_profiles::` | `__('pet_profiles::plugin.keywords')` |
+
+Standard seed file: `plugins/<slug>/lang/en_GB/plugin.php` with `name`, `short_name`, `description`, and `keywords`. Manifest `nameKey` / `descriptionKey` default to `{ns}::plugin.name` / `{ns}::plugin.description`; Admin → Plugins resolves them through `PluginManifest::label()` / `descriptionLabel()` (slug fallback if a key is missing).
+
+App-level overrides use Laravel’s vendor path: `lang/vendor/{namespace}/en_GB/plugin.php` (for example `lang/vendor/recruitment/en_GB/plugin.php`).
+
+Translations load when the plugin package provider boots, independent of enablement — disabled plugins do not break other pages.
 
 Core / shared strings stay in `lang/en_GB/*.php` without a package prefix.
 
@@ -140,4 +158,4 @@ Friendly attribute names live in `lang/en_GB/validation.php` → `attributes` (f
 - Broad Blade / flash / mail string extraction (later Language waves)
 - Second locales (for example Welsh)
 - User locale preference column / switcher ([#275](https://github.com/APESCIC/MyAPES-Account/issues/275))
-- CI missing-key hard-fail ([#276](https://github.com/APESCIC/MyAPES-Account/issues/276))
+- CI missing-key **hard-fail** ([#276](https://github.com/APESCIC/MyAPES-Account/issues/276) Wave 4 — report-only `lang:check` already ships)

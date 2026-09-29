@@ -175,6 +175,11 @@ jobs:
           node --check scripts/local/dev-runner.mjs
           npm run test:frontend
 
+      - name: Translation key check (report-only)
+        # Language #276 Wave 1: report missing/unused keys and hard-coded counts.
+        # Does not fail the build until Wave 4 flips --fail-on-missing.
+        run: php artisan lang:check --no-interaction
+
       - name: Validate local PowerShell scripts
         shell: pwsh
         run: |

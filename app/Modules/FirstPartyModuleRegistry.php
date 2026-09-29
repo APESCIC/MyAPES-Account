@@ -183,8 +183,8 @@ final class FirstPartyModuleRegistry implements ModuleRegistry
 
         return new ModuleDefinition(
             $manifest->slug,
-            $manifest->name,
-            $manifest->description,
+            $manifest->label(),
+            $manifest->descriptionLabel(),
             $manifest->version,
             $manifest->compatibleModules === ['*']
                 ? array_keys($this->subCores)

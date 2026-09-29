@@ -19,7 +19,6 @@ class {{ studly }}ServiceProvider extends PluginServiceProvider
         parent::boot();
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', '{{ slug }}');
-        $this->loadTranslationsFrom(__DIR__.'/../lang', '{{ translationNamespace }}');
 
         Gate::policy({{ model }}::class, {{ policy }}::class);
     }
