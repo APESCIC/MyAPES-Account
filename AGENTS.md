@@ -2,9 +2,9 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.38.x** (Language & keywords). **`v0.34.x Beta`** through **`v0.37.x Beta`** are **closed**. Language ships before Account security (**v0.39**). See [docs/architecture.md](docs/architecture.md) and [docs/developer-guide.md](docs/developer-guide.md).
+`main` holds the merged stack through **v0.39.x** (Account security). **`v0.34.x Beta`** through **`v0.38.x Beta`** are **closed**. See [docs/architecture.md](docs/architecture.md) and [docs/developer-guide.md](docs/developer-guide.md).
 
-Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
+Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133). Do not reopen Account security feature PRs for work already on `main` (#225–#234).
 
 ## GitHub milestones
 
@@ -13,10 +13,10 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
 - **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
-- Closed historical lines: `v0.1.x Beta` through `v0.37.x Beta` (completed releases)
-- **Current completed line:** `v0.38.x Beta` (Language & keywords — en_GB localisation, glossary, string extraction, plugin namespaces, SEO, Admin keywords, user locale groundwork, CI missing-key hard-fail)
-- **Active backlog:** `v0.39.x Beta` (Account security — next after Language)
-- **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security (milestones **7 → 9 → 8 → 5**)
+- Closed historical lines: `v0.1.x Beta` through `v0.38.x Beta` (completed releases)
+- **Current completed line:** `v0.39.x Beta` (Account security — auth emails, step-up, password/username/verify hardening, secure email change, TOTP, passkeys, PHPUnit matrix)
+- **Active backlog:** next minor line after Account security (assign when planning starts)
+- **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security (milestones **7 → 9 → 8 → 5**) — **Account security complete**
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
 
@@ -157,6 +157,20 @@ Shipped after Structure. Docs: [docs/localisation.md](docs/localisation.md), [do
 
 1. #264 Epic — closed with Wave 4
 2. #265–#276 baseline, glossary, inventory, namespaces, extraction, SEO/keywords, locale + CI hard-fail
+
+### v1.8.0 Beta: Account security (`v0.39.x Beta`, closed)
+
+Shipped after Language. Auth emails, step-up, password/username/verify hardening, secure email change, custom TOTP + recovery, passkeys (`laravel/passkeys`), PHPUnit account-security matrix. No Fortify. Local password MFA only; Cloudron OIDC doors unchanged.
+
+1. #225 Epic — closed with Wave 7 (#234)
+2. #226 Auth email brand kit
+3. #233 Step-up (`password.confirm` / passkey confirm)
+4. #230 Password policy (min 12 + HIBP)
+5. #227 / #229 Username + registration/verify
+6. #228 Secure email change
+7. #231 TOTP 2FA + recovery codes
+8. #232 Passkeys via `laravel/passkeys`
+9. #234 PHPUnit account-security matrix
 
 ## GitHub issues
 
