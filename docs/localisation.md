@@ -1,0 +1,125 @@
+# Localisation
+
+MyAPES Account ships **UK English** as the only locale for the Language line (`v0.38.x`). Primary locale is `en_GB`; fallback is `en`.
+
+Related: glossary wording lands in [#267](https://github.com/APESCIC/MyAPES-Account/issues/267) (`docs/glossary.md` + `lang/en_GB/terms.php`). Architecture layer names stay in [architecture.md](architecture.md).
+
+## Locale configuration
+
+| Setting | Value | Where |
+| --- | --- | --- |
+| `APP_LOCALE` | `en_GB` | `.env.example`, `.env.local.example`, `.env.laragon.example`, `scripts/deploy/production.env.example`, `phpunit.xml`, Cloudron shared `.env` (upserted on activate) |
+| `APP_FALLBACK_LOCALE` | `en` | Same |
+| `APP_FAKER_LOCALE` | `en_GB` | Same |
+| Config defaults | `en_GB` / `en` / `en_GB` | `config/app.php` |
+
+`html lang` uses `str_replace('_', '-', app()->getLocale())` so the document language is `en-GB` when the app locale is `en_GB`.
+
+Do **not** rename stored permission strings or live URLs for wording. Display labels only move into lang files.
+
+## File layout
+
+Prefer **grouped PHP files** under `lang/en_GB/`:
+
+```
+lang/
+  en_GB/          # primary (UK spelling)
+    auth.php
+    pagination.php
+    passwords.php
+    validation.php
+    # later waves: nav.php, admin.php, terms.php, seo.php, flash.php, …
+  en/             # fallback (framework defaults; keep in sync structurally)
+```
+
+Plugin packages add their own trees (loaded in [#272](https://github.com/APESCIC/MyAPES-Account/issues/272)):
+
+```
+plugins/<slug>/lang/en_GB/plugin.php
+modules/<slug>/lang/en_GB/…   # rare; prefer plugin or Core keys
+```
+
+JSON (`lang/en_GB.json`) is only for short one-off phrases if needed. Prefer grouped PHP so CI key checks ([#276](https://github.com/APESCIC/MyAPES-Account/issues/276)) can find keys.
+
+## Key naming
+
+Pattern: `{file}.{area}.{thing}` with **snake_case** segments.
+
+Examples:
+
+- `nav.dashboard`
+- `nav.admin`
+- `recruitment.public.apply`
+- `recruitment.staff.roles.create`
+- `admin.plugins.title`
+- `flash.saved`
+- `validation.attributes.email` (framework)
+
+Rules:
+
+- No full sentences as keys
+- No HTML in values — use `:placeholders` and Blade for markup
+- Keys describe meaning, not the English sentence
+
+## Helpers
+
+| Helper | Use |
+| --- | --- |
+| `__('nav.dashboard')` | PHP and Blade |
+| `@lang('…')` | Blade only |
+| `trans('…')` | Same as `__()` |
+| `trans_choice('recruitment.applications.count', $n)` | Plurals |
+
+### Plurals
+
+```php
+// lang/en_GB/recruitment.php
+'applications' => [
+    'count' => '{0} No applications|{1} :count application|[2,*] :count applications',
+],
+```
+
+```blade
+{{ trans_choice('recruitment.applications.count', $count) }}
+```
+
+### Placeholders
+
+```php
+'greeting' => 'Hello, :name.',
+```
+
+```blade
+{{ __('mail.greeting', ['name' => $user->name]) }}
+```
+
+## Plugin namespaces
+
+Each plugin declares `PluginManifest::$translationNamespace` (Structure). After [#272](https://github.com/APESCIC/MyAPES-Account/issues/272) loads translations:
+
+| Namespace | Example |
+| --- | --- |
+| `cases::` | `__('cases::plugin.name')` |
+| `tickets::` | `__('tickets::statuses.open')` |
+| `recruitment::` | `__('recruitment::roles.title')` |
+| `consultations::` | `__('consultations::plugin.name')` |
+| `pet_profiles::` | `__('pet_profiles::plugin.keywords')` |
+
+Core / shared strings stay in `lang/en_GB/*.php` without a package prefix.
+
+## Dates and numbers
+
+- Set Carbon from the app locale: `Carbon::setLocale(app()->getLocale())` when formatting for display
+- Prefer UK date format `j F Y` (for example `29 September 2026`) in user-facing copy
+- Postcodes and phone numbers follow UK conventions in validation attributes
+
+## Validation attributes
+
+Friendly attribute names live in `lang/en_GB/validation.php` → `attributes` (for example `email` → “email address”, `postcode` → “postcode”). Add common form fields there as screens are extracted.
+
+## Out of scope for this baseline
+
+- Broad Blade / flash / mail string extraction (later Language waves)
+- Second locales (for example Welsh)
+- User locale preference column / switcher ([#275](https://github.com/APESCIC/MyAPES-Account/issues/275))
+- CI missing-key hard-fail ([#276](https://github.com/APESCIC/MyAPES-Account/issues/276))

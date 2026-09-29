@@ -2026,6 +2026,21 @@ class DeploymentAuthenticationContractTest extends TestCase
         $this->assertStringNotContainsString('upsert_shared_env_key REDIS_HOST', $activation);
     }
 
+    public function test_activation_upserts_cloudron_locale_runtime_keys(): void
+    {
+        $activation = $this->read('scripts/deploy/activate-release.sh');
+        $environment = $this->read('scripts/deploy/production.env.example');
+
+        $this->assertStringContainsString('ensure_cloudron_locale_runtime', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key APP_LOCALE en_GB', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key APP_FALLBACK_LOCALE en', $activation);
+        $this->assertStringContainsString('upsert_shared_env_key APP_FAKER_LOCALE en_GB', $activation);
+        $this->assertStringContainsString("ensure_cloudron_redis_runtime\nensure_cloudron_locale_runtime", $activation);
+        $this->assertStringContainsString('APP_LOCALE=en_GB', $environment);
+        $this->assertStringContainsString('APP_FALLBACK_LOCALE=en', $environment);
+        $this->assertStringContainsString('APP_FAKER_LOCALE=en_GB', $environment);
+    }
+
     public function test_laravel_defaults_to_redis_when_cloudron_redis_is_present(): void
     {
         $this->assertStringContainsString(
@@ -4119,7 +4134,7 @@ BASH
         rmdir($path);
     }
 
-    private function testWorkflow(): string
+    private function test_workflow(): string
     {
         return $this->read('.github/workflows/test-cloudron.yml');
     }

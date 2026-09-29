@@ -493,6 +493,16 @@ ensure_cloudron_redis_runtime() {
   chmod 0640 "${SHARED_DIR}/.env"
 }
 
+ensure_cloudron_locale_runtime() {
+  upsert_shared_env_key APP_LOCALE en_GB
+  upsert_shared_env_key APP_FALLBACK_LOCALE en
+  upsert_shared_env_key APP_FAKER_LOCALE en_GB
+
+  assert_shared_environment_path
+  chown root:www-data "${SHARED_DIR}/.env"
+  chmod 0640 "${SHARED_DIR}/.env"
+}
+
 assert_activation_path_boundaries() {
   assert_canonical_deployment_directory "$DATA_DIR" "application data root" true
   assert_canonical_deployment_directory "${DATA_DIR}/apache" "Apache runtime parent" true
@@ -886,6 +896,7 @@ elif ! grep -Eq '^APP_ENV=production$' "${SHARED_DIR}/.env"; then
   exit 1
 fi
 ensure_cloudron_redis_runtime
+ensure_cloudron_locale_runtime
 
 harden_shared_runtime_boundaries
 restore_data_root_ownership
