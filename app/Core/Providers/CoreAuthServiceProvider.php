@@ -11,7 +11,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 
 /**
- * Core auth bindings and public-account rate limiters (#282).
+ * Core auth bindings and public-account rate limiters (#282, #230).
  */
 class CoreAuthServiceProvider extends ServiceProvider
 {
@@ -22,22 +22,50 @@ class CoreAuthServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        RateLimiter::for('public-login', function (Request $request): Limit {
-            $email = Str::lower((string) $request->input('login'));
+        RateLimiter::for('public-login', function (Request $request): array {
+            $login = Str::lower((string) ($request->input('login') ?: $request->input('email')));
 
-            return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
+            return [
+                Limit::perMinute(10)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(5)->by(Str::transliterate('account|'.$login)),
+            ];
         });
 
-        RateLimiter::for('public-password-reset', function (Request $request): Limit {
+        RateLimiter::for('public-password-reset-request', function (Request $request): array {
             $email = Str::lower((string) $request->input('email'));
 
-            return Limit::perMinute(5)->by(Str::transliterate($email.'|'.$request->ip()));
+            return [
+                Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(3)->by(Str::transliterate('account|'.$email)),
+            ];
         });
 
-        RateLimiter::for('public-password-change', function (Request $request): Limit {
+        RateLimiter::for('public-password-reset-submit', function (Request $request): array {
+            $email = Str::lower((string) $request->input('email'));
+
+            return [
+                Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(5)->by(Str::transliterate('account|'.$email)),
+            ];
+        });
+
+        RateLimiter::for('public-password-change', function (Request $request): array {
             $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
 
-            return Limit::perMinute(5)->by(Str::transliterate($userId.'|'.$request->ip()));
+            return [
+                Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(5)->by(Str::transliterate('user|'.$userId)),
+            ];
+        });
+
+        // Legacy alias kept for any remaining throttle:public-password-reset references.
+        RateLimiter::for('public-password-reset', function (Request $request): array {
+            $email = Str::lower((string) $request->input('email'));
+
+            return [
+                Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(3)->by(Str::transliterate('account|'.$email)),
+            ];
         });
     }
 }

@@ -6,6 +6,7 @@ use App\Core\Accounts\User;
 use App\Services\SessionAuthorizationContext;
 use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
+use Illuminate\Contracts\Validation\UncompromisedVerifier;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -15,6 +16,27 @@ abstract class TestCase extends BaseTestCase
         parent::refreshApplication();
 
         $this->withoutVite();
+        $this->stubUncompromisedPasswords();
+    }
+
+    /**
+     * Avoid live Have I Been Pwned calls during feature tests (#230).
+     * Override with stubUncompromisedPasswords(false) to assert rejection.
+     */
+    protected function stubUncompromisedPasswords(bool $allow = true): void
+    {
+        $this->app->instance(
+            UncompromisedVerifier::class,
+            new class($allow) implements UncompromisedVerifier
+            {
+                public function __construct(private bool $allow) {}
+
+                public function verify($data): bool
+                {
+                    return $this->allow;
+                }
+            },
+        );
     }
 
     public function actingAs(UserContract $user, $guard = null): static

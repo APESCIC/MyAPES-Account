@@ -55,9 +55,9 @@ Route::middleware('guest')->controller(PublicAuthController::class)->group(funct
 
 Route::middleware('guest')->controller(PublicPasswordResetController::class)->group(function (): void {
     Route::get('/forgot-password', 'create')->name('password.request');
-    Route::post('/forgot-password', 'store')->middleware('throttle:public-password-reset')->name('password.email');
+    Route::post('/forgot-password', 'store')->middleware('throttle:public-password-reset-request')->name('password.email');
     Route::get('/reset-password/{token}', 'edit')->name('password.reset');
-    Route::post('/reset-password', 'update')->middleware('throttle:public-password-reset')->name('password.update');
+    Route::post('/reset-password', 'update')->middleware('throttle:public-password-reset-submit')->name('password.update');
 });
 
 Route::middleware('guest')->group(function (): void {

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
 use Plugins\PetProfiles\Models\PetProfile;
 use Plugins\Tickets\Models\SupportTicket;
 use Plugins\Tickets\Models\SupportTicketMessage;
@@ -126,22 +127,27 @@ class ReviewFeedbackFixesTest extends TestCase
 
     public function test_public_login_is_rate_limited_after_repeated_failures(): void
     {
+        $email = 'qa@example.test';
+
+        RateLimiter::clear('account|'.$email);
+        RateLimiter::clear('ip|127.0.0.1');
+
         User::factory()
             ->accessLevel(User::ROLE_SERVICE_USER)
             ->create([
-                'email' => 'qa@example.test',
+                'email' => $email,
                 'password' => 'correct-password',
             ]);
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $this->post(route('public.login.submit'), [
-                'email' => 'qa@example.test',
+                'login' => $email,
                 'password' => 'wrong-password',
             ])->assertRedirect();
         }
 
         $this->post(route('public.login.submit'), [
-            'email' => 'qa@example.test',
+            'login' => $email,
             'password' => 'wrong-password',
         ])->assertStatus(429);
     }
