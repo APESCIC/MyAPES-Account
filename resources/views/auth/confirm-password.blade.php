@@ -3,7 +3,7 @@
 @section('title', __('auth.confirm_password.title'))
 
 @section('content')
-    <div class="panel">
+    <div class="panel" data-passkeys-confirm>
         <h1>{{ __('auth.confirm_password.heading') }}</h1>
         <p class="muted">{{ __('auth.confirm_password.intro') }}</p>
         <x-mascot-tip />
@@ -17,5 +17,15 @@
                 <a href="{{ route('profile.edit') }}">{{ __('auth.confirm_password.cancel') }}</a>
             </div>
         </form>
+
+        @if(auth()->user()?->isLocalPasswordIdentity() && auth()->user()?->hasPasskeysEnabled())
+            <div class="passkey-confirm mt-2">
+                <p class="muted">{{ __('auth.passkeys.confirm_intro') }}</p>
+                <p class="error" role="alert" hidden data-passkey-error></p>
+                <div class="actions">
+                    <button type="button" data-passkey-confirm>{{ __('auth.passkeys.confirm_button') }}</button>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection

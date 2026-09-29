@@ -196,4 +196,24 @@ return [
         'local_only' => 'Authenticator app sign-in is only available for local password accounts.',
     ],
 
+    'passkeys' => [
+        'heading' => 'Passkeys',
+        'intro' => 'Use a passkey (device unlock, security key, or password manager) for phishing-resistant sign-in. You can still use your password, and authenticator codes if enabled. Cloudron-only staff accounts are unchanged.',
+        'empty' => 'No passkeys registered yet.',
+        'name_label' => 'Passkey name',
+        'default_name' => 'This device',
+        'add' => 'Add passkey',
+        'add_note' => 'You will confirm your password (or an existing passkey) first. Supported browsers require HTTPS, or a trusted local host with TLS (see Laragon notes in the README).',
+        'remove' => 'Remove',
+        'added_on' => 'Added :date',
+        'last_used' => 'Last used :date',
+        'login_button' => 'Sign in with passkey',
+        'login_fallback' => 'Prefer password? Use the fields above. If you use an authenticator app, enter that code after your password.',
+        'confirm_intro' => 'Or confirm with a registered passkey instead of your password.',
+        'confirm_button' => 'Confirm with passkey',
+        'local_only' => 'Passkeys are only available for local password accounts.',
+        'suspended' => 'This account is suspended.',
+        'staff_use_oidc' => 'Staff and directory accounts must sign in using Staff Login.',
+    ],
+
 ];

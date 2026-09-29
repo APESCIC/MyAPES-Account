@@ -9,7 +9,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Stub for Wave 6 (#232) — sent when a passkey is added.
+ * Sent when a passkey is added (#232).
  */
 class PasskeyAddedNotification extends Notification implements ShouldQueue
 {

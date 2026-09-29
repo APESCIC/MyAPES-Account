@@ -1,55 +1,42 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Responses\Passkeys;
 
 use App\Core\Accounts\User;
-use App\Http\Controllers\Controller;
 use App\Services\SessionAuthorizationContext;
-use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Laravel\Passkeys\Contracts\PasskeyConfirmationResponse as PasskeyConfirmationResponseContract;
+use Symfony\Component\HttpFoundation\Response;
 
-class ConfirmPasswordController extends Controller
+class PasskeyConfirmationResponse implements PasskeyConfirmationResponseContract
 {
     public function __construct(
         private readonly SessionAuthorizationContext $authorizationContext,
     ) {}
 
-    public function show(Request $request): View
-    {
-        $this->ensureLocalPasswordIdentity($request);
-
-        return view('auth.confirm-password');
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $user = $this->ensureLocalPasswordIdentity($request);
-
-        if (! is_string($user->password) || $user->password === '' || ! Hash::check((string) $request->input('password'), $user->password)) {
-            throw ValidationException::withMessages([
-                'password' => __('auth.password'),
-            ]);
-        }
-
-        $request->session()->regenerate();
-        $this->authorizationContext->recordPassword($request, $user);
-        $request->session()->passwordConfirmed();
-
-        return redirect()->to($this->intendedUrl($request));
-    }
-
-    private function ensureLocalPasswordIdentity(Request $request): User
+    /**
+     * @param  Request  $request
+     */
+    public function toResponse($request): Response
     {
         $user = $request->user();
 
-        if ($user === null || ! $user->isLocalPasswordIdentity()) {
-            abort(403, __('auth.confirm_password.local_only'));
+        if ($user instanceof User) {
+            $request->session()->regenerate();
+            $this->authorizationContext->recordPassword($request, $user);
+            $request->session()->passwordConfirmed();
         }
 
-        return $user;
+        $redirect = $this->intendedUrl($request);
+
+        if ($request->wantsJson()) {
+            return new JsonResponse([
+                'redirect' => $redirect,
+            ], 200);
+        }
+
+        return redirect()->to($redirect);
     }
 
     private function intendedUrl(Request $request): string

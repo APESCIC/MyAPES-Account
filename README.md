@@ -300,6 +300,7 @@ Use `-AppUrl http://your-vhost.test` when the auto-generated hostname differs fr
 
 - **404 or wrong site:** confirm the vhost document root is `public/`, not the repository root
 - **Unstyled pages:** ensure `composer run dev:laragon` is running, or run `npm run build`
+- **Passkeys / WebAuthn locally:** browsers require a secure context. Prefer Laragon HTTPS (`https://myapes-account.test`) with a trusted local certificate, and set `APP_URL` to that HTTPS origin so `relying_party_id` / allowed origins match. Plain `http://127.0.0.1:8000` will not complete device ceremonies. Live Cloudron uses `https://myaccount.myapes.me.uk` (changing rpId invalidates existing passkeys).
 - **URL or OIDC callback mismatch:** re-run bootstrap with `-Laragon`, or align `APP_URL`, `OIDC_REDIRECT_URI`, and `VITE_DEV_SERVER_URL` in `.env`
 
 Both local bootstrap scripts enforce the tracked selective-media boundary at

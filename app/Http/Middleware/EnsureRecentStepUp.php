@@ -8,10 +8,10 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Step-up gate for sensitive account mutations (#233).
+ * Step-up gate for sensitive account mutations (#233 / #232).
  *
- * Wave 1 uses Laravel password confirmation. Later waves may also accept
- * a recent passkey confirmation (#232) without changing route middleware names.
+ * Uses Laravel password confirmation. Passkey confirmation (#232) also calls
+ * session passwordConfirmed(), so a recent passkey confirm satisfies this gate.
  */
 class EnsureRecentStepUp
 {

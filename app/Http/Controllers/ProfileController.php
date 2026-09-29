@@ -47,6 +47,7 @@ class ProfileController extends Controller
 
         $canChangeLocalEmail = $user->isLocalPasswordIdentity();
         $canManageTwoFactor = $user->isLocalPasswordIdentity();
+        $canManagePasskeys = $user->isLocalPasswordIdentity();
         $plainRecoveryCodes = $request->session()->get(TotpTwoFactorService::SESSION_PLAIN_RECOVERY_CODES);
 
         return view('profile.edit', [
@@ -61,6 +62,8 @@ class ProfileController extends Controller
             'twoFactorEnabled' => $canManageTwoFactor && $twoFactor->hasEnabledTwoFactor($user),
             'twoFactorPending' => $canManageTwoFactor && $twoFactor->hasPendingEnrolment($user),
             'plainRecoveryCodes' => is_array($plainRecoveryCodes) ? $plainRecoveryCodes : [],
+            'canManagePasskeys' => $canManagePasskeys,
+            'passkeys' => $canManagePasskeys ? $user->passkeys()->orderByDesc('created_at')->get() : collect(),
         ]);
     }
 

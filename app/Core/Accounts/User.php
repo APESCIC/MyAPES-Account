@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 use LogicException;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -37,7 +39,7 @@ use Spatie\Permission\Traits\HasRoles;
     'ldap_groups',
 ])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
-class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
+class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail, PasskeyUser
 {
     public const IDENTITY_LOCAL = 'local';
 
@@ -58,7 +60,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public const ROLE_SUPERADMIN = 'superadmin';
 
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, MustVerifyEmailTrait, Notifiable;
+    use HasFactory, HasRoles, MustVerifyEmailTrait, Notifiable, PasskeyAuthenticatable;
 
     protected static function newFactory(): UserFactory
     {
@@ -141,6 +143,13 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     {
         return filled($this->two_factor_secret)
             && $this->two_factor_confirmed_at !== null;
+    }
+
+    public function getPasskeyUsername(): string
+    {
+        return is_string($this->username) && $this->username !== ''
+            ? $this->username
+            : (string) $this->email;
     }
 
     public function profile(): HasOne
