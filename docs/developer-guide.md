@@ -42,7 +42,7 @@ Permission convention for module-only abilities (rare): `{module}.{ability}`. Pr
    - `Plugins\{Studly}\Support\*`
 6. Permissions stay `{module}.{plugin}.{ability}` (built via `PermissionNaming`). Do **not** invent `core.*` renames in this line.
 7. Settings: use `PluginSettingsSchema` in the manifest (`websites_categories`, `recruitment_board`, or `supportsSettings: false`).
-8. Translations / keywords: see [localisation.md](localisation.md). Plugin `translationNamespace` + `lang/en_GB/plugin.php` (`name`, `description`, `keywords`) — hooks for the Language line (#272 / #274).
+8. Translations / keywords: see [localisation.md](localisation.md). Plugin `translationNamespace` + `lang/en_GB/plugin.php` (`name`, `description`, `keywords`) load via `PluginServiceProvider` (#272). Admin Plugins labels use `nameKey` / `descriptionKey` → `label()` / `descriptionLabel()`. Keywords power Admin search in #274.
 9. Migrations are forward-only; historical tables keep their names (`shelter_cases` stays).
 10. Vacancy model for Recruitment is `RecruitmentRole` — never Spatie `Role`, never an Access job role.
 

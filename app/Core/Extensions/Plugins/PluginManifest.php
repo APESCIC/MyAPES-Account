@@ -2,11 +2,14 @@
 
 namespace App\Core\Extensions\Plugins;
 
+use Illuminate\Support\Facades\Lang;
+
 /**
  * Package manifest for a reusable plugin (#287).
  *
  * {@see $translationNamespace} and {@see $searchKeywordsKey} feed the Language
  * line (#272 / #274) without further contract changes.
+ * {@see $nameKey} / {@see $descriptionKey} resolve Admin Plugins labels via {@see label()}.
  */
 final readonly class PluginManifest
 {
@@ -100,9 +103,26 @@ final readonly class PluginManifest
             migrationsPath: $migrationsPath,
             publicRouteFiles: $publicRouteFiles,
             staffRouteFiles: $staffRouteFiles,
-            nameKey: $nameKey,
-            descriptionKey: $descriptionKey,
+            nameKey: $nameKey ?? $namespace.'::plugin.name',
+            descriptionKey: $descriptionKey ?? $namespace.'::plugin.description',
         );
+    }
+
+    /**
+     * Translated display name for Admin Plugins and registry adapters (#272).
+     * Falls back to the English manifest name, then the slug, when the key is missing.
+     */
+    public function label(): string
+    {
+        return $this->resolveTranslation($this->nameKey, $this->name);
+    }
+
+    /**
+     * Translated description for Admin Plugins (#272).
+     */
+    public function descriptionLabel(): string
+    {
+        return $this->resolveTranslation($this->descriptionKey, $this->description);
     }
 
     public function settingsFor(string $moduleSlug): PluginSettingsSchema
@@ -120,5 +140,33 @@ final readonly class PluginManifest
     public function isShippedFor(string $moduleSlug): bool
     {
         return in_array($moduleSlug, $this->shippedModules, true);
+    }
+
+    private function resolveTranslation(?string $key, string $fallback): string
+    {
+        $englishFallback = $fallback !== '' ? $fallback : $this->slug;
+
+        if ($key === null || $key === '') {
+            return $englishFallback;
+        }
+
+        $locale = (string) app()->getLocale();
+        $fallbackLocale = (string) config('app.fallback_locale', 'en');
+
+        if (! Lang::has($key, $locale, false) && ! Lang::has($key, $fallbackLocale, false)) {
+            MissingPluginTranslationKeyLogger::once($this->slug, $key);
+
+            return $englishFallback;
+        }
+
+        $translated = __($key);
+
+        if ($translated === $key) {
+            MissingPluginTranslationKeyLogger::once($this->slug, $key);
+
+            return $englishFallback;
+        }
+
+        return $translated;
     }
 }
