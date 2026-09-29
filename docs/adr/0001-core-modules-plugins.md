@@ -75,7 +75,7 @@ Use the new words in docs, issues, and new code. Do not rename PHP, database col
 | `module_installations` / `module_settings` | plugin enablement and plugin settings (table names stay until a later child renames them) |
 | `{subCore}.{module}.{ability}` | `{module}.{plugin}.{ability}` (same strings; see below) |
 
-Deprecated synonyms for the glossary ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)): sub-core, service area, and "module" used to mean a feature. UI wording stays in `docs/glossary.md` when that issue lands. This record is the source for the layer names; the glossary is the source for labels on screen.
+Deprecated synonyms for the glossary ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)): sub-core, service area, and "module" used to mean a feature. UI wording is in [docs/glossary.md](../glossary.md) and `lang/en_GB/terms.php`. This record is the source for the layer names; the glossary is the source for labels on screen.
 
 ### Dependency rules
 
@@ -158,6 +158,6 @@ Chosen. Matches the three layers, keeps Laravel's `app/` skeleton, and lets [#28
 
 - New base folders `app/Core`, `modules/<slug>`, and `plugins/<slug>` are approved for [#281](https://github.com/APESCIC/MyAPES-Account/issues/281) onward. `AGENTS.md` records that approval. This pull request does not create them.
 - Docs and new issues use Core, Module, Plugin, plugin enablement, and plugin settings. Old names stay in the code until the child that moves that code.
-- User-facing labels still follow the glossary ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)). Until `docs/glossary.md` exists, do not rename buttons or nav in the name of this ADR.
+- User-facing labels follow the glossary ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)): [docs/glossary.md](../glossary.md) and `lang/en_GB/terms.php`. Do not rename buttons or nav for layer vocabulary alone; extraction waves apply glossary wording.
 - Permission grants and live URLs are preserved by not renaming them. The structure epic is a move, not a new product.
 - Architecture tests do not fail CI until [#294](https://github.com/APESCIC/MyAPES-Account/issues/294) turns them on. Until then, review uses the inventory.
