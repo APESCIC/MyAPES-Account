@@ -1215,7 +1215,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_workflow_validates_versions_on_pull_requests_without_deploying_them(): void
     {
-        $workflow = $this->testWorkflow();
+        $workflow = $this->test_workflow();
         $deployWorkflow = $this->deployWorkflow();
 
         $this->assertMatchesRegularExpression('/pull_request:\s*\R/', $workflow);
@@ -1294,7 +1294,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_database_compatibility_job_allows_forward_only_contract_to_finish(): void
     {
-        $workflow = $this->testWorkflow();
+        $workflow = $this->test_workflow();
         $databaseCompatibilityStart = $this->position(
             $workflow,
             '  database-compatibility:',
@@ -1316,7 +1316,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_workflow_runs_the_phase_b_contract_on_mysql(): void
     {
-        $workflow = $this->testWorkflow();
+        $workflow = $this->test_workflow();
         $databaseCompatibilityJob = substr(
             $workflow,
             $this->position($workflow, '  database-compatibility:'),
@@ -1412,7 +1412,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_workflow_isolates_the_destructive_foundation_migration_contract(): void
     {
-        $workflow = $this->testWorkflow();
+        $workflow = $this->test_workflow();
         $databaseCompatibilityJob = substr(
             $workflow,
             $this->position($workflow, '  database-compatibility:'),
@@ -1583,7 +1583,7 @@ class DeploymentAuthenticationContractTest extends TestCase
 
     public function test_deployment_control_trust_is_derived_before_third_party_actions_and_dependencies(): void
     {
-        $testWorkflow = $this->testWorkflow();
+        $testWorkflow = $this->test_workflow();
         $deployWorkflow = $this->deployWorkflow();
         $authenticationStart = $this->position(
             $testWorkflow,
@@ -4146,7 +4146,7 @@ BASH
 
     private function combinedWorkflows(): string
     {
-        return $this->testWorkflow()."\n".$this->deployWorkflow();
+        return $this->test_workflow()."\n".$this->deployWorkflow();
     }
 
     private function read(string $relativePath): string
