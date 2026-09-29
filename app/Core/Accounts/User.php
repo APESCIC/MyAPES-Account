@@ -36,7 +36,7 @@ use Spatie\Permission\Traits\HasRoles;
     'onboarding_completed_at',
     'ldap_groups',
 ])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     public const IDENTITY_LOCAL = 'local';
@@ -128,10 +128,19 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             'onboarding_completed_at' => 'datetime',
             'registration_consented_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
             'ldap_groups' => 'array',
             'authorization_epoch' => 'integer',
             'suspended_at' => 'datetime',
         ];
+    }
+
+    public function hasEnabledTwoFactor(): bool
+    {
+        return filled($this->two_factor_secret)
+            && $this->two_factor_confirmed_at !== null;
     }
 
     public function profile(): HasOne

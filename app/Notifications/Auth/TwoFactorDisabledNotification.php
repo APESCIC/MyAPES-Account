@@ -9,7 +9,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Stub for Wave 5 (#231) — sent when local TOTP 2FA is disabled.
+ * Sent when local TOTP 2FA is disabled (#231).
  */
 class TwoFactorDisabledNotification extends Notification implements ShouldQueue
 {
