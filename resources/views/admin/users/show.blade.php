@@ -6,31 +6,31 @@
     @include('admin._navigation')
 
     <section class="panel" aria-labelledby="managed-user-title">
-        <p><a href="{{ route('admin.users.index') }}">← Back to users</a></p>
+        <p><a href="{{ route('admin.users.index') }}">{{ __('admin.users.back_to_users') }}</a></p>
         <h1 id="managed-user-title">{{ $managedUser->name }}</h1>
         <p class="muted">{{ $managedUser->email }}</p>
         <dl class="admin-definition-list">
-            <div><dt>Account ID</dt><dd>{{ $managedUser->id }}</dd></div>
+            <div><dt>{{ __('admin.users.account_id') }}</dt><dd>{{ $managedUser->id }}</dd></div>
             <div>
-                <dt>Identity source</dt>
+                <dt>{{ __('admin.users.identity_source') }}</dt>
                 <dd>
                     {{ $identityLabel }}
                     @if($managedUser->isPendingFirstLogin())
-                        <span class="status">Pending first login</span>
+                        <span class="status">{{ __('admin.users.pending_first_login') }}</span>
                     @endif
                 </dd>
             </div>
-            <div><dt>Suspension state</dt><dd>
+            <div><dt>{{ __('admin.users.suspension_state') }}</dt><dd>
                 {{ $managedUser->suspended_at === null ? 'Active' : 'Suspended' }}
                 @can('admin.users.manage')
                     @if($canManageTarget && $managedUser->suspended_at === null)
-                        · <a href="#suspend-user">Suspend…</a>
+                        · <a href="#suspend-user">{{ __('admin.users.suspend') }}</a>
                     @endif
                 @endcan
             </dd></div>
-            <div><dt>Authorization epoch</dt><dd>{{ $managedUser->authorization_epoch }}</dd></div>
+            <div><dt>{{ __('admin.users.authorization_epoch') }}</dt><dd>{{ $managedUser->authorization_epoch }}</dd></div>
             <div class="admin-definition-list__groups">
-                <dt>Normalized directory groups</dt>
+                <dt>{{ __('admin.users.normalized_directory_groups') }}</dt>
                 <dd>
                     <x-directory-group-list :groups="$managedUser->ldap_groups ?? []" />
                 </dd>
@@ -40,9 +40,9 @@
 
     @if(session('temporary_password'))
         <section class="panel" aria-labelledby="temporary-password-title">
-            <h2 id="temporary-password-title">One-time temporary password</h2>
-            <p>Copy this password now and share it with the account holder out of band. It will not be shown again, and it is not stored in audit history.</p>
-            <label for="temporary-password">Temporary password</label>
+            <h2 id="temporary-password-title">{{ __('admin.users.one_time_temporary_password') }}</h2>
+            <p>{{ __('admin.users.copy_this_password_now_and_share_it_with_the_account_holder_') }}</p>
+            <label for="temporary-password">{{ __('admin.users.temporary_password') }}</label>
             <input
                 id="temporary-password"
                 class="temporary-password"
@@ -57,39 +57,39 @@
 
     @if($isStaffAccount)
         <section class="panel" aria-labelledby="staff-profile-title">
-            <h2 id="staff-profile-title">Staff profile</h2>
-            <p class="muted">Directory name, email, and groups stay read-only.</p>
+            <h2 id="staff-profile-title">{{ __('admin.users.staff_profile') }}</h2>
+            <p class="muted">{{ __('admin.users.directory_name_email_and_groups_stay_read_only') }}</p>
             @can('admin.users.manage')
                 @if($canManageTarget)
                     <form method="post" action="{{ route('admin.users.staff-profile.update', $managedUser) }}" enctype="multipart/form-data">
                         @csrf
                         @method('put')
-                        <label for="job_title">Job title</label>
+                        <label for="job_title">{{ __('admin.access.job_title') }}</label>
                         <input id="job_title" name="job_title" value="{{ old('job_title', $staffProfile?->job_title) }}">
-                        <label for="team">Team</label>
+                        <label for="team">{{ __('admin.users.team') }}</label>
                         <select id="team" name="team">
-                            <option value="">Select a team</option>
+                            <option value="">{{ __('admin.users.select_a_team') }}</option>
                             @foreach($teams as $value => $label)
                                 <option value="{{ $value }}" @selected(old('team', $staffProfile?->team) === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
-                        <label for="work_phone">Work phone</label>
+                        <label for="work_phone">{{ __('admin.users.work_phone') }}</label>
                         <input id="work_phone" name="work_phone" value="{{ old('work_phone', $staffProfile?->work_phone) }}">
                         @if($staffProfile?->photo_path)
                             <p>
-                                <img src="{{ route('admin.users.staff-photo', $managedUser) }}" alt="Current staff photo" width="96" height="96">
+                                <img src="{{ route('admin.users.staff-photo', $managedUser) }}" alt="{{ __('admin.users.current_staff_photo') }}" width="96" height="96">
                             </p>
                         @endif
-                        <label for="photo">Staff photo</label>
+                        <label for="photo">{{ __('admin.users.staff_photo') }}</label>
                         <input id="photo" type="file" name="photo" accept="image/*">
-                        <div class="actions"><button type="submit">Save staff profile</button></div>
+                        <div class="actions"><button type="submit">{{ __('admin.users.save_staff_profile') }}</button></div>
                     </form>
                 @endif
             @endcan
         </section>
     @else
         <section class="panel" aria-labelledby="public-profile-title">
-            <h2 id="public-profile-title">Public profile</h2>
+            <h2 id="public-profile-title">{{ __('admin.users.public_profile') }}</h2>
             @can('admin.users.manage')
                 @if($canManageTarget)
                     <form method="post" action="{{ route('admin.users.profile.update', $managedUser) }}" enctype="multipart/form-data">
@@ -97,24 +97,24 @@
                         @method('put')
                         <div class="row">
                             <div>
-                                <label for="preferred_name">Preferred name</label>
+                                <label for="preferred_name">{{ __('admin.users.preferred_name') }}</label>
                                 <input id="preferred_name" name="preferred_name" value="{{ old('preferred_name', $profile?->preferred_name) }}">
                             </div>
                             <div>
-                                <label for="phone">Phone</label>
+                                <label for="phone">{{ __('admin.users.phone') }}</label>
                                 <input id="phone" name="phone" value="{{ old('phone', $profile?->phone) }}">
                             </div>
                             <div>
-                                <label for="organization">Organisation</label>
+                                <label for="organization">{{ __('admin.users.organisation') }}</label>
                                 <input id="organization" name="organization" value="{{ old('organization', $profile?->organization) }}">
                             </div>
                         </div>
-                        <label for="support_needs">Support needs or access notes</label>
+                        <label for="support_needs">{{ __('admin.users.support_needs_or_access_notes') }}</label>
                         <textarea id="support_needs" name="support_needs">{{ old('support_needs', $profile?->support_needs) }}</textarea>
                         @include('profile._account-fields')
-                        <label for="avatar">Avatar photo</label>
+                        <label for="avatar">{{ __('admin.users.avatar_photo') }}</label>
                         <input id="avatar" type="file" name="avatar" accept="image/*">
-                        <div class="actions"><button type="submit">Save public profile</button></div>
+                        <div class="actions"><button type="submit">{{ __('admin.users.save_public_profile') }}</button></div>
                     </form>
                 @endif
             @endcan
@@ -124,50 +124,50 @@
     @can('admin.users.manage')
         @if($canResetLocalPassword)
             <section class="panel" id="local-password" aria-labelledby="local-password-title">
-                <h2 id="local-password-title">Local password</h2>
-                <p class="muted">Generate a one-time temporary password for this local public account. Share it with the account holder out of band. Directory, Cloudron, and pending first-login accounts cannot be reset here.</p>
+                <h2 id="local-password-title">{{ __('admin.users.local_password') }}</h2>
+                <p class="muted">{{ __('admin.users.temporary_password_help') }}</p>
                 <form method="post" action="{{ route('admin.users.password-reset', $managedUser) }}">
                     @csrf
                     <label class="inline-check">
                         <input type="checkbox" name="confirm" value="1" required>
-                        <span>Replace the current password with a one-time temporary password</span>
+                        <span>{{ __('admin.users.replace_the_current_password_with_a_one_time_temporary_passw') }}</span>
                     </label>
                     <div class="actions">
-                        <button type="submit">Reset local password</button>
+                        <button type="submit">{{ __('admin.users.reset_local_password') }}</button>
                     </div>
                 </form>
             </section>
         @elseif($managedUser->isPendingFirstLogin())
             <section class="panel" id="pending-first-login" aria-labelledby="pending-first-login-title">
-                <h2 id="pending-first-login-title">Pending first login</h2>
-                <p class="muted">This directory account has not completed Staff Login yet. Passwords and passkeys stay on Cloudron — do not use the public password reset.</p>
+                <h2 id="pending-first-login-title">{{ __('admin.users.pending_first_login') }}</h2>
+                <p class="muted">{{ __('admin.users.this_directory_account_has_not_completed_staff_login_yet_pas') }}</p>
                 @if($canChasePendingFirstLogin)
                     <form method="post" action="{{ route('admin.users.pending-first-login-chase', $managedUser) }}">
                         @csrf
                         <label class="inline-check">
                             <input type="checkbox" name="confirm_chase" value="1" required>
-                            <span>Send a Staff Login reminder that opens Staff Login / Cloudron</span>
+                            <span>{{ __('admin.users.send_a_staff_login_reminder_that_opens_staff_login_cloudron') }}</span>
                         </label>
                         <div class="actions">
-                            <button type="submit">Send Staff Login reminder</button>
+                            <button type="submit">{{ __('admin.users.send_staff_login_reminder') }}</button>
                         </div>
                     </form>
-                    <p class="muted"><a href="{{ route('staff.login') }}">Staff Login</a> is the only sign-in path for this account.</p>
+                    <p class="muted"><a href="{{ route('staff.login') }}">{{ __('admin.users.staff_login') }}</a> {{ __('admin.users.only_sign_in_path') }}</p>
                 @endif
             </section>
         @elseif(! $isStaffAccount && ! $managedUser->isLocalPasswordIdentity())
             <section class="panel" id="local-password" aria-labelledby="local-password-title">
-                <h2 id="local-password-title">Local password</h2>
-                <p class="muted">This account uses Cloudron directory sign-in. Reset the password in Cloudron.</p>
+                <h2 id="local-password-title">{{ __('admin.users.local_password') }}</h2>
+                <p class="muted">{{ __('admin.users.this_account_uses_cloudron_directory_sign_in_reset_the_passw') }}</p>
             </section>
         @endif
     @endcan
 
     <section class="panel" aria-labelledby="role-provenance-title">
-        <h2 id="role-provenance-title">Provenanced roles</h2>
+        <h2 id="role-provenance-title">{{ __('admin.users.provenanced_roles') }}</h2>
         <table>
-            <caption>Effective role assignments and their recorded sources</caption>
-            <thead><tr><th scope="col">Role</th><th scope="col">Source</th><th scope="col">Directory group</th></tr></thead>
+            <caption>{{ __('admin.users.effective_role_assignments_and_their_recorded_sources') }}</caption>
+            <thead><tr><th scope="col">{{ __('admin.access.role') }}</th><th scope="col">{{ __('admin.access.source') }}</th><th scope="col">{{ __('admin.users.directory_group') }}</th></tr></thead>
             <tbody>
             @forelse($managedUser->roleSources as $source)
                 <tr>
@@ -176,19 +176,19 @@
                     <td>{{ $source->directoryGroup?->name ?? 'Not applicable' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="3">No role provenance is recorded.</td></tr>
+                <tr><td colspan="3">{{ __('admin.users.no_role_provenance_is_recorded') }}</td></tr>
             @endforelse
             </tbody>
         </table>
     </section>
 
     <section class="panel" aria-labelledby="effective-permissions-title">
-        <h2 id="effective-permissions-title">Effective access</h2>
-        <p class="muted">Summary of provenanced roles and capability packs. Expand Advanced for the fine-grained permission list.</p>
+        <h2 id="effective-permissions-title">{{ __('admin.users.effective_access') }}</h2>
+        <p class="muted">{{ __('admin.users.summary_of_provenanced_roles_and_capability_packs_expand_adv') }}</p>
 
-        <h3>Job roles</h3>
+        <h3>{{ __('admin.access.job_roles') }}</h3>
         @if($managedUser->roles->isEmpty())
-            <p>No job roles are assigned.</p>
+            <p>{{ __('admin.users.no_job_roles_are_assigned') }}</p>
         @else
             <ul class="permission-readable-list">
                 @foreach($managedUser->roles as $role)
@@ -206,13 +206,13 @@
             </ul>
         @endif
 
-        <h3>Capability packs</h3>
+        <h3>{{ __('admin.access.capability_packs') }}</h3>
         @php
             $activePacks = collect($packDefinitions)
                 ->filter(fn (array $pack, string $key): bool => ($packStates[$key] ?? 'off') !== 'off');
         @endphp
         @if($activePacks->isEmpty())
-            <p>No capability packs are fully or partially covered by this account's effective permissions.</p>
+            <p>{{ __('admin.users.no_capability_packs_are_fully_or_partially_covered_by_this_a') }}</p>
         @else
             <ul class="permission-readable-list">
                 @foreach($activePacks as $packKey => $pack)
@@ -222,7 +222,7 @@
                     <li>
                         <strong>{{ $pack['title'] }}</strong>
                         @if($state === 'indeterminate')
-                            <p class="muted">Partially covered — expand Advanced for details</p>
+                            <p class="muted">{{ __('admin.users.partially_covered_expand_advanced_for_details') }}</p>
                         @else
                             <p class="muted">{{ count($pack['permissions']) }} permissions</p>
                         @endif
@@ -232,7 +232,7 @@
         @endif
 
         <details class="permission-advanced" data-effective-permissions-advanced>
-            <summary>Advanced permissions</summary>
+            <summary>{{ __('admin.access.advanced_permissions') }}</summary>
             @php
                 $assignedGroups = $permissions
                     ->groupBy(fn ($permission) => \App\Support\PermissionDescriptions::group($permission->name))
@@ -252,16 +252,16 @@
                     </ul>
                 </div>
             @empty
-                <p>No effective permissions.</p>
+                <p>{{ __('admin.users.no_effective_permissions') }}</p>
             @endforelse
         </details>
     </section>
 
     <section class="panel" aria-labelledby="direct-permission-provenance-title">
-        <h2 id="direct-permission-provenance-title">Direct permission provenance</h2>
+        <h2 id="direct-permission-provenance-title">{{ __('admin.users.direct_permission_provenance') }}</h2>
         <table>
-            <caption>Direct permissions and their recorded assignment sources</caption>
-            <thead><tr><th scope="col">Permission</th><th scope="col">Source</th><th scope="col">Granting account</th></tr></thead>
+            <caption>{{ __('admin.users.direct_permissions_and_their_recorded_assignment_sources') }}</caption>
+            <thead><tr><th scope="col">{{ __('admin.users.permission') }}</th><th scope="col">{{ __('admin.access.source') }}</th><th scope="col">{{ __('admin.users.granting_account') }}</th></tr></thead>
             <tbody>
             @forelse($managedUser->permissionSources as $source)
                 <tr>
@@ -269,16 +269,16 @@
                     <td>{{ $source->source }}</td>
                     <td>
                         @if($source->source === \App\Core\Accounts\PermissionSource::SOURCE_SYSTEM && $source->actor === null)
-                            System
+                            {{ __('admin.users.system') }}
                         @elseif($source->actor !== null)
-                            Account {{ $source->actor->id }}
+                            {{ __('admin.users.account') }} {{ $source->actor->id }}
                         @else
-                            Unavailable
+                            {{ __('admin.access.unavailable') }}
                         @endif
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="3">No direct permission provenance is recorded.</td></tr>
+                <tr><td colspan="3">{{ __('admin.users.no_direct_permission_provenance_is_recorded') }}</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -287,24 +287,24 @@
     @can('admin.users.manage')
         @if($canManageTarget)
             <section class="panel" aria-labelledby="manage-user-title">
-                <h2 id="manage-user-title">Manage user</h2>
-                <p class="muted">Only custom local roles can be changed. Protected and directory-derived assignments remain read-only.</p>
+                <h2 id="manage-user-title">{{ __('admin.users.manage_user') }}</h2>
+                <p class="muted">{{ __('admin.users.only_custom_local_roles_can_be_changed_protected_and_directo') }}</p>
 
                 <form method="post" action="{{ route('admin.users.roles.update', $managedUser) }}">
                     @csrf
                     @method('put')
                     <fieldset class="admin-checkbox-grid">
-                        <legend>Custom local roles</legend>
+                        <legend>{{ __('admin.users.custom_local_roles') }}</legend>
                         @forelse($customRoles as $role)
                             <label class="inline-check">
                                 <input type="checkbox" name="roles[]" value="{{ $role->id }}" @checked(in_array($role->id, $localRoleIds, true))>
                                 <span>{{ $role->name }}</span>
                             </label>
                         @empty
-                            <p>No custom roles are available.</p>
+                            <p>{{ __('admin.users.no_custom_roles_are_available') }}</p>
                         @endforelse
                     </fieldset>
-                    <div class="actions"><button type="submit">Update local roles</button></div>
+                    <div class="actions"><button type="submit">{{ __('admin.users.update_local_roles') }}</button></div>
                 </form>
 
                 <hr class="section-divider">
@@ -316,19 +316,19 @@
                         action="{{ route('admin.users.suspension.store', $managedUser) }}"
                     >
                         @csrf
-                        <label for="suspension-reason">Suspension reason</label>
+                        <label for="suspension-reason">{{ __('admin.users.suspension_reason') }}</label>
                         <textarea id="suspension-reason" name="reason" required maxlength="500">{{ old('reason') }}</textarea>
                         <label class="inline-check">
                             <input type="checkbox" name="confirm_suspend" value="1" required>
-                            <span>I confirm I want to suspend this account</span>
+                            <span>{{ __('admin.users.i_confirm_i_want_to_suspend_this_account') }}</span>
                         </label>
-                        <div class="actions"><button class="danger-btn" type="submit">Suspend user</button></div>
+                        <div class="actions"><button class="danger-btn" type="submit">{{ __('admin.users.suspend_user') }}</button></div>
                     </form>
                 @else
                     <form method="post" action="{{ route('admin.users.suspension.destroy', $managedUser) }}">
                         @csrf
                         @method('delete')
-                        <button type="submit">Reactivate user</button>
+                        <button type="submit">{{ __('admin.users.reactivate_user') }}</button>
                     </form>
                 @endif
             </section>
@@ -336,26 +336,26 @@
     @endcan
 
     <section class="panel" aria-labelledby="audit-history-title">
-        <h2 id="audit-history-title">Sanitized audit history</h2>
+        <h2 id="audit-history-title">{{ __('admin.users.sanitized_audit_history') }}</h2>
         <table>
-            <caption>Recent authorization events; sensitive identity and request payload data is excluded</caption>
-            <thead><tr><th scope="col">Time</th><th scope="col">Event</th><th scope="col">Actor ID</th><th scope="col">Safe context</th></tr></thead>
+            <caption>{{ __('admin.users.recent_authorization_events_sensitive_identity_and_request_p') }}</caption>
+            <thead><tr><th scope="col">{{ __('admin.overview.time') }}</th><th scope="col">{{ __('admin.users.event') }}</th><th scope="col">{{ __('admin.users.actor_id') }}</th><th scope="col">{{ __('admin.users.safe_context') }}</th></tr></thead>
             <tbody>
             @forelse($auditHistory as $audit)
                 <tr>
                     <td>{{ $audit['created_at'] }}</td>
                     <td><code>{{ $audit['event'] }}</code></td>
-                    <td>{{ $audit['actor_id'] ?? 'System' }}</td>
+                    <td>{{ $audit['actor_id'] ?? __('admin.users.system') }}</td>
                     <td>
                         @forelse($audit['context'] as $key => $value)
                             <div><code>{{ $key }}</code>: {{ is_array($value) ? implode(', ', $value) : $value }}</div>
                         @empty
-                            No displayable context
+                            {{ __('admin.users.no_displayable_context') }}
                         @endforelse
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="4">No audit history is recorded for this user.</td></tr>
+                <tr><td colspan="4">{{ __('admin.users.no_audit_history_is_recorded_for_this_user') }}</td></tr>
             @endforelse
             </tbody>
         </table>

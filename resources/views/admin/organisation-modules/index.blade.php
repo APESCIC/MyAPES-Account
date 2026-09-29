@@ -7,9 +7,9 @@
 
     <header class="page-heading">
         <div>
-            <p class="eyebrow">Organisation areas</p>
-            <h1>Admin modules</h1>
-            <p>Enable or disable entire organisation areas. Each module lists its shipped plugins and their enablement state. Plugin toggles live on Admin → Plugins.</p>
+            <p class="eyebrow">{{ __('admin.plugins.organisation_areas') }}</p>
+            <h1>{{ __('admin.plugins.admin_modules') }}</h1>
+            <p>{{ __('admin.plugins.enable_or_disable_entire_organisation_areas_each_module_list') }}</p>
         </div>
     </header>
 
@@ -28,7 +28,7 @@
                     <p>{{ $manifest->description }}</p>
                     <p class="muted">State: {{ $enabled ? 'Enabled' : 'Disabled' }}</p>
                     @if($plugins !== [])
-                        <ul class="module-registry__chips" aria-label="Plugins for {{ $manifest->name }}">
+                        <ul class="module-registry__chips" aria-label="{{ __('admin.plugins.plugins_for') }} {{ $manifest->name }}">
                             @foreach($plugins as $plugin)
                                 <li class="module-registry__chip">
                                     <strong class="module-state module-state--{{ $plugin['enabled'] ? 'enabled' : 'disabled' }}">

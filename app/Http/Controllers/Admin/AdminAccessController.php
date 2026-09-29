@@ -82,7 +82,7 @@ class AdminAccessController extends Controller
 
         return redirect()
             ->route('admin.access.index', ['tab' => 'groups'])
-            ->with('status', 'Directory synchronization requested.');
+            ->with('status', __('admin.flash.directory_synchronization_requested'));
     }
 
     public function storeMapping(
@@ -117,7 +117,7 @@ class AdminAccessController extends Controller
 
         return redirect()
             ->route('admin.access.index', ['tab' => 'groups'])
-            ->with('status', 'Job role mapping updated.');
+            ->with('status', __('admin.flash.job_role_mapping_updated'));
     }
 
     public function destroyMapping(
@@ -140,7 +140,7 @@ class AdminAccessController extends Controller
 
         return redirect()
             ->route('admin.access.index', ['tab' => 'groups'])
-            ->with('status', 'Job role mapping removed.');
+            ->with('status', __('admin.flash.job_role_mapping_removed'));
     }
 
     public function storeJobRole(
@@ -165,7 +165,7 @@ class AdminAccessController extends Controller
 
         return redirect()
             ->route('admin.access.job-roles.show', $role)
-            ->with('status', 'Custom role created.');
+            ->with('status', __('admin.flash.custom_role_created'));
     }
 
     public function showJobRole(
@@ -230,7 +230,7 @@ class AdminAccessController extends Controller
 
         return redirect()
             ->route('admin.access.job-roles.show', $role)
-            ->with('status', 'Custom role updated.');
+            ->with('status', __('admin.flash.custom_role_updated'));
     }
 
     public function destroyJobRole(
@@ -251,7 +251,7 @@ class AdminAccessController extends Controller
 
         return redirect()
             ->route('admin.access.index', ['tab' => 'job-roles'])
-            ->with('status', 'Custom role deleted.');
+            ->with('status', __('admin.flash.custom_role_deleted'));
     }
 
     private function groupsTab(Request $request): View

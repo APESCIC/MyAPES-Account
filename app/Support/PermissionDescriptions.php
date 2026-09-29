@@ -88,6 +88,13 @@ final class PermissionDescriptions
 
     public static function title(string $permission): string
     {
+        $key = 'admin.permissions.labels.'.str_replace('.', '_', $permission);
+        $translated = __($key);
+
+        if ($translated !== $key) {
+            return $translated;
+        }
+
         return self::CATALOGUE[$permission]['title']
             ?? self::headlineFromKey($permission);
     }

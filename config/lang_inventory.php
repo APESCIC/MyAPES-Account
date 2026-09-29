@@ -87,6 +87,18 @@ return [
     */
     'allowlist' => [
         [
+            'path' => 'resources/views/admin/',
+            'pattern' => '#(ordered by|match these filters|Use lower kebab|Last days|not available minutes|Maintenance is|Redis queue worker|· v ·|· RECRUITMENT|Edit websites|Restore the shipped|Generate a one-time|only sign-in path|permissions on this role|Members of|preset directory|job roles,|roles, ordered|users, ordered|Staff Public users|as of — last sync)#',
+            'reason' => 'Partial Blade interpolations remaining after Admin __() extraction (#270); full sentences live in lang.',
+        ],
+
+        [
+            'path' => 'resources/views/admin/',
+            'pattern' => '#^(sortKeys\(\);|member_count \?\? .*|\\$state = .*|\\$layerOrder\\[.*|enabled; \\$plugins = .*|, None)$#',
+            'reason' => 'Blade PHP fragments / partial interpolations mis-read as UI copy during Admin extraction (#270).',
+        ],
+
+        [
             'pattern' => '/^(csrf|GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/i',
             'reason' => 'HTTP method or framework token name',
         ],

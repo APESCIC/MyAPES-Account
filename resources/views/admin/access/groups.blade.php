@@ -4,41 +4,41 @@
     @inject('ukDateTime', \App\Support\UkDateTime::class)
 
     <section class="panel" aria-labelledby="access-groups-title">
-        <h2 id="access-groups-title">Groups</h2>
-        <p class="muted">Managed Cloudron <code>myapesaccount.*</code> groups used for MyAPES Account authorization. Directory sync imports only these groups (legacy aliases map to the canonical names). Historical non-prefix catalogue rows stay in the database for audits but are hidden here. Protected access-tier mappings stay preset; Super Admins can attach an optional job role.</p>
+        <h2 id="access-groups-title">{{ __('admin.access.groups') }}</h2>
+        <p class="muted">{{ __('admin.access.groups_intro') }}</p>
 
         <form method="get" action="{{ route('admin.access.index') }}">
             <input type="hidden" name="tab" value="groups">
             <div class="row">
                 <div>
-                    <label for="group-search">Search group name</label>
+                    <label for="group-search">{{ __('admin.access.search_group_name') }}</label>
                     <input id="group-search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100">
                 </div>
                 <div>
-                    <label for="group-status">Catalogue status</label>
+                    <label for="group-status">{{ __('admin.access.catalogue_status') }}</label>
                     <select id="group-status" name="status">
-                        <option value="">All statuses</option>
-                        <option value="present" @selected(($filters['status'] ?? '') === 'present')>Present</option>
-                        <option value="missing" @selected(($filters['status'] ?? '') === 'missing')>Missing</option>
+                        <option value="">{{ __('admin.access.all_statuses') }}</option>
+                        <option value="present" @selected(($filters['status'] ?? '') === 'present')>{{ __('admin.access.present') }}</option>
+                        <option value="missing" @selected(($filters['status'] ?? '') === 'missing')>{{ __('admin.access.missing') }}</option>
                     </select>
                 </div>
             </div>
             <div class="actions">
-                <button type="submit">Apply filters</button>
-                <a href="{{ route('admin.access.index', ['tab' => 'groups']) }}">Clear filters</a>
+                <button type="submit">{{ __('admin.access.apply_filters') }}</button>
+                <a href="{{ route('admin.access.index', ['tab' => 'groups']) }}">{{ __('admin.access.clear_filters') }}</a>
             </div>
         </form>
 
         @can('admin.group-mappings.manage')
             <form class="stack-spaced" method="post" action="{{ route('admin.access.sync') }}">
                 @csrf
-                <button type="submit">Sync from Cloudron</button>
+                <button type="submit">{{ __('admin.access.sync_from_cloudron') }}</button>
             </form>
         @endcan
     </section>
 
     <section class="panel" aria-labelledby="group-results-title">
-        <h2 id="group-results-title">Preset groups</h2>
+        <h2 id="group-results-title">{{ __('admin.access.preset_groups') }}</h2>
         <table>
             <caption>
                 {{ $groups->total() }} preset directory groups, ordered by normalized name
@@ -50,11 +50,11 @@
             </caption>
             <thead>
                 <tr>
-                    <th scope="col">Group</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Members</th>
-                    <th scope="col">Access tier</th>
-                    <th scope="col">Optional job role</th>
+                    <th scope="col">{{ __('admin.access.group') }}</th>
+                    <th scope="col">{{ __('admin.access.status') }}</th>
+                    <th scope="col">{{ __('admin.access.members') }}</th>
+                    <th scope="col">{{ __('admin.access.access_tier') }}</th>
+                    <th scope="col">{{ __('admin.access.optional_job_role') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,7 +75,7 @@
                             <code>{{ $accessTier->name }}</code>
                             <span class="status">{{ \App\Support\DirectoryGroupLabels::mappingLabel(true) }}</span>
                         @else
-                            None
+                            {{ __('admin.access.none') }}
                         @endif
                     </td>
                     <td>
@@ -86,30 +86,30 @@
                                     <form class="inline" method="post" action="{{ route('admin.access.mappings.destroy', $role->pivot->id) }}">
                                         @csrf
                                         @method('delete')
-                                        <button class="danger-btn" type="submit">Remove job role</button>
+                                        <button class="danger-btn" type="submit">{{ __('admin.access.remove_job_role') }}</button>
                                     </form>
                                 @endcan
                             </div>
                         @empty
-                            None
+                            {{ __('admin.access.none') }}
                         @endforelse
                         @can('admin.group-mappings.manage')
                             <form method="post" action="{{ route('admin.access.mappings.store', $group) }}">
                                 @csrf
-                                <label for="mapping-role-{{ $group->id }}">Add job role mapping</label>
+                                <label for="mapping-role-{{ $group->id }}">{{ __('admin.access.add_job_role_mapping') }}</label>
                                 <select id="mapping-role-{{ $group->id }}" name="role_id" required>
-                                    <option value="">Choose a job role</option>
+                                    <option value="">{{ __('admin.access.choose_a_job_role') }}</option>
                                     @foreach($jobRoles as $jobRole)
                                         <option value="{{ $jobRole->id }}">{{ \App\Support\DefaultJobRoles::title($jobRole->name) }}</option>
                                     @endforeach
                                 </select>
-                                <button type="submit">Add mapping</button>
+                                <button type="submit">{{ __('admin.access.add_mapping') }}</button>
                             </form>
                         @endcan
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5">No preset directory groups match these filters.</td></tr>
+                <tr><td colspan="5">{{ __('admin.access.no_preset_directory_groups_match_these_filters') }}</td></tr>
             @endforelse
             </tbody>
         </table>

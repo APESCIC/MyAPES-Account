@@ -87,7 +87,7 @@ class AdminRoleController extends Controller
 
         return redirect()
             ->route('admin.roles.show', $role)
-            ->with('status', 'Custom role created.');
+            ->with('status', __('admin.flash.custom_role_created'));
     }
 
     public function update(
@@ -121,7 +121,7 @@ class AdminRoleController extends Controller
 
         return redirect()
             ->route('admin.roles.show', $role)
-            ->with('status', 'Custom role updated.');
+            ->with('status', __('admin.flash.custom_role_updated'));
     }
 
     public function destroy(
@@ -144,7 +144,7 @@ class AdminRoleController extends Controller
 
         return redirect()
             ->route('admin.roles.index')
-            ->with('status', 'Custom role deleted.');
+            ->with('status', __('admin.flash.custom_role_deleted'));
     }
 
     /**
