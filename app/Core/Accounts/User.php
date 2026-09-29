@@ -2,6 +2,8 @@
 
 namespace App\Core\Accounts;
 
+use App\Notifications\Auth\ResetPasswordNotification;
+use App\Notifications\Auth\VerifyEmailNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\LegacyAccessCompatibilityAdapter;
 use Database\Factories\UserFactory;
@@ -91,6 +93,16 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         }
 
         return in_array('en_GB', $supported, true) ? 'en_GB' : ($supported[0] ?? 'en_GB');
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     public static function bootHasRoles(): void
