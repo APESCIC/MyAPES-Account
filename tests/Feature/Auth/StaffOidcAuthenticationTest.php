@@ -60,6 +60,9 @@ class StaffOidcAuthenticationTest extends TestCase
 
     public function test_successful_callback_creates_an_eligible_user_and_starts_the_revalidation_window(): void
     {
+        // Freeze the clock so email_verified_at = now() cannot straddle a second boundary.
+        $this->travelTo(now()->startOfSecond());
+
         $this->identityProvider->identity = new OidcIdentity(
             'cloudron-subject-1',
             'STAFF@EXAMPLE.COM',
@@ -68,7 +71,6 @@ class StaffOidcAuthenticationTest extends TestCase
         $this->withDirectoryGroups(['MYAPES.STAFF', 'myapesaccount.staff']);
 
         $response = $this->get(route('staff.auth.callback'));
-
         $response->assertRedirect(route('dashboard'));
         $response->assertSessionHas(RevalidateDirectoryAccess::SESSION_KEY);
         $this->assertAuthenticated();
