@@ -9,7 +9,8 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Stub for Wave 4 (#228) — sent when a secure email change is started.
+ * Sent to the current (old) address when a secure email change is started (#228).
+ * Does not include confirmation tokens.
  */
 class EmailChangeStartedNotification extends Notification implements ShouldQueue
 {

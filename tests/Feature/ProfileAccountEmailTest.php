@@ -11,7 +11,7 @@ class ProfileAccountEmailTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_local_public_profile_shows_readonly_account_email_next_to_password_block(): void
+    public function test_local_public_profile_shows_email_change_next_to_password_block(): void
     {
         $public = User::factory()->create([
             'email' => 'local.public.email@example.com',
@@ -24,13 +24,15 @@ class ProfileAccountEmailTest extends TestCase
         $profile->assertOk()
             ->assertSeeText('Account email')
             ->assertSeeText('local.public.email@example.com')
-            ->assertSeeText('Notifications and password-reset mail go to this address.')
-            ->assertSeeText('Email cannot be changed here.')
+            ->assertSeeText(__('auth.email_change.intro'))
+            ->assertSeeText(__('auth.email_change.heading'))
             ->assertSee('id="account-email"', false)
+            ->assertSee('id="change-email"', false)
+            ->assertSee('name="email"', false)
             ->assertSeeText('Change password')
-            ->assertSee('id="change-password"', false);
+            ->assertSee('id="change-password"', false)
+            ->assertDontSeeText('Email cannot be changed here.');
 
-        $this->assertAccountEmailIsReadOnly($html, 'local.public.email@example.com');
         $this->assertLessThan(
             strpos($html, 'id="change-password"'),
             strpos($html, 'id="account-email"'),
@@ -53,6 +55,8 @@ class ProfileAccountEmailTest extends TestCase
         $profile->assertOk()
             ->assertSeeText('Account email')
             ->assertSeeText('directory.public.email@example.com')
+            ->assertSeeText(__('auth.email_change.directory_owned'))
+            ->assertDontSee('id="change-email"', false)
             ->assertDontSee('name="current_password"', false)
             ->assertDontSee('name="password_confirmation"', false)
             ->assertDontSee('Change password')

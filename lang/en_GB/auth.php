@@ -136,6 +136,22 @@ return [
         'submit' => 'Update username',
     ],
 
+    'email_change' => [
+        'heading' => 'Change email',
+        'intro' => 'Notifications and password-reset mail go to this address. Local accounts can change it after confirming their password; we verify the new inbox before switching.',
+        'directory_owned' => 'Notifications and password-reset mail go to this address. Directory and Cloudron accounts keep the email sourced from the directory.',
+        'new_email' => 'New email address',
+        'submit' => 'Send confirmation link',
+        'cancel' => 'Cancel pending change',
+        'step_up_note' => 'You will confirm your password first. We then email a confirmation link to the new address.',
+        'pending' => 'A change to :email is waiting for confirmation. Check that inbox for the signed link.',
+        'pending_help' => 'You can cancel this request and keep your current email.',
+        'same_as_current' => 'Choose a different email address from the one already on your account.',
+        'invalid_or_expired' => 'This email change link is invalid or has expired. Start a new change from your profile.',
+        'nothing_pending' => 'There is no pending email change to cancel.',
+        'local_only' => 'Email changes are only available for local password accounts.',
+    ],
+
     'confirm_password' => [
         'title' => 'Confirm password | MyAPES Account',
         'heading' => 'Confirm your password',

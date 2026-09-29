@@ -108,6 +108,13 @@ return [
             'action' => 'Open profile',
             'outro' => 'If you did not start an email change, secure your account and contact APES support.',
         ],
+        'email_change_confirm' => [
+            'subject' => 'Confirm your new MyAPES Account email',
+            'greeting' => 'Hello :name,',
+            'intro' => 'Confirm :email as the new address for your MyAPES Account. Your current email stays active until you use this link.',
+            'action' => 'Confirm new email',
+            'outro' => 'If you did not request this change, ignore this message. The link expires soon.',
+        ],
         'email_change_completed' => [
             'subject' => 'Your MyAPES Account email was updated',
             'greeting' => 'Hello :name,',

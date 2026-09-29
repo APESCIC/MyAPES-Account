@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Core\Accounts\User;
 use App\Notifications\Auth\EmailChangeCompletedNotification;
+use App\Notifications\Auth\EmailChangeConfirmNotification;
 use App\Notifications\Auth\EmailChangeStartedNotification;
 use App\Notifications\Auth\PasskeyAddedNotification;
 use App\Notifications\Auth\PasskeyRemovedNotification;
@@ -96,6 +97,11 @@ class AuthEmailBrandKitTest extends TestCase
             new PasskeyAddedNotification,
             new PasskeyRemovedNotification,
             new EmailChangeStartedNotification,
+            new EmailChangeConfirmNotification(
+                recipientName: 'Stub User',
+                confirmUrl: 'https://example.test/email/change/confirm/1/hash',
+                newEmail: 'new@example.com',
+            ),
             new EmailChangeCompletedNotification,
         ];
 

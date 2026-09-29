@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use App\Services\AuthorizationProfile;
 use App\Services\ContactPreferenceUpdater;
 use App\Services\LocalPublicPasswordResetService;
+use App\Services\SecureEmailChangeService;
 use App\Services\SecureUploadService;
 use App\Services\SessionAuthorizationContext;
 use App\Services\StaffProfilePhotoResponder;
@@ -31,6 +32,7 @@ class ProfileController extends Controller
     public function edit(
         Request $request,
         LocalPublicPasswordResetService $passwordResets,
+        SecureEmailChangeService $emailChanges,
     ): View {
         $user = $request->user();
 
@@ -41,12 +43,16 @@ class ProfileController extends Controller
             ]);
         }
 
+        $canChangeLocalEmail = $user->isLocalPasswordIdentity();
+
         return view('profile.edit', [
             'profile' => $user->profile,
             'preference' => $user->contactPreference,
             'selectedServices' => $user->serviceSelections()->pluck('sub_core_key')->all(),
             'canChangeLocalPassword' => $passwordResets->canChangeOwnPassword($user),
             'canChangeLocalUsername' => $user->isLocalPasswordIdentity(),
+            'canChangeLocalEmail' => $canChangeLocalEmail,
+            'pendingEmailChange' => $canChangeLocalEmail ? $emailChanges->pendingFor($user) : null,
         ]);
     }
 

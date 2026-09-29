@@ -67,6 +67,15 @@ class CoreAuthServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('public-email-change', function (Request $request): array {
+            $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
+
+            return [
+                Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(3)->by(Str::transliterate('user|'.$userId)),
+            ];
+        });
+
         RateLimiter::for('verification-resend', function (Request $request): array {
             $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
 
