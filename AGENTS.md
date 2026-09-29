@@ -15,8 +15,9 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
 - Closed historical lines: `v0.1.x Beta` through `v0.38.x Beta` (completed releases)
 - **Current completed line:** `v0.39.x Beta` (Account security — auth emails, step-up, password/username/verify hardening, secure email change, TOTP, passkeys, PHPUnit matrix)
-- **Active backlog:** next minor line after Account security (assign when planning starts)
-- **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security (milestones **7 → 9 → 8 → 5**) — **Account security complete**
+- **Completed product lines:** `v0.31.x`–`v0.39.x Beta` are all closed (milestone titles use `v0.N.x Beta`; historical ≤0.30 lines are closed archaeology milestones)
+- **Active backlog:** none open — open the next `v0.(N+1).x Beta` milestone only when planning the next product line
+- **Ship order (complete):** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security (milestones **7 → 9 → 8 → 5**)
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
 

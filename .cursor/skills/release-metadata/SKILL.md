@@ -17,8 +17,8 @@ Use this skill at the **end of work**, after implementation and tests pass, **be
 ## Prepare command
 
 ```powershell
-# Preview without writing files
-php artisan myapes:changelog-prepare --dry-run --type=patch --title="Short public title" --issue=67
+# Preview without writing files (still requires --pr)
+php artisan myapes:changelog-prepare --dry-run --type=patch --title="Short public title" --issue=67 --pr=68
 
 # Scaffold and sync files
 php artisan myapes:changelog-prepare --type=patch --title="Short public title" --issue=67 --pr=68
@@ -29,7 +29,7 @@ php artisan myapes:changelog-prepare --type=patch --title="Short public title" -
 | `--type=patch\|minor\|major` | Semver bump from current `VERSION` |
 | `--title=` | Required public release title |
 | `--issue=` | GitHub issue number for references |
-| `--pr=` | Optional pull request number |
+| `--pr=` | Required pull request number (command fails without it) |
 | `--channel=stable` | Release channel (default `stable`) |
 | `--date=YYYY-MM-DD` | Release date (default today) |
 | `--dry-run` | Show plan without writing |
