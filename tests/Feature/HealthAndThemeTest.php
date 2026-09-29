@@ -16,7 +16,7 @@ class HealthAndThemeTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ok',
-                'version' => '0.38.7',
+                'version' => '0.38.8',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -50,7 +50,7 @@ class HealthAndThemeTest extends TestCase
             ->assertServiceUnavailable()
             ->assertExactJson([
                 'status' => 'unavailable',
-                'version' => '0.38.7',
+                'version' => '0.38.8',
                 'release' => 'development',
                 'maintenance' => false,
                 'checks' => [
@@ -144,9 +144,11 @@ class HealthAndThemeTest extends TestCase
 
         $this->get('/')
             ->assertSee(
-                'content="MyAPES Core service portal for APES CIC, APES Shelter and Rescue, and APES Pet Care Clinic."',
+                'content="'.e(__('seo.home.description')).'"',
                 false,
-            );
+            )
+            ->assertSeeText('APES Pet Care Clinic');
+
     }
 
     public function test_authenticated_sidebar_is_role_aware(): void

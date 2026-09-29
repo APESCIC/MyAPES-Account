@@ -6,7 +6,8 @@
         "build": "vite build",
         "dev": "vite",
         "test:change-log": "node --test resources/js/change-log.test.js",
-        "test:frontend": "npm run test:local-dev && npm run test:change-log",
+        "test:admin-search": "node --test resources/js/admin-search.test.js",
+        "test:frontend": "npm run test:local-dev && npm run test:change-log && npm run test:admin-search",
         "test:local-dev": "node --test scripts/local/dev-runner.test.mjs",
         "test:release-backfill": "node --test scripts/local/release-backfill.test.mjs"
     },

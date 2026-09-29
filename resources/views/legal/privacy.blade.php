@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Privacy notice | MyAPES Core')
+@section('title', __('seo.privacy.title'))
+@section('meta_description', __('seo.privacy.description'))
+@section('meta_keywords', __('seo.privacy.keywords'))
 
 @section('content')
     <article class="panel legal-page" data-legal-page="privacy">

@@ -137,6 +137,8 @@ Each plugin declares `PluginManifest::$translationNamespace` (Structure). [#272]
 
 Standard seed file: `plugins/<slug>/lang/en_GB/plugin.php` with `name`, `short_name`, `description`, and `keywords`. Manifest `nameKey` / `descriptionKey` default to `{ns}::plugin.name` / `{ns}::plugin.description`; Admin → Plugins resolves them through `PluginManifest::label()` / `descriptionLabel()` (slug fallback if a key is missing).
 
+Admin shell search (#274) reads `PluginManifest::$searchKeywordsKey` (default `{ns}::plugin.keywords`) via `PluginManifest::keywords()`, plus Core section keys under `admin.search.keywords.*` and optional `{ns}::settings.keywords` for settings pages. Results are permission-gated.
+
 App-level overrides use Laravel’s vendor path: `lang/vendor/{namespace}/en_GB/plugin.php` (for example `lang/vendor/recruitment/en_GB/plugin.php`).
 
 Translations load when the plugin package provider boots, independent of enablement — disabled plugins do not break other pages.

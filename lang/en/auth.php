@@ -47,8 +47,8 @@ return [
     ],
 
     'landing' => [
-        'title' => 'Welcome | MyAPES Core',
-        'heading' => 'Welcome to MyAPES Core',
+        'title' => 'Welcome | MyAPES Account',
+        'heading' => 'Welcome to MyAPES Account',
         'public_access' => 'Public access',
         'public_access_blurb' => 'For service users managing support, profiles, and pets.',
         'staff_access' => 'Staff access',

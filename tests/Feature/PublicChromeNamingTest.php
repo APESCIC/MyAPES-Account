@@ -18,8 +18,8 @@ class PublicChromeNamingTest extends TestCase
     public static function platformChromePages(): array
     {
         return [
-            'home' => ['/', 'Welcome | MyAPES Core'],
-            'privacy' => ['/privacy', 'Privacy notice | MyAPES Core'],
+            'home' => ['/', 'Welcome | MyAPES Account'],
+            'privacy' => ['/privacy', 'Privacy notice | MyAPES Account'],
         ];
     }
 
@@ -38,23 +38,23 @@ class PublicChromeNamingTest extends TestCase
     }
 
     #[DataProvider('platformChromePages')]
-    public function test_guest_platform_pages_use_core_titles_and_chrome(string $path, string $title): void
+    public function test_guest_platform_pages_use_account_titles_and_chrome(string $path, string $title): void
     {
         $response = $this->get($path);
 
         $response->assertOk();
-        $this->assertSeesPlatformChrome($response);
+        $this->assertSeesAccountChrome($response);
         $response->assertSee('<title>'.$title.'</title>', false);
-        $response->assertDontSeeText('MyAPES Account');
+        $response->assertSeeText('MyAPES Account');
     }
 
     #[DataProvider('accountSurfacePages')]
-    public function test_login_and_register_pages_keep_account_titles_with_core_chrome(string $path, string $title): void
+    public function test_login_and_register_pages_keep_account_titles_with_account_chrome(string $path, string $title): void
     {
         $response = $this->get($path);
 
         $response->assertOk();
-        $this->assertSeesPlatformChrome($response);
+        $this->assertSeesAccountChrome($response);
         $response->assertSee('<title>'.$title.'</title>', false);
         $response->assertSeeText('MyAPES Account');
     }
@@ -77,7 +77,7 @@ class PublicChromeNamingTest extends TestCase
             ->assertSee('site.webmanifest', false);
     }
 
-    public function test_signed_in_onboarding_uses_core_title_and_chrome(): void
+    public function test_signed_in_onboarding_uses_core_title_and_account_meta(): void
     {
         $user = User::factory()->create([
             'onboarding_completed_at' => null,
@@ -86,12 +86,12 @@ class PublicChromeNamingTest extends TestCase
         $response = $this->actingAs($user)->get(route('onboarding.edit'));
 
         $response->assertOk();
-        $this->assertSeesPlatformChrome($response);
+        $this->assertSeesAccountChrome($response);
         $response->assertSee('<title>Complete account setup | MyAPES Core</title>', false);
-        $response->assertDontSeeText('MyAPES Account');
+        $response->assertSee('name="robots" content="noindex, nofollow"', false);
     }
 
-    public function test_email_verification_keeps_account_title_with_core_chrome(): void
+    public function test_email_verification_keeps_account_title_with_account_chrome(): void
     {
         $user = User::factory()->unverified()->create([
             'onboarding_completed_at' => null,
@@ -100,22 +100,22 @@ class PublicChromeNamingTest extends TestCase
         $response = $this->actingAs($user)->get(route('verification.notice'));
 
         $response->assertOk();
-        $this->assertSeesPlatformChrome($response);
+        $this->assertSeesAccountChrome($response);
         $response->assertSee('<title>Verify email | MyAPES Account</title>', false);
         $response->assertSeeText('MyAPES Account');
+        $response->assertSee('name="robots" content="noindex, nofollow"', false);
     }
 
-    private function assertSeesPlatformChrome(TestResponse $response): void
+    private function assertSeesAccountChrome(TestResponse $response): void
     {
         $response
-            ->assertSee('property="og:title" content="MyAPES Core"', false)
-            ->assertSee('property="og:site_name" content="MyAPES Core"', false)
-            ->assertSee('name="twitter:title" content="MyAPES Core"', false)
-            ->assertSee('name="application-name" content="MyAPES Core"', false)
-            ->assertSee('name="apple-mobile-web-app-title" content="MyAPES Core"', false)
+            ->assertSee('property="og:site_name" content="MyAPES Account"', false)
+            ->assertSee('name="application-name" content="MyAPES Account"', false)
+            ->assertSee('name="apple-mobile-web-app-title" content="MyAPES Account"', false)
             ->assertSee('alt="MyAPES Core"', false)
             ->assertSee('<span><strong>MyAPES</strong> Core</span>', false)
             ->assertSee('rel="manifest"', false)
-            ->assertSee('site.webmanifest', false);
+            ->assertSee('site.webmanifest', false)
+            ->assertSee('lang="en-GB"', false);
     }
 }

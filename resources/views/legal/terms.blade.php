@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Terms of use | MyAPES Core')
+@section('title', __('seo.terms.title'))
+@section('meta_description', __('seo.terms.description'))
+@section('meta_keywords', __('seo.terms.keywords'))
 
 @section('content')
     <article class="panel legal-page" data-legal-page="terms">
