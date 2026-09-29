@@ -105,11 +105,14 @@ class HardCodedStringInventoryTest extends TestCase
 
     public function test_inventory_command_writes_markdown_and_json(): void
     {
-        $markdown = base_path('docs/i18n-inventory.md');
-        $json = storage_path('app/lang-inventory-test.json');
+        $markdownRelative = 'storage/app/lang-inventory-test.md';
+        $jsonRelative = 'storage/app/lang-inventory-test.json';
+        $markdown = base_path($markdownRelative);
+        $json = base_path($jsonRelative);
 
         config([
-            'lang_inventory.json_path' => 'storage/app/lang-inventory-test.json',
+            'lang_inventory.markdown_path' => $markdownRelative,
+            'lang_inventory.json_path' => $jsonRelative,
         ]);
 
         try {
@@ -125,9 +128,12 @@ class HardCodedStringInventoryTest extends TestCase
             $this->assertArrayHasKey('findings', $payload);
             $this->assertArrayHasKey('all', $payload['totals']);
             $this->assertGreaterThan(0, $payload['totals']['all']);
+            $this->assertStringContainsString('Hard-coded UI string inventory', File::get($markdown));
         } finally {
-            if (is_file($json)) {
-                unlink($json);
+            foreach ([$markdown, $json] as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
             }
         }
     }
