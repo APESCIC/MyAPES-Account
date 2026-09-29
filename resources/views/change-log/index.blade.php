@@ -5,44 +5,44 @@
 @section('content')
 <div class="change-log" data-change-log>
     <section class="change-log__hero" aria-labelledby="change-log-title">
-        <p class="eyebrow">Release records</p>
-        <h1 id="change-log-title">Change Log Hub</h1>
-        <p>Track MyAPES Core releases, fixes, compliance work, accessibility improvements, and user-facing changes.</p>
+        <p class="eyebrow">{{ __('public.change_log.release_records') }}</p>
+        <h1 id="change-log-title">{{ __('public.change_log.change_log_hub') }}</h1>
+        <p>{{ __('public.change_log.track_myapes_core_releases_fixes_compliance_work_access') }}</p>
 
         <section class="change-log__community" aria-labelledby="change-log-community-title">
             <h2 id="change-log-community-title">Feedback &amp; source</h2>
-            <p>Report bugs, suggest improvements, or follow project discussion on GitHub.</p>
+            <p>{{ __('public.change_log.report_bugs_suggest_improvements_or_follow_project_disc') }}</p>
             @include('partials._github-links', ['variant' => 'change-log'])
         </section>
 
         <div class="change-log__current">
             <div>
-                <span>Current version</span>
+                <span>{{ __('public.change_log.current_version') }}</span>
                 <strong>v{{ $currentRelease['version'] }}</strong>
             </div>
             <div>
                 <span>{{ ucfirst($currentRelease['type']) }} · {{ ucfirst($currentRelease['channel']) }}</span>
                 <strong>{{ $currentRelease['title'] }}</strong>
             </div>
-            <a href="#release-v{{ str_replace('.', '-', $currentRelease['version']) }}">View current release</a>
+            <a href="#release-v{{ str_replace('.', '-', $currentRelease['version']) }}">{{ __('public.change_log.view_current_release') }}</a>
         </div>
     </section>
 
-    <section class="change-log__controls" aria-label="Find release records" data-change-log-controls hidden>
+    <section class="change-log__controls" aria-label="{{ __('public.change_log.find_release_records') }}" data-change-log-controls hidden>
         <div class="change-log__search">
-            <label for="change-log-search">Search release notes</label>
+            <label for="change-log-search">{{ __('public.change_log.search_release_notes') }}</label>
             <input
                 id="change-log-search"
                 type="search"
                 inputmode="search"
                 autocomplete="off"
-                placeholder="Search versions, changes, affected areas…"
+                placeholder="{{ __('public.change_log.search_versions_changes_affected_areas') }}"
                 data-change-log-search
             >
         </div>
 
         <fieldset class="change-log__filters">
-            <legend>Filter releases</legend>
+            <legend>{{ __('public.change_log.filter_releases') }}</legend>
             @foreach([
                 'all' => 'All releases',
                 'current' => 'Current release',
@@ -69,8 +69,8 @@
         </fieldset>
 
         <div class="change-log__actions">
-            <button type="button" data-change-log-expand>Expand all releases</button>
-            <button type="button" data-change-log-collapse>Collapse all releases</button>
+            <button type="button" data-change-log-expand>{{ __('public.change_log.expand_all_releases') }}</button>
+            <button type="button" data-change-log-collapse>{{ __('public.change_log.collapse_all_releases') }}</button>
         </div>
 
         <p class="change-log__status" role="status" aria-live="polite" data-change-log-status>
@@ -78,7 +78,7 @@
         </p>
     </section>
 
-    <section class="change-log__records" aria-label="Release history">
+    <section class="change-log__records" aria-label="{{ __('public.change_log.release_history') }}">
         @foreach($releases as $release)
             @php($isCurrent = $loop->first)
             <article
@@ -100,7 +100,7 @@
                     </summary>
 
                     <div class="change-log__release-body">
-                        <div class="change-log__badges" aria-label="Release classifications">
+                        <div class="change-log__badges" aria-label="{{ __('public.change_log.release_classifications') }}">
                             <span>{{ ucfirst($release['type']) }}</span>
                             @foreach($release['categories'] as $category)
                                 <span>{{ ucfirst($category) }}</span>
@@ -111,12 +111,12 @@
                         </div>
 
                         <section>
-                            <h2>Summary</h2>
+                            <h2>{{ __('public.change_log.summary') }}</h2>
                             <p>{{ $release['summary'] }}</p>
                         </section>
 
                         <section>
-                            <h2>Detailed changes</h2>
+                            <h2>{{ __('public.change_log.detailed_changes') }}</h2>
                             <ul>
                                 @foreach($release['changes'] as $change)
                                     <li>{{ $change }}</li>
@@ -125,7 +125,7 @@
                         </section>
 
                         <section>
-                            <h2>Affected areas</h2>
+                            <h2>{{ __('public.change_log.affected_areas') }}</h2>
                             <ul>
                                 @foreach($release['affected_areas'] as $area)
                                     <li>{{ $area }}</li>
@@ -134,13 +134,13 @@
                         </section>
 
                         <section>
-                            <h2>Version decision</h2>
+                            <h2>{{ __('public.change_log.version_decision') }}</h2>
                             <p>{{ $release['version_rationale'] }}</p>
                         </section>
 
                         @if($showInternalNotes)
                             <section>
-                                <h2>Validation</h2>
+                                <h2>{{ __('public.change_log.validation') }}</h2>
                                 <ul>
                                     @foreach($release['validation'] as $check)
                                         <li>{{ $check }}</li>
@@ -149,7 +149,7 @@
                             </section>
 
                             <section>
-                                <h2>Known limitations</h2>
+                                <h2>{{ __('public.change_log.known_limitations') }}</h2>
                                 <ul>
                                     @foreach($release['known_limitations'] as $limitation)
                                         <li>{{ $limitation }}</li>
@@ -158,12 +158,12 @@
                             </section>
 
                             <section>
-                                <h2>Rollback notes</h2>
+                                <h2>{{ __('public.change_log.rollback_notes') }}</h2>
                                 <p>{{ $release['rollback'] }}</p>
                             </section>
 
                             <section>
-                                <h2>Source</h2>
+                                <h2>{{ __('public.change_log.source') }}</h2>
                                 <p>{{ $release['provenance'] }}</p>
                                 <ul class="change-log__references">
                                     @foreach($release['references'] as $reference)
@@ -179,8 +179,8 @@
     </section>
 
     <section class="change-log__empty" data-change-log-empty hidden>
-        <h2>No releases found</h2>
-        <p>Try a different search or choose All releases.</p>
+        <h2>{{ __('public.change_log.no_releases_found') }}</h2>
+        <p>{{ __('public.change_log.try_a_different_search_or_choose_all_releases') }}</p>
     </section>
 </div>
 @endsection

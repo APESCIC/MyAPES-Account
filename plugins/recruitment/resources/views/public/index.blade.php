@@ -6,19 +6,19 @@
     @include('recruitment::public._navigation')
 
     <div class="panel" data-recruitment-board>
-        <span class="service-label service-apes-cic">APES CIC</span>
-        <h1>Open roles</h1>
-        <p class="muted">Staff, volunteering, and student opportunities with APES CIC.</p>
+        <span class="service-label service-apes-cic">{{ __('recruitment::public.index.blade.apes_cic') }}</span>
+        <h1>{{ __('recruitment::public._navigation.blade.open_roles') }}</h1>
+        <p class="muted">{{ __('recruitment::public.index.blade.staff_volunteering_and_student_opportunities_with_apes_') }}</p>
         <x-mascot-tip />
     </div>
 
-    <div class="panel" aria-label="Filter roles by category">
-        <div class="actions" role="tablist" aria-label="Role categories">
+    <div class="panel" aria-label="{{ __('recruitment::public.index.blade.filter_roles_by_category') }}">
+        <div class="actions" role="tablist" aria-label="{{ __('recruitment::public.index.blade.role_categories') }}">
             <a
                 href="{{ route('recruitment.index') }}"
                 @class(['is-active' => $selectedCategory === null])
                 @if($selectedCategory === null) aria-current="page" @endif
-            >All</a>
+            >{{ __('recruitment::public.index.blade.all') }}</a>
             @foreach($categories as $category)
                 <a
                     href="{{ route('recruitment.index', ['category' => $category]) }}"
@@ -41,7 +41,7 @@
         @if($roles->isEmpty())
             <x-mascot-tip
                 variant="empty"
-                title="No open roles right now."
+                title="{{ __('recruitment::public.index.blade.no_open_roles_right_now') }}"
                 body="{{ $selectedCategory ? 'Try another category, or check back soon.' : 'Check back soon for staff, volunteer, and student openings.' }}"
             />
         @else
@@ -63,7 +63,7 @@
                             </p>
                         @endif
                         <div class="actions">
-                            <a href="{{ route('recruitment.show', $role) }}">View role</a>
+                            <a href="{{ route('recruitment.show', $role) }}">{{ __('recruitment::public.show.blade.view_role') }}</a>
                         </div>
                     </li>
                 @endforeach

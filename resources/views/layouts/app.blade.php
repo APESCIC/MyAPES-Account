@@ -42,10 +42,10 @@
     @stack('head')
 </head>
 <body @class(['has-mascot-dock' => $mascotTip])>
-<a class="skip-link" href="#main-content">Skip to main content</a>
+<a class="skip-link" href="#main-content">{{ __('public.chrome.app.blade.skip_to_main_content') }}</a>
 
 <header class="mobile-header">
-    <a href="{{ route('home') }}" class="mobile-brand" aria-label="MyAPES Core home">
+    <a href="{{ route('home') }}" class="mobile-brand" aria-label="{{ __('public.chrome.app.blade.myapes_core_home') }}">
         <img
             src="{{ asset('branding/logo-myapes-account.png') }}"
             srcset="{{ asset('logos/myapes-mark-256x256.png') }} 256w, {{ asset('branding/logo-myapes-account.png') }} 1024w"
@@ -54,7 +54,7 @@
             height="1024"
             alt=""
         >
-        <span><strong>MyAPES</strong> Core</span>
+        <span><strong>{{ __('public.chrome.app.blade.myapes') }}</strong> Core</span>
     </a>
     <button
         type="button"
@@ -62,39 +62,39 @@
         data-sidebar-toggle
         aria-controls="site-sidebar"
         aria-expanded="false"
-        aria-label="Open navigation menu"
+        aria-label="{{ __('public.chrome.app.blade.open_navigation_menu') }}"
     >
         <i data-lucide="menu" aria-hidden="true"></i>
     </button>
 </header>
 
 <div class="app-shell">
-    <aside id="site-sidebar" class="site-sidebar" data-sidebar aria-label="Site navigation">
+    <aside id="site-sidebar" class="site-sidebar" data-sidebar aria-label="{{ __('public.chrome.app.blade.site_navigation') }}">
         <div class="site-sidebar__inner">
-            <button type="button" class="sidebar-close" data-sidebar-close aria-label="Close navigation menu">
+            <button type="button" class="sidebar-close" data-sidebar-close aria-label="{{ __('public.chrome.app.blade.close_navigation_menu') }}">
                 <i data-lucide="x" aria-hidden="true"></i>
             </button>
 
-            <a href="{{ route('home') }}" class="sidebar-brand" aria-label="MyAPES Core home">
+            <a href="{{ route('home') }}" class="sidebar-brand" aria-label="{{ __('public.chrome.app.blade.myapes_core_home') }}">
                 <img
                     src="{{ asset('branding/logo-myapes-account.png') }}"
                     srcset="{{ asset('logos/myapes-mark-256x256.png') }} 256w, {{ asset('branding/logo-myapes-account.png') }} 1024w"
                     sizes="(max-width: 64rem) 8.5rem, 10.75rem"
                     width="1024"
                     height="1024"
-                    alt="MyAPES Core"
+                    alt="{{ __('public.maintenance.blade.myapes_core') }}"
                 >
             </a>
 
-            <nav class="primary-nav" aria-label="Primary navigation">
+            <nav class="primary-nav" aria-label="{{ __('public.chrome.app.blade.primary_navigation') }}">
                 @auth
                     <a href="{{ route('dashboard') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('dashboard')]) @if(request()->routeIs('dashboard')) aria-current="page" @endif>
                         <i data-lucide="layout-dashboard" aria-hidden="true"></i>
-                        <span>Dashboard</span>
+                        <span>{{ __('public.chrome.app.blade.dashboard') }}</span>
                     </a>
                     <a href="{{ route('profile.edit') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('profile.*')]) @if(request()->routeIs('profile.*')) aria-current="page" @endif>
                         <i data-lucide="user-round" aria-hidden="true"></i>
-                        <span>Profile</span>
+                        <span>{{ __('public.chrome.app.blade.profile') }}</span>
                     </a>
                     @foreach($moduleNavigation as $subCoreNavigation)
                         @php
@@ -150,7 +150,7 @@
                         @endphp
                         <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => $adminNavActive]) @if($adminNavActive) aria-current="page" @endif>
                             <i data-lucide="settings" aria-hidden="true"></i>
-                            <span>Admin</span>
+                            <span>{{ __('public.chrome.app.blade.admin') }}</span>
                         </a>
                     @endcanany
                 @else
@@ -162,15 +162,15 @@
                     @endforeach
                     <a href="{{ route('public.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.login')]) @if(request()->routeIs('public.login')) aria-current="page" @endif>
                         <i data-lucide="log-in" aria-hidden="true"></i>
-                        <span>Public Login</span>
+                        <span>{{ __('public.chrome.app.blade.public_login') }}</span>
                     </a>
                     <a href="{{ route('public.register') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('public.register')]) @if(request()->routeIs('public.register')) aria-current="page" @endif>
                         <i data-lucide="user-plus" aria-hidden="true"></i>
-                        <span>Register</span>
+                        <span>{{ __('public.chrome.app.blade.register') }}</span>
                     </a>
                     <a href="{{ route('staff.login') }}" @class(['primary-nav__link', 'is-active' => request()->routeIs('staff.*')]) @if(request()->routeIs('staff.*')) aria-current="page" @endif>
                         <i data-lucide="badge-check" aria-hidden="true"></i>
-                        <span>Staff Login</span>
+                        <span>{{ __('public.chrome.app.blade.staff_login') }}</span>
                     </a>
                 @endauth
                 @auth
@@ -184,12 +184,12 @@
             </nav>
 
             <div class="sidebar-tools">
-                <button type="button" class="sidebar-tool theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Switch to dark theme">
+                <button type="button" class="sidebar-tool theme-toggle" data-theme-toggle aria-pressed="false" aria-label="{{ __('public.chrome.app.blade.switch_to_dark_theme') }}">
                     <span class="sidebar-tool__icon">
                         <i data-lucide="sun" class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true"></i>
                         <i data-lucide="moon" class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true"></i>
                     </span>
-                    <span data-theme-label>Light mode</span>
+                    <span data-theme-label>{{ __('public.chrome.app.blade.light_mode') }}</span>
                     <i data-lucide="chevron-right" class="sidebar-tool__chevron" aria-hidden="true"></i>
                 </button>
                 @auth
@@ -201,13 +201,13 @@
                         @csrf
                         <button type="submit" class="sidebar-tool">
                             <span class="sidebar-tool__icon"><i data-lucide="log-out" aria-hidden="true"></i></span>
-                            <span>Log out</span>
+                            <span>{{ __('public.chrome.app.blade.log_out') }}</span>
                         </button>
                     </form>
                 @endauth
 
                 <section class="sidebar-support" aria-labelledby="sidebar-support-title">
-                    <h2 id="sidebar-support-title" class="sidebar-support__heading">App Support</h2>
+                    <h2 id="sidebar-support-title" class="sidebar-support__heading">{{ __('public.chrome.app.blade.app_support') }}</h2>
                     <ul class="sidebar-support__links">
                         <li>
                             <a
@@ -218,7 +218,7 @@
                                 <span class="sidebar-support__pill-icon">
                                     <i data-lucide="circle-help" aria-hidden="true"></i>
                                 </span>
-                                <span class="sidebar-support__pill-label">Help</span>
+                                <span class="sidebar-support__pill-label">{{ __('public.chrome.app.blade.help') }}</span>
                             </a>
                         </li>
                     </ul>
@@ -228,12 +228,12 @@
         </div>
     </aside>
 
-    <button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="Close navigation menu" tabindex="-1"></button>
+    <button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="{{ __('public.chrome.app.blade.close_navigation_menu') }}" tabindex="-1"></button>
 
     <div class="app-frame">
         <header class="content-brand" aria-label="MyAPES Core">
-            <strong>My<span>APES</span></strong> Core
-            <small>Association of Protecting Exotic Species CIC</small>
+            <strong>{{ __('public.chrome.app.blade.my') }}<span>{{ __('public.chrome.app.blade.apes') }}</span></strong> Core
+            <small>{{ __('public.chrome.app.blade.association_of_protecting_exotic_species_cic') }}</small>
         </header>
 
 <main id="main-content" class="app-main" tabindex="-1">
@@ -247,16 +247,16 @@
                 ? 'Guest'
                 : $authorizationProfile->displayLabel(auth()->user());
         @endphp
-        <section class="qa-switcher" aria-label="Local QA role switcher">
+        <section class="qa-switcher" aria-label="{{ __('public.chrome.app.blade.local_qa_role_switcher') }}">
             <div class="qa-switcher__identity">
-                <strong>Local QA</strong>
-                <span class="qa-switcher__badge">Dev only</span>
+                <strong>{{ __('public.chrome.app.blade.local_qa') }}</strong>
+                <span class="qa-switcher__badge">{{ __('public.chrome.app.blade.dev_only') }}</span>
             </div>
             <div class="qa-switcher__current">
-                <span>Current role:</span>
+                <span>{{ __('public.chrome.app.blade.current_role') }}</span>
                 <strong><i data-lucide="user-round" aria-hidden="true"></i>{{ $activeRoleLabel }}</strong>
             </div>
-            <div class="qa-switcher__forms" aria-label="Switch active role">
+            <div class="qa-switcher__forms" aria-label="{{ __('public.chrome.app.blade.switch_active_role') }}">
                 @foreach([
                     'service_user' => 'Public',
                     'student' => 'Student',
@@ -297,17 +297,17 @@
 
 <footer class="site-footer">
     <div class="site-footer__brand">
-        <span><strong>MyAPES</strong> Core</span>
+        <span><strong>{{ __('public.chrome.app.blade.myapes') }}</strong> Core</span>
         <span>© {{ now()->year }} Association of Protecting Exotic Species CIC · CIC No: 16253848</span>
     </div>
-    <nav class="site-footer__links" aria-label="Legal and help">
+    <nav class="site-footer__links" aria-label="{{ __('public.chrome.app.blade.legal_and_help') }}">
         @foreach($publicPluginNavigation ?? [] as $publicPluginNav)
             <a href="{{ route($publicPluginNav->routeName) }}" @if (request()->routeIs($publicPluginNav->routeIsPattern)) aria-current="page" @endif>{{ $publicPluginNav->label }}</a>
         @endforeach
-        <a href="{{ route('privacy') }}" @if (request()->routeIs('privacy')) aria-current="page" @endif>Privacy</a>
-        <a href="{{ route('cookies') }}" @if (request()->routeIs('cookies')) aria-current="page" @endif>Cookies</a>
-        <a href="{{ route('help') }}" @if (request()->routeIs('help')) aria-current="page" @endif>Help</a>
-        <a href="{{ route('terms') }}" @if (request()->routeIs('terms')) aria-current="page" @endif>Terms</a>
+        <a href="{{ route('privacy') }}" @if (request()->routeIs('privacy')) aria-current="page" @endif>{{ __('public.chrome.app.blade.privacy') }}</a>
+        <a href="{{ route('cookies') }}" @if (request()->routeIs('cookies')) aria-current="page" @endif>{{ __('public.chrome.app.blade.cookies') }}</a>
+        <a href="{{ route('help') }}" @if (request()->routeIs('help')) aria-current="page" @endif>{{ __('public.chrome.app.blade.help') }}</a>
+        <a href="{{ route('terms') }}" @if (request()->routeIs('terms')) aria-current="page" @endif>{{ __('public.chrome.app.blade.terms') }}</a>
     </nav>
     <a
         class="site-footer__version"
@@ -322,7 +322,7 @@
         class="mascot-dock mascot-dock--collapsed"
         data-mascot-dock
         data-mascot-route="{{ $mascotTip['route'] }}"
-        aria-label="Tip from Spike, the MyAPES bearded dragon"
+        aria-label="{{ __('public.chrome.app.blade.tip_from_spike_the_myapes_bearded_dragon') }}"
     >
         <button
             type="button"
@@ -330,7 +330,7 @@
             data-mascot-toggle
             aria-expanded="false"
             aria-controls="mascot-dock-bubble"
-            aria-label="Show tip from Spike"
+            aria-label="{{ __('public.chrome.app.blade.show_tip_from_spike') }}"
         >
             <img
                 src="{{ asset('mascot/spike-dock.png') }}"
@@ -350,7 +350,7 @@
                 type="button"
                 class="mascot-dock__dismiss"
                 data-mascot-dismiss
-                aria-label="Hide tip"
+                aria-label="{{ __('public.chrome.app.blade.hide_tip') }}"
             >
                 <span aria-hidden="true">&times;</span>
             </button>

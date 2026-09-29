@@ -21,7 +21,7 @@
             height="512"
         >
         <div>
-            <p class="mascot-tip__kicker">Spike says</p>
+            <p class="mascot-tip__kicker">{{ __('public.chrome.mascot-tip.blade.spike_says') }}</p>
             <p><strong>{{ $tip['title'] }}</strong></p>
             <p>{{ $tip['body'] }}</p>
         </div>

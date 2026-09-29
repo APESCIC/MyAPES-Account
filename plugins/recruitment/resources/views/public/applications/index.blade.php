@@ -7,29 +7,29 @@
 
     @inject('ukDateTime', \App\Support\UkDateTime::class)
     <div class="panel">
-        <span class="service-label service-apes-cic">APES CIC</span>
-        <h1>My applications</h1>
-        <p class="muted">Openings you have applied for, with their current status.</p>
+        <span class="service-label service-apes-cic">{{ __('recruitment::public.index.blade.apes_cic') }}</span>
+        <h1>{{ __('recruitment::public._navigation.blade.my_applications') }}</h1>
+        <p class="muted">{{ __('recruitment::public.index.blade.openings_you_have_applied_for_with_their_current_status') }}</p>
         <div class="actions">
-            <a href="{{ route('recruitment.index') }}">Browse open roles</a>
+            <a href="{{ route('recruitment.index') }}">{{ __('recruitment::public.index.blade.browse_open_roles') }}</a>
         </div>
     </div>
 
     <div class="panel" id="list" data-recruitment-applications>
-        <h2>Applications</h2>
+        <h2>{{ __('recruitment::public.index.blade.applications') }}</h2>
         @if($applications->isEmpty())
             <x-mascot-tip
                 variant="empty"
-                title="No applications yet."
+                title="{{ __('recruitment::public.index.blade.no_applications_yet') }}"
                 body="When you apply for an open role, it will appear here."
             />
         @else
             <table>
                 <thead>
                     <tr>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Submitted</th>
+                        <th>{{ __('recruitment::public.index.blade.role') }}</th>
+                        <th>{{ __('recruitment::public.index.blade.status') }}</th>
+                        <th>{{ __('recruitment::public.index.blade.submitted') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -40,7 +40,7 @@
                             <td>{{ $statusLabels[$application->status] ?? $application->status }}</td>
                             <td>{{ $ukDateTime->formatDate($application->submitted_at) ?? '—' }}</td>
                             <td>
-                                <a href="{{ route('recruitment.applications.show', $application) }}">Open</a>
+                                <a href="{{ route('recruitment.applications.show', $application) }}">{{ __('recruitment::public.index.blade.open') }}</a>
                             </td>
                         </tr>
                     @endforeach

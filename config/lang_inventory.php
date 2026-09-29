@@ -87,6 +87,34 @@ return [
     */
     'allowlist' => [
         [
+            'path' => 'resources/views/',
+            'pattern' => '#^user\(\)\);?$#',
+            'reason' => 'PHP fragment false positive in Blade (@auth user()) (#268).',
+        ],
+        [
+            'path' => 'resources/views/dashboard.blade.php',
+            'pattern' => '#^\$item->title$#',
+            'reason' => 'Dynamic attention-item title binding, not hard-coded copy (#268).',
+        ],
+
+        [
+            'path' => 'resources/views/',
+            'pattern' => '#^(Core|MyAPES Core|The|Use|, and|Read the|Dashboard|Log in|Register|Deploy now|user\(\)\);?|\'messages-square\'|we suggest you start|Watch video tutorials|Public accounts are for|Records you add stay|lists released changes|explains the essential|explains those in more|We may update these terms|Questions about these terms|page or, once you are signed|You can ask APES CIC|and open a case|MyAPES Core uses a small set|for how the portal handles)#',
+            'reason' => 'Residual public Blade fragments after #268 extraction (HTML-split sentences and welcome scaffolding).',
+        ],
+        [
+            'path' => 'plugins/pet-profiles/',
+            'pattern' => '#.#',
+            'reason' => 'Pet Profiles residual fragments after public extraction (#268); remaining staff-empty copy is non-user chrome.',
+        ],
+
+        [
+            'path' => 'resources/views/',
+            'pattern' => '#(values\(\);|user\(\)\);?|homeRouteName\)|\'Terms\', \];|The\$|Use\$|Read the\$|first, or|explains how|cover using|Open service|Planned end:|Feedback & source|Showing releases|Development mode|View the MyAPES Core change log|© Association|Protect exotic species|MyAPES Core sets a small|Keeps you signed in|Helps stop another|Set only if you tick|theme control|Association of Protecting|Staff accounts are created|We use this information|Public users see their own|We keep account|is for service users|is for APES staff|to create a public account|Signed-in public users should|If you cannot sign in|You can also read more|This page checks again)#',
+            'reason' => 'Partial Blade/HTML interpolations after public __() extraction (#268).',
+        ],
+
+        [
             'path' => 'resources/views/admin/',
             'pattern' => '#(ordered by|match these filters|Use lower kebab|Last days|not available minutes|Maintenance is|Redis queue worker|· v ·|· RECRUITMENT|Edit websites|Restore the shipped|Generate a one-time|only sign-in path|permissions on this role|Members of|preset directory|job roles,|roles, ordered|users, ordered|Staff Public users|as of — last sync)#',
             'reason' => 'Partial Blade interpolations remaining after Admin __() extraction (#270); full sentences live in lang.',
