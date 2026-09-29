@@ -74,7 +74,7 @@ Public Recruitment is the exception that has no module prefix. It is still the R
 
 ## Vocabulary
 
-UI wording lives in [glossary.md](glossary.md) and `lang/en_GB/terms.php` ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)). This page is the source for **layer names**. Use the same words in both. Locale and key conventions: [localisation.md](localisation.md). Deprecated synonyms for CI: `config/glossary.php`.
+UI wording lives in [glossary.md](glossary.md) and `lang/en_GB/terms.php` ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)). Hard-coded string checklist: [i18n-inventory.md](i18n-inventory.md) ([#266](https://github.com/APESCIC/MyAPES-Account/issues/266)). This page is the source for **layer names**. Use the same words in both. Locale and key conventions: [localisation.md](localisation.md). Deprecated synonyms for CI: `config/glossary.php`.
 
 | Canonical term | Meaning | Deprecated synonyms |
 | --- | --- | --- |

@@ -2,7 +2,24 @@
 
 MyAPES Account ships **UK English** as the only locale for the Language line (`v0.38.x`). Primary locale is `en_GB`; fallback is `en`.
 
-Related: product wording in [glossary.md](glossary.md) and `lang/en_GB/terms.php` ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)); deprecated synonyms in `config/glossary.php`. Architecture layer names stay in [architecture.md](architecture.md).
+Related: product wording in [glossary.md](glossary.md) and `lang/en_GB/terms.php` ([#267](https://github.com/APESCIC/MyAPES-Account/issues/267)); deprecated synonyms in `config/glossary.php`. Hard-coded string inventory for extraction children: [i18n-inventory.md](i18n-inventory.md) ([#266](https://github.com/APESCIC/MyAPES-Account/issues/266)). Architecture layer names stay in [architecture.md](architecture.md).
+
+## Hard-coded string inventory
+
+Run the scanner (offline, no network):
+
+```bash
+php artisan lang:inventory --write
+```
+
+- Writes [docs/i18n-inventory.md](i18n-inventory.md) (committed checklist) and `storage/app/lang-inventory.json` (machine copy under storage).
+- Logic: `App\Services\Localisation\HardCodedStringScanner` + allow-list in `config/lang_inventory.php`.
+- Extraction children link to sections:
+  - [#268](https://github.com/APESCIC/MyAPES-Account/issues/268) → `docs/i18n-inventory.md#public-268` (also Recruitment/Pet Profiles public plugin sections)
+  - [#269](https://github.com/APESCIC/MyAPES-Account/issues/269) → `docs/i18n-inventory.md#apes-cic-staff-269` (+ Cases / Tickets / Consultations / Recruitment staff)
+  - [#270](https://github.com/APESCIC/MyAPES-Account/issues/270) → `docs/i18n-inventory.md#admin-shell-270`
+  - [#271](https://github.com/APESCIC/MyAPES-Account/issues/271) → `docs/i18n-inventory.md#auth-emails-flash-validation-271`
+- [#276](https://github.com/APESCIC/MyAPES-Account/issues/276) should reuse the same scanner and allow-list (report-only until extraction finishes).
 
 ## Locale configuration
 
