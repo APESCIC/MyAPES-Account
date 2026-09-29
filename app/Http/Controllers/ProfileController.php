@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Core\Accounts\StaffProfile;
+use App\Rules\Username;
 use App\Services\AuditLogger;
 use App\Services\AuthorizationProfile;
 use App\Services\ContactPreferenceUpdater;
@@ -15,6 +16,7 @@ use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -44,7 +46,37 @@ class ProfileController extends Controller
             'preference' => $user->contactPreference,
             'selectedServices' => $user->serviceSelections()->pluck('sub_core_key')->all(),
             'canChangeLocalPassword' => $passwordResets->canChangeOwnPassword($user),
+            'canChangeLocalUsername' => $user->isLocalPasswordIdentity(),
         ]);
+    }
+
+    public function updateUsername(Request $request, AuditLogger $auditLogger): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user === null || ! $user->isLocalPasswordIdentity()) {
+            abort(403);
+        }
+
+        $request->merge([
+            'username' => Str::lower(trim((string) $request->input('username'))),
+        ]);
+
+        $validated = $request->validate([
+            'username' => ['required', 'string', new Username(ignoreUserId: $user->id)],
+        ]);
+
+        $previous = $user->username;
+        $user->forceFill(['username' => $validated['username']])->save();
+
+        $auditLogger->record('profile.username_updated', $user, $user, [
+            'previous_username' => $previous,
+            'username' => $user->username,
+        ]);
+
+        return redirect()
+            ->route('profile.edit')
+            ->with('status', __('flash.username_updated'));
     }
 
     public function updatePassword(

@@ -58,6 +58,24 @@ class CoreAuthServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('public-username-change', function (Request $request): array {
+            $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
+
+            return [
+                Limit::perMinute(5)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(3)->by(Str::transliterate('user|'.$userId)),
+            ];
+        });
+
+        RateLimiter::for('verification-resend', function (Request $request): array {
+            $userId = (string) ($request->user()?->getAuthIdentifier() ?? 'guest');
+
+            return [
+                Limit::perMinute(3)->by(Str::transliterate('ip|'.$request->ip())),
+                Limit::perMinute(2)->by(Str::transliterate('user|'.$userId)),
+            ];
+        });
+
         // Legacy alias kept for any remaining throttle:public-password-reset references.
         RateLimiter::for('public-password-reset', function (Request $request): array {
             $email = Str::lower((string) $request->input('email'));

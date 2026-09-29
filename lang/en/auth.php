@@ -68,9 +68,14 @@ return [
     'register' => [
         'title' => 'Register | MyAPES Account',
         'heading' => 'Create public account',
-        'intro' => 'Register to access services, your profile, and your pets.',
+        'intro' => 'Register to access services, your profile, and your pets. You will need to verify your email before using the account.',
         'full_name' => 'Full name',
         'confirm_password' => 'Confirm password',
+        'username_guidance' => '3–30 characters. Letters, numbers, dots, underscores, and hyphens only; must start and end with a letter or number.',
+        'password_guidance' => 'At least 12 characters. Avoid passwords that have appeared in known data breaches.',
+        'email_guidance' => 'Use an email you can access. We will send a verification link before you can continue.',
+        'email_unavailable' => 'Unable to create an account with this email. If you already have an account, sign in or reset your password.',
+        'consent_required' => 'You must accept the terms of use and privacy notice to create an account.',
         'services_legend' => 'Select at least one MyAPES service',
         'consent_legend' => 'Consent',
         'consent_prefix' => 'I have read and accept the',
@@ -118,8 +123,17 @@ return [
     'verify_email' => [
         'title' => 'Verify email | MyAPES Account',
         'heading' => 'Verify your email',
-        'intro' => 'Use the signed link sent to your email before continuing account setup.',
+        'intro' => 'Check your inbox for a signed MyAPES Account link, then continue account setup. Unverified accounts cannot reach your profile, tickets, or other signed-in services.',
+        'sent_to' => 'We sent the link to :email.',
         'resend' => 'Send another verification link',
+        'resend_note' => 'Resend is rate-limited. Wait a moment if the button stops working briefly.',
+        'sent' => 'Verification link sent. Check your inbox (and spam folder).',
+    ],
+
+    'username_change' => [
+        'heading' => 'Change username',
+        'intro' => 'Choose a new public username. You will confirm your password first for security.',
+        'submit' => 'Update username',
     ],
 
     'confirm_password' => [

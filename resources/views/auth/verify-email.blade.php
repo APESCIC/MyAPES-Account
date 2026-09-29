@@ -6,11 +6,18 @@
     <div class="panel">
         <h1>{{ __('auth.verify_email.heading') }}</h1>
         <p class="muted">{{ __('auth.verify_email.intro') }}</p>
+        @if (auth()->user()?->email)
+            <p>{{ __('auth.verify_email.sent_to', ['email' => auth()->user()->email]) }}</p>
+        @endif
+        @if (session('status'))
+            <p class="status" role="status">{{ session('status') }}</p>
+        @endif
         <x-mascot-tip />
         <form method="post" action="{{ route('verification.send') }}">
             @csrf
             <button type="submit">{{ __('auth.verify_email.resend') }}</button>
         </form>
+        <p class="muted">{{ __('auth.verify_email.resend_note') }}</p>
         <form method="post" action="{{ route('auth.logout') }}">
             @csrf
             <button type="submit" class="button-secondary">{{ __('auth.common.log_out') }}</button>
