@@ -315,6 +315,10 @@ return [
     'onboarding' => [
         'your_account_setup_is_complete' => 'Your account setup is complete.',
     ],
+    'locale' => [
+        'switcher_label' => 'Language',
+        'profile_label' => 'Language preference',
+    ],
     '_github-links' => [
         'blade' => [
             'messages_square' => '\'messages-square\', ], ];',

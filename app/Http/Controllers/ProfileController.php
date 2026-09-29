@@ -111,7 +111,12 @@ class ProfileController extends Controller
             'services' => ['required', 'array', 'min:1'],
             'services.*' => ['string', Rule::in(['apes-cic', 'shelter-rescue', 'pet-care-clinic'])],
             'contact_preferences_confirmed' => ['accepted'],
+            'locale' => ['sometimes', 'string', Rule::in(array_keys(config('app.supported_locales', ['en_GB' => 'English (UK)'])))],
         ]);
+
+        if (array_key_exists('locale', $validated)) {
+            $request->user()->forceFill(['locale' => $validated['locale']])->save();
+        }
 
         $existingProfile = $request->user()->profile;
         $previousAvatarPath = $existingProfile?->avatar_path;
@@ -182,9 +187,15 @@ class ProfileController extends Controller
             'team' => ['nullable', 'string', Rule::in(StaffProfile::teams())],
             'work_phone' => ['nullable', 'string', 'max:32', 'regex:/^\+44\d{9,10}$/'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'locale' => ['sometimes', 'string', Rule::in(array_keys(config('app.supported_locales', ['en_GB' => 'English (UK)'])))],
         ]);
 
         $user = $request->user();
+
+        if (array_key_exists('locale', $validated)) {
+            $user->forceFill(['locale' => $validated['locale']])->save();
+        }
+
         $existing = $user->staffProfile;
         $previousPhotoPath = $existing?->photo_path;
         $payload = [

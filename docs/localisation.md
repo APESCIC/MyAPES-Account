@@ -19,19 +19,19 @@ php artisan lang:inventory --write
   - [#269](https://github.com/APESCIC/MyAPES-Account/issues/269) → `docs/i18n-inventory.md#apes-cic-staff-269` (+ Cases / Tickets / Consultations / Recruitment staff)
   - [#270](https://github.com/APESCIC/MyAPES-Account/issues/270) → `docs/i18n-inventory.md#admin-shell-270`
   - [#271](https://github.com/APESCIC/MyAPES-Account/issues/271) → `docs/i18n-inventory.md#auth-emails-flash-validation-271`
-- [#276](https://github.com/APESCIC/MyAPES-Account/issues/276) reuses the same scanner and allow-list. CI runs `php artisan lang:check` in **report-only** mode (does not fail yet); hard-fail lands in Wave 4 after extraction.
+- [#276](https://github.com/APESCIC/MyAPES-Account/issues/276) reuses the same scanner and allow-list. CI runs `php artisan lang:check --fail-on-missing` so **missing keys fail the build**; unused keys are reported only (non-blocking).
 
 ## Translation key check (CI)
 
 ```bash
 php artisan lang:check
-# Wave 4 only:
 php artisan lang:check --fail-on-missing
 ```
 
 - Logic: `App\Services\Localisation\TranslationKeyChecker` (+ hard-coded count via `#266` scanner).
 - Config: `config/lang_check.php`.
-- Wired into `.github/workflows/test-cloudron.yml` as a non-failing step until Wave 4.
+- Wired into `.github/workflows/test-cloudron.yml` with **`--fail-on-missing`** (Wave 4 / #276). Unused-key output stays informational and does not fail CI.
+- Dynamic keys (interpolated segments) are skipped by the scanner; cover enum/status label maps with dedicated Feature tests instead.
 
 ## Locale configuration
 
@@ -41,8 +41,17 @@ php artisan lang:check --fail-on-missing
 | `APP_FALLBACK_LOCALE` | `en` | Same |
 | `APP_FAKER_LOCALE` | `en_GB` | Same |
 | Config defaults | `en_GB` / `en` / `en_GB` | `config/app.php` |
+| `supported_locales` | `en_GB` → English (UK) only | `config/app.php` (#275) |
 
 `html lang` uses `str_replace('_', '-', app()->getLocale())` so the document language is `en-GB` when the app locale is `en_GB`.
+
+### User locale preference (#275)
+
+- `users.locale` string(10), default `en_GB`, set by factory and migration backfill.
+- `SetLocale` middleware (web group): authenticated `user->locale` → session `locale` → `config('app.locale')`. Unsupported values fall back to `en_GB`.
+- `User` implements `HasLocalePreference` via `preferredLocale()` for queued mail/notifications.
+- `<x-locale-switcher>` on profile and footer renders **only when** `count(supported_locales) > 1`. Guest `POST /locale` (`locale.store`) is CSRF-protected and returns 404 while a single locale is configured.
+- Cloudron OIDC and directory sync update identity fields only — they must **not** overwrite `users.locale`.
 
 Do **not** rename stored permission strings or live URLs for wording. Display labels only move into lang files.
 
@@ -155,9 +164,7 @@ Core / shared strings stay in `lang/en_GB/*.php` without a package prefix.
 
 Friendly attribute names live in `lang/en_GB/validation.php` → `attributes` (for example `email` → “email address”, `postcode` → “postcode”). Add common form fields there as screens are extracted.
 
-## Out of scope for this baseline
+## Out of scope for this line
 
-- Broad Blade / flash / mail string extraction (later Language waves)
-- Second locales (for example Welsh)
-- User locale preference column / switcher ([#275](https://github.com/APESCIC/MyAPES-Account/issues/275))
-- CI missing-key **hard-fail** ([#276](https://github.com/APESCIC/MyAPES-Account/issues/276) Wave 4 — report-only `lang:check` already ships)
+- Second locales (for example Welsh content) — #275 only prepares the preference pipe
+- Permission catalogue key rewrites or live URL renames for wording

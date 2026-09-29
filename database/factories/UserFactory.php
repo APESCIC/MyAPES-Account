@@ -67,6 +67,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'locale' => 'en_GB',
             'email_verified_at' => now(),
             'onboarding_completed_at' => now(),
             'identity_type' => User::IDENTITY_LOCAL,

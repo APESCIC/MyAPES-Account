@@ -143,10 +143,6 @@ PHP;
         $this->assertSame('this.key.definitely.missing.for.wave1', $extracted[0]['key']);
 
         $failExit = Artisan::call('lang:check', ['--fail-on-missing' => true]);
-        // May succeed today while few keys are referenced; still assert the option is accepted.
-        $this->assertContains($failExit, [
-            LangCheckCommand::SUCCESS,
-            LangCheckCommand::FAILURE,
-        ]);
+        $this->assertSame(LangCheckCommand::SUCCESS, $failExit, Artisan::output());
     }
 }

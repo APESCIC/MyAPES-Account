@@ -41,5 +41,6 @@
                 <button type="submit">{{ __('public.profile.staff-edit.blade.save_staff_profile') }}</button>
             </div>
         </form>
+        <x-locale-switcher />
     </div>
 @endsection

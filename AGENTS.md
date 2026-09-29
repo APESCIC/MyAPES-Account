@@ -2,7 +2,7 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.37.x** (Structure: Core > Modules > Plugins). **`v0.34.x Beta`** through **`v0.36.x Beta`** are **closed**. Structure ships before Language (**v0.38**) and Account security (**v0.39**). See [docs/architecture.md](docs/architecture.md) and [docs/developer-guide.md](docs/developer-guide.md).
+`main` holds the merged stack through **v0.38.x** (Language & keywords). **`v0.34.x Beta`** through **`v0.37.x Beta`** are **closed**. Language ships before Account security (**v0.39**). See [docs/architecture.md](docs/architecture.md) and [docs/developer-guide.md](docs/developer-guide.md).
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133).
 
@@ -13,9 +13,9 @@ Use **minor-line** milestones with a **Beta** suffix until the product exits bet
 - Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
 - **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
 - **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
-- Closed historical lines: `v0.1.x Beta` through `v0.36.x Beta` (completed releases)
-- **Current completed line:** `v0.37.x Beta` (Structure: Core > Modules > Plugins — layout, contracts, enablement, module packages, plugin moves, architecture hard-fail, generators)
-- **Active backlog:** `v0.38.x Beta` (Language & keywords), `v0.39.x Beta` (Account security — do not start until Language is complete)
+- Closed historical lines: `v0.1.x Beta` through `v0.37.x Beta` (completed releases)
+- **Current completed line:** `v0.38.x Beta` (Language & keywords — en_GB localisation, glossary, string extraction, plugin namespaces, SEO, Admin keywords, user locale groundwork, CI missing-key hard-fail)
+- **Active backlog:** `v0.39.x Beta` (Account security — next after Language)
 - **Ship order:** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security (milestones **7 → 9 → 8 → 5**)
 
 Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
@@ -147,9 +147,16 @@ Shipped after Recruitment IA. Docs: [docs/architecture.md](docs/architecture.md)
 4. #281 Folder, namespace, and autoload layout
 5. #282–#295 contracts, enablement, modules, plugin moves, arch hard-fail, generators
 
-### v1.7.0 Beta: Language & keywords (`v0.38.x Beta`)
+### v1.7.0 Beta: Language & keywords (`v0.38.x Beta`, closed)
 
-Ship after Structure. Do not start until milestone 9 is closed.
+Shipped after Structure. Docs: [docs/localisation.md](docs/localisation.md), [docs/glossary.md](docs/glossary.md).
+
+- **en_GB** primary locale with `en` fallback; glossary + string extraction across public / Admin / APES CIC / auth
+- Plugin translation namespaces; public SEO + Admin search keywords
+- User locale preference groundwork (`users.locale`, `SetLocale`, hidden switcher); CI `lang:check --fail-on-missing`
+
+1. #264 Epic — closed with Wave 4
+2. #265–#276 baseline, glossary, inventory, namespaces, extraction, SEO/keywords, locale + CI hard-fail
 
 ## GitHub issues
 

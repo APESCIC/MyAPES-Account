@@ -193,6 +193,7 @@ class OidcAuthController extends Controller
         $user->name = $identity->name ?? $directoryProfile->name ?? $email;
         $user->email = $email;
         $user->email_verified_at = now();
+        // Never touch users.locale — OIDC must not wipe a stored preference (#275).
 
         if ($user->suspended_at !== null
             && $user->suspension_reason
