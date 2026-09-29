@@ -304,7 +304,7 @@ class AdminUserController extends Controller
 
         return redirect()
             ->route('admin.users.show', $user)
-            ->with('status', 'Local role assignments updated.');
+            ->with('status', __('admin.flash.local_role_assignments_updated'));
     }
 
     public function suspend(
@@ -333,7 +333,7 @@ class AdminUserController extends Controller
 
         return redirect()
             ->route('admin.users.show', $user)
-            ->with('status', 'User suspended.');
+            ->with('status', __('admin.flash.user_suspended'));
     }
 
     public function reactivate(
@@ -354,7 +354,7 @@ class AdminUserController extends Controller
 
         return redirect()
             ->route('admin.users.show', $user)
-            ->with('status', 'User reactivated.');
+            ->with('status', __('admin.flash.user_reactivated'));
     }
 
     public function updateProfile(
@@ -437,7 +437,7 @@ class AdminUserController extends Controller
 
         return redirect()
             ->route('admin.users.show', $managedUser)
-            ->with('status', 'Public profile updated.');
+            ->with('status', __('admin.flash.public_profile_updated'));
     }
 
     public function updateStaffProfile(
@@ -501,7 +501,7 @@ class AdminUserController extends Controller
 
         return redirect()
             ->route('admin.users.show', $managedUser)
-            ->with('status', 'Staff profile updated.');
+            ->with('status', __('admin.flash.staff_profile_updated'));
     }
 
     public function staffPhoto(
@@ -538,7 +538,7 @@ class AdminUserController extends Controller
             ->route('admin.users.show', $managedUser)
             ->with(
                 'status',
-                'A one-time temporary password was generated. Copy it now; it will not be shown again.',
+                __('admin.flash.temporary_password_generated'),
             )
             ->with('temporary_password', $temporaryPassword);
     }
@@ -564,7 +564,7 @@ class AdminUserController extends Controller
             ->route('admin.users.show', $managedUser)
             ->with(
                 'status',
-                'A Staff Login reminder was sent. It points at Staff Login / Cloudron, not the public password reset.',
+                __('admin.flash.staff_login_reminder_sent'),
             );
     }
 }

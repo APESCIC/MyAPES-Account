@@ -6,7 +6,7 @@
     @include('admin._navigation')
 
     <section class="panel" aria-labelledby="managed-role-title">
-        <p><a href="{{ route('admin.access.index', ['tab' => 'job-roles']) }}">← Back to Job roles</a></p>
+        <p><a href="{{ route('admin.access.index', ['tab' => 'job-roles']) }}">{{ __('admin.access.back_to_job_roles') }}</a></p>
         <h1 id="managed-role-title">
             @if(\App\Support\DefaultJobRoles::isDefault($managedRole->name))
                 {{ \App\Support\DefaultJobRoles::title($managedRole->name) }}
@@ -15,15 +15,15 @@
             @endif
         </h1>
         <dl class="admin-definition-list">
-            <div><dt>Ownership</dt><dd>{{ \App\Support\DefaultJobRoles::isDefault($managedRole->name) ? 'Default job role' : 'Custom' }}</dd></div>
-            <div><dt>Assigned users</dt><dd>{{ $managedRole->users_count }}</dd></div>
-            <div><dt>Permissions</dt><dd>{{ $managedRole->permissions_count }}</dd></div>
+            <div><dt>{{ __('admin.access.ownership') }}</dt><dd>{{ \App\Support\DefaultJobRoles::isDefault($managedRole->name) ? 'Default job role' : 'Custom' }}</dd></div>
+            <div><dt>{{ __('admin.access.assigned_users') }}</dt><dd>{{ $managedRole->users_count }}</dd></div>
+            <div><dt>{{ __('admin.access.permissions') }}</dt><dd>{{ $managedRole->permissions_count }}</dd></div>
         </dl>
     </section>
 
     <section class="panel" aria-labelledby="role-permissions-title">
-        <h2 id="role-permissions-title">Permissions</h2>
-        <p class="muted">Use capability packs for common permission sets, or expand Advanced for fine-grained control.</p>
+        <h2 id="role-permissions-title">{{ __('admin.access.permissions') }}</h2>
+        <p class="muted">{{ __('admin.access.use_capability_packs_for_common_permission_sets_or_expand_ad') }}</p>
 
         @php
             $assignedGroups = $managedRole->permissions
@@ -44,18 +44,18 @@
                 </ul>
             </div>
         @empty
-            <p>No permissions.</p>
+            <p>{{ __('admin.access.no_permissions') }}</p>
         @endforelse
 
         @can('admin.roles.manage')
             <form method="post" action="{{ route('admin.access.job-roles.update', $managedRole) }}">
                 @csrf
                 @method('put')
-                <label for="role-name">Role name</label>
+                <label for="role-name">{{ __('admin.access.role_name') }}</label>
                 <input id="role-name" name="name" value="{{ $managedRole->name }}" required minlength="3" maxlength="64" pattern="[a-z][a-z0-9]*(?:-[a-z0-9]+)*">
 
                 <fieldset class="permission-choice-group">
-                    <legend>Capability packs</legend>
+                    <legend>{{ __('admin.access.capability_packs') }}</legend>
                     <ul class="permission-choice-list">
                         @foreach($packDefinitions as $packKey => $pack)
                             @php
@@ -71,7 +71,7 @@
                                     <span class="permission-choice__body">
                                         <span class="permission-choice__title">{{ $pack['title'] }}</span>
                                         @if($state === 'indeterminate')
-                                            <span class="permission-choice__description muted">Partially selected — use Advanced for details</span>
+                                            <span class="permission-choice__description muted">{{ __('admin.access.partially_selected_use_advanced_for_details') }}</span>
                                         @else
                                             <span class="permission-choice__description muted">{{ count($pack['permissions']) }} permissions</span>
                                         @endif
@@ -83,7 +83,7 @@
                 </fieldset>
 
                 <details class="permission-advanced">
-                    <summary>Advanced permissions</summary>
+                    <summary>{{ __('admin.access.advanced_permissions') }}</summary>
                     @php
                         $editGroups = $permissions
                             ->groupBy(fn ($permission) => \App\Support\PermissionDescriptions::group($permission->name))
@@ -110,13 +110,13 @@
                     @endforeach
                 </details>
 
-                <div class="actions"><button type="submit">Update role</button></div>
+                <div class="actions"><button type="submit">{{ __('admin.access.update_role') }}</button></div>
             </form>
 
             <form class="stack-spaced" method="post" action="{{ route('admin.access.job-roles.destroy', $managedRole) }}">
                 @csrf
                 @method('delete')
-                <button class="danger-btn" type="submit">Delete custom role</button>
+                <button class="danger-btn" type="submit">{{ __('admin.access.delete_custom_role') }}</button>
             </form>
         @endcan
     </section>

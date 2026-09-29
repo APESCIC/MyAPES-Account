@@ -6,21 +6,21 @@
     @include('admin._navigation')
 
     <section class="panel" aria-labelledby="managed-role-title">
-        <p><a href="{{ route('admin.roles.index') }}">← Back to Super Admin roles</a></p>
+        <p><a href="{{ route('admin.roles.index') }}">{{ __('admin.access.back_to_super_admin_roles') }}</a></p>
         <h1 id="managed-role-title">{{ $managedRole->name }}</h1>
         <dl class="admin-definition-list">
-            <div><dt>Ownership</dt><dd>{{ $managedRole->is_protected ? 'Protected by application code' : 'Custom' }}</dd></div>
-            <div><dt>Assigned users</dt><dd>{{ $managedRole->users_count }}</dd></div>
-            <div><dt>Permissions</dt><dd>{{ $managedRole->permissions_count }}</dd></div>
+            <div><dt>{{ __('admin.access.ownership') }}</dt><dd>{{ $managedRole->is_protected ? 'Protected by application code' : 'Custom' }}</dd></div>
+            <div><dt>{{ __('admin.access.assigned_users') }}</dt><dd>{{ $managedRole->users_count }}</dd></div>
+            <div><dt>{{ __('admin.access.permissions') }}</dt><dd>{{ $managedRole->permissions_count }}</dd></div>
         </dl>
     </section>
 
     <section class="panel" aria-labelledby="role-permissions-title">
-        <h2 id="role-permissions-title">Permissions</h2>
+        <h2 id="role-permissions-title">{{ __('admin.access.permissions') }}</h2>
         @if($managedRole->is_protected)
-            <p class="muted">This protected set is read-only and synchronized from application code.</p>
+            <p class="muted">{{ __('admin.access.this_protected_set_is_read_only_and_synchronized_from_applic') }}</p>
         @else
-            <p class="muted">Current permissions are read-only unless you have custom-role management authorization.</p>
+            <p class="muted">{{ __('admin.access.current_permissions_are_read_only_unless_you_have_custom_rol') }}</p>
         @endif
 
         @php
@@ -42,11 +42,11 @@
                 </ul>
             </div>
         @empty
-            <p>No permissions.</p>
+            <p>{{ __('admin.access.no_permissions') }}</p>
         @endforelse
 
         @if(! $managedRole->is_protected && \Illuminate\Support\Facades\Gate::denies('admin.roles.manage'))
-            <p class="muted">Custom role management requires Super Admin authorization.</p>
+            <p class="muted">{{ __('admin.access.custom_role_management_requires_super_admin_authorization') }}</p>
         @endif
 
         @can('admin.roles.manage')
@@ -54,7 +54,7 @@
                 <form method="post" action="{{ route('admin.roles.update', $managedRole) }}">
                     @csrf
                     @method('put')
-                    <label for="role-name">Role name</label>
+                    <label for="role-name">{{ __('admin.access.role_name') }}</label>
                     <input id="role-name" name="name" value="{{ $managedRole->name }}" required minlength="3" maxlength="64" pattern="[a-z][a-z0-9]*(?:-[a-z0-9]+)*">
                     @php
                         $editGroups = $permissions
@@ -80,13 +80,13 @@
                             </ul>
                         </fieldset>
                     @endforeach
-                    <div class="actions"><button type="submit">Update role</button></div>
+                    <div class="actions"><button type="submit">{{ __('admin.access.update_role') }}</button></div>
                 </form>
 
                 <form class="stack-spaced" method="post" action="{{ route('admin.roles.destroy', $managedRole) }}">
                     @csrf
                     @method('delete')
-                    <button class="danger-btn" type="submit">Delete custom role</button>
+                    <button class="danger-btn" type="submit">{{ __('admin.access.delete_custom_role') }}</button>
                 </form>
             @endif
         @endcan

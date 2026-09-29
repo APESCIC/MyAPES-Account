@@ -7,19 +7,19 @@
 
     <header class="page-heading">
         <div>
-            <p class="eyebrow">First-party capability registry</p>
-            <h1>Admin plugins</h1>
-            <p>Each plugin lists version, compatible modules, dependencies, and per-module enablement toggles. Settings links stay on each enablement.</p>
+            <p class="eyebrow">{{ __('admin.plugins.first_party_capability_registry') }}</p>
+            <h1>{{ __('admin.plugins.admin_plugins') }}</h1>
+            <p>{{ __('admin.plugins.each_plugin_lists_version_compatible_modules_dependencies_an') }}</p>
         </div>
     </header>
 
-    <div class="module-registry" role="region" aria-label="Plugin compatibility and lifecycle registry">
+    <div class="module-registry" role="region" aria-label="{{ __('admin.plugins.plugin_compatibility_and_lifecycle_registry') }}">
         @foreach($plugins as $pluginRow)
             @php
                 $pluginDef = $pluginRow['definition'];
                 $compatible = implode(', ', $pluginRow['compatible_modules']);
                 $pluginDeps = $pluginRow['dependencies'] === []
-                    ? 'None'
+                    ? __('admin.access.none')
                     : implode(', ', $pluginRow['dependencies']);
             @endphp
             <section class="module-registry__subcore" aria-labelledby="plugin-{{ $pluginDef->key }}">
@@ -53,20 +53,20 @@
                             $stateLabel = ! $shipped
                                 ? $status->label()
                                 : ($installation
-                                    ? ($installation->enabled ? 'Enabled' : 'Disabled')
+                                    ? ($installation->enabled ? __('admin.plugins.enabled') : 'Disabled')
                                     : 'Available');
                             $dependencySummary = collect($cell['dependencies'])
-                                ->map(fn (array $dependency): string => $dependency['key'].' ('.($dependency['enabled'] ? 'Enabled' : 'Unavailable').')')
+                                ->map(fn (array $dependency): string => $dependency['key'].' ('.($dependency['enabled'] ? __('admin.plugins.enabled') : __('admin.access.unavailable')).')')
                                 ->implode(', ');
                             if ($dependencySummary === '') {
-                                $dependencySummary = 'None';
+                                $dependencySummary = __('admin.access.none');
                             }
                             $transitionLabel = $cell['transition_at']?->format('Y-m-d H:i') ?? 'Release default';
                             $actorLabel = $cell['actor_id'] ?? 'System';
                             $settingsDescriptor = $cell['settings'];
                             $supportsSettings = $settingsDescriptor->supportsSettings;
                             $recordCount = (int) ($cell['active_record_count'] ?? 0);
-                            $depsLabel = $dependencySummary === 'None' ? 'None' : $dependencySummary;
+                            $depsLabel = $dependencySummary === __('admin.access.none') ? __('admin.access.none') : $dependencySummary;
                         @endphp
 
                         <li
@@ -85,18 +85,18 @@
                                 </div>
 
                                 @if($shipped)
-                                    <ul class="module-registry__metric-bar" aria-label="Plugin metrics for {{ $subCore->name }}">
+                                    <ul class="module-registry__metric-bar" aria-label="{{ __('admin.plugins.metrics_for') }} {{ $subCore->name }}">
                                         <li>
-                                            <span class="module-registry__metric-label">Records</span>
+                                            <span class="module-registry__metric-label">{{ __('admin.plugins.records') }}</span>
                                             <strong>{{ $recordCount }}</strong>
                                         </li>
                                         <li>
-                                            <span class="module-registry__metric-label">Deps</span>
-                                            <strong title="{{ $depsLabel }}">{{ $dependencySummary === 'None' ? '0' : collect($cell['dependencies'])->count() }}</strong>
+                                            <span class="module-registry__metric-label">{{ __('admin.plugins.deps') }}</span>
+                                            <strong title="{{ $depsLabel }}">{{ $dependencySummary === __('admin.access.none') ? '0' : collect($cell['dependencies'])->count() }}</strong>
                                         </li>
                                         <li>
-                                            <span class="module-registry__metric-label">Updated</span>
-                                            <strong title="Actor {{ $actorLabel }}">{{ $transitionLabel }}</strong>
+                                            <span class="module-registry__metric-label">{{ __('admin.plugins.updated') }}</span>
+                                            <strong title="{{ __('admin.plugins.actor') }} {{ $actorLabel }}">{{ $transitionLabel }}</strong>
                                         </li>
                                     </ul>
                                     @if($dependencySummary !== 'None')
@@ -112,12 +112,12 @@
                                                 >{{ $settingsDescriptor->navLabel }}</a>
                                             @endcan
                                         @else
-                                            <span class="module-registry__settings-none muted">No configurable settings</span>
+                                            <span class="module-registry__settings-none muted">{{ __('admin.plugins.no_configurable_settings') }}</span>
                                         @endif
 
                                         @can('admin.modules.manage')
                                             <details class="module-registry__manage" data-module-manage>
-                                                <summary>Manage</summary>
+                                                <summary>{{ __('admin.plugins.manage') }}</summary>
                                                 <form
                                                     method="post"
                                                     action="{{ route('admin.modules.transition', [$subCore->key, $pluginDef->key]) }}"
@@ -131,11 +131,11 @@
                                                     @endif
                                                     <label>
                                                         <input type="checkbox" name="confirm_action" value="1" required>
-                                                        Confirm {{ $action }}
+                                                        {{ __('admin.plugins.confirm') }} {{ $action }}
                                                     </label>
                                                     <label>
                                                         <input type="checkbox" name="confirm_navigation" value="1" required>
-                                                        Confirm the navigation change
+                                                        {{ __('admin.plugins.confirm_navigation_change') }}
                                                     </label>
                                                     <button type="submit" class="button button-secondary">
                                                         {{ str($action)->title() }}

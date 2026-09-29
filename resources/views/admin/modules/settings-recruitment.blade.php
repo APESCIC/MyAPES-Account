@@ -8,13 +8,13 @@
     <header class="page-heading module-settings-heading">
         <div>
             <p class="eyebrow">{{ strtoupper(str_replace('-', ' ', $subCoreKey)) }} · RECRUITMENT</p>
-            <h1>Recruitment settings</h1>
-            <p>Control the public roles board and whether visitors can apply for open roles.</p>
+            <h1>{{ __('admin.plugins.recruitment_settings') }}</h1>
+            <p>{{ __('admin.plugins.control_the_public_roles_board_and_whether_visitors_can_appl') }}</p>
         </div>
         <div class="module-settings-toolbar actions">
-            <a class="button button-secondary" href="{{ route('admin.modules.index') }}">Back to plugins</a>
+            <a class="button button-secondary" href="{{ route('admin.modules.index') }}">{{ __('admin.plugins.back_to_plugins') }}</a>
             @if($canManage)
-                <button type="submit" form="module-settings-form">Save settings</button>
+                <button type="submit" form="module-settings-form">{{ __('admin.plugins.save_settings') }}</button>
             @endif
         </div>
     </header>
@@ -35,8 +35,8 @@
 
         <section class="module-settings-group">
             <div class="module-settings-group__header">
-                <h2>Public board</h2>
-                <p class="muted">When off, the public roles board and discovery links are hidden.</p>
+                <h2>{{ __('admin.plugins.public_board') }}</h2>
+                <p class="muted">{{ __('admin.plugins.when_off_the_public_roles_board_and_discovery_links_are_hidd') }}</p>
             </div>
             <label class="module-settings-toggle">
                 <input
@@ -46,14 +46,14 @@
                     @checked(old('public_board_enabled', $settings['public_board_enabled'] ?? true))
                     @disabled(! $canManage)
                 >
-                Show public roles board
+                {{ __('admin.plugins.show_public_roles_board') }}
             </label>
         </section>
 
         <section class="module-settings-group">
             <div class="module-settings-group__header">
-                <h2>Public apply</h2>
-                <p class="muted">When off, signed-in visitors can browse open roles but cannot submit applications. Requires the public board to be on.</p>
+                <h2>{{ __('admin.plugins.public_apply') }}</h2>
+                <p class="muted">{{ __('admin.plugins.when_off_signed_in_visitors_can_browse_open_roles_but_cannot') }}</p>
             </div>
             <label class="module-settings-toggle">
                 <input
@@ -63,13 +63,13 @@
                     @checked(old('public_apply_enabled', $settings['public_apply_enabled'] ?? true))
                     @disabled(! $canManage)
                 >
-                Allow public applications
+                {{ __('admin.plugins.allow_public_applications') }}
             </label>
         </section>
 
         @if($canManage)
             <div class="module-settings-sticky-actions">
-                <button type="submit">Save settings</button>
+                <button type="submit">{{ __('admin.plugins.save_settings') }}</button>
             </div>
         @endif
     </form>
@@ -85,12 +85,12 @@
             @method('put')
             <input type="hidden" name="version" value="{{ $record->lock_version }}">
             <input type="hidden" name="reset_defaults" value="1">
-            <p class="muted">Restore public board and apply toggles to their default (both on).</p>
+            <p class="muted">{{ __('admin.plugins.restore_public_board_and_apply_toggles_to_their_default_both') }}</p>
             <label>
                 <input type="checkbox" name="confirm_reset" value="1" required>
-                Confirm reset to defaults
+                {{ __('admin.plugins.confirm_reset_defaults') }}
             </label>
-            <button type="submit" class="button button-secondary">Reset to defaults</button>
+            <button type="submit" class="button button-secondary">{{ __('admin.plugins.reset_to_defaults') }}</button>
         </form>
     @endif
 @endsection

@@ -16,21 +16,21 @@
         $workload = $dashboard['workload'];
         $median = $workload['median_closure_minutes'];
         $identityLabels = [
-            'local' => 'Local',
-            'cloudron_oidc' => 'Cloudron OIDC',
-            'hybrid' => 'Hybrid',
+            'local' => __('admin.overview.identity.local'),
+            'cloudron_oidc' => __('admin.overview.identity.cloudron_oidc'),
+            'hybrid' => __('admin.overview.identity.hybrid'),
         ];
         $accessLabels = [
-            'service-user' => 'Public',
-            'staff' => 'Staff',
-            'administrator' => 'Administrator',
-            'super-admin' => 'Super-admin',
+            'service-user' => __('admin.overview.access.public'),
+            'staff' => __('admin.overview.access.staff'),
+            'administrator' => __('admin.overview.access.administrator'),
+            'super-admin' => __('admin.overview.access.super_admin'),
         ];
         $alertLabels = [
-            'disabled' => 'Disabled',
-            'incompatible' => 'Incompatible',
-            'code_not_shipped' => 'Code not shipped',
-            'active-records' => 'Active records',
+            'disabled' => __('admin.overview.alert.disabled'),
+            'incompatible' => __('admin.overview.alert.incompatible'),
+            'code_not_shipped' => __('admin.overview.alert.code_not_shipped'),
+            'active-records' => __('admin.overview.alert.active_records'),
         ];
         $chartData = [
             'days' => $workload['days'],
@@ -42,60 +42,60 @@
     @endphp
 
     <div class="panel">
-        <h1>Admin overview</h1>
+        <h1>{{ __('admin.overview.admin_overview') }}</h1>
         <p class="muted">
             @if($showTechnicalExtras)
-                Day-to-day account health plus directory, plugin, and privileged diagnostics for entitled operators.
+                {{ __('admin.overview.intro_privileged') }}
             @else
-                Day-to-day account health for administrators. Technical charts, directory controls, and plugin lifecycle require additional Admin permissions.
+                {{ __('admin.overview.intro_standard') }}
             @endif
         </p>
 
-        <form method="get" action="{{ route('admin.index') }}" class="analytics-range" aria-label="Reporting range">
+        <form method="get" action="{{ route('admin.index') }}" class="analytics-range" aria-label="{{ __('admin.overview.reporting_range') }}">
             <fieldset>
-                <legend>Reporting range</legend>
+                <legend>{{ __('admin.overview.reporting_range_legend') }}</legend>
                 @foreach($ranges as $option)
                     <label>
                         <input type="radio" name="range" value="{{ $option }}" @checked($range === $option) onchange="this.form.submit()">
                         Last {{ $option }} days
                     </label>
                 @endforeach
-                <button type="submit">Update range</button>
+                <button type="submit">{{ __('admin.overview.update_range') }}</button>
             </fieldset>
         </form>
 
         <div class="grid analytics-kpis" role="list">
             <div class="panel panel-flat" role="listitem">
-                <h3>Total accounts</h3>
+                <h3>{{ __('admin.overview.total_accounts') }}</h3>
                 <div data-kpi="total-accounts">{{ $accounts['total'] }}</div>
             </div>
             <div class="panel panel-flat" role="listitem">
-                <h3>Created in range</h3>
+                <h3>{{ __('admin.overview.created_in_range') }}</h3>
                 <div data-kpi="created-in-range">{{ $accounts['created_in_range'] }}</div>
             </div>
             <div class="panel panel-flat" role="listitem">
-                <h3>Suspended</h3>
+                <h3>{{ __('admin.overview.suspended') }}</h3>
                 <div data-kpi="suspended-accounts">{{ $accounts['suspended'] }}</div>
             </div>
             <div class="panel panel-flat" role="listitem">
-                <h3>Open workload</h3>
+                <h3>{{ __('admin.overview.open_workload') }}</h3>
                 <div data-kpi="open-workload">{{ $workload['open'] }}</div>
             </div>
             <div class="panel panel-flat" role="listitem">
-                <h3>High or urgent</h3>
+                <h3>{{ __('admin.overview.high_or_urgent') }}</h3>
                 <div data-kpi="high-or-urgent">{{ $workload['high_or_urgent'] }}</div>
             </div>
             <div class="panel panel-flat" role="listitem">
-                <h3>Unassigned</h3>
+                <h3>{{ __('admin.overview.unassigned') }}</h3>
                 <div data-kpi="unassigned">{{ $workload['unassigned'] }}</div>
             </div>
             @if($showTechnicalExtras)
                 <div class="panel panel-flat" role="listitem">
-                    <h3>Enabled plugins</h3>
+                    <h3>{{ __('admin.overview.enabled_plugins') }}</h3>
                     <div data-kpi="enabled-modules">{{ $dashboard['modules']['enabled'] }} / {{ $dashboard['modules']['installed'] }}</div>
                 </div>
                 <div class="panel panel-flat" role="listitem">
-                    <h3>Median closure</h3>
+                    <h3>{{ __('admin.overview.median_closure') }}</h3>
                     <div data-kpi="median-closure">
                         @if($median === null)
                             not available
@@ -105,7 +105,7 @@
                     </div>
                 </div>
                 <div class="panel panel-flat" role="listitem">
-                    <h3>Plugin alerts</h3>
+                    <h3>{{ __('admin.overview.plugin_alerts') }}</h3>
                     <div data-kpi="module-alerts">{{ count($dashboard['module_alerts']) }}</div>
                 </div>
             @endif
@@ -113,11 +113,11 @@
     </div>
 
     <div class="panel">
-        <h2>Accounts by identity and access class</h2>
+        <h2>{{ __('admin.overview.accounts_by_identity_and_access_class') }}</h2>
         <div class="grid">
             <table data-table="identity-types">
-                <caption>Account totals by identity type</caption>
-                <thead><tr><th scope="col">Identity type</th><th scope="col">Accounts</th></tr></thead>
+                <caption>{{ __('admin.overview.account_totals_by_identity_type') }}</caption>
+                <thead><tr><th scope="col">{{ __('admin.overview.identity_type') }}</th><th scope="col">{{ __('admin.overview.accounts') }}</th></tr></thead>
                 <tbody>
                 @foreach($accounts['by_identity_type'] as $type => $count)
                     <tr>
@@ -128,8 +128,8 @@
                 </tbody>
             </table>
             <table data-table="access-classes">
-                <caption>Account totals by protected access class</caption>
-                <thead><tr><th scope="col">Access class</th><th scope="col">Accounts</th></tr></thead>
+                <caption>{{ __('admin.overview.account_totals_by_protected_access_class') }}</caption>
+                <thead><tr><th scope="col">{{ __('admin.overview.access_class') }}</th><th scope="col">{{ __('admin.overview.accounts') }}</th></tr></thead>
                 <tbody>
                 @foreach($accounts['by_access_class'] as $class => $count)
                     <tr>
@@ -144,9 +144,9 @@
 
     @can('admin.users.view')
         <div class="panel">
-            <h2>Recent accounts</h2>
+            <h2>{{ __('admin.overview.recent_accounts') }}</h2>
             <table>
-                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Created</th></tr></thead>
+                <thead><tr><th>{{ __('admin.access.name') }}</th><th>{{ __('admin.access.email') }}</th><th>{{ __('admin.access.role') }}</th><th>{{ __('admin.overview.created') }}</th></tr></thead>
                 <tbody>
                 @foreach($recentUsers as $user)
                     <tr>
@@ -159,27 +159,27 @@
                 </tbody>
             </table>
             <p class="actions">
-                <a href="{{ route('admin.users.index', ['account_type' => 'public']) }}">Manage public users</a>
+                <a href="{{ route('admin.users.index', ['account_type' => 'public']) }}">{{ __('admin.overview.manage_public_users') }}</a>
                 ·
-                <a href="{{ route('admin.users.index', ['account_type' => 'staff']) }}">Manage staff</a>
+                <a href="{{ route('admin.users.index', ['account_type' => 'staff']) }}">{{ __('admin.overview.manage_staff') }}</a>
             </p>
         </div>
     @endcan
 
     @if($showTechnicalExtras)
         <div class="panel">
-            <h2>Created versus closed</h2>
-            <p class="muted">Daily created and closed items for the selected range. Patterned series, not colour alone.</p>
+            <h2>{{ __('admin.overview.created_versus_closed') }}</h2>
+            <p class="muted">{{ __('admin.overview.daily_created_and_closed_items_for_the_selected_range_patter') }}</p>
             <div class="analytics-chart-frame" data-chart-frame="trend">
                 <canvas id="analytics-trend-chart" role="img" aria-labelledby="analytics-trend-caption"></canvas>
             </div>
             <table id="analytics-trend-table" data-table="created-versus-closed">
-                <caption id="analytics-trend-caption">Created versus closed items per day</caption>
+                <caption id="analytics-trend-caption">{{ __('admin.overview.created_versus_closed_items_per_day') }}</caption>
                 <thead>
                     <tr>
-                        <th scope="col">Day</th>
-                        <th scope="col">Created</th>
-                        <th scope="col">Closed</th>
+                        <th scope="col">{{ __('admin.overview.day') }}</th>
+                        <th scope="col">{{ __('admin.overview.created') }}</th>
+                        <th scope="col">{{ __('admin.overview.closed') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -195,19 +195,19 @@
         </div>
 
         <div class="panel">
-            <h2>Open workload by service</h2>
-            <p class="muted">Currently open tickets, cases, and consultations by installed plugin.</p>
+            <h2>{{ __('admin.overview.open_workload_by_service') }}</h2>
+            <p class="muted">{{ __('admin.overview.currently_open_tickets_cases_and_consultations_by_installed_') }}</p>
             <div class="analytics-chart-frame" data-chart-frame="workload">
                 <canvas id="analytics-workload-chart" role="img" aria-labelledby="analytics-workload-caption"></canvas>
             </div>
             <table id="analytics-workload-table" data-table="workload-by-service">
-                <caption id="analytics-workload-caption">Open workload by service and plugin</caption>
+                <caption id="analytics-workload-caption">{{ __('admin.overview.open_workload_by_service_and_plugin') }}</caption>
                 <thead>
                     <tr>
-                        <th scope="col">Service</th>
-                        <th scope="col">Open</th>
-                        <th scope="col">High or urgent</th>
-                        <th scope="col">Unassigned</th>
+                        <th scope="col">{{ __('admin.overview.service') }}</th>
+                        <th scope="col">{{ __('admin.overview.open') }}</th>
+                        <th scope="col">{{ __('admin.overview.high_or_urgent') }}</th>
+                        <th scope="col">{{ __('admin.overview.unassigned') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -220,7 +220,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4">No plugin analytics are available.</td>
+                        <td colspan="4">{{ __('admin.overview.no_plugin_analytics_are_available') }}</td>
                     </tr>
                 @endforelse
                 </tbody>
@@ -228,7 +228,7 @@
         </div>
 
         <div class="panel">
-            <h2>Operational context</h2>
+            <h2>{{ __('admin.overview.operational_context') }}</h2>
             <p data-maintenance-state="{{ $dashboard['maintenance']['active'] ? 'active' : 'inactive' }}">
                 Maintenance is
                 <strong>{{ $dashboard['maintenance']['active'] ? 'active' : 'inactive' }}</strong>
@@ -237,8 +237,8 @@
                 @endif
             </p>
             <table data-table="module-alerts">
-                <caption>Disabled, incompatible, code-not-shipped, or active-record plugin warnings</caption>
-                <thead><tr><th scope="col">Plugin</th><th scope="col">Status</th></tr></thead>
+                <caption>{{ __('admin.overview.disabled_incompatible_code_not_shipped_or_active_record_plug') }}</caption>
+                <thead><tr><th scope="col">{{ __('admin.overview.plugin') }}</th><th scope="col">{{ __('admin.access.status') }}</th></tr></thead>
                 <tbody>
                 @forelse($dashboard['module_alerts'] as $alert)
                     <tr data-alert-kind="{{ $alert['kind'] }}">
@@ -247,18 +247,18 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="2">No plugin warnings.</td>
+                        <td colspan="2">{{ __('admin.overview.no_plugin_warnings') }}</td>
                     </tr>
                 @endforelse
                 </tbody>
             </table>
             <table data-table="privileged-events">
-                <caption>Recent privileged audit events</caption>
+                <caption>{{ __('admin.overview.recent_privileged_audit_events') }}</caption>
                 <thead>
                     <tr>
-                        <th scope="col">Action</th>
-                        <th scope="col">Actor</th>
-                        <th scope="col">Time</th>
+                        <th scope="col">{{ __('admin.access.action') }}</th>
+                        <th scope="col">{{ __('admin.overview.actor') }}</th>
+                        <th scope="col">{{ __('admin.overview.time') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -270,7 +270,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3">No privileged events in the audit log.</td>
+                        <td colspan="3">{{ __('admin.overview.no_privileged_events_in_the_audit_log') }}</td>
                     </tr>
                 @endforelse
                 </tbody>

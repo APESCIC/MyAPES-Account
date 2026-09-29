@@ -6,43 +6,43 @@
     @include('admin._navigation')
 
     <section class="panel" aria-labelledby="group-members-title">
-        <p><a href="{{ route('admin.access.index', ['tab' => 'groups']) }}">← Back to Groups</a></p>
-        <h1 id="group-members-title">Members of <code>{{ $group->name }}</code></h1>
+        <p><a href="{{ route('admin.access.index', ['tab' => 'groups']) }}">{{ __('admin.access.back_to_groups') }}</a></p>
+        <h1 id="group-members-title">{{ __('admin.access.members_of') }} <code>{{ $group->name }}</code></h1>
         <dl class="admin-definition-list">
             <div>
-                <dt>Catalogue status</dt>
+                <dt>{{ __('admin.access.catalogue_status') }}</dt>
                 <dd>{{ ucfirst($group->status) }}</dd>
             </div>
             <div>
-                <dt>Catalogue member count</dt>
+                <dt>{{ __('admin.access.catalogue_member_count') }}</dt>
                 <dd>{{ $group->member_count ?? 'Unknown' }}</dd>
             </div>
             <div>
-                <dt>Live directory members</dt>
+                <dt>{{ __('admin.access.live_directory_members') }}</dt>
                 <dd>
                     @if($directoryUnavailable)
-                        Unavailable
+                        {{ __('admin.access.unavailable') }}
                     @else
                         {{ count($members) }}
                     @endif
                 </dd>
             </div>
         </dl>
-        <p class="muted">Membership is read live from the directory. This page does not start a directory sync.</p>
+        <p class="muted">{{ __('admin.access.membership_is_read_live_from_the_directory_this_page_does_no') }}</p>
     </section>
 
     <section class="panel" aria-labelledby="group-member-list-title">
-        <h2 id="group-member-list-title">Directory members</h2>
+        <h2 id="group-member-list-title">{{ __('admin.access.directory_members') }}</h2>
         @if($directoryUnavailable)
-            <p role="alert">Directory membership could not be loaded. Member details are hidden until the directory is available again.</p>
+            <p role="alert">{{ __('admin.access.directory_membership_could_not_be_loaded_member_details_are_') }}</p>
         @else
             <table>
-                <caption>{{ count($members) }} members currently in this group</caption>
+                <caption>{{ count($members) }} {{ __('admin.access.members_currently_in_group') }}</caption>
                 <thead>
                     <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Job title</th>
+                        <th scope="col">{{ __('admin.access.name') }}</th>
+                        <th scope="col">{{ __('admin.access.email') }}</th>
+                        <th scope="col">{{ __('admin.access.job_title') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,7 +53,7 @@
                         <td>{{ $member->jobTitle ?? '—' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="3">No members are currently listed for this group in the directory.</td></tr>
+                    <tr><td colspan="3">{{ __('admin.access.no_members_are_currently_listed_for_this_group_in_the_direct') }}</td></tr>
                 @endforelse
                 </tbody>
             </table>

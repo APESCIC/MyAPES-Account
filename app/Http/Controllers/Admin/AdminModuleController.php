@@ -93,7 +93,7 @@ class AdminModuleController extends Controller
 
             return redirect()
                 ->route('admin.modules.settings.edit', [$subCoreKey, $moduleKey])
-                ->with('status', 'Plugin settings reset to defaults.');
+                ->with('status', __('admin.flash.plugin_settings_reset_to_defaults'));
         }
 
         $payload = match ($descriptor->schema) {
@@ -125,7 +125,7 @@ class AdminModuleController extends Controller
 
         return redirect()
             ->route('admin.modules.settings.edit', [$subCoreKey, $moduleKey])
-            ->with('status', 'Plugin settings saved.');
+            ->with('status', __('admin.flash.plugin_settings_saved'));
     }
 
     public function transition(
@@ -197,7 +197,7 @@ class AdminModuleController extends Controller
 
         return redirect()
             ->route('admin.modules.index')
-            ->with('status', 'Plugin state updated.');
+            ->with('status', __('admin.flash.plugin_state_updated'));
     }
 
     /**

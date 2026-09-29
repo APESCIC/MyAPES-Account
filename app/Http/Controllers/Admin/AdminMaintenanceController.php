@@ -57,7 +57,7 @@ class AdminMaintenanceController extends Controller
 
         return redirect()
             ->route('admin.maintenance.index')
-            ->with('status', 'Maintenance mode activated.');
+            ->with('status', __('admin.flash.maintenance_mode_activated'));
     }
 
     public function deactivate(
@@ -88,6 +88,6 @@ class AdminMaintenanceController extends Controller
 
         return redirect()
             ->route('admin.maintenance.index')
-            ->with('status', 'Maintenance mode deactivated.');
+            ->with('status', __('admin.flash.maintenance_mode_deactivated'));
     }
 }

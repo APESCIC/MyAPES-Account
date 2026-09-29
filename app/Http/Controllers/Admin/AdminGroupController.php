@@ -126,7 +126,7 @@ class AdminGroupController extends Controller
 
         return redirect()
             ->route('admin.groups.index')
-            ->with('status', 'Directory synchronization requested.');
+            ->with('status', __('admin.flash.directory_synchronization_requested'));
     }
 
     public function storeMapping(
@@ -161,7 +161,7 @@ class AdminGroupController extends Controller
 
         return redirect()
             ->route('admin.groups.index')
-            ->with('status', 'Job role mapping updated.');
+            ->with('status', __('admin.flash.job_role_mapping_updated'));
     }
 
     public function destroyMapping(
@@ -184,6 +184,6 @@ class AdminGroupController extends Controller
 
         return redirect()
             ->route('admin.groups.index')
-            ->with('status', 'Job role mapping removed.');
+            ->with('status', __('admin.flash.job_role_mapping_removed'));
     }
 }
