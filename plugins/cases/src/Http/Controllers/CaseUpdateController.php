@@ -57,7 +57,7 @@ class CaseUpdateController extends Controller
 
         if ($case->status === 'closed') {
             throw ValidationException::withMessages([
-                'body' => 'Reopen the case before adding another update.',
+                'body' => __('cases::ui.validation.reopen_the_case_before_adding_another_update'),
             ]);
         }
 
@@ -123,7 +123,7 @@ class CaseUpdateController extends Controller
         ]);
 
         return redirect()->route($area->showRouteName(), $case)
-            ->with('status', 'Case update added.');
+            ->with('status', __('cases::ui.flash.case_update_added'));
     }
 
     private function instance(Request $request): ModuleInstanceDefinition

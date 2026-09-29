@@ -10,24 +10,24 @@
         <x-mascot-tip />
     </div>
     <div class="panel" id="list">
-        <h2>Tickets</h2>
+        <h2>{{ __('tickets::ui.index.blade.tickets') }}</h2>
         @if($tickets->isEmpty())
             <x-mascot-tip
                 variant="empty"
-                title="No tickets are available to you yet."
+                title="{{ __('tickets::ui.index.blade.no_tickets_are_available_to_you_yet') }}"
                 body="When a ticket is shared with you, or you create one, it will appear here."
             />
         @else
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Subject</th>
-                        <th>Area</th>
-                        <th>Status</th>
-                        <th>Priority</th>
-                        <th>Owner</th>
-                        <th>Assigned</th>
+                        <th>{{ __('tickets::ui.index.blade.id') }}</th>
+                        <th>{{ __('tickets::ui.index.blade.subject') }}</th>
+                        <th>{{ __('tickets::ui.index.blade.area') }}</th>
+                        <th>{{ __('tickets::ui.index.blade.status') }}</th>
+                        <th>{{ __('tickets::ui.index.blade.priority') }}</th>
+                        <th>{{ __('tickets::ui.index.blade.owner') }}</th>
+                        <th>{{ __('tickets::ui.index.blade.assigned') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -56,7 +56,7 @@
                                 {{ $ticket->assigned_to ? 'Assigned' : 'Unassigned' }}
                             @endif
                         </td>
-                        <td><a href="{{ route($ticketService->routePrefix.'.show', $ticket) }}">Open</a></td>
+                        <td><a href="{{ route($ticketService->routePrefix.'.show', $ticket) }}">{{ __('tickets::ui.index.blade.open') }}</a></td>
                     </tr>
                 @endforeach
                 </tbody>
@@ -66,7 +66,7 @@
     </div>
     @if($canCreateTicket)
         <div class="panel" id="create">
-            <h2>Create ticket</h2>
+            <h2>{{ __('tickets::ui.index.blade.create_ticket') }}</h2>
             <form
                 method="post"
                 action="{{ route($ticketService->routePrefix.'.store') }}"
@@ -76,10 +76,10 @@
             @csrf
             <div class="row">
                 <div>
-                    <label for="service_area">Service area</label>
+                    <label for="service_area">{{ __('tickets::ui.index.blade.service_area') }}</label>
                     <select id="service_area" name="service_area" data-category-parent required>
                         @if($usesHierarchicalCategories)
-                            <option value="">Select service area</option>
+                            <option value="">{{ __('tickets::ui.index.blade.select_service_area') }}</option>
                             @foreach($serviceAreaGroups as $area)
                                 <option
                                     value="{{ $area['key'] }}"
@@ -95,14 +95,14 @@
                 </div>
                 @if($usesHierarchicalCategories)
                     <div>
-                        <label for="sub_category">Subcategory</label>
+                        <label for="sub_category">{{ __('tickets::ui.index.blade.subcategory') }}</label>
                         <select id="sub_category" name="sub_category" data-category-child required>
-                            <option value="">Select subcategory</option>
+                            <option value="">{{ __('tickets::ui.index.blade.select_subcategory') }}</option>
                         </select>
                     </div>
                 @endif
                 <div>
-                    <label for="priority">Priority</label>
+                    <label for="priority">{{ __('tickets::ui.index.blade.priority') }}</label>
                     <select id="priority" name="priority">
                         @foreach($priorities as $priority)
                             <option value="{{ $priority }}" @selected(old('priority', 'medium') === $priority)>{{ $priority }}</option>
@@ -113,11 +113,11 @@
             @if($usesHierarchicalCategories)
                 <div data-website-field hidden>
                     <label for="affected_website_key">
-                        Affected website
-                        <span class="required-mark" data-required-mark>(required)</span>
+                        {{ __('tickets::ui.index.blade.affected_website') }}
+                        <span class="required-mark" data-required-mark>{{ __('tickets::ui.index.blade.required') }}</span>
                     </label>
                     <select id="affected_website_key" name="affected_website_key">
-                        <option value="">Select website</option>
+                        <option value="">{{ __('tickets::ui.index.blade.select_website') }}</option>
                         @foreach($websites as $website)
                             <option value="{{ $website['key'] }}" @selected(old('affected_website_key') === $website['key'])>
                                 {{ $website['label'] }}
@@ -126,19 +126,19 @@
                     </select>
                 </div>
             @endif
-            <label for="subject">Subject</label>
+            <label for="subject">{{ __('tickets::ui.index.blade.subject') }}</label>
             <input id="subject" name="subject" value="{{ old('subject') }}" required>
-            <label for="description">Description</label>
+            <label for="description">{{ __('tickets::ui.index.blade.description') }}</label>
             <textarea id="description" name="description" required>{{ old('description') }}</textarea>
             @if($usesHierarchicalCategories)
                 <div data-attachment-fields hidden>
-                    <label for="screenshots">Screenshots (optional)</label>
+                    <label for="screenshots">{{ __('tickets::ui.index.blade.screenshots_optional') }}</label>
                     <input id="screenshots" name="screenshots[]" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-                    <label for="screencast">Screencast (optional)</label>
+                    <label for="screencast">{{ __('tickets::ui.index.blade.screencast_optional') }}</label>
                     <input id="screencast" name="screencast" type="file" accept="video/mp4,video/webm">
                 </div>
             @endif
-                <button type="submit">Create ticket</button>
+                <button type="submit">{{ __('tickets::ui.index.blade.create_ticket') }}</button>
             </form>
         </div>
     @endif

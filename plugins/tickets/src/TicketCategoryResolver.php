@@ -124,7 +124,7 @@ class TicketCategoryResolver
         $sub = $this->findSubcategory($subCoreKey, $serviceArea, $subCategory);
         if ($sub === null) {
             throw ValidationException::withMessages([
-                'sub_category' => 'Choose a valid subcategory for the selected service area.',
+                'sub_category' => __('tickets::ui.validation.choose_a_valid_subcategory_for_the_selected_service_are'),
             ]);
         }
 
@@ -134,17 +134,17 @@ class TicketCategoryResolver
         if ($requiresWebsite) {
             if ($websiteKey === null || $websiteKey === '') {
                 throw ValidationException::withMessages([
-                    'affected_website_key' => 'Select which website is affected.',
+                    'affected_website_key' => __('tickets::ui.validation.select_which_website_is_affected'),
                 ]);
             }
             if (! in_array($websiteKey, $websiteKeys, true)) {
                 throw ValidationException::withMessages([
-                    'affected_website_key' => 'Select a valid website.',
+                    'affected_website_key' => __('tickets::ui.validation.select_a_valid_website'),
                 ]);
             }
         } elseif ($websiteKey !== null && $websiteKey !== '' && ! in_array($websiteKey, $websiteKeys, true)) {
             throw ValidationException::withMessages([
-                'affected_website_key' => 'Select a valid website.',
+                'affected_website_key' => __('tickets::ui.validation.select_a_valid_website'),
             ]);
         }
 

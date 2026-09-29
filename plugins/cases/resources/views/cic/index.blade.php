@@ -4,30 +4,30 @@
 
 @section('content')
     <div class="panel">
-        <span class="service-label apes-cic">APES CIC</span>
-        <h1>Cases</h1>
-        <p class="muted">Formal casework including data access, privacy requests, complaints and escalated enquiries. Use tickets for general support.</p>
+        <span class="service-label apes-cic">{{ __('cases::ui.index.blade.apes_cic') }}</span>
+        <h1>{{ __('cases::ui.index.blade.cases') }}</h1>
+        <p class="muted">{{ __('cases::ui.index.blade.formal_casework_including_data_access_privacy_requests_') }}</p>
         <x-mascot-tip />
     </div>
     <div class="panel" id="list">
-        <h2>Your available cases</h2>
+        <h2>{{ __('cases::ui.index.blade.your_available_cases') }}</h2>
         @if($cases->isEmpty())
             <x-mascot-tip
                 variant="empty"
-                title="No cases are available to you yet."
+                title="{{ __('cases::ui.index.blade.no_cases_are_available_to_you_yet') }}"
                 body="When a case is shared with you, or you open one, it will appear here."
             />
         @else
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th>Status</th>
-                        <th>Priority</th>
-                        <th>Owner</th>
-                        <th>Assigned</th>
+                        <th>{{ __('cases::ui.index.blade.id') }}</th>
+                        <th>{{ __('cases::ui.index.blade.title') }}</th>
+                        <th>{{ __('cases::ui.index.blade.category') }}</th>
+                        <th>{{ __('cases::ui.index.blade.status') }}</th>
+                        <th>{{ __('cases::ui.index.blade.priority') }}</th>
+                        <th>{{ __('cases::ui.index.blade.owner') }}</th>
+                        <th>{{ __('cases::ui.index.blade.assigned') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -52,7 +52,7 @@
                                 {{ $case->assigned_to ? 'Assigned' : 'Unassigned' }}
                             @endif
                         </td>
-                        <td><a href="{{ route('apes-cic.cases.show', $case) }}">Open</a></td>
+                        <td><a href="{{ route('apes-cic.cases.show', $case) }}">{{ __('cases::ui.index.blade.open') }}</a></td>
                     </tr>
                 @endforeach
                 </tbody>
@@ -62,12 +62,12 @@
     </div>
     @if($canCreateCase)
         <div class="panel" id="create">
-            <h2>Open a case</h2>
+            <h2>{{ __('cases::ui.index.blade.open_a_case') }}</h2>
             <form method="post" action="{{ route('apes-cic.cases.store') }}" enctype="multipart/form-data" data-case-create-form>
             @csrf
             <div class="row">
                 <div>
-                    <label for="category">Category</label>
+                    <label for="category">{{ __('cases::ui.index.blade.category') }}</label>
                     <select id="category" name="category" data-category-parent required>
                         @foreach($categoryGroups as $category)
                             <option value="{{ $category['key'] }}" @selected(old('category') === $category['key'])>
@@ -77,13 +77,13 @@
                     </select>
                 </div>
                 <div>
-                    <label for="sub_category">Subcategory</label>
+                    <label for="sub_category">{{ __('cases::ui.index.blade.subcategory') }}</label>
                     <select id="sub_category" name="sub_category" data-category-child required>
-                        <option value="">Select subcategory</option>
+                        <option value="">{{ __('cases::ui.index.blade.select_subcategory') }}</option>
                     </select>
                 </div>
                 <div>
-                    <label for="priority">Priority</label>
+                    <label for="priority">{{ __('cases::ui.index.blade.priority') }}</label>
                     <select id="priority" name="priority">
                         @foreach($priorities as $priority)
                             <option value="{{ $priority }}" @selected(old('priority', 'medium') === $priority)>{{ $priority }}</option>
@@ -92,9 +92,9 @@
                 </div>
             </div>
             <div data-website-field hidden>
-                <label for="affected_website_key">Related website or system</label>
+                <label for="affected_website_key">{{ __('cases::ui.index.blade.related_website_or_system') }}</label>
                 <select id="affected_website_key" name="affected_website_key">
-                    <option value="">Select website</option>
+                    <option value="">{{ __('cases::ui.index.blade.select_website') }}</option>
                     @foreach($websites as $website)
                         <option value="{{ $website['key'] }}" @selected(old('affected_website_key') === $website['key'])>
                             {{ $website['label'] }}
@@ -102,17 +102,17 @@
                     @endforeach
                 </select>
             </div>
-            <label for="title">Title</label>
+            <label for="title">{{ __('cases::ui.index.blade.title') }}</label>
             <input id="title" name="title" value="{{ old('title') }}" required>
-            <label for="details">Details</label>
+            <label for="details">{{ __('cases::ui.index.blade.details') }}</label>
             <textarea id="details" name="details">{{ old('details') }}</textarea>
             <div data-attachment-fields hidden>
-                <label for="screenshots">Evidence screenshots (optional)</label>
+                <label for="screenshots">{{ __('cases::ui.index.blade.evidence_screenshots_optional') }}</label>
                 <input id="screenshots" name="screenshots[]" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-                <label for="screencast">Evidence screencast (optional)</label>
+                <label for="screencast">{{ __('cases::ui.index.blade.evidence_screencast_optional') }}</label>
                 <input id="screencast" name="screencast" type="file" accept="video/mp4,video/webm">
             </div>
-                <button type="submit">Open case</button>
+                <button type="submit">{{ __('cases::ui.index.blade.open_case') }}</button>
             </form>
         </div>
     @endif

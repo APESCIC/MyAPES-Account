@@ -147,7 +147,7 @@ class CaseController extends Controller
             $request->hasFile('screenshots') || $request->hasFile('screencast')
         )) {
             throw ValidationException::withMessages([
-                'screenshots' => 'Attachments are not available for this subcategory.',
+                'screenshots' => __('cases::ui.validation.attachments_are_not_available_for_this_subcategory'),
             ]);
         }
 
@@ -263,7 +263,7 @@ class CaseController extends Controller
 
         if (! $metadataRequested && ! $assignmentRequested && ! $ownerRequested && ! $attachmentRequested) {
             throw ValidationException::withMessages([
-                'case' => 'Select a case change before submitting.',
+                'case' => __('cases::ui.validation.select_a_case_change_before_submitting'),
             ]);
         }
 
@@ -380,7 +380,7 @@ class CaseController extends Controller
             $case->fill($updates);
             if (! $case->isDirty() && $storedAttachments->isEmpty()) {
                 throw ValidationException::withMessages([
-                    'case' => 'Select a case change before submitting.',
+                    'case' => __('cases::ui.validation.select_a_case_change_before_submitting'),
                 ]);
             }
             if ($case->isDirty()) {
@@ -388,7 +388,7 @@ class CaseController extends Controller
             }
         } elseif ($storedAttachments->isEmpty()) {
             throw ValidationException::withMessages([
-                'case' => 'Select a case change before submitting.',
+                'case' => __('cases::ui.validation.select_a_case_change_before_submitting'),
             ]);
         }
 
@@ -406,7 +406,7 @@ class CaseController extends Controller
         ]);
 
         return redirect()->route($this->area()->showRouteName(), $case)
-            ->with('status', 'Case updated.');
+            ->with('status', __('cases::ui.flash.case_updated'));
     }
 
     private function cicDestroy(
@@ -429,7 +429,7 @@ class CaseController extends Controller
         $case->delete();
 
         return redirect()->route($this->area()->indexRouteName())
-            ->with('status', 'Case deleted.');
+            ->with('status', __('cases::ui.flash.case_deleted'));
     }
 
     private function requireCaseForInstance(
@@ -480,7 +480,7 @@ class CaseController extends Controller
     {
         $slug = $this->moduleContext->slug()
             ?? throw ValidationException::withMessages([
-                'case' => 'Missing module context for cases.',
+                'case' => __('cases::ui.validation.missing_module_context_for_cases'),
             ]);
 
         return CasesArea::forModule($slug);
@@ -612,7 +612,7 @@ class CaseController extends Controller
         $assignmentRequested = $request->exists('assigned_to');
         if (! $metadataRequested && ! $assignmentRequested) {
             throw ValidationException::withMessages([
-                'case' => 'Select a case change before submitting.',
+                'case' => __('cases::ui.validation.select_a_case_change_before_submitting'),
             ]);
         }
 
@@ -689,7 +689,7 @@ class CaseController extends Controller
         $case->fill($updates);
         if (! $case->isDirty()) {
             throw ValidationException::withMessages([
-                'case' => 'Select a case change before submitting.',
+                'case' => __('cases::ui.validation.select_a_case_change_before_submitting'),
             ]);
         }
         $case->save();
@@ -702,7 +702,7 @@ class CaseController extends Controller
             'assigned_to' => $case->assigned_to,
         ]);
 
-        return redirect()->route($area->showRouteName(), $case)->with('status', 'Case updated.');
+        return redirect()->route($area->showRouteName(), $case)->with('status', __('cases::ui.flash.case_updated'));
     }
 
     private function visibleShelterCase(ShelterCase $case, User $user): ShelterCase

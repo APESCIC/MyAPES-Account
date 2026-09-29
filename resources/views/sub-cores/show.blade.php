@@ -17,7 +17,7 @@
 
         <div class="service-dashboard__top dashboard-layout">
             <aside class="service-dashboard__intro" aria-labelledby="service-intro-title">
-                <h2 id="service-intro-title">What you can do here</h2>
+                <h2 id="service-intro-title">{{ __('apes_cic.show.blade.what_you_can_do_here') }}</h2>
                 <p>{{ $subCore->description }}</p>
                 @if($modules !== [])
                     <ul class="service-dashboard__tools">
@@ -39,8 +39,8 @@
                         <i data-lucide="compass"></i>
                     </span>
                     <div>
-                        <h2 id="attention-title">What needs your attention</h2>
-                        <p>Open items in {{ $subCore->name }} that may need a response or follow-up.</p>
+                        <h2 id="attention-title">{{ __('apes_cic.show.blade.what_needs_your_attention') }}</h2>
+                        <p>{{ __('apes_cic.show.blade.open_items_in_name', ['name' => $subCore->name]) }}</p>
                     </div>
                 </header>
 
@@ -62,7 +62,7 @@
                         <div class="attention-empty">
                             <x-mascot-tip
                                 variant="empty"
-                                title="You are all caught up."
+                                title="{{ __('apes_cic.show.blade.you_are_all_caught_up') }}"
                                 :body="'No open items need your attention for '.$subCore->name.' right now.'"
                             />
                         </div>
@@ -78,7 +78,7 @@
             >
                 <header class="service-summary__header">
                     <h2 class="service-summary__heading" id="support-services-title">
-                        Available plugins
+                        {{ __('apes_cic.show.blade.available_plugins') }}
                     </h2>
                 </header>
                 <div
@@ -103,11 +103,11 @@
             </section>
         @elseif($modules === [])
             <section class="service-dashboard__section service-dashboard__empty" aria-labelledby="support-services-title">
-                <h2 id="support-services-title">Available plugins</h2>
+                <h2 id="support-services-title">{{ __('apes_cic.show.blade.available_plugins') }}</h2>
                 <div class="attention-empty">
                     <x-mascot-tip
                         variant="empty"
-                        title="No plugins are currently available."
+                        title="{{ __('apes_cic.show.blade.no_plugins_are_currently_available') }}"
                         body="Plugins will appear here when they are enabled for you."
                     />
                 </div>
@@ -116,7 +116,7 @@
 
         @if($modules !== [])
             <section class="service-dashboard__section service-dashboard__quick-links" aria-labelledby="quick-links-title">
-                <h2 id="quick-links-title">Quick links</h2>
+                <h2 id="quick-links-title">{{ __('apes_cic.show.blade.quick_links') }}</h2>
                 <div class="service-dashboard__quick-links-grid">
                     @foreach($modules as $module)
                         @php
@@ -135,7 +135,7 @@
                             data-hub-action="view"
                             data-module-key="{{ $module->moduleKey }}"
                         >
-                            View {{ $module->label }}
+                            {{ __('apes_cic.show.blade.view_module', ['label' => $module->label]) }}
                             <i data-lucide="arrow-right" aria-hidden="true"></i>
                         </a>
                         @if(auth()->user()->can($permissionPrefix.'.create'))
@@ -156,7 +156,7 @@
 
         @if($recentActivity->isNotEmpty())
             <section class="service-dashboard__section service-dashboard__recent" aria-labelledby="recent-updates-title">
-                <h2 id="recent-updates-title">Recent updates</h2>
+                <h2 id="recent-updates-title">{{ __('apes_cic.show.blade.recent_updates') }}</h2>
                 <div class="attention-list">
                     @foreach($recentActivity as $item)
                         @php

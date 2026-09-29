@@ -13,9 +13,9 @@
         @endif
         @if($role->location || $role->commitment)
             <p class="muted">
-                @if($role->location)Location: {{ $role->location }}@endif
+                @if($role->location){{ __('recruitment::public.show.blade.location') }} {{ $role->location }}@endif
                 @if($role->location && $role->commitment) · @endif
-                @if($role->commitment)Commitment: {{ $role->commitment }}@endif
+                @if($role->commitment){{ __('recruitment::public.show.blade.commitment') }} {{ $role->commitment }}@endif
             </p>
         @endif
         <div class="stack-spaced">
@@ -42,8 +42,8 @@
         @else
             @if($existingApplication)
                 <p>
-                    You already applied for this role.
-                    Status: <span class="status">{{ $statusLabels[$existingApplication->status] ?? $existingApplication->status }}</span>
+                    {{ __('recruitment::public.show.blade.already_applied_status') }}
+                    <span class="status">{{ $statusLabels[$existingApplication->status] ?? $existingApplication->status }}</span>
                 </p>
                 <div class="actions">
                     <a href="{{ route('recruitment.applications.show', $existingApplication) }}">{{ __('recruitment::public.show.blade.view_your_application') }}</a>

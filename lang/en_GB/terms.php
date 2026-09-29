@@ -37,6 +37,7 @@ return [
     'recruitment_roles' => 'Roles',
     'open_roles' => 'Open roles',
     'my_applications' => 'My applications',
+    'applications' => 'Applications',
     'recruit_manage' => 'Recruit manage',
     'recruitment' => 'Recruitment',
 

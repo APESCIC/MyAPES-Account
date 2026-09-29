@@ -22,6 +22,9 @@ return [
             'withdrawn' => 'Withdrawn',
             'view_role' => 'View role',
             'register' => 'Register',
+            'location' => 'Location:',
+            'commitment' => 'Commitment:',
+            'already_applied_status' => 'You already applied for this role. Status:',
         ],
     ],
     'PublicRecruitmentApplicationController' => [
@@ -54,5 +57,8 @@ return [
             'my_applications' => 'My applications',
             'open_roles' => 'Open roles',
         ],
+    ],
+    'validation' => [
+        'you_have_already_applied_for_this_role_each_person_may_' => 'You have already applied for this role. Each person may apply once.',
     ],
 ];

@@ -140,7 +140,7 @@ class TicketController extends Controller
                 $request->hasFile('screenshots') || $request->hasFile('screencast')
             )) {
                 throw ValidationException::withMessages([
-                    'screenshots' => 'Attachments are not available for this subcategory.',
+                    'screenshots' => __('tickets::ui.validation.attachments_are_not_available_for_this_subcategory'),
                 ]);
             }
         }
@@ -188,7 +188,7 @@ class TicketController extends Controller
         ]);
 
         return redirect()->route($this->area()->showRouteName(), $ticket)
-            ->with('status', 'Your ticket has been saved.');
+            ->with('status', __('tickets::ui.flash.your_ticket_has_been_saved'));
     }
 
     public function show(
@@ -420,7 +420,7 @@ class TicketController extends Controller
 
         if (! $hasMessage && ! $ticketChanged && ! $hasAttachments) {
             throw ValidationException::withMessages([
-                'ticket' => 'Select a ticket change, add a message, or attach a file before submitting.',
+                'ticket' => __('tickets::ui.validation.select_a_ticket_change_add_a_message_or_attach_a_file_b'),
             ]);
         }
 
@@ -461,7 +461,7 @@ class TicketController extends Controller
         ]);
 
         return redirect()->route($this->area()->showRouteName(), $ticket)
-            ->with('status', 'Your update has been saved.');
+            ->with('status', __('tickets::ui.flash.your_update_has_been_saved'));
     }
 
     public function destroy(
@@ -484,7 +484,7 @@ class TicketController extends Controller
         $ticket->delete();
 
         return redirect()->route($this->area()->indexRouteName())
-            ->with('status', 'Ticket deleted.');
+            ->with('status', __('tickets::ui.flash.ticket_deleted'));
     }
 
     private function notifyTicketStakeholders(
