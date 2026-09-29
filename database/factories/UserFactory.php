@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use ParagonIE\ConstantTime\Base64UrlSafe;
+use PragmaRX\Google2FA\Google2FA;
 
 /**
  * @extends Factory<User>
@@ -177,5 +179,56 @@ class UserFactory extends Factory
     public function cloudronIdentity(string $subject): static
     {
         return $this->directoryIdentity($subject);
+    }
+
+    /**
+     * Confirmed TOTP enrolment for local password identities (#231 / #234 matrix).
+     */
+    public function withTotp(): static
+    {
+        return $this->afterCreating(static function (User $user): void {
+            $secret = app(Google2FA::class)->generateSecretKey();
+            $plainCodes = [];
+            for ($i = 0; $i < 8; $i++) {
+                $plainCodes[] = Str::upper(Str::random(4).'-'.Str::random(4));
+            }
+
+            $user->forceFill([
+                'two_factor_secret' => $secret,
+                'two_factor_recovery_codes' => array_map(
+                    static fn (string $code): string => Hash::make(strtoupper(str_replace(' ', '', $code))),
+                    $plainCodes,
+                ),
+                'two_factor_confirmed_at' => now(),
+            ])->save();
+        });
+    }
+
+    /**
+     * Local user with no TOTP and no passkeys (explicit matrix baseline).
+     */
+    public function withoutMfa(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+        ])->afterCreating(static function (User $user): void {
+            $user->passkeys()->delete();
+        });
+    }
+
+    /**
+     * Named passkey credential stub for local identities (#232 / #234 matrix).
+     */
+    public function withPasskey(string $name = 'Matrix Passkey'): static
+    {
+        return $this->afterCreating(static function (User $user) use ($name): void {
+            $user->passkeys()->create([
+                'name' => $name,
+                'credential_id' => Base64UrlSafe::encodeUnpadded('matrix-'.Str::random(16)),
+                'credential' => ['type' => 'public-key'],
+            ]);
+        });
     }
 }
