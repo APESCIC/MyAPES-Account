@@ -1,5 +1,59 @@
 [
   {
+    "version": "0.38.4",
+    "date": "2026-09-29",
+    "channel": "stable",
+    "type": "patch",
+    "title": "Auth and notification string extraction",
+    "summary": "Auth screens, emails, notifications, flash messages, and validation attribute labels now come from UK English lang files. Password-reset copy stays non-enumerating, and accounts prefer en_GB for queued mail.",
+    "changes": [
+      "Move Public Login, Register, Staff Login, forgot/reset password, verify-email, and landing copy into lang/en_GB/auth.php.",
+      "Move shared flashes and auth abort messages into lang/en_GB/flash.php and auth.oidc.* keys.",
+      "Move pending first-login chase and Cases/Tickets/Consultations update emails into lang/en_GB/mail.php.",
+      "Keep password-reset status non-enumerating via passwords.request_status; expand validation.attributes for common form fields.",
+      "Implement HasLocalePreference on User so notifications render in en_GB (users.locale column arrives in a later Language wave)."
+    ],
+    "affected_areas": [
+      "Public and staff authentication screens",
+      "Password reset and profile flashes",
+      "Notification emails",
+      "Validation attribute labels",
+      "Change Log Hub"
+    ],
+    "categories": [
+      "changed"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "Patch on the 0.38.x Language line: auth/mail/flash extraction only \u2014 Admin, public chrome, and staff hub extracts follow in later patches.",
+    "validation": [
+      "PHPUnit LocalisationAuthExtractionTest (HasLocalePreference, auth copy, password-reset status, mail keys).",
+      "PublicLocalForgotPasswordTest, ProfileLocalPasswordChangeTest, PublicChromeNamingTest, AdminPendingFirstLoginChaseTest.",
+      "Ticket/case/consultation workflow suites covering notification mail paths.",
+      "php artisan lang:inventory \u2014 Auth section count 0; docs/i18n-inventory.md regenerated.",
+      "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch."
+    ],
+    "known_limitations": [
+      "Admin shell, public chrome (legal/dashboard/recruitment board), and APES CIC staff hub strings remain hard-coded until subsequent Wave 2 patches.",
+      "users.locale column and SetLocale middleware are not in this release (#275).",
+      "lang:check remains report-only until Wave 4."
+    ],
+    "rollback": "Redeploy the previous release package. UI returns to prior hard-coded English strings if lang keys are removed; no database migrations are included.",
+    "provenance": "Issue #271; pull request #316.",
+    "references": [
+      {
+        "label": "Issue #271",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/271"
+      },
+      {
+        "label": "Pull request #316",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/316"
+      }
+    ]
+  },
+  {
     "version": "0.38.3",
     "date": "2026-09-29",
     "channel": "stable",
@@ -8,7 +62,7 @@
     "summary": "MyAPES Account plugins now load their own UK English translation namespaces, and Admin Plugins shows plugin names and descriptions from those lang files. CI also runs a report-only translation key check.",
     "changes": [
       "Load Cases, Tickets, Recruitment, Consultations, and Pet Profiles translations under cases::, tickets::, recruitment::, consultations::, and pet_profiles:: namespaces.",
-      "Seed each plugin’s en_GB plugin.php with name, short_name, description, and keywords; Admin Plugins labels resolve via nameKey and descriptionKey.",
+      "Seed each plugin\u2019s en_GB plugin.php with name, short_name, description, and keywords; Admin Plugins labels resolve via nameKey and descriptionKey.",
       "Allow app-level overrides in lang/vendor/{namespace}/en_GB without changing plugin packages.",
       "Add php artisan lang:check (report-only) to CI for missing/unused keys and hard-coded string counts; hard-fail remains for a later Language wave."
     ],
@@ -26,7 +80,7 @@
       "public-facing",
       "internal-only"
     ],
-    "version_rationale": "Patch on the 0.38.x Language line: plugin namespace wiring and report-only CI scaffolding — no broad string extraction yet.",
+    "version_rationale": "Patch on the 0.38.x Language line: plugin namespace wiring and report-only CI scaffolding \u2014 no broad string extraction yet.",
     "validation": [
       "PHPUnit PluginTranslationNamespacesTest (namespace resolution, Admin Plugins labels, vendor override, disabled-plugin safety, lang:check report-only).",
       "Related Structure / Admin plugins / inventory tests on the PR branch.",
