@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminModuleController;
 use App\Http\Controllers\Admin\AdminOrganisationModuleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
+use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
 use App\Http\Controllers\Auth\PublicPasswordResetController;
@@ -133,10 +134,18 @@ Route::middleware([
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    // Step-up (#233): password.confirm via account.step-up. Wire later children
+    // (username #227, email #228, MFA #231/#232) with the same middleware alias.
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])
-        ->middleware('throttle:public-password-change')
+        ->middleware(['account.step-up', 'throttle:public-password-change'])
         ->name('profile.password.update');
     Route::get('/profile/staff-photo', [ProfileController::class, 'staffPhoto'])->name('profile.staff-photo');
+
+    Route::get('/user/confirm-password', [ConfirmPasswordController::class, 'show'])
+        ->name('password.confirm');
+    Route::post('/user/confirm-password', [ConfirmPasswordController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.confirm.store');
 
     Route::middleware('plugin.enabled:apes-cic,recruitment')->group(function (): void {
         require base_path('plugins/recruitment/routes/public-auth.php');

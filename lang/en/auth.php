@@ -122,4 +122,13 @@ return [
         'resend' => 'Send another verification link',
     ],
 
+    'confirm_password' => [
+        'title' => 'Confirm password | MyAPES Account',
+        'heading' => 'Confirm your password',
+        'intro' => 'For your security, please confirm your password before continuing with this account change.',
+        'submit' => 'Confirm password',
+        'cancel' => 'Back to profile',
+        'local_only' => 'Password confirmation is only available for local password accounts.',
+    ],
+
 ];

@@ -54,6 +54,7 @@ class ProfileLocalPasswordChangeTest extends TestCase
         $originalEpoch = $public->authorization_epoch;
 
         $this->actingAs($public)
+            ->withSession(['auth.password_confirmed_at' => now()->unix()])
             ->from(route('profile.edit'))
             ->put(route('profile.password.update'), [
                 'current_password' => 'password',
@@ -109,6 +110,7 @@ class ProfileLocalPasswordChangeTest extends TestCase
         $originalEpoch = $public->authorization_epoch;
 
         $this->actingAs($public)
+            ->withSession(['auth.password_confirmed_at' => now()->unix()])
             ->from(route('profile.edit'))
             ->put(route('profile.password.update'), [
                 'current_password' => 'wrong-password',
@@ -123,6 +125,7 @@ class ProfileLocalPasswordChangeTest extends TestCase
         $this->assertSame($originalEpoch, $public->authorization_epoch);
 
         $this->actingAs($public)
+            ->withSession(['auth.password_confirmed_at' => now()->unix()])
             ->from(route('profile.edit'))
             ->put(route('profile.password.update'), [
                 'current_password' => 'password',
@@ -207,6 +210,7 @@ class ProfileLocalPasswordChangeTest extends TestCase
             $localStaff,
         ] as $refused) {
             $this->actingAs($refused)
+                ->withSession(['auth.password_confirmed_at' => now()->unix()])
                 ->from(route('profile.edit'))
                 ->put(route('profile.password.update'), [
                     'current_password' => 'password',
