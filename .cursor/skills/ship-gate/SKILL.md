@@ -224,6 +224,12 @@ node scripts/local/backfill-github-releases.mjs --from=$version --resume
 
 To retroactively fix display titles on existing releases: `bash scripts/github/rename-release-titles.sh`
 
+To align GitHub milestones with the AGENTS.md minor-line convention (`v0.N.x Beta`), including closed historical ≤0.30 lines from `releases.json` and product milestones #1–#9:
+
+```powershell
+bash scripts/github/migrate-beta-milestones.sh
+```
+
 Do not create a duplicate GitHub Release manually unless the deploy workflow failed before the publish job and you are recovering. Staff viewers on `/change-log` also see a **GitHub Release v{version}** link in the Source section.
 
 ## Completion
