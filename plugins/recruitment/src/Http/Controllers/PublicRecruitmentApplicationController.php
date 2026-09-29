@@ -5,13 +5,13 @@ namespace Plugins\Recruitment\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogger;
 use App\Services\ModuleSettingsService;
-use Plugins\Recruitment\Models\RecruitmentApplication;
-use Plugins\Recruitment\Models\RecruitmentRole;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Plugins\Recruitment\Models\RecruitmentApplication;
+use Plugins\Recruitment\Models\RecruitmentRole;
 
 class PublicRecruitmentApplicationController extends Controller
 {
@@ -83,7 +83,7 @@ class PublicRecruitmentApplicationController extends Controller
 
         return redirect()
             ->route('recruitment.applications.show', $application)
-            ->with('status', 'Your application has been submitted.');
+            ->with('status', __('recruitment::public.PublicRecruitmentApplicationController.your_application_has_been_submitted'));
     }
 
     public function withdraw(
@@ -102,7 +102,7 @@ class PublicRecruitmentApplicationController extends Controller
 
         return redirect()
             ->route('recruitment.applications.show', $recruitmentApplication)
-            ->with('status', 'Your application has been withdrawn.');
+            ->with('status', __('recruitment::public.PublicRecruitmentApplicationController.your_application_has_been_withdrawn'));
     }
 
     /**

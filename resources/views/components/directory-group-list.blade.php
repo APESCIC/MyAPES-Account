@@ -12,7 +12,7 @@
 @if($groups->isEmpty())
     <span {{ $attributes->class('directory-group-list__empty') }}>{{ $empty }}</span>
 @else
-    <ul {{ $attributes->class('directory-group-list') }} aria-label="Directory groups">
+    <ul {{ $attributes->class('directory-group-list') }} aria-label="{{ __('public.chrome.directory-group-list.blade.directory_groups') }}">
         @foreach($groups as $group)
             <li>
                 <span class="directory-group-list__chip">{{ $group }}</span>

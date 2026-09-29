@@ -4,12 +4,12 @@
 
 @section('content')
     <div class="panel">
-        <h1>Page not found</h1>
-        <p class="muted">That address is not available in MyAPES Core. Check the link, or return home to continue.</p>
+        <h1>{{ __('public.404.blade.page_not_found') }}</h1>
+        <p class="muted">{{ __('public.404.blade.that_address_is_not_available_in_myapes_core_check_the_') }}</p>
         <div class="actions">
-            <a href="{{ route('home') }}">Back to home</a>
+            <a href="{{ route('home') }}">{{ __('public.403.blade.back_to_home') }}</a>
             @auth
-                <a href="{{ route('dashboard') }}">Go to dashboard</a>
+                <a href="{{ route('dashboard') }}">{{ __('public.403.blade.go_to_dashboard') }}</a>
             @endauth
         </div>
     </div>

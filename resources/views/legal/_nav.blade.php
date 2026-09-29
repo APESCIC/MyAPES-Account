@@ -6,7 +6,7 @@
         'terms' => 'Terms',
     ];
 @endphp
-<nav aria-label="Legal and help pages">
+<nav aria-label="{{ __('public.legal._nav.blade.legal_and_help_pages') }}">
     <ul class="legal-nav">
         @foreach ($pages as $name => $label)
             <li>

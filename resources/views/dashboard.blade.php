@@ -12,7 +12,7 @@
     <div class="dashboard-layout">
         <aside class="identity-card" aria-labelledby="welcome-title">
             <div class="identity-card__intro">
-                <p class="identity-card__eyebrow">Welcome back,</p>
+                <p class="identity-card__eyebrow">{{ __('public.dashboard.welcome_back') }}</p>
                 <h1 id="welcome-title">{{ auth()->user()->name }}</h1>
                 <p class="identity-card__role">
                     <span>Role: <code>{{ $roleKey }}</code></span>
@@ -22,7 +22,7 @@
             </div>
             <img
                 src="{{ asset('mascot/spike-welcome.png') }}"
-                alt="Spike, the cartoon MyAPES bearded dragon mascot"
+                alt="{{ __('public.dashboard.spike_the_cartoon_myapes_bearded_dragon_mascot') }}"
                 class="identity-card__mascot"
                 width="1024"
                 height="1024"
@@ -31,7 +31,7 @@
                 <span class="identity-card__mission-icon" aria-hidden="true">
                     <i data-lucide="sprout"></i>
                 </span>
-                <p><strong>Our mission:</strong> Protect exotic species through rescue, rehabilitation, education and conservation.</p>
+                <p><strong>{{ __('public.dashboard.our_mission') }}</strong> Protect exotic species through rescue, rehabilitation, education and conservation.</p>
             </div>
         </aside>
 
@@ -41,8 +41,8 @@
                     <i data-lucide="compass"></i>
                 </span>
                 <div>
-                    <h2 id="attention-title">What needs your attention next?</h2>
-                    <p>Here are the most recently updated open items across MyAPES.</p>
+                    <h2 id="attention-title">{{ __('public.dashboard.what_needs_your_attention_next') }}</h2>
+                    <p>{{ __('public.dashboard.here_are_the_most_recently_updated_open_items_across_my') }}</p>
                 </div>
             </header>
 
@@ -64,7 +64,7 @@
                     <div class="attention-empty">
                         <x-mascot-tip
                             variant="empty"
-                            title="You are all caught up."
+                            title="{{ __('public.dashboard.you_are_all_caught_up') }}"
                             body="No open tickets, shelter cases or consultations need attention."
                         />
                     </div>
@@ -73,7 +73,7 @@
         </section>
     </div>
 
-    <section class="service-summary" id="service-summary" aria-label="Service totals">
+    <section class="service-summary" id="service-summary" aria-label="{{ __('public.dashboard.service_totals') }}">
         @foreach($moduleSummaries as $group)
             <section
                 class="service-summary__group service-summary__group--{{ $group->key }}"

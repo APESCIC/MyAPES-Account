@@ -22,22 +22,22 @@
             {!! nl2br(e($role->description)) !!}
         </div>
         <div class="actions">
-            <a href="{{ route('recruitment.index') }}">Back to open roles</a>
+            <a href="{{ route('recruitment.index') }}">{{ __('recruitment::public.show.blade.back_to_open_roles') }}</a>
             @auth
-                <a href="{{ route('recruitment.applications.index') }}">My applications</a>
+                <a href="{{ route('recruitment.applications.index') }}">{{ __('recruitment::public._navigation.blade.my_applications') }}</a>
             @endauth
         </div>
     </div>
 
     <div class="panel" data-recruitment-apply>
-        <h2>Apply for this role</h2>
+        <h2>{{ __('recruitment::public.show.blade.apply_for_this_role') }}</h2>
         @if(! ($publicApplyEnabled ?? true))
-            <p class="muted">Applications are not open for public roles right now. You can still browse open roles.</p>
+            <p class="muted">{{ __('recruitment::public.show.blade.applications_are_not_open_for_public_roles_right_now_yo') }}</p>
         @elseif(auth()->guest())
-            <p class="muted">Sign in or create a public account to apply. You can still browse open roles without an account.</p>
+            <p class="muted">{{ __('recruitment::public.show.blade.sign_in_or_create_a_public_account_to_apply_you_can_sti') }}</p>
             <div class="actions">
-                <a href="{{ route('public.login') }}">Public Login</a>
-                <a href="{{ route('public.register') }}">Register</a>
+                <a href="{{ route('public.login') }}">{{ __('recruitment::public.show.blade.public_login') }}</a>
+                <a href="{{ route('public.register') }}">{{ __('recruitment::public.show.blade.register') }}</a>
             </div>
         @else
             @if($existingApplication)
@@ -46,20 +46,20 @@
                     Status: <span class="status">{{ $statusLabels[$existingApplication->status] ?? $existingApplication->status }}</span>
                 </p>
                 <div class="actions">
-                    <a href="{{ route('recruitment.applications.show', $existingApplication) }}">View your application</a>
+                    <a href="{{ route('recruitment.applications.show', $existingApplication) }}">{{ __('recruitment::public.show.blade.view_your_application') }}</a>
                 </div>
             @elseif($canApply)
-                <p class="muted">Each person may apply once per role. Tell us briefly why you are interested.</p>
+                <p class="muted">{{ __('recruitment::public.show.blade.each_person_may_apply_once_per_role_tell_us_briefly_why') }}</p>
                 <form method="post" action="{{ route('recruitment.apply', $role) }}">
                     @csrf
-                    <label for="application_statement">Why are you interested?</label>
+                    <label for="application_statement">{{ __('recruitment::public.show.blade.why_are_you_interested') }}</label>
                     <textarea id="application_statement" name="statement" required maxlength="5000">{{ old('statement') }}</textarea>
                     <div class="actions">
-                        <button type="submit">Submit application</button>
+                        <button type="submit">{{ __('recruitment::public.show.blade.submit_application') }}</button>
                     </div>
                 </form>
             @else
-                <p class="muted">You cannot apply for this role with your current account.</p>
+                <p class="muted">{{ __('recruitment::public.show.blade.you_cannot_apply_for_this_role_with_your_current_accoun') }}</p>
             @endif
         @endif
     </div>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="60">
     <meta name="robots" content="noindex, nofollow">
-    <title>Maintenance | MyAPES Core</title>
+    <title>{{ __('public.maintenance.blade.maintenance_myapes_core') }}</title>
     <style>
         :root { color-scheme: light dark; font-family: "Segoe UI", sans-serif; }
         body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #062f35; color: #f4fbfa; }
@@ -17,14 +17,14 @@
 </head>
 <body>
 <main>
-    <p>MyAPES Core</p>
-    <h1>Temporarily unavailable</h1>
+    <p>{{ __('public.maintenance.blade.myapes_core') }}</p>
+    <h1>{{ __('public.maintenance.blade.temporarily_unavailable') }}</h1>
     <p class="message">{{ $message }}</p>
     @if($plannedEndAt)
-        <p>Planned end: <time datetime="{{ $plannedEndAt->toIso8601String() }}">{{ $plannedEndAt->format('Y-m-d H:i T') }}</time>.</p>
+        <p>{{ __('public.errors.planned_end') }} <time datetime="{{ $plannedEndAt->toIso8601String() }}">{{ $plannedEndAt->format('Y-m-d H:i T') }}</time>.</p>
     @endif
-    <p>Any planned time is informational; service will not resume automatically.</p>
-    <p>This page checks again every 60 seconds. Staff who manage maintenance can <a href="{{ url('/staff/login') }}">sign in for recovery</a>.</p>
+    <p>{{ __('public.maintenance.blade.any_planned_time_is_informational_service_will_not_resu') }}</p>
+    <p>This page checks again every 60 seconds. Staff who manage maintenance can <a href="{{ url('/staff/login') }}">{{ __('public.maintenance.blade.sign_in_for_recovery') }}</a>.</p>
 </main>
 </body>
 </html>
