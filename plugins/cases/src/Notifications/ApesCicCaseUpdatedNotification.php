@@ -3,9 +3,9 @@
 namespace Plugins\Cases\Notifications;
 
 use App\Core\Accounts\User;
-use Plugins\Cases\Models\ShelterCase;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Plugins\Cases\Models\ShelterCase;
 
 class ApesCicCaseUpdatedNotification extends Notification
 {
@@ -25,11 +25,18 @@ class ApesCicCaseUpdatedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("APES CIC case #{$this->case->id} {$this->eventLabel}")
-            ->line("Case #{$this->case->id} was {$this->eventLabel} by {$this->actor->name}.")
-            ->line("Status: {$this->case->status}")
-            ->line("Priority: {$this->case->priority}")
-            ->action('Open case', route($this->showRouteName, $this->case));
+            ->subject(__('mail.case_updated.subject', [
+                'id' => $this->case->id,
+                'event' => $this->eventLabel,
+            ]))
+            ->line(__('mail.case_updated.line_body', [
+                'id' => $this->case->id,
+                'event' => $this->eventLabel,
+                'actor' => $this->actor->name,
+            ]))
+            ->line(__('mail.case_updated.line_status', ['status' => $this->case->status]))
+            ->line(__('mail.case_updated.line_priority', ['priority' => $this->case->priority]))
+            ->action(__('mail.case_updated.action'), route($this->showRouteName, $this->case));
     }
 
     public function toArray(object $notifiable): array

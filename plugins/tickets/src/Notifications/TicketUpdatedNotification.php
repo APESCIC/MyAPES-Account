@@ -3,9 +3,9 @@
 namespace Plugins\Tickets\Notifications;
 
 use App\Core\Accounts\User;
-use Plugins\Tickets\Models\SupportTicket;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Plugins\Tickets\Models\SupportTicket;
 
 class TicketUpdatedNotification extends Notification
 {
@@ -34,11 +34,20 @@ class TicketUpdatedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("{$this->serviceName} ticket #{$this->ticket->id} {$this->eventLabel}")
-            ->line("Ticket #{$this->ticket->id} ({$this->ticket->subject}) was {$this->eventLabel} by {$this->actor->name}.")
-            ->line("Status: {$this->ticket->status}")
-            ->line("Priority: {$this->ticket->priority}")
-            ->action('Open ticket', route($this->showRouteName, $this->ticket));
+            ->subject(__('mail.ticket_updated.subject', [
+                'service' => $this->serviceName,
+                'id' => $this->ticket->id,
+                'event' => $this->eventLabel,
+            ]))
+            ->line(__('mail.ticket_updated.line_body', [
+                'id' => $this->ticket->id,
+                'subject' => $this->ticket->subject,
+                'event' => $this->eventLabel,
+                'actor' => $this->actor->name,
+            ]))
+            ->line(__('mail.ticket_updated.line_status', ['status' => $this->ticket->status]))
+            ->line(__('mail.ticket_updated.line_priority', ['priority' => $this->ticket->priority]))
+            ->action(__('mail.ticket_updated.action'), route($this->showRouteName, $this->ticket));
     }
 
     /**

@@ -25,19 +25,13 @@ class PendingFirstLoginChaseNotification extends Notification
         $staffLoginUrl = route('staff.login');
 
         return (new MailMessage)
-            ->subject('Complete your MyAPES Staff Login')
-            ->greeting('Hello '.$notifiable->name.',')
-            ->line(
-                'An APES administrator asked you to complete your first Staff Login so your Cloudron directory account can link to MyAPES Account.',
-            )
-            ->line(
-                'Use Staff Login and continue with APES Cloudron. Your password and passkeys stay on Cloudron — this message is not a public password reset.',
-            )
-            ->action('Open Staff Login', $staffLoginUrl)
-            ->line(
-                'If the button does not work, open this address: '.$staffLoginUrl,
-            )
-            ->salutation('— MyAPES Account');
+            ->subject(__('mail.pending_first_login.subject'))
+            ->greeting(__('mail.pending_first_login.greeting', ['name' => $notifiable->name]))
+            ->line(__('mail.pending_first_login.line_request'))
+            ->line(__('mail.pending_first_login.line_cloudron'))
+            ->action(__('mail.pending_first_login.action'), $staffLoginUrl)
+            ->line(__('mail.pending_first_login.line_fallback', ['url' => $staffLoginUrl]))
+            ->salutation(__('mail.pending_first_login.salutation'));
     }
 
     /**

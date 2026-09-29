@@ -1,32 +1,32 @@
 @extends('layouts.app')
 
-@section('title', 'Register | MyAPES Account')
+@section('title', __('auth.register.title'))
 
 @section('content')
     <div class="panel">
-        <h1>Create public account</h1>
-        <p class="muted">Register to access services, your profile, and your pets.</p>
+        <h1>{{ __('auth.register.heading') }}</h1>
+        <p class="muted">{{ __('auth.register.intro') }}</p>
         <x-mascot-tip />
         <form method="post" action="{{ route('public.register.submit') }}">
             @csrf
-            <label for="name">Full name</label>
+            <label for="name">{{ __('auth.register.full_name') }}</label>
             <input id="name" type="text" name="name" value="{{ old('name') }}" autocomplete="name" required>
 
-            <label for="email">Email</label>
+            <label for="email">{{ __('auth.common.email') }}</label>
             <input id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required>
 
-            <label for="username">Username</label>
+            <label for="username">{{ __('auth.common.username') }}</label>
             <input id="username" type="text" name="username" value="{{ old('username') }}" autocomplete="username" minlength="3" maxlength="30" required>
 
-            <label for="password">Password</label>
+            <label for="password">{{ __('auth.common.password') }}</label>
             <input id="password" type="password" name="password" autocomplete="new-password" required>
 
-            <label for="password_confirmation">Confirm password</label>
+            <label for="password_confirmation">{{ __('auth.register.confirm_password') }}</label>
             <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" required>
 
             <fieldset>
-                <legend>Select at least one MyAPES service</legend>
-                @foreach (['apes-cic' => 'APES CIC', 'shelter-rescue' => 'APES Shelter and Rescue', 'pet-care-clinic' => 'APES Pet Care Clinic'] as $key => $label)
+                <legend>{{ __('auth.register.services_legend') }}</legend>
+                @foreach (['apes-cic' => __('auth.common.apes_cic'), 'shelter-rescue' => __('auth.common.apes_shelter'), 'pet-care-clinic' => __('auth.common.apes_petcare')] as $key => $label)
                     <label class="inline-check">
                         <input type="checkbox" name="services[]" value="{{ $key }}" @checked(in_array($key, old('services', []), true))>
                         {{ $label }}
@@ -35,7 +35,7 @@
             </fieldset>
 
             <fieldset>
-                <legend>Consent</legend>
+                <legend>{{ __('auth.register.consent_legend') }}</legend>
                 <label class="inline-check legal-consent" for="registration_consent">
                     <input
                         id="registration_consent"
@@ -46,27 +46,27 @@
                         required
                     >
                     <span>
-                        I have read and accept the
-                        <a href="{{ route('terms') }}">terms of use</a>
-                        and the
+                        {{ __('auth.register.consent_prefix') }}
+                        <a href="{{ route('terms') }}">{{ __('auth.register.terms_of_use') }}</a>
+                        {{ __('auth.register.consent_and') }}
                         <a
                             href="{{ \App\Support\PrivacyNotice::url() }}"
                             @if (\App\Support\PrivacyNotice::opensExternally()) target="_blank" rel="noopener noreferrer" @endif
-                        >privacy notice</a>.
+                        >{{ __('auth.register.privacy_notice') }}</a>.
                     </span>
                 </label>
                 <p class="muted legal-register-note">
-                    You can also read the
-                    <a href="{{ route('cookies') }}">cookie notice</a>
-                    or open
-                    <a href="{{ route('help') }}">Help</a>
-                    if you need a hand.
+                    {{ __('auth.register.also_read_prefix') }}
+                    <a href="{{ route('cookies') }}">{{ __('auth.register.cookie_notice') }}</a>
+                    {{ __('auth.register.or_open') }}
+                    <a href="{{ route('help') }}">{{ __('auth.register.help') }}</a>
+                    {{ __('auth.register.help_suffix') }}
                 </p>
             </fieldset>
 
             <div class="actions">
-                <button type="submit">Register</button>
-                <a href="{{ route('public.login') }}">Already have an account?</a>
+                <button type="submit">{{ __('auth.common.register') }}</button>
+                <a href="{{ route('public.login') }}">{{ __('auth.register.already_have_account') }}</a>
             </div>
         </form>
     </div>

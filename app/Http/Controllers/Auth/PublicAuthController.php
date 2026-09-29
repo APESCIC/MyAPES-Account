@@ -310,7 +310,7 @@ class PublicAuthController extends Controller
 
         return redirect()
             ->route('dashboard')
-            ->with('status', "Switched to QA {$roleLabel} ({$targetUser->email}).");
+            ->with('status', __('flash.qa_switched', ['role' => $roleLabel, 'email' => $targetUser->email]));
     }
 
     private function requireQaUserByRole(string $role): User

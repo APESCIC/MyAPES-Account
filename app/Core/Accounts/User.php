@@ -7,6 +7,7 @@ use App\Services\LegacyAccessCompatibilityAdapter;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Cast;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -33,7 +34,7 @@ use Spatie\Permission\Traits\HasRoles;
     'ldap_groups',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     public const IDENTITY_LOCAL = 'local';
 
@@ -77,6 +78,15 @@ class User extends Authenticatable implements MustVerifyEmail
                 ? strtolower(trim($value))
                 : $value,
         );
+    }
+
+    public function preferredLocale(): string
+    {
+        $locale = $this->attributes['locale'] ?? null;
+
+        return is_string($locale) && $locale !== ''
+            ? $locale
+            : 'en_GB';
     }
 
     public static function bootHasRoles(): void

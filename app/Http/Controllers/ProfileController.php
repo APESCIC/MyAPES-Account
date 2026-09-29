@@ -72,7 +72,7 @@ class ProfileController extends Controller
         $request->session()->regenerate();
         $authorizationContext->recordPassword($request, $user);
 
-        return redirect()->route('profile.edit')->with('status', 'Password updated.');
+        return redirect()->route('profile.edit')->with('status', __('flash.password_updated'));
     }
 
     public function update(
@@ -155,7 +155,7 @@ class ProfileController extends Controller
             'avatar_updated' => $request->hasFile('avatar'),
         ]);
 
-        return redirect()->route('profile.edit')->with('status', 'Profile updated.');
+        return redirect()->route('profile.edit')->with('status', __('flash.profile_updated'));
     }
 
     public function staffPhoto(Request $request): StreamedResponse
@@ -219,7 +219,7 @@ class ProfileController extends Controller
             'photo_updated' => $request->hasFile('photo'),
         ]);
 
-        return redirect()->route('profile.edit')->with('status', 'Staff profile updated.');
+        return redirect()->route('profile.edit')->with('status', __('flash.staff_profile_updated'));
     }
 
     /**
