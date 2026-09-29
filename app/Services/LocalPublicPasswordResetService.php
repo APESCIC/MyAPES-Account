@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Core\Accounts\User;
+use App\Notifications\Auth\PasswordChangedNotification;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -91,6 +92,8 @@ class LocalPublicPasswordResetService
             );
         });
 
+        $target->notify(new PasswordChangedNotification);
+
         return $temporaryPassword;
     }
 
@@ -152,5 +155,7 @@ class LocalPublicPasswordResetService
                 ],
             );
         });
+
+        $user->notify(new PasswordChangedNotification);
     }
 }

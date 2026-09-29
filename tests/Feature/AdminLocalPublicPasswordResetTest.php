@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\AuditLog;
 use App\Core\Accounts\User;
+use App\Notifications\Auth\PasswordChangedNotification;
 use App\Services\AuthorizationProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class AdminLocalPublicPasswordResetTest extends TestCase
@@ -15,6 +17,8 @@ class AdminLocalPublicPasswordResetTest extends TestCase
 
     public function test_admin_can_reset_a_local_public_password_and_the_value_is_shown_once(): void
     {
+        Notification::fake();
+
         $administrator = $this->administrator();
         $public = User::factory()->create([
             'email' => 'local.public@example.com',
@@ -83,6 +87,7 @@ class AdminLocalPublicPasswordResetTest extends TestCase
             $temporaryPassword,
             json_encode($audit->toArray(), JSON_THROW_ON_ERROR),
         );
+        Notification::assertSentTo($public, PasswordChangedNotification::class);
 
         $this->post(route('auth.logout'));
 
@@ -101,6 +106,8 @@ class AdminLocalPublicPasswordResetTest extends TestCase
 
     public function test_super_admin_can_reset_a_local_public_password(): void
     {
+        Notification::fake();
+
         $superAdmin = User::factory()
             ->accessLevel(User::ROLE_SUPERADMIN)
             ->create()

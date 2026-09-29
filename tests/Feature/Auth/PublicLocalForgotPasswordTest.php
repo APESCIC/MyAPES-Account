@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Core\Accounts\AuditLog;
 use App\Core\Accounts\User;
+use App\Notifications\Auth\PasswordChangedNotification;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Services\AuthorizationProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -132,6 +133,7 @@ class PublicLocalForgotPasswordTest extends TestCase
             $token,
             json_encode($audit->toArray(), JSON_THROW_ON_ERROR),
         );
+        Notification::assertSentTo($public, PasswordChangedNotification::class);
 
         $this->post(route('auth.logout'));
         $this->assertGuest();
