@@ -170,7 +170,7 @@ return [
         'edit' => [
             'blade' => [
                 'this_account_uses_cloudron_directory_sign_in_change_you' => 'This account uses Cloudron directory sign-in. Change your password in Cloudron, not here.',
-                'notifications_and_password_reset_mail_go_to_this_addres' => 'Notifications and password-reset mail go to this address. Email cannot be changed here.',
+                'notifications_and_password_reset_mail_go_to_this_addres' => 'Notifications and password-reset mail go to this address.',
                 'enter_your_current_password_then_choose_a_new_one_for_t' => 'Enter your current password, then choose a new one for this local public account.',
                 'core_account_details_used_across_all_apes_services' => 'Core account details used across all APES services.',
                 'support_needs_or_access_notes' => 'Support needs or access notes',

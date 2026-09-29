@@ -9,7 +9,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Stub for Wave 4 (#228) — sent when a secure email change is completed.
+ * Sent to old and new addresses when a secure email change is completed (#228).
  */
 class EmailChangeCompletedNotification extends Notification implements ShouldQueue
 {

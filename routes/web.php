@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminOrganisationModuleController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\StaffAdminController;
 use App\Http\Controllers\Auth\ConfirmPasswordController;
+use App\Http\Controllers\Auth\EmailChangeController;
 use App\Http\Controllers\Auth\OidcAuthController;
 use App\Http\Controllers\Auth\PublicAuthController;
 use App\Http\Controllers\Auth\PublicPasswordResetController;
@@ -40,6 +41,9 @@ Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/cookies', 'legal.cookies')->name('cookies');
 Route::view('/help', 'legal.help')->name('help');
 Route::view('/terms', 'legal.terms')->name('terms');
+Route::get('/email/change/confirm/{user}/{hash}', [EmailChangeController::class, 'confirm'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('email.change.confirm');
 Route::middleware('plugin.enabled:apes-cic,recruitment')->group(function (): void {
     require base_path('plugins/recruitment/routes/public.php');
 });
@@ -135,13 +139,19 @@ Route::middleware([
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     // Step-up (#233): password.confirm via account.step-up. Wire later children
-    // (email #228, MFA #231/#232) with the same middleware alias. Username #227 uses it here.
+    // (MFA #231/#232) with the same middleware alias. Username #227 / email #228 use it here.
     Route::put('/profile/username', [ProfileController::class, 'updateUsername'])
         ->middleware(['account.step-up', 'throttle:public-username-change'])
         ->name('profile.username.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])
         ->middleware(['account.step-up', 'throttle:public-password-change'])
         ->name('profile.password.update');
+    Route::post('/profile/email/change', [EmailChangeController::class, 'store'])
+        ->middleware(['account.step-up', 'throttle:public-email-change'])
+        ->name('profile.email.change');
+    Route::delete('/profile/email/pending', [EmailChangeController::class, 'destroy'])
+        ->middleware(['throttle:public-email-change'])
+        ->name('profile.email.cancel');
     Route::get('/profile/staff-photo', [ProfileController::class, 'staffPhoto'])->name('profile.staff-photo');
 
     Route::get('/user/confirm-password', [ConfirmPasswordController::class, 'show'])

@@ -63,6 +63,7 @@ class ConfirmPasswordController extends Controller
         $intendedPath = parse_url($intended, PHP_URL_PATH);
         $passwordUpdatePath = parse_url(route('profile.password.update'), PHP_URL_PATH);
         $usernameUpdatePath = parse_url(route('profile.username.update'), PHP_URL_PATH);
+        $emailChangePath = parse_url(route('profile.email.change'), PHP_URL_PATH);
 
         if (is_string($passwordUpdatePath) && $intendedPath === $passwordUpdatePath) {
             return route('profile.edit').'#change-password';
@@ -70,6 +71,10 @@ class ConfirmPasswordController extends Controller
 
         if (is_string($usernameUpdatePath) && $intendedPath === $usernameUpdatePath) {
             return route('profile.edit').'#change-username';
+        }
+
+        if (is_string($emailChangePath) && $intendedPath === $emailChangePath) {
+            return route('profile.edit').'#change-email';
         }
 
         return $intended;
