@@ -1,57 +1,106 @@
 [
-    {
-        "version": "0.38.9",
-        "date": "2026-09-29",
-        "channel": "stable",
-        "type": "patch",
-        "title": "User locale preference and CI missing-key hard-fail",
-        "summary": "Accounts store a per-user language preference (UK English today) so a second locale can be added later without schema work. Continuous integration now fails when a translation key is missing from en_GB, while unused keys stay informational.",
-        "changes": [
-            "Add users.locale (default en_GB), SetLocale middleware, and supported_locales config with a language switcher that stays hidden until a second locale exists.",
-            "Keep Cloudron OIDC and directory sync from overwriting a stored locale; honour preferredLocale for notifications.",
-            "Flip php artisan lang:check to hard-fail on missing keys in CI; unused-key reporting remains non-blocking.",
-            "Document locale preference and CI hard-fail in docs/localisation.md; mark the Language line shipped in AGENTS.md."
-        ],
-        "affected_areas": [
-            "User accounts and profile",
-            "Request locale middleware",
-            "CI translation key checks",
-            "Localisation docs"
-        ],
-        "categories": [
-            "changed"
-        ],
-        "audiences": [
-            "public-facing",
-            "internal-only"
-        ],
-        "version_rationale": "Patch on the 0.38.x Language line: user locale groundwork and CI missing-key hard-fail after public SEO and Admin keywords (0.38.8). Closes milestone 8.",
-        "validation": [
-            "PHPUnit UserLocalePreferenceTest, TranslationKeyHardFailTest, LocalisationBaselineTest, LocalisationAuthExtractionTest, PluginTranslationNamespacesTest.",
-            "php artisan lang:check --fail-on-missing (0 missing keys).",
-            "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch."
-        ],
-        "known_limitations": [
-            "Only en_GB is supported; the language switcher remains hidden until a second locale is added.",
-            "Accept-Language negotiation for guests is documented as off for now."
-        ],
-        "rollback": "Redeploy the previous release package and roll back the users.locale migration if required. Locale middleware and CI hard-fail return to the prior report-only behaviour.",
-        "provenance": "Issues #275 and #276; pull request #321.",
-        "references": [
-            {
-                "label": "Issue #275",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/275"
-            },
-            {
-                "label": "Issue #276",
-                "url": "https://github.com/APESCIC/MyAPES-Account/issues/276"
-            },
-            {
-                "label": "Pull request #321",
-                "url": "https://github.com/APESCIC/MyAPES-Account/pull/321"
-            }
-        ]
-    },
+  {
+    "version": "0.39.0",
+    "date": "2026-09-29",
+    "channel": "stable",
+    "type": "minor",
+    "title": "Auth email brand kit",
+    "summary": "Account security emails for MyAPES Account now share one branded layout (logo, footer, Help link, UK tone). Verify-email, password-reset, and password-changed messages use the kit; further security-event templates are ready for later Account security work.",
+    "changes": [
+      "Add a shared auth mail layout under resources/views/mail/auth/ with MyAPES Account branding and a Help footer link.",
+      "Ship queued verify-email, password-reset, and password-changed notifications, and stub templates for authenticator, passkey, and email-change events.",
+      "Route User email verification and password-reset notifications through the brand kit; subjects and from-name use MyAPES Account.",
+      "Add en_GB mail copy and feature tests that assert delivery and render smoke without secrets in subjects."
+    ],
+    "affected_areas": [
+      "Auth and account security email",
+      "Public registration and password reset",
+      "Notification delivery",
+      "Localisation (mail strings)"
+    ],
+    "categories": [
+      "added"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "Minor bump opens the v0.39.x Account security line with the shared auth email brand kit that later MFA, passkey, and email-change work will reuse.",
+    "validation": [
+      "PHPUnit AuthEmailBrandKitTest, PublicLocalForgotPasswordTest, PublicAccountLifecycleTest, AdminPendingFirstLoginChaseTest.",
+      "php artisan lang:check --fail-on-missing (0 missing keys).",
+      "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch."
+    ],
+    "known_limitations": [
+      "Password-changed mail is available in the kit but is not yet fired from profile change or guest reset (follows in password-policy work).",
+      "Authenticator, passkey, and email-change notifications are stubs until those Account security waves land."
+    ],
+    "rollback": "Redeploy the previous release package. Auth emails return to the framework default verify/reset templates; no database migrations are included in this release.",
+    "provenance": "Issue #226; pull request #322.",
+    "references": [
+      {
+        "label": "Issue #226",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/226"
+      },
+      {
+        "label": "Pull request #322",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/322"
+      }
+    ]
+  },
+  {
+    "version": "0.38.9",
+    "date": "2026-09-29",
+    "channel": "stable",
+    "type": "patch",
+    "title": "User locale preference and CI missing-key hard-fail",
+    "summary": "Accounts store a per-user language preference (UK English today) so a second locale can be added later without schema work. Continuous integration now fails when a translation key is missing from en_GB, while unused keys stay informational.",
+    "changes": [
+      "Add users.locale (default en_GB), SetLocale middleware, and supported_locales config with a language switcher that stays hidden until a second locale exists.",
+      "Keep Cloudron OIDC and directory sync from overwriting a stored locale; honour preferredLocale for notifications.",
+      "Flip php artisan lang:check to hard-fail on missing keys in CI; unused-key reporting remains non-blocking.",
+      "Document locale preference and CI hard-fail in docs/localisation.md; mark the Language line shipped in AGENTS.md."
+    ],
+    "affected_areas": [
+      "User accounts and profile",
+      "Request locale middleware",
+      "CI translation key checks",
+      "Localisation docs"
+    ],
+    "categories": [
+      "changed"
+    ],
+    "audiences": [
+      "public-facing",
+      "internal-only"
+    ],
+    "version_rationale": "Patch on the 0.38.x Language line: user locale groundwork and CI missing-key hard-fail after public SEO and Admin keywords (0.38.8). Closes milestone 8.",
+    "validation": [
+      "PHPUnit UserLocalePreferenceTest, TranslationKeyHardFailTest, LocalisationBaselineTest, LocalisationAuthExtractionTest, PluginTranslationNamespacesTest.",
+      "php artisan lang:check --fail-on-missing (0 missing keys).",
+      "php artisan myapes:changelog-validate --base-ref=origin/main on the PR branch."
+    ],
+    "known_limitations": [
+      "Only en_GB is supported; the language switcher remains hidden until a second locale is added.",
+      "Accept-Language negotiation for guests is documented as off for now."
+    ],
+    "rollback": "Redeploy the previous release package and roll back the users.locale migration if required. Locale middleware and CI hard-fail return to the prior report-only behaviour.",
+    "provenance": "Issues #275 and #276; pull request #321.",
+    "references": [
+      {
+        "label": "Issue #275",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/275"
+      },
+      {
+        "label": "Issue #276",
+        "url": "https://github.com/APESCIC/MyAPES-Account/issues/276"
+      },
+      {
+        "label": "Pull request #321",
+        "url": "https://github.com/APESCIC/MyAPES-Account/pull/321"
+      }
+    ]
+  },
   {
     "version": "0.38.8",
     "date": "2026-09-29",
