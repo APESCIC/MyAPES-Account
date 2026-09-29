@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Core\Accounts\AuditLog;
 use App\Core\Accounts\User;
+use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\PendingFirstLoginChaseNotification;
 use App\Services\AuthorizationProfile;
 use App\Services\LocalPublicPasswordResetService;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -68,7 +68,7 @@ class AdminPendingFirstLoginChaseTest extends TestCase
                 return true;
             },
         );
-        Notification::assertNotSentTo($pending, ResetPassword::class);
+        Notification::assertNotSentTo($pending, ResetPasswordNotification::class);
 
         $audit = AuditLog::query()
             ->where('event', 'auth.pending_first_login_chase')

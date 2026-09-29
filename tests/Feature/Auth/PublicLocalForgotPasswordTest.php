@@ -4,8 +4,8 @@ namespace Tests\Feature\Auth;
 
 use App\Core\Accounts\AuditLog;
 use App\Core\Accounts\User;
+use App\Notifications\Auth\ResetPasswordNotification;
 use App\Services\AuthorizationProfile;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -72,7 +72,7 @@ class PublicLocalForgotPasswordTest extends TestCase
             ->assertRedirect(route('password.request'))
             ->assertSessionHas('status', __(self::GENERIC_STATUS_KEY));
 
-        Notification::assertSentTo($public, ResetPassword::class);
+        Notification::assertSentTo($public, ResetPasswordNotification::class);
         $this->assertDatabaseHas('password_reset_tokens', [
             'email' => $public->email,
         ]);
@@ -80,8 +80,8 @@ class PublicLocalForgotPasswordTest extends TestCase
         $token = '';
         Notification::assertSentTo(
             $public,
-            ResetPassword::class,
-            function (ResetPassword $notification) use (&$token): bool {
+            ResetPasswordNotification::class,
+            function (ResetPasswordNotification $notification) use (&$token): bool {
                 $token = $notification->token;
 
                 return $token !== '';
@@ -243,8 +243,8 @@ class PublicLocalForgotPasswordTest extends TestCase
         $token = '';
         Notification::assertSentTo(
             $public,
-            ResetPassword::class,
-            function (ResetPassword $notification) use (&$token): bool {
+            ResetPasswordNotification::class,
+            function (ResetPasswordNotification $notification) use (&$token): bool {
                 $token = $notification->token;
 
                 return $token !== '';

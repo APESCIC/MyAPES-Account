@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\ModuleNavigationProvider;
 use App\Core\Accounts\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\Auth\VerifyEmailNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
@@ -44,7 +44,7 @@ class PublicAccountLifecycleTest extends TestCase
             ['apes-cic', 'shelter-rescue'],
             $user->serviceSelections()->orderBy('sub_core_key')->pluck('sub_core_key')->all(),
         );
-        Notification::assertSentTo($user, VerifyEmail::class);
+        Notification::assertSentTo($user, VerifyEmailNotification::class);
     }
 
     public function test_register_page_requires_visible_terms_and_privacy_consent(): void
