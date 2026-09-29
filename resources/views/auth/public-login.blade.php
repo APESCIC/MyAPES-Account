@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', __('auth.public_login.title'))
+@section('title', __('seo.public_login.title'))
+@section('meta_description', __('seo.public_login.description'))
+@section('meta_keywords', __('seo.public_login.keywords'))
 
 @section('content')
     <div class="panel">

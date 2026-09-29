@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Change Log Hub | MyAPES Core')
+@section('title', __('seo.change_log.title'))
+@section('meta_description', __('seo.change_log.description'))
+@section('meta_keywords', __('seo.change_log.keywords'))
 
 @section('content')
 <div class="change-log" data-change-log>

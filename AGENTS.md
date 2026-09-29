@@ -100,6 +100,7 @@ Single source of truth: plugin package manifests (`App\Core\Extensions\Plugins\P
 | `settingsRouteName` | Named route for the settings editor (default `admin.modules.settings.edit`) |
 | `viewPermission` / `managePermission` | Gates for viewing and saving (default `admin.modules.view` / `admin.modules.manage`) |
 | `navLabel` | Plugins-index link label (default `Settings`) |
+| `searchKeywordsKey` | Lang key for Admin search synonyms (default `{ns}::plugin.keywords`); resolved via `PluginManifest::keywords()` |
 
 Tickets and cases on `apes-cic` remain the `websites_categories` reference. Recruitment uses `recruitment_board` (public board / apply toggles). Consultations and Pet Profiles declare `supportsSettings = false` and show **No configurable settings** on the Plugins index. Do not hardcode module keys in Blade; consume the registry via `ModuleAdministrationCatalogue` / `ModuleSettingsService`.
 

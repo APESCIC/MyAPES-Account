@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', $role->title.' | MyAPES Core')
+@section('title', __('seo.recruitment.show.title', ['role' => $role->title]))
+@section('meta_description', \App\Support\SeoMeta::truncateDescription($role->summary ?: $role->description))
+@section('meta_keywords', __('seo.recruitment.show.keywords'))
 
 @section('content')
     @include('recruitment::public._navigation')

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Lang;
  * {@see $translationNamespace} and {@see $searchKeywordsKey} feed the Language
  * line (#272 / #274) without further contract changes.
  * {@see $nameKey} / {@see $descriptionKey} resolve Admin Plugins labels via {@see label()}.
+ * {@see keywords()} resolves Admin search synonyms from {@see $searchKeywordsKey}.
  */
 final readonly class PluginManifest
 {
@@ -123,6 +124,33 @@ final readonly class PluginManifest
     public function descriptionLabel(): string
     {
         return $this->resolveTranslation($this->descriptionKey, $this->description);
+    }
+
+    /**
+     * Search synonyms for Admin keyword filter (#274).
+     *
+     * @return list<string>
+     */
+    public function keywords(): array
+    {
+        $key = $this->searchKeywordsKey;
+        if ($key === '') {
+            return [];
+        }
+
+        $value = __($key);
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $keywords = [];
+        foreach ($value as $item) {
+            if (is_string($item) && trim($item) !== '') {
+                $keywords[] = trim($item);
+            }
+        }
+
+        return array_values(array_unique($keywords));
     }
 
     public function settingsFor(string $moduleSlug): PluginSettingsSchema

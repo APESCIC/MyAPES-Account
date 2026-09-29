@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Cookie notice | MyAPES Core')
+@section('title', __('seo.cookies.title'))
+@section('meta_description', __('seo.cookies.description'))
+@section('meta_keywords', __('seo.cookies.keywords'))
 
 @section('content')
     <article class="panel legal-page" data-legal-page="cookies">

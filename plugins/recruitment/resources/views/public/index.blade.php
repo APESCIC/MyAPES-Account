@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Open roles | MyAPES Core')
+@section('title', __('seo.recruitment.index.title'))
+@section('meta_description', __('seo.recruitment.index.description'))
+@section('meta_keywords', __('seo.recruitment.index.keywords'))
 
 @section('content')
     @include('recruitment::public._navigation')

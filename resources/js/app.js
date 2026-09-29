@@ -34,6 +34,7 @@ import {
     X,
 } from 'lucide';
 import { initChangeLog } from './change-log.js';
+import { initAdminSearch } from './admin-search.js';
 
 const themeStorageKey = 'myapes-theme';
 const themeToggle = document.querySelector('[data-theme-toggle]');
@@ -110,6 +111,7 @@ createIcons({
 
 applyTheme(document.documentElement.dataset.theme);
 initChangeLog();
+initAdminSearch();
 
 themeToggle?.addEventListener('click', () => {
     applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);

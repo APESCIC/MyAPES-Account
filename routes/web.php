@@ -14,6 +14,8 @@ use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RobotsTxtController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SubCoreController;
 use App\Http\Controllers\SupportAttachmentController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -23,6 +25,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function (): void {
     Route::view('/', 'auth.landing')->name('home');
 });
+
+Route::get('/robots.txt', RobotsTxtController::class)->name('robots');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::get('/change-log', ChangeLogController::class)->name('change-log.index');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
