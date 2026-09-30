@@ -59,12 +59,13 @@ class AdminShellNavigationTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('admin.index'))
             ->assertOk()
-            ->assertSee('>Overview</a>', false)
-            ->assertSee('>Public users</a>', false)
-            ->assertSee('>Staff</a>', false)
-            ->assertSee('>Access</a>', false)
-            ->assertSee('>Plugins</a>', false)
-            ->assertSee('>Maintenance</a>', false);
+            ->assertSee('data-lucide="layout-dashboard"', false)
+            ->assertSee('>Overview</span>', false)
+            ->assertSee('>Public users</span>', false)
+            ->assertSee('>Staff</span>', false)
+            ->assertSee('>Access</span>', false)
+            ->assertSee('>Plugins</span>', false)
+            ->assertSee('>Maintenance</span>', false);
     }
 
     public function test_administrator_submenu_hides_super_admin_only_children(): void
@@ -74,12 +75,12 @@ class AdminShellNavigationTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.index'))
             ->assertOk()
-            ->assertSee('>Overview</a>', false)
-            ->assertSee('>Public users</a>', false)
-            ->assertSee('>Staff</a>', false)
-            ->assertDontSee('>Access</a>', false)
-            ->assertDontSee('>Plugins</a>', false)
-            ->assertDontSee('>Maintenance</a>', false);
+            ->assertSee('>Overview</span>', false)
+            ->assertSee('>Public users</span>', false)
+            ->assertSee('>Staff</span>', false)
+            ->assertDontSee('>Access</span>', false)
+            ->assertDontSee('>Plugins</span>', false)
+            ->assertDontSee('>Maintenance</span>', false);
     }
 
     public function test_admin_child_urls_fail_closed_without_matching_permission(): void
@@ -124,7 +125,7 @@ class AdminShellNavigationTest extends TestCase
             ->assertSee('data-kpi="enabled-modules"', false);
     }
 
-    public function test_admin_access_shell_permission_does_not_open_protected_actions(): void
+    public function test_admin_access_shell_permission_does_not_paint_admin_primary_nav(): void
     {
         $actor = User::factory()->accessLevel(User::ROLE_STAFF)->create();
         $role = Role::query()->create([
@@ -146,12 +147,39 @@ class AdminShellNavigationTest extends TestCase
         $this->actingAs($actor)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('>Admin</span>', false);
+            ->assertDontSee('>Admin</span>', false);
 
         $this->actingAs($actor)->get(route('admin.index'))->assertForbidden();
         $this->actingAs($actor)->get(route('admin.users.index'))->assertForbidden();
         $this->actingAs($actor)->get(route('admin.modules.index'))->assertForbidden();
         $this->actingAs($actor)->get(route('superadmin.index'))->assertForbidden();
+    }
+
+    public function test_admin_primary_nav_links_to_first_openable_child(): void
+    {
+        $actor = User::factory()->accessLevel(User::ROLE_STAFF)->create();
+        $role = Role::query()->create([
+            'name' => 'users-view-only',
+            'guard_name' => 'web',
+        ]);
+        $permission = Permission::query()
+            ->where('name', 'admin.users.view')
+            ->where('guard_name', 'web')
+            ->firstOrFail();
+        $role->permissions()->attach($permission->id);
+        app(AuthorizationRoleMaterializer::class)->grant(
+            $actor,
+            $role,
+            RoleSource::SOURCE_LOCAL,
+            actor: $actor,
+        );
+
+        $this->actingAs($actor)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('>Admin</span>', false)
+            ->assertSee('href="'.route('admin.users.index', ['account_type' => 'public']).'"', false)
+            ->assertDontSee('href="'.route('admin.index').'"', false);
     }
 
     public function test_superadmin_access_still_required_for_technical_overview_extras(): void

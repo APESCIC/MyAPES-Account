@@ -120,25 +120,15 @@
                             </a>
                         @endcanany
                     @endforeach
-                    @canany([
-                        'admin.access',
-                        'admin.analytics.view',
-                        'admin.users.view',
-                        'admin.groups.view',
-                        'admin.roles.view',
-                        'admin.permissions.view',
-                        'admin.modules.view',
-                        'admin.maintenance.manage',
-                        'superadmin.access',
-                    ])
-                        @php
-                            $adminNavActive = request()->routeIs('admin.*', 'superadmin.*');
-                        @endphp
-                        <a href="{{ route('admin.index') }}" @class(['primary-nav__link', 'is-active' => $adminNavActive]) @if($adminNavActive) aria-current="page" @endif>
+                    @php
+                        $adminPrimaryNav = app(\App\Support\AdminPrimaryNav::class)->forUser(auth()->user());
+                    @endphp
+                    @if($adminPrimaryNav !== null)
+                        <a href="{{ $adminPrimaryNav['url'] }}" @class(['primary-nav__link', 'is-active' => $adminPrimaryNav['active']]) @if($adminPrimaryNav['active']) aria-current="page" @endif>
                             <i data-lucide="settings" aria-hidden="true"></i>
                             <span>{{ __('public.chrome.app.blade.admin') }}</span>
                         </a>
-                    @endcanany
+                    @endif
                 @else
                     @foreach($publicPluginNavigation ?? [] as $publicPluginNav)
                         <a href="{{ route($publicPluginNav->routeName) }}" @class(['primary-nav__link', 'is-active' => request()->routeIs($publicPluginNav->routeIsPattern)]) @if(request()->routeIs($publicPluginNav->routeIsPattern)) aria-current="page" @endif>

@@ -103,8 +103,8 @@ class RecruitmentDualFrontendIaMatrixTest extends TestCase
                 ->get(route('apes-cic.recruitment.index'))
                 ->assertOk()
                 ->assertSee('aria-label="Recruitment manage sections"', false)
-                ->assertSee('>Roles</a>', false)
-                ->assertSee('>Applications</a>', false)
+                ->assertSee('>Roles</span>', false)
+                ->assertSee('>Applications</span>', false)
                 ->assertSee('href="'.route('apes-cic.recruitment.applications.index').'"', false)
                 ->assertSee('>Recruit manage</span>', false);
 
@@ -112,8 +112,8 @@ class RecruitmentDualFrontendIaMatrixTest extends TestCase
                 ->get(route('apes-cic.recruitment.applications.index'))
                 ->assertOk()
                 ->assertSee('aria-label="Recruitment manage sections"', false)
-                ->assertSee('>Roles</a>', false)
-                ->assertSee('>Applications</a>', false)
+                ->assertSee('>Roles</span>', false)
+                ->assertSee('>Applications</span>', false)
                 ->assertDontSee('aria-label="Recruitment sections"', false)
                 ->assertDontSeeText('My applications');
         }
@@ -145,8 +145,8 @@ class RecruitmentDualFrontendIaMatrixTest extends TestCase
             ->get(route('apes-cic.recruitment.applications.index'))
             ->assertOk()
             ->assertSee('aria-label="Recruitment manage sections"', false)
-            ->assertSee('>Applications</a>', false)
-            ->assertDontSee('>Roles</a>', false)
+            ->assertSee('>Applications</span>', false)
+            ->assertDontSee('>Roles</span>', false)
             ->assertDontSeeText('My applications');
 
         $this->actingAs($hr)
