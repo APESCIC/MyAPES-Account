@@ -3,12 +3,18 @@
         <a
             href="{{ route('apes-cic.recruitment.index') }}"
             @if(request()->routeIs('apes-cic.recruitment.*') && ! request()->routeIs('apes-cic.recruitment.applications.*')) aria-current="page" @endif
-        >{{ __('terms.recruitment_roles') }}</a>
+        >
+            <i data-lucide="clipboard-list" aria-hidden="true"></i>
+            <span>{{ __('terms.recruitment_roles') }}</span>
+        </a>
     @endcanany
     @canany(['apes-cic.recruitment.view-all', 'apes-cic.recruitment.review-applications'])
         <a
             href="{{ route('apes-cic.recruitment.applications.index') }}"
             @if(request()->routeIs('apes-cic.recruitment.applications.*')) aria-current="page" @endif
-        >{{ __('terms.applications') }}</a>
+        >
+            <i data-lucide="inbox" aria-hidden="true"></i>
+            <span>{{ __('terms.applications') }}</span>
+        </a>
     @endcanany
 </nav>
