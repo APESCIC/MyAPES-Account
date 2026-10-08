@@ -26,7 +26,10 @@
                                 <a
                                     href="{{ $module->viewUrl() }}"
                                     data-hub-module-label="{{ $module->moduleKey }}"
-                                >{{ $module->label }}</a>
+                                >
+                                    <i data-lucide="{{ $module->icon }}" aria-hidden="true"></i>
+                                    <span>{{ $module->label }}</span>
+                                </a>
                             </li>
                         @endforeach
                     </ul>
