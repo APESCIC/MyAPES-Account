@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-25
 - **Issue:** [#279](https://github.com/APESCIC/MyAPES-Account/issues/279)
-- **Epic:** [#278](https://github.com/APESCIC/MyAPES-Account/issues/278) (milestone v0.37.0 Beta)
+- **Epic:** [#278](https://github.com/APESCIC/MyAPES-Account/issues/278) (milestone v0.37.11 Beta)
 - **Inventory:** [docs/architecture-inventory.md](../architecture-inventory.md) ([#280](https://github.com/APESCIC/MyAPES-Account/issues/280))
 
 ## Context
