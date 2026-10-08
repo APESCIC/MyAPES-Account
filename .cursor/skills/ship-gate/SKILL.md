@@ -224,7 +224,7 @@ node scripts/local/backfill-github-releases.mjs --from=$version --resume
 
 To retroactively fix display titles on existing releases: `bash scripts/github/rename-release-titles.sh`
 
-To align GitHub milestones with the AGENTS.md minor-line convention (`v0.N.x Beta`), including closed historical ≤0.30 lines from `releases.json` and product milestones #1–#9:
+To align GitHub milestones with the AGENTS.md full-version convention (`v0.N.P Beta`), including closed historical ≤0.30 lines from `releases.json` and product milestones #1–#9 (open milestones are re-projected by hand when their scope changes):
 
 ```powershell
 bash scripts/github/migrate-beta-milestones.sh

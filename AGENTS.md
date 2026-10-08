@@ -2,26 +2,27 @@
 
 ## Implement order
 
-`main` holds the merged stack through **v0.39.x** (Account security). **`v0.34.x Beta`** through **`v0.38.x Beta`** are **closed**. See [docs/architecture.md](docs/architecture.md) and [docs/developer-guide.md](docs/developer-guide.md).
+`main` holds the merged stack through **v0.39.x** (Account security). **`v0.34.4 Beta`** through **`v0.38.9 Beta`** are **closed**. See [docs/architecture.md](docs/architecture.md) and [docs/developer-guide.md](docs/developer-guide.md).
 
 Do not reopen Access/RBAC or password-pack feature PRs for work already on `main` (#97–#99, #142, #121, #147, #148, #122, #133). Do not reopen Account security feature PRs for work already on `main` (#225–#234).
 
 ## GitHub milestones
 
-Use **minor-line** milestones with a **Beta** suffix until the product exits beta:
+Use one milestone per **minor line**, titled with a **full version** and a **Beta** suffix until the product exits beta:
 
-- Format: `v{major}.{minor}.x Beta` (for example `v0.32.x Beta`)
-- **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone
-- **Minor** bump (`0.32.x` → `0.33.0`): close the completed `v0.32.x Beta` milestone when its issues are done; assign new work to `v0.33.x Beta`
-- Closed historical lines: `v0.1.x Beta` through `v0.38.x Beta` (completed releases)
-- **Current completed line:** `v0.39.x Beta` (Account security — auth emails, step-up, password/username/verify hardening, secure email change, TOTP, passkeys, PHPUnit matrix)
-- **Completed product lines:** `v0.31.x`–`v0.39.x Beta` are all closed (milestone titles use `v0.N.x Beta`; historical ≤0.30 lines are closed archaeology milestones)
-- **Active backlog:** none open — open the next `v0.(N+1).x Beta` milestone only when planning the next product line
+- Format: `v{major}.{minor}.{patch} Beta` (for example `v0.32.14 Beta`)
+- **Closed** milestones carry the **last version shipped** on that line (from `resources/data/releases.json`)
+- **Open** milestones carry the **projected final version**: `0.N.(non-epic issues − 1)` — the first story ships `0.N.0` and each further story ships the next patch. Rename the open milestone whenever its scope changes, and rename it to the real last shipped version when it closes
+- **Patch** releases (`0.32.1`, `0.32.2`, …) stay on the same minor-line milestone; a patch outside the plan (for example ops hygiene) bumps the projected title
+- **Minor** bump (`0.32.x` → `0.33.0`): close the completed milestone (renamed to its last shipped version) when its issues are done; assign new work to the next minor line
+- Closed historical lines: `v0.1.0 Beta` through `v0.30.0 Beta` (archaeology milestones, one per minor line)
+- **Completed product lines:** `v0.31.12`, `v0.32.14`, `v0.33.7`, `v0.34.4`, `v0.35.1`, `v0.36.2`, `v0.37.11`, `v0.38.9`, `v0.39.10 Beta` (Account security plus nav cleanup #331 and this milestone convention #377)
+- **Active backlog (projected):** `v0.40.7 Beta` Card spacing & page polish → `v0.41.7 Beta` Unified Recruitment menu → `v0.42.11 Beta` Email templates & outbound mail → `v0.43.10 Beta` Language & keywords expansion
 - **Ship order (complete):** `v0.35` Admin shell → `v0.36` Recruitment IA → `v0.37` Structure → `v0.38` Language → `v0.39` Account security (milestones **7 → 9 → 8 → 5**)
 
-Planning lists below still describe feature order; map issues to the semver minor-line milestone above.
+Planning lists below still describe feature order; map issues to the minor-line milestone above.
 
-### v1.0.0 Beta (`v0.31.x Beta`, closed) — complete on live v0.31.2
+### v1.0.0 Beta (`v0.31.12 Beta`, closed) — complete on live v0.31.2
 
 1. #91 RBAC epic — closed; code on `main` via #120 / #156 / #157
 2. #97 Access admin UX — merged (#120)
@@ -36,7 +37,7 @@ Planning lists below still describe feature order; map issues to the semver mino
 11. #122 Changelog Internal-only leak — merged (#164)
 12. #133 Stale `/superadmin/*` 404s — merged (#165)
 
-### v1.1.0 Beta: Public UX & compliance (`v0.32.x Beta`, closed)
+### v1.1.0 Beta: Public UX & compliance (`v0.32.14 Beta`, closed)
 
 1. #128 Branded 404 and 403
 2. #130 Signed-in home still shows login doors
@@ -53,7 +54,7 @@ Planning lists below still describe feature order; map issues to the semver mino
 13. #126 SECURITY.md
 14. #127 Compress Spike/logo PNGs
 
-### v1.2.0 Beta: Staff UX (`v0.33.x Beta`, closed)
+### v1.2.0 Beta: Staff UX (`v0.33.7 Beta`, closed)
 
 1. #136 Hub Create/View URLs (incl. `/shelter/pet-profiles`)
 2. #143 Empty pet dropdown on create forms
@@ -67,7 +68,7 @@ Planning lists below still describe feature order; map issues to the semver mino
 10. #140 Group member counts clickable
 11. #145 Groups last-sync as-of
 
-### v1.3.0 Beta: Recruitment (`v0.34.x Beta`)
+### v1.3.0 Beta: Recruitment (`v0.34.4 Beta`)
 
 Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`).
 
@@ -86,7 +87,7 @@ Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`).
 13. #223 Staff review applications
 14. #224 PHPUnit — APES CIC recruitment manage paths
 
-### v1.4.0 Beta: Unified Admin shell + plugin settings (`v0.35.x Beta`, closed)
+### v1.4.0 Beta: Unified Admin shell + plugin settings (`v0.35.1 Beta`, closed)
 
 Ship order vs neighbors: **v0.35 → v0.36 → v0.37 Structure → v0.38 Language → v0.39 Account security**. One primary Admin nav with a permission-gated page submenu; never weaken `admin.*` / `superadmin.access` action middleware. Legacy `/superadmin` redirects into Admin.
 
@@ -114,7 +115,7 @@ Tickets and cases on `apes-cic` remain the `websites_categories` reference. Recr
 7. #255 Recruitment (+ remaining plugins) settings pages
 8. #254 PHPUnit Admin shell + plugin settings matrix
 
-### v1.5.0 Beta: Recruitment dual-frontend IA (`v0.36.x Beta`)
+### v1.5.0 Beta: Recruitment dual-frontend IA (`v0.36.2 Beta`)
 
 Ship order vs neighbors: **v0.35 → v0.36 → v0.37 Structure → v0.38 Language → v0.39 Account security**. Ship only on `apes-cic`. Model name is `RecruitmentRole` (never Spatie `Role`). Copy uses openings / **Open roles**, not Access “Roles”.
 
@@ -133,7 +134,7 @@ Public URLs stay stable (`/recruitment`, `/recruitment/{id}`, `/recruitment/appl
 7. #259 Staff applications review IA + HR permissions
 8. #261 PHPUnit recruitment dual-frontend IA matrix
 
-### v1.6.0 Beta: Structure — Core > Modules > Plugins (`v0.37.x Beta`, closed)
+### v1.6.0 Beta: Structure — Core > Modules > Plugins (`v0.37.11 Beta`, closed)
 
 Shipped after Recruitment IA. Docs: [docs/architecture.md](docs/architecture.md), [ADR 0001](docs/adr/0001-core-modules-plugins.md), [docs/architecture-inventory.md](docs/architecture-inventory.md), [docs/developer-guide.md](docs/developer-guide.md).
 
@@ -148,7 +149,7 @@ Shipped after Recruitment IA. Docs: [docs/architecture.md](docs/architecture.md)
 4. #281 Folder, namespace, and autoload layout
 5. #282–#295 contracts, enablement, modules, plugin moves, arch hard-fail, generators
 
-### v1.7.0 Beta: Language & keywords (`v0.38.x Beta`, closed)
+### v1.7.0 Beta: Language & keywords (`v0.38.9 Beta`, closed)
 
 Shipped after Structure. Docs: [docs/localisation.md](docs/localisation.md), [docs/glossary.md](docs/glossary.md).
 
@@ -159,7 +160,7 @@ Shipped after Structure. Docs: [docs/localisation.md](docs/localisation.md), [do
 1. #264 Epic — closed with Wave 4
 2. #265–#276 baseline, glossary, inventory, namespaces, extraction, SEO/keywords, locale + CI hard-fail
 
-### v1.8.0 Beta: Account security (`v0.39.x Beta`, closed)
+### v1.8.0 Beta: Account security (`v0.39.10 Beta`, closed)
 
 Shipped after Language. Auth emails, step-up, password/username/verify hardening, secure email change, custom TOTP + recovery, passkeys (`laravel/passkeys`), PHPUnit account-security matrix. No Fortify. Local password MFA only; Cloudron OIDC doors unchanged.
 
@@ -185,7 +186,7 @@ When creating or updating a task, fill the GitHub sidebar completely (templates 
    - **Labels:** `area:` only — `area:auth`, `area:admin`, `area:public`, `area:cloudron`, `area:tests`. Do not use `type:` or `priority:` labels. GitHub Issue Type and Priority/Effort fields cover type and priority.
    - **Type:** `Task`, `Bug`, or `Feature`
    - **Fields:** Priority (`Urgent` / `High` / `Medium` / `Low`), Effort (`High` / `Medium` / `Low`); Start date and Target date when known
-   - **Milestone:** the active minor-line Beta milestone — `v0.N.x Beta` (see **GitHub milestones** below). Patch work stays on the current minor-line milestone; open the next `v0.(N+1).x Beta` when `changelog-prepare --type=minor` ships and the previous line is complete.
+   - **Milestone:** the active minor-line Beta milestone — `v0.N.P Beta` (see **GitHub milestones** above). Patch work stays on the current minor-line milestone (re-project its title if the patch count changes); open the next minor-line milestone when `changelog-prepare --type=minor` ships and the previous line is complete.
 3. **Relationships:** link parent/sub-issues with `sub_issue_write`. Record blocked-by when there is a real dependency.
 4. **Development:** branch `cursor/{feature|fix|chore}/<issue-number>-<short-slug>` and open the PR with `Fixes #<n>` or `Closes #<n>` so GitHub links the PR in Development.
 5. Comment progress, blockers, and the branch/PR on the issue. Close with `state_reason` `completed`, `not_planned`, or `duplicate`.

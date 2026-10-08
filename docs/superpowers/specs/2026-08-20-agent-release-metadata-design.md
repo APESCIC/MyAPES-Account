@@ -52,7 +52,7 @@ Feature/fix complete
 
 - Deploy workflow stamps GitHub Deployments with `{VERSION} Beta` (no SHA in the title)
 - Successful deploy publishes GitHub Release `{VERSION} Beta` (display name) with tag `v{VERSION}` on the deployed SHA; feature title remains in release body
-- Issue milestones use minor-line `v0.N.x Beta` naming until beta exit
+- Issue milestones are one per minor line, titled with a full version (`v0.N.P Beta`: projected final patch while open, last shipped patch once closed) until beta exit
 - One-time `scripts/github/rename-release-titles.sh` renames existing GitHub Release display titles to `{VERSION} Beta`
 
 ## Later change (#189)
